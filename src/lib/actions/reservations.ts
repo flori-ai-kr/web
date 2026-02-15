@@ -164,11 +164,11 @@ async function _convertReservationToSale(
   saleFormData.set('reservation_id', reservationId);
   const sale = await createSale(saleFormData);
 
-  // 3. 예약 상태 업데이트: completed + sale_id 연결
+  // 3. 예약 상태 업데이트: confirmed (매출 연결) + sale_id 연결
   await supabase
     .from('reservations')
     .update({
-      status: 'completed',
+      status: 'confirmed',
       sale_id: sale.id,
       updated_at: new Date().toISOString(),
     })
