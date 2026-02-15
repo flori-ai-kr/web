@@ -39,6 +39,8 @@ src/
 │   │   ├── sales-client.tsx       # 메인 컨테이너 (상태 관리)
 │   │   └── components/            # SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog
 │   ├── expenses/        # 지출
+│   │   ├── expenses-client.tsx    # 메인 컨테이너
+│   │   └── components/            # ExpensesList
 │   ├── customers/       # 고객
 │   │   ├── customers-client.tsx   # 메인 컨테이너
 │   │   └── components/            # CustomerCard, CustomerFormDialog, CustomerDetailDialog
