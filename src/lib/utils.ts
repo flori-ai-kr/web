@@ -77,19 +77,23 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// KST(UTC+9) 기준 오늘 날짜 (yyyy-MM-dd)
+export function getTodayKST(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+}
+
+// KST 기준 현재 연/월 (yyyy-MM)
+export function getCurrentMonthKST(): string {
+  return getTodayKST().slice(0, 7);
+}
+
 // 월 기준 시작일/종료일 계산 (Server Action에서 공통 사용)
 export function getMonthDateRange(month?: string): { startDate: string; endDate: string } {
-  if (month) {
-    const [year, m] = month.split('-').map(Number);
-    return {
-      startDate: new Date(year, m - 1, 1).toISOString().split('T')[0],
-      endDate: new Date(year, m, 0).toISOString().split('T')[0],
-    };
-  }
-  const now = new Date();
+  const target = month || getCurrentMonthKST();
+  const [year, m] = target.split('-').map(Number);
   return {
-    startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
+    startDate: `${year}-${String(m).padStart(2, '0')}-01`,
+    endDate: `${year}-${String(m).padStart(2, '0')}-${new Date(year, m, 0).getDate()}`,
   };
 }
 

@@ -10,7 +10,7 @@ import type {
   ExpenseCategoryStat,
 } from './statistics';
 import { withErrorLogging } from '@/lib/errors';
-import { getMonthDateRange } from '@/lib/utils';
+import { getMonthDateRange, getTodayKST } from '@/lib/utils';
 import { PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS } from '@/lib/constants';
 
 export interface DashboardSummary {
@@ -26,7 +26,7 @@ export interface DashboardSummary {
 
 async function _getTodaySummary(): Promise<DashboardSummary> {
   const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
 
   const { data: sales, error } = await supabase
     .from('sales')
@@ -163,7 +163,7 @@ export interface DashboardTodayData {
 /** 오늘 대시보드 데이터를 단일 Server Action으로 조회 (4개 병렬 DB 쿼리) */
 async function _getDashboardTodayData(): Promise<DashboardTodayData> {
   const supabase = await createClient();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayKST();
 
   const [salesRes, reservationsRes, recentRes, categoriesRes] = await Promise.all([
     supabase.from('sales').select('amount, payment_method, deposit_status').eq('date', today),
