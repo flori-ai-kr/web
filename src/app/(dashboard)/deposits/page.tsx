@@ -221,10 +221,10 @@ export default function DepositsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start sm:items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">입금 대조</h1>
-          <p className="text-sm text-muted-foreground mt-1 hidden sm:block">카드로 결제받은 금액이 통장에 들어왔는지 확인하는 곳이에요</p>
+          <p className="text-sm text-muted-foreground mt-1">카드로 결제받은 금액이 통장에 들어왔는지 확인하는 곳이에요</p>
         </div>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-[130px] sm:w-[150px] bg-background shrink-0">
@@ -448,7 +448,7 @@ export default function DepositsPage() {
                                     />
                                   </TableCell>
                                   <TableCell className="text-muted-foreground tabular-nums">
-                                    {format(new Date(sale.date), 'M/d')}
+                                    {format(new Date(sale.date), 'yy/MM/dd')}
                                   </TableCell>
                                   <TableCell className="font-medium text-foreground max-w-[200px]">
                                     <div className="flex items-center gap-1.5">
@@ -487,7 +487,7 @@ export default function DepositsPage() {
                                   </TableCell>
                                   <TableCell className="text-muted-foreground text-sm tabular-nums">
                                     {sale.expected_deposit_date
-                                      ? format(new Date(sale.expected_deposit_date), 'M/d')
+                                      ? format(new Date(sale.expected_deposit_date), 'yy/MM/dd')
                                       : '-'}
                                   </TableCell>
                                 </TableRow>
@@ -520,7 +520,7 @@ export default function DepositsPage() {
                                     </p>
                                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                       <span className="text-xs text-muted-foreground tabular-nums">
-                                        {format(new Date(sale.date), 'M/d')}
+                                        {format(new Date(sale.date), 'yy/MM/dd')}
                                       </span>
                                       {sale.card_company && (
                                         <Badge variant="outline" className="text-[10px] font-normal h-4 px-1.5">
@@ -532,7 +532,7 @@ export default function DepositsPage() {
                                       )}
                                       {sale.expected_deposit_date && (
                                         <span className="text-xs text-amber-600 tabular-nums">
-                                          {format(new Date(sale.expected_deposit_date), 'M/d')} 예정
+                                          {format(new Date(sale.expected_deposit_date), 'yy/MM/dd')} 예정
                                         </span>
                                       )}
                                     </div>
@@ -596,7 +596,7 @@ export default function DepositsPage() {
                             {filteredCompleted.map((sale) => (
                               <TableRow key={sale.id} className="hover:bg-muted/50 transition-colors">
                                 <TableCell className="text-muted-foreground tabular-nums pl-4">
-                                  {format(new Date(sale.date), 'M/d')}
+                                  {format(new Date(sale.date), 'yy/MM/dd')}
                                 </TableCell>
                                 <TableCell className="font-medium text-foreground max-w-[200px] truncate">
                                   {sale.product_name}
@@ -614,7 +614,7 @@ export default function DepositsPage() {
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-sm tabular-nums">
                                   {sale.deposited_at
-                                    ? format(new Date(sale.deposited_at), 'M/d')
+                                    ? format(new Date(sale.deposited_at), 'yy/MM/dd')
                                     : '-'}
                                 </TableCell>
                                 <TableCell className="pr-4">
@@ -651,7 +651,7 @@ export default function DepositsPage() {
                               </p>
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <span className="text-xs text-muted-foreground">
-                                  {format(new Date(sale.date), 'M/d')}
+                                  {format(new Date(sale.date), 'yy/MM/dd')}
                                 </span>
                                 {sale.card_company && (
                                   <Badge variant="outline" className="text-[10px] font-normal h-4 px-1.5">
@@ -660,7 +660,7 @@ export default function DepositsPage() {
                                 )}
                                 {sale.deposited_at && (
                                   <span className="text-xs text-emerald-600">
-                                    {format(new Date(sale.deposited_at), 'M/d')} 입금
+                                    {format(new Date(sale.deposited_at), 'yy/MM/dd')} 입금
                                   </span>
                                 )}
                               </div>

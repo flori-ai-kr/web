@@ -27,6 +27,7 @@ export {
   deleteCustomer,
   findOrCreateCustomer,
   getCustomerSales,
+  checkPhoneDuplicate,
 } from './customers';
 
 // Dashboard

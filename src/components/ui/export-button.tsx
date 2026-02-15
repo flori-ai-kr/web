@@ -18,9 +18,10 @@ interface ExportButtonProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getExportConfig: () => ExportConfig<any>;
   disabled?: boolean;
+  className?: string;
 }
 
-export function ExportButton({ getExportConfig, disabled }: ExportButtonProps) {
+export function ExportButton({ getExportConfig, disabled, className }: ExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
@@ -60,7 +61,7 @@ export function ExportButton({ getExportConfig, disabled }: ExportButtonProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={disabled || isExporting} aria-label="내보내기">
+        <Button variant="outline" disabled={disabled || isExporting} aria-label="내보내기" className={className}>
           {isExporting ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (

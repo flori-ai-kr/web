@@ -159,7 +159,7 @@ export function DashboardClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">대시보드</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -383,8 +383,8 @@ export function DashboardClient() {
                     className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-10 tabular-nums shrink-0">
-                        {format(new Date(sale.date), 'M/d')}
+                      <span className="text-xs text-muted-foreground w-16 tabular-nums shrink-0">
+                        {format(new Date(sale.date), 'yy/MM/dd')}
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">

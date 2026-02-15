@@ -219,14 +219,14 @@ export function ExpensesClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">지출 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">지출 내역을 등록하고 관리하세요</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ExportButton getExportConfig={getExportConfig} />
-          <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+          <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }} className="flex-1 sm:flex-initial">
             <Plus className="w-4 h-4 mr-2" />
             지출 등록
           </Button>
@@ -424,7 +424,7 @@ export function ExpensesClient({
                     className="cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
                     onClick={() => handleSelectExpense(expense)}
                   >
-                    <TableCell className="text-muted-foreground pl-6">{format(new Date(expense.date), 'M/d (E)', { locale: ko })}</TableCell>
+                    <TableCell className="text-muted-foreground pl-6">{format(new Date(expense.date), 'yy/MM/dd (E)', { locale: ko })}</TableCell>
                     <TableCell>
                       <span
                         className="px-2 py-1 text-xs font-medium rounded-md"
@@ -523,7 +523,7 @@ export function ExpensesClient({
                     <span className="font-semibold text-foreground truncate max-w-[180px]">{expense.item_name}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <span className="text-muted-foreground flex-shrink-0">{format(new Date(expense.date), 'M/d')}</span>
+                    <span className="text-muted-foreground flex-shrink-0">{format(new Date(expense.date), 'yy/MM/dd')}</span>
                     <span
                       className="px-2 py-0.5 text-xs font-medium rounded flex-shrink-0"
                       style={{

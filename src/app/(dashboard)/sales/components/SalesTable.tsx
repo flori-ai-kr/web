@@ -92,7 +92,7 @@ export function SalesTable({
                     className="cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
                     onClick={() => onSelectSale(sale)}
                   >
-                    <TableCell className="text-muted-foreground pl-6">{format(new Date(sale.date), 'M/d (E)', { locale: ko })}</TableCell>
+                    <TableCell className="text-muted-foreground pl-6">{format(new Date(sale.date), 'yy/MM/dd (E)', { locale: ko })}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span
@@ -219,7 +219,7 @@ export function SalesTable({
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <span className="text-muted-foreground flex-shrink-0">{format(new Date(sale.date), 'M/d')}</span>
+                    <span className="text-muted-foreground flex-shrink-0">{format(new Date(sale.date), 'yy/MM/dd')}</span>
                     <span
                       className="px-2 py-0.5 text-xs font-medium rounded flex-shrink-0"
                       style={{
