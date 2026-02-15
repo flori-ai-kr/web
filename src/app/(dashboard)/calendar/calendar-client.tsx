@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   format,
   startOfMonth,
@@ -16,7 +16,7 @@ import {
   isToday,
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2, Loader2, ShoppingBag, ExternalLink, BellRing } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2, Loader2, ExternalLink, BellRing, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -39,8 +32,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
-import { CHANNEL_LABELS } from '@/lib/constants';
+import { cn, formatPhoneNumber } from '@/lib/utils';
+import { CustomerAutocomplete } from '@/components/sales/CustomerAutocomplete';
 
 import {
   getReservations,
@@ -49,36 +42,60 @@ import {
   deleteReservation,
   convertReservationToSale,
 } from '@/lib/actions/reservations';
+import { checkPhoneDuplicate } from '@/lib/actions';
 import { getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
+import type { SaleCategory, PaymentMethod as PaymentMethodType } from '@/lib/actions/sale-settings';
 import type { Reservation, ReservationStatus } from '@/types/database';
-import { RESERVATION_STATUS } from '@/types/database';
-import type { SaleCategory, PaymentMethod } from '@/lib/actions/sale-settings';
+import { CHANNEL_LABELS } from '@/lib/constants';
 
 function formatCurrency(amount: number): string {
   if (!amount) return '';
   return new Intl.NumberFormat('ko-KR').format(amount) + '원';
 }
 
-// channelLabels → CHANNEL_LABELS (@/lib/constants)
-const channelLabels = CHANNEL_LABELS;
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES_5 = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
-const statusColors: Record<ReservationStatus, string> = {
-  pending: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
-  confirmed: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
-  completed: 'bg-sage-muted text-sage border-sage/30',
-  cancelled: 'bg-muted text-muted-foreground border-border',
-};
-
-const statusDotColors: Record<ReservationStatus, string> = {
-  pending: 'bg-yellow-500',
-  confirmed: 'bg-blue-500',
-  completed: 'bg-sage',
-  cancelled: 'bg-muted-foreground',
-};
+function TimeSelect({ value, onChange, className, disabled }: {
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
+  disabled?: boolean;
+}) {
+  const [h, m] = value ? value.split(':') : ['', ''];
+  return (
+    <div className={cn('flex gap-1 items-center', className)}>
+      <select
+        value={h}
+        onChange={(e) => onChange(`${e.target.value}:${m || '00'}`)}
+        disabled={disabled}
+        className="flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        aria-label="시"
+      >
+        <option value="">시</option>
+        {HOURS.map((hour) => (
+          <option key={hour} value={hour}>{hour}</option>
+        ))}
+      </select>
+      <span className="text-muted-foreground text-sm">:</span>
+      <select
+        value={m}
+        onChange={(e) => onChange(`${h || '00'}:${e.target.value}`)}
+        disabled={disabled}
+        className="flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        aria-label="분"
+      >
+        <option value="">분</option>
+        {MINUTES_5.map((min) => (
+          <option key={min} value={min}>{min}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export function CalendarClient() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -94,29 +111,21 @@ export function CalendarClient() {
     time: '',
     description: '',
     estimated_amount: '',
-    status: 'pending' as ReservationStatus,
+    product_category: '',
+    payment_method: '',
+    reservation_channel: 'other',
     reminder_date: '',
     reminder_time: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sale settings
+  const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
+  const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
+
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Sale conversion dialog
-  const [saleTarget, setSaleTarget] = useState<Reservation | null>(null);
-  const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
-  const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethod[]>([]);
-  const [saleForm, setSaleForm] = useState({
-    product_category: '',
-    amount: '',
-    payment_method: '',
-    reservation_channel: 'other',
-    note: '',
-  });
-  const [isSaleLoading, setIsSaleLoading] = useState(false);
-  const [isSaleSubmitting, setIsSaleSubmitting] = useState(false);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -132,110 +141,42 @@ export function CalendarClient() {
   }, [monthStr]);
 
   useEffect(() => {
-    fetchReservations();
+    const load = async () => { await fetchReservations(); };
+    load();
   }, [fetchReservations]);
 
-  // URL 파라미터로 매출 등록 모달 자동 오픈 (대시보드에서 연결)
+  // 카테고리/결제방식 1회 로드
   useEffect(() => {
-    const action = searchParams.get('action');
-    const reservationId = searchParams.get('reservationId');
-    const dateParam = searchParams.get('date');
-
-    if (action === 'sale' && reservationId && dateParam) {
-      setSelectedDate(new Date(dateParam));
-      setCurrentMonth(new Date(dateParam));
-    }
-  }, [searchParams]);
-
-  // reservations 로드 후 URL 파라미터의 예약을 찾아 모달 오픈
-  useEffect(() => {
-    const reservationId = searchParams.get('reservationId');
-    const action = searchParams.get('action');
-    if (action === 'sale' && reservationId && reservations.length > 0) {
-      const target = reservations.find(r => r.id === reservationId);
-      if (target && !target.sale_id && target.status !== 'completed' && target.status !== 'cancelled') {
-        openSaleModal(target);
-        // URL 파라미터 정리
-        router.replace('/calendar', { scroll: false });
-      }
-    }
-  }, [reservations, searchParams, router]);
-
-  // 매출 등록 모달 열기
-  async function openSaleModal(reservation: Reservation) {
-    setSaleTarget(reservation);
-    setSaleForm({
-      product_category: '',
-      amount: reservation.estimated_amount ? String(reservation.estimated_amount) : '',
-      payment_method: '',
-      reservation_channel: 'other',
-      note: '',
-    });
-
-    // 카테고리/결제방식 로드 (최초 1회만)
-    if (saleCategories.length === 0) {
-      setIsSaleLoading(true);
+    const loadSettings = async () => {
       try {
-        const [cats, payments] = await Promise.all([
-          getSaleCategories(),
-          getPaymentMethods(),
-        ]);
+        const [cats, payments] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
         setSaleCategories(cats);
         setSalePaymentMethods(payments);
-      } catch {
-        toast.error('매출 설정을 불러오지 못했습니다');
-      } finally {
-        setIsSaleLoading(false);
-      }
-    }
-  }
+      } catch { /* ignore */ }
+    };
+    loadSettings();
+  }, []);
 
-  // 매출 등록 처리
-  async function handleSaleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!saleTarget) return;
-
-    if (!saleForm.product_category) {
-      toast.error('상품 카테고리를 선택해주세요');
-      return;
-    }
-    if (!saleForm.amount || parseInt(saleForm.amount) <= 0) {
-      toast.error('금액을 입력해주세요');
-      return;
-    }
-    if (!saleForm.payment_method) {
-      toast.error('결제방식을 선택해주세요');
-      return;
-    }
-
-    setIsSaleSubmitting(true);
-
-    const formData = new FormData();
-    formData.set('date', saleTarget.date);
-    formData.set('product_category', saleForm.product_category);
-    formData.set('amount', saleForm.amount);
-    formData.set('payment_method', saleForm.payment_method);
-    formData.set('reservation_channel', saleForm.reservation_channel);
-    formData.set('note', saleForm.note || '');
-    formData.set('deposit_status', saleForm.payment_method === 'card' ? 'pending' : 'not_applicable');
-
-    if (saleTarget.customer_name) {
-      formData.set('customer_name', saleTarget.customer_name);
-    }
-    if (saleTarget.customer_phone) {
-      formData.set('customer_phone', saleTarget.customer_phone);
-    }
-
+  // 제작 완료 토글
+  async function toggleCompletion(reservation: Reservation) {
+    const newStatus: ReservationStatus = reservation.status === 'completed' ? 'pending' : 'completed';
     try {
-      await convertReservationToSale(saleTarget.id, formData);
-      toast.success('매출이 등록되고 예약이 완료 처리되었습니다');
-      setSaleTarget(null);
+      await updateReservation(reservation.id, {
+        date: reservation.date,
+        time: reservation.time || '',
+        customer_name: reservation.customer_name,
+        customer_phone: reservation.customer_phone || '',
+        title: reservation.title,
+        description: reservation.description || '',
+        estimated_amount: reservation.estimated_amount,
+        status: newStatus,
+        reminder_at: reservation.reminder_at,
+      });
+      toast.success(newStatus === 'completed' ? '제작이 완료되었습니다' : '제작 완료가 취소되었습니다');
       fetchReservations();
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : '매출 등록에 실패했습니다');
+      toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
-
-    setIsSaleSubmitting(false);
   }
 
   // Calendar grid
@@ -271,6 +212,16 @@ export function CalendarClient() {
     return reservationsByDate.get(key) || [];
   }, [selectedDate, reservationsByDate]);
 
+  // Count reservations for current month
+  const currentMonthReservationCount = useMemo(() => {
+    return reservations.length;
+  }, [reservations]);
+
+  // 제작 필요 수 (status !== 'completed')
+  const pendingCount = useMemo(() => {
+    return reservations.filter(r => r.status !== 'completed').length;
+  }, [reservations]);
+
   function resetForm() {
     setFormData({
       title: '',
@@ -279,7 +230,9 @@ export function CalendarClient() {
       time: '',
       description: '',
       estimated_amount: '',
-      status: 'pending',
+      product_category: '',
+      payment_method: '',
+      reservation_channel: 'other',
       reminder_date: '',
       reminder_time: '',
     });
@@ -296,7 +249,9 @@ export function CalendarClient() {
       time: reservation.time?.slice(0, 5) || '',
       description: reservation.description || '',
       estimated_amount: reservation.estimated_amount ? String(reservation.estimated_amount) : '',
-      status: reservation.status as ReservationStatus,
+      product_category: '',
+      payment_method: '',
+      reservation_channel: 'other',
       reminder_date: reservation.reminder_at ? reservation.reminder_at.slice(0, 10) : '',
       reminder_time: reservation.reminder_at ? reservation.reminder_at.slice(11, 16) : '',
     });
@@ -309,8 +264,44 @@ export function CalendarClient() {
       toast.error('제목을 입력해주세요');
       return;
     }
+    if (!formData.customer_name.trim()) {
+      toast.error('고객명을 입력해주세요');
+      return;
+    }
+    if (!formData.time) {
+      toast.error('시간을 입력해주세요');
+      return;
+    }
+    if (!formData.customer_phone.trim()) {
+      toast.error('전화번호를 입력해주세요');
+      return;
+    }
+    if (!formData.estimated_amount || parseInt(formData.estimated_amount) <= 0) {
+      toast.error('예상 금액을 입력해주세요');
+      return;
+    }
+    if (!editingId && !formData.product_category) {
+      toast.error('상품 카테고리를 선택해주세요');
+      return;
+    }
+    if (!editingId && !formData.payment_method) {
+      toast.error('결제방식을 선택해주세요');
+      return;
+    }
 
     setIsSaving(true);
+
+    // 전화번호 중복 체크 (다른 고객의 번호인지 확인)
+    try {
+      const existing = await checkPhoneDuplicate(formData.customer_phone);
+      if (existing && existing.name !== formData.customer_name.trim()) {
+        toast.error(`이 전화번호는 "${existing.name}" 고객에게 등록되어 있습니다`);
+        setIsSaving(false);
+        return;
+      }
+    } catch {
+      // 중복 체크 실패 시 계속 진행
+    }
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
     // 리마인더 날짜+시간 → ISO 8601 (KST +09:00)
@@ -330,12 +321,13 @@ export function CalendarClient() {
           title: formData.title,
           description: formData.description || null,
           estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : 0,
-          status: formData.status,
+          status: 'pending',
           reminder_at: reminderAt,
         });
         toast.success('예약이 수정되었습니다');
       } else {
-        await createReservation({
+        // 1. 예약 생성
+        const reservation = await createReservation({
           date: dateStr,
           time: formData.time || undefined,
           customer_name: formData.customer_name,
@@ -343,10 +335,22 @@ export function CalendarClient() {
           description: formData.description || undefined,
           estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : undefined,
           customer_phone: formData.customer_phone || undefined,
-          status: formData.status,
           reminder_at: reminderAt,
         });
-        toast.success('예약이 등록되었습니다');
+
+        // 2. 매출 자동 생성
+        const saleFormData = new FormData();
+        saleFormData.set('date', dateStr);
+        saleFormData.set('product_category', formData.product_category);
+        saleFormData.set('amount', formData.estimated_amount);
+        saleFormData.set('payment_method', formData.payment_method);
+        saleFormData.set('reservation_channel', formData.reservation_channel);
+        saleFormData.set('customer_name', formData.customer_name);
+        saleFormData.set('customer_phone', formData.customer_phone);
+        saleFormData.set('note', formData.description || '');
+
+        await convertReservationToSale(reservation.id, saleFormData);
+        toast.success('예약과 매출이 등록되었습니다');
       }
       resetForm();
       fetchReservations();
@@ -429,14 +433,15 @@ export function CalendarClient() {
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDate(day)}
+                    aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}`}
                     className={cn(
-                      'relative aspect-square p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 last:border-r-0 [&:nth-child(7n)]:border-r-0',
+                      'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col',
                       !isCurrentMonth && 'opacity-30',
                       isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
                     )}
                   >
                     <span className={cn(
-                      'inline-flex items-center justify-center w-6 h-6 text-xs rounded-full',
+                      'inline-flex items-center justify-center w-6 h-6 text-xs rounded-full mb-0.5 shrink-0',
                       isTodayDate && 'bg-brand text-brand-foreground font-semibold',
                       !isTodayDate && dayOfWeek === 0 && 'text-red-400',
                       !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
@@ -444,32 +449,46 @@ export function CalendarClient() {
                     )}>
                       {format(day, 'd')}
                     </span>
-                    {dayReservations.length > 0 && (
-                      <div className="flex gap-0.5 mt-0.5 flex-wrap">
-                        {dayReservations.slice(0, 3).map((r) => (
-                          <span
+                    {dayReservations.length > 0 && (() => {
+                      const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
+                      return (
+                      <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
+                        {dayReservations.slice(0, 5).map((r) => (
+                          <div
                             key={r.id}
-                            className={cn('w-1.5 h-1.5 rounded-full', statusDotColors[r.status as ReservationStatus])}
-                          />
+                            className={cn(
+                              'text-[10px] leading-tight px-1 py-0.5 rounded truncate',
+                              r.status === 'completed'
+                                ? 'bg-sage-muted text-sage line-through'
+                                : 'bg-brand/15 text-brand'
+                            )}
+                          >
+                            {r.time ? r.time.slice(0, 5) : ''}{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
+                          </div>
                         ))}
-                        {dayReservations.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground leading-none">+{dayReservations.length - 3}</span>
+                        {dayReservations.length > 5 && (
+                          <span className="text-[10px] text-muted-foreground leading-none px-1">+{dayReservations.length - 5}건</span>
+                        )}
+                        {dayPendingCount > 0 && (
+                          <span className="text-[10px] font-medium text-brand mt-auto px-1">{dayPendingCount}개 제작</span>
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
                   </button>
                 );
               })}
             </div>
-            {/* Status legend */}
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
-              <span className="text-[11px] text-muted-foreground">상태:</span>
-              {RESERVATION_STATUS.map((s) => (
-                <div key={s.value} className="flex items-center gap-1">
-                  <span className={cn('w-2 h-2 rounded-full', statusDotColors[s.value as ReservationStatus])} />
-                  <span className="text-[11px] text-muted-foreground">{s.label}</span>
-                </div>
-              ))}
+            {/* Reservation count + pending */}
+            <div className="mt-3 pt-3 border-t border-border flex items-center justify-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                이번 달 예약 {currentMonthReservationCount}건
+              </p>
+              {pendingCount > 0 && (
+                <span className="text-sm font-medium text-brand">
+                  {pendingCount}개 제작 필요
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -510,7 +529,7 @@ export function CalendarClient() {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">제목</Label>
+                    <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
                     <Input
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -520,30 +539,34 @@ export function CalendarClient() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">고객명</Label>
-                      <Input
+                      <Label className="text-xs text-muted-foreground">고객명 <span className="text-brand">*</span></Label>
+                      <CustomerAutocomplete
                         value={formData.customer_name}
-                        onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                        onChange={(name, _customerId, phone) => {
+                          setFormData({
+                            ...formData,
+                            customer_name: name,
+                            customer_phone: phone || formData.customer_phone,
+                          });
+                        }}
                         placeholder="홍길동"
                         className="h-8 text-sm"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">시간</Label>
-                      <Input
-                        type="time"
+                      <Label className="text-xs text-muted-foreground">시간 <span className="text-brand">*</span></Label>
+                      <TimeSelect
                         value={formData.time}
-                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                        className="h-8 text-sm"
+                        onChange={(val) => setFormData({ ...formData, time: val })}
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">전화번호</Label>
+                      <Label className="text-xs text-muted-foreground">전화번호 <span className="text-brand">*</span></Label>
                       <Input
                         value={formData.customer_phone}
-                        onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, customer_phone: formatPhoneNumber(e.target.value) })}
                         placeholder="010-0000-0000"
                         className="h-8 text-sm"
                         inputMode="tel"
@@ -551,7 +574,7 @@ export function CalendarClient() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">예상 금액</Label>
+                      <Label className="text-xs text-muted-foreground">예상 금액 <span className="text-brand">*</span></Label>
                       <Input
                         type="number"
                         step={10000}
@@ -562,26 +585,59 @@ export function CalendarClient() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">상태</Label>
-                    <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as ReservationStatus })}>
-                      <SelectTrigger className="h-8 text-sm w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RESERVATION_STATUS.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground">대기 → 확정 → 완료 순으로 변경해주세요</p>
-                  </div>
+                  {!editingId && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">상품 카테고리 <span className="text-brand">*</span></Label>
+                          <select
+                            value={formData.product_category}
+                            onChange={(e) => setFormData({ ...formData, product_category: e.target.value })}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                            aria-label="상품 카테고리"
+                          >
+                            <option value="">선택</option>
+                            {saleCategories.map((cat) => (
+                              <option key={cat.id} value={cat.value}>{cat.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">결제방식 <span className="text-brand">*</span></Label>
+                          <select
+                            value={formData.payment_method}
+                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                            aria-label="결제방식"
+                          >
+                            <option value="">선택</option>
+                            {salePaymentMethods.map((pm) => (
+                              <option key={pm.id} value={pm.value}>{pm.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">예약 채널</Label>
+                        <select
+                          value={formData.reservation_channel}
+                          onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
+                          className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          aria-label="예약 채널"
+                        >
+                          {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">
                       <BellRing className="w-3 h-3 inline mr-1" />
                       리마인더 알림
                     </Label>
-                    <div className="grid grid-cols-[1fr_90px] gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <Input
                         type="date"
                         value={formData.reminder_date}
@@ -589,12 +645,9 @@ export function CalendarClient() {
                         className="h-8 text-sm"
                         aria-label="리마인더 알림 날짜"
                       />
-                      <Input
-                        type="time"
+                      <TimeSelect
                         value={formData.reminder_time}
-                        onChange={(e) => setFormData({ ...formData, reminder_time: e.target.value })}
-                        className="h-8 text-sm"
-                        aria-label="리마인더 알림 시간"
+                        onChange={(val) => setFormData({ ...formData, reminder_time: val })}
                         disabled={!formData.reminder_date}
                       />
                     </div>
@@ -612,6 +665,7 @@ export function CalendarClient() {
                       placeholder="메모를 입력하세요"
                       rows={2}
                       className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                      aria-label="메모"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -652,12 +706,6 @@ export function CalendarClient() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={cn(
-                            'text-[11px] px-1.5 py-0.5 rounded border font-medium',
-                            statusColors[r.status as ReservationStatus]
-                          )}>
-                            {RESERVATION_STATUS.find(s => s.value === r.status)?.label}
-                          </span>
                           {r.time && (
                             <span className="text-xs text-muted-foreground">{r.time.slice(0, 5)}</span>
                           )}
@@ -682,21 +730,7 @@ export function CalendarClient() {
                           </p>
                         )}
 
-                        {/* 매출 등록 버튼 또는 매출 확인 링크 */}
-                        {r.status !== 'completed' && r.status !== 'cancelled' && !r.sale_id && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-2 w-full text-xs h-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openSaleModal(r);
-                            }}
-                          >
-                            <ShoppingBag className="h-3 w-3 mr-1" />
-                            매출 등록
-                          </Button>
-                        )}
+                        {/* 매출 확인 링크 */}
                         {r.sale_id && (
                           <button
                             className="mt-2 text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
@@ -704,10 +738,29 @@ export function CalendarClient() {
                               e.stopPropagation();
                               router.push(`/sales?saleId=${r.sale_id}`);
                             }}
+                            aria-label="연결된 매출 확인"
                           >
                             매출 확인 <ExternalLink className="w-3 h-3" />
                           </button>
                         )}
+
+                        {/* 제작 완료 토글 */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCompletion(r);
+                          }}
+                          className={cn(
+                            'mt-2 text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                            r.status === 'completed'
+                              ? 'bg-brand text-brand-foreground'
+                              : 'border border-input text-muted-foreground hover:bg-muted'
+                          )}
+                          aria-label={r.status === 'completed' ? '제작 완료 취소' : '제작 완료로 변경'}
+                        >
+                          {r.status === 'completed' && <Check className="w-3 h-3" />}
+                          제작 완료
+                        </button>
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
@@ -746,121 +799,6 @@ export function CalendarClient() {
               삭제
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Sale conversion dialog */}
-      <Dialog open={!!saleTarget} onOpenChange={(open) => !open && setSaleTarget(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>예약 → 매출 등록</DialogTitle>
-            <DialogDescription>
-              예약 정보를 기반으로 매출을 등록합니다. 등록 후 예약은 자동으로 완료 처리됩니다.
-            </DialogDescription>
-          </DialogHeader>
-          {saleTarget && (
-            <form onSubmit={(e) => { e.preventDefault(); handleSaleSubmit(e); }} className="space-y-4 pt-2">
-              {/* 예약 정보 요약 */}
-              <div className="p-3 bg-muted/50 rounded-lg space-y-1">
-                <p className="text-sm font-medium text-foreground">{saleTarget.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(saleTarget.date), 'yyyy년 M월 d일', { locale: ko })}
-                  {saleTarget.time && ` ${saleTarget.time.slice(0, 5)}`}
-                </p>
-                {saleTarget.customer_name && (
-                  <p className="text-xs text-muted-foreground">
-                    {saleTarget.customer_name}
-                    {saleTarget.customer_phone && ` · ${saleTarget.customer_phone}`}
-                  </p>
-                )}
-              </div>
-
-              {isSaleLoading ? (
-                <div className="space-y-3 py-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="space-y-1.5">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-9 w-full rounded-md" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">상품 카테고리 *</Label>
-                    <Select value={saleForm.product_category} onValueChange={(v) => setSaleForm({ ...saleForm, product_category: v })}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {saleCategories.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">금액 *</Label>
-                    <Input
-                      type="number"
-                      value={saleForm.amount}
-                      onChange={(e) => setSaleForm({ ...saleForm, amount: e.target.value })}
-                      placeholder="50000"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">결제방식 *</Label>
-                      <Select value={saleForm.payment_method} onValueChange={(v) => setSaleForm({ ...saleForm, payment_method: v })}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {salePaymentMethods.map((p) => (
-                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">예약 채널</Label>
-                      <Select value={saleForm.reservation_channel} onValueChange={(v) => setSaleForm({ ...saleForm, reservation_channel: v })}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(channelLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">메모</Label>
-                    <textarea
-                      value={saleForm.note}
-                      onChange={(e) => setSaleForm({ ...saleForm, note: e.target.value })}
-                      placeholder="메모를 입력하세요"
-                      rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
-                    />
-                  </div>
-                </>
-              )}
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setSaleTarget(null)}>취소</Button>
-                <Button type="submit" disabled={isSaleSubmitting || isSaleLoading}>
-                  {isSaleSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  매출 등록
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -22,7 +22,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import type { ExportConfig } from '@/lib/export';
 import { CHANNEL_LABELS } from '@/lib/constants';
 import { SalesSummary } from './components/SalesSummary';
-import { SalesTable } from './components/SalesTable';
+import { SalesList } from './components/SalesList';
 import { SaleFormDialog } from './components/SaleFormDialog';
 import { SaleDetailDialog } from './components/SaleDetailDialog';
 
@@ -167,7 +167,7 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
 
   const getDefaultPhotoTitle = (sale: Sale) => {
     const categoryLabel = categoryLabels[sale.product_category] || sale.product_category;
-    return `${format(new Date(sale.date), 'M/d')} ${categoryLabel}`;
+    return `${format(new Date(sale.date), 'yy/MM/dd')} ${categoryLabel}`;
   };
 
   const handleEdit = (sale: Sale) => {
@@ -217,14 +217,14 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">매출 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">매출 내역을 등록하고 관리하세요</p>
         </div>
-        <div className="flex items-center gap-2">
-          <ExportButton getExportConfig={getExportConfig} />
-          <Button onClick={handleOpenForm}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+          <Button onClick={handleOpenForm} className="flex-1 sm:flex-initial">
             <Plus className="w-4 h-4 mr-2" />
             매출 등록
           </Button>
@@ -337,8 +337,8 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
         </div>
       </div>
 
-      {/* Sales Table and Mobile List */}
-      <SalesTable
+      {/* Sales List */}
+      <SalesList
         sales={filteredSales}
         categoryLabels={categoryLabels}
         categoryColors={categoryColors}
@@ -346,9 +346,6 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
         paymentColors={paymentColors}
         hasActiveFilters={hasActiveFilters}
         onSelectSale={handleSelectSale}
-        onEditSale={handleEdit}
-        onDeleteSale={handleDelete}
-        onPhotoModal={handleOpenPhotoModal}
         onResetFilters={handleResetFilters}
         onOpenForm={handleOpenForm}
       />

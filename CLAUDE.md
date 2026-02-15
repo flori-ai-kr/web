@@ -37,8 +37,10 @@ src/
 │   ├── page.tsx         # 대시보드
 │   ├── sales/           # 매출
 │   │   ├── sales-client.tsx       # 메인 컨테이너 (상태 관리)
-│   │   └── components/            # SalesSummary, SalesTable, SaleFormDialog, SaleDetailDialog
+│   │   └── components/            # SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog
 │   ├── expenses/        # 지출
+│   │   ├── expenses-client.tsx    # 메인 컨테이너
+│   │   └── components/            # ExpensesList
 │   ├── customers/       # 고객
 │   │   ├── customers-client.tsx   # 메인 컨테이너
 │   │   └── components/            # CustomerCard, CustomerFormDialog, CustomerDetailDialog
@@ -64,6 +66,7 @@ src/
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts
+├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/errors.ts        # AppError, ErrorCode, withErrorLogging()
 ├── lib/logger.ts        # reportError() → Discord 웹훅
 ├── lib/validations.ts   # Zod 스키마

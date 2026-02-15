@@ -99,7 +99,7 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
           <div>
             <p className="text-[10px] text-muted-foreground">최근</p>
             <p className="text-sm font-medium text-foreground tabular-nums">
-              {customer.last_purchase_date ? format(new Date(customer.last_purchase_date), 'M/d', { locale: ko }) : '-'}
+              {customer.last_purchase_date ? format(new Date(customer.last_purchase_date), 'yy/MM/dd') : '-'}
             </p>
           </div>
         </div>

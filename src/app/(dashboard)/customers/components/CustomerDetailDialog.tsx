@@ -122,7 +122,7 @@ export function CustomerDetailDialog({
                       className="flex justify-between items-center text-sm p-2 bg-muted rounded"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{format(new Date(sale.date), 'M/d', { locale: ko })}</span>
+                        <span className="text-muted-foreground">{format(new Date(sale.date), 'yy/MM/dd')}</span>
                         <span
                           className="px-1.5 py-0.5 text-xs font-medium rounded"
                           style={{
