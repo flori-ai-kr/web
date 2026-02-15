@@ -433,6 +433,7 @@ export function CalendarClient() {
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDate(day)}
+                    aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}`}
                     className={cn(
                       'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col',
                       !isCurrentMonth && 'opacity-30',
@@ -593,6 +594,7 @@ export function CalendarClient() {
                             value={formData.product_category}
                             onChange={(e) => setFormData({ ...formData, product_category: e.target.value })}
                             className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                            aria-label="상품 카테고리"
                           >
                             <option value="">선택</option>
                             {saleCategories.map((cat) => (
@@ -606,6 +608,7 @@ export function CalendarClient() {
                             value={formData.payment_method}
                             onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
                             className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                            aria-label="결제방식"
                           >
                             <option value="">선택</option>
                             {salePaymentMethods.map((pm) => (
@@ -620,6 +623,7 @@ export function CalendarClient() {
                           value={formData.reservation_channel}
                           onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
                           className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          aria-label="예약 채널"
                         >
                           {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
                             <option key={val} value={val}>{label}</option>
@@ -661,6 +665,7 @@ export function CalendarClient() {
                       placeholder="메모를 입력하세요"
                       rows={2}
                       className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                      aria-label="메모"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -733,6 +738,7 @@ export function CalendarClient() {
                               e.stopPropagation();
                               router.push(`/sales?saleId=${r.sale_id}`);
                             }}
+                            aria-label="연결된 매출 확인"
                           >
                             매출 확인 <ExternalLink className="w-3 h-3" />
                           </button>
@@ -750,6 +756,7 @@ export function CalendarClient() {
                               ? 'bg-brand text-brand-foreground'
                               : 'border border-input text-muted-foreground hover:bg-muted'
                           )}
+                          aria-label={r.status === 'completed' ? '제작 완료 취소' : '제작 완료로 변경'}
                         >
                           {r.status === 'completed' && <Check className="w-3 h-3" />}
                           제작 완료

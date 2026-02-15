@@ -22,7 +22,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import type { ExportConfig } from '@/lib/export';
 import { CHANNEL_LABELS } from '@/lib/constants';
 import { SalesSummary } from './components/SalesSummary';
-import { SalesTable } from './components/SalesTable';
+import { SalesList } from './components/SalesList';
 import { SaleFormDialog } from './components/SaleFormDialog';
 import { SaleDetailDialog } from './components/SaleDetailDialog';
 
@@ -337,8 +337,8 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
         </div>
       </div>
 
-      {/* Sales Table and Mobile List */}
-      <SalesTable
+      {/* Sales List */}
+      <SalesList
         sales={filteredSales}
         categoryLabels={categoryLabels}
         categoryColors={categoryColors}
@@ -346,9 +346,6 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
         paymentColors={paymentColors}
         hasActiveFilters={hasActiveFilters}
         onSelectSale={handleSelectSale}
-        onEditSale={handleEdit}
-        onDeleteSale={handleDelete}
-        onPhotoModal={handleOpenPhotoModal}
         onResetFilters={handleResetFilters}
         onOpenForm={handleOpenForm}
       />
