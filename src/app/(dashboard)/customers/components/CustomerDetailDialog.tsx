@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Phone, ShoppingBag, ExternalLink, TrendingUp, Users, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Phone, ShoppingBag, ExternalLink, TrendingUp, Users, Pencil, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
@@ -15,6 +16,9 @@ interface CustomerDetailDialogProps {
   customer: Customer | null;
   sales: Sale[];
   isLoadingSales: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
   categoryLabels: Record<string, string>;
   categoryColors: Record<string, string>;
   onClose: () => void;
@@ -27,6 +31,9 @@ export function CustomerDetailDialog({
   customer,
   sales,
   isLoadingSales,
+  isLoadingMore,
+  hasMore,
+  onLoadMore,
   categoryLabels,
   categoryColors,
   onClose,
@@ -35,6 +42,24 @@ export function CustomerDetailDialog({
   onSaleRegister,
 }: CustomerDetailDialogProps) {
   const router = useRouter();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleIntersect = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+        onLoadMore();
+      }
+    },
+    [hasMore, isLoadingMore, onLoadMore],
+  );
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(handleIntersect, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleIntersect]);
 
   return (
     <Dialog open={!!customer} onOpenChange={(open) => !open && onClose()}>
@@ -115,8 +140,8 @@ export function CustomerDetailDialog({
                   ))}
                 </div>
               ) : sales.length > 0 ? (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {sales.slice(0, 5).map((sale) => (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {sales.map((sale) => (
                     <div
                       key={sale.id}
                       className="flex justify-between items-center text-sm p-2 bg-muted rounded"
@@ -152,8 +177,12 @@ export function CustomerDetailDialog({
                       </div>
                     </div>
                   ))}
-                  {sales.length > 5 && (
-                    <p className="text-xs text-muted-foreground text-center">외 {sales.length - 5}건</p>
+                  {/* Infinite scroll sentinel */}
+                  <div ref={sentinelRef} className="h-1" />
+                  {isLoadingMore && (
+                    <div className="flex justify-center py-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="로딩 중" />
+                    </div>
                   )}
                 </div>
               ) : (

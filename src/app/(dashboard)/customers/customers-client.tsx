@@ -47,6 +47,9 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const [searchQuery, setSearchQuery] = useState('');
   const [customerSales, setCustomerSales] = useState<Sale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(false);
+  const [isLoadingMoreSales, setIsLoadingMoreSales] = useState(false);
+  const [hasMoreSales, setHasMoreSales] = useState(false);
+  const [salesPage, setSalesPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -136,14 +139,33 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const handleSelectCustomer = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setCustomerSales([]);
+    setSalesPage(0);
+    setHasMoreSales(false);
     setIsLoadingSales(true);
     try {
-      const sales = await getCustomerSales(customer.id);
-      setCustomerSales(sales || []);
+      const result = await getCustomerSales(customer.id, 0);
+      setCustomerSales(result.sales);
+      setHasMoreSales(result.hasMore);
     } catch (error) {
       console.error('Failed to load customer sales:', error);
     } finally {
       setIsLoadingSales(false);
+    }
+  };
+
+  const handleLoadMoreSales = async () => {
+    if (!selectedCustomer || isLoadingMoreSales || !hasMoreSales) return;
+    const nextPage = salesPage + 1;
+    setIsLoadingMoreSales(true);
+    try {
+      const result = await getCustomerSales(selectedCustomer.id, nextPage);
+      setCustomerSales((prev) => [...prev, ...result.sales]);
+      setHasMoreSales(result.hasMore);
+      setSalesPage(nextPage);
+    } catch (error) {
+      console.error('Failed to load more sales:', error);
+    } finally {
+      setIsLoadingMoreSales(false);
     }
   };
 
@@ -403,6 +425,9 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
         customer={selectedCustomer}
         sales={customerSales}
         isLoadingSales={isLoadingSales}
+        isLoadingMore={isLoadingMoreSales}
+        hasMore={hasMoreSales}
+        onLoadMore={handleLoadMoreSales}
         categoryLabels={categoryLabels}
         categoryColors={categoryColors}
         onClose={() => setSelectedCustomer(null)}

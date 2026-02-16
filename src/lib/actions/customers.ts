@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
-import type { Customer, CustomerGrade } from '@/types/database';
+import type { Customer, CustomerGrade, Sale } from '@/types/database';
 import { customerSchema, uuidSchema, searchQuerySchema, customerGradeSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 
@@ -272,17 +272,20 @@ async function _findOrCreateCustomer(name: string, phone: string) {
 
 export const findOrCreateCustomer = withErrorLogging('findOrCreateCustomer', _findOrCreateCustomer);
 
-async function _getCustomerSales(customerId: string) {
+async function _getCustomerSales(customerId: string, page: number = 0, pageSize: number = 10) {
   const supabase = await createClient();
-  
-  const { data, error } = await supabase
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from('sales')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('customer_id', customerId)
-    .order('date', { ascending: false });
-  
+    .order('date', { ascending: false })
+    .range(from, to);
+
   if (error) throw error;
-  return data;
+  return { sales: (data || []) as Sale[], hasMore: (count ?? 0) > to + 1 };
 }
 
 export const getCustomerSales = withErrorLogging('getCustomerSales', _getCustomerSales);
