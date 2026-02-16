@@ -394,7 +394,7 @@ export function DashboardClient() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {paymentLabels[sale.payment_method] || sale.payment_method}
-                          {sale.customer_name ? ` · ${sale.customer_name}` : ''}
+                          {sale.reservation_channel === 'road' ? ' · 로드' : sale.customer_name ? ` · ${sale.customer_name}` : ''}
                         </p>
                       </div>
                     </div>
