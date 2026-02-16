@@ -351,17 +351,3 @@ async function _checkPhoneDuplicate(phone: string, excludeId?: string) {
 
 export const checkPhoneDuplicate = withErrorLogging('checkPhoneDuplicate', _checkPhoneDuplicate);
 
-// 고객 생성 또는 기존 고객 반환 (이름+전화번호로)
-async function _getOrCreateCustomer(name: string, phone?: string): Promise<Customer | null> {
-  if (!name) return null;
-
-  // 전화번호가 있으면 upsert로 원자적 처리
-  if (phone) {
-    return _findOrCreateCustomer(name, phone);
-  }
-
-  // 전화번호 없이는 고객 생성 불가 (phone이 unique 필수 필드)
-  return null;
-}
-
-export const getOrCreateCustomer = withErrorLogging('getOrCreateCustomer', _getOrCreateCustomer);

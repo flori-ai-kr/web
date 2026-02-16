@@ -1,4 +1,4 @@
-~~# Hazel Admin - 꽃집 관리 시스템
+# Hazel Admin - 꽃집 관리 시스템
 
 꽃집(헤이즐) 매출/지출/고객/사진첩/예약을 관리하는 PWA 어드민 웹앱.
 
@@ -11,6 +11,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - **Server Actions**: `src/lib/actions/` — `'use server'`, throw 패턴 (withErrorLogging 래퍼)
 - **에러 처리**: `withErrorLogging()` 래퍼 → AppError(예상된 에러) / Unknown(Discord 로깅)
 - **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드
+- **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션에 적용
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
 - **다크모드**: next-themes + CSS 변수 (`:root` / `.dark`) — 하드코딩 색상 금지
@@ -56,17 +57,15 @@ src/
 ├── app/login/           # 로그인
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
-├── components/ui/       # shadcn/ui (25개)
+├── components/ui/       # shadcn/ui (21개)
 ├── components/layout/   # AppLayout, Header, Sidebar
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
-├── components/error-boundary.tsx # React Error Boundary
-├── lib/actions/         # Server Actions (15개, barrel: index.ts)
+├── lib/actions/         # Server Actions (14개, barrel: index.ts)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts
-├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/errors.ts        # AppError, ErrorCode, withErrorLogging()
 ├── lib/logger.ts        # reportError() → Discord 웹훅
 ├── lib/validations.ts   # Zod 스키마
@@ -79,9 +78,20 @@ src/
     └── icons/           # PWA 아이콘 (192/512, maskable)
 ```
 
+## 멀티테넌시
+
+- 10개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가
+  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions
+- RLS 정책: `auth.uid() = user_id` (CRUD별 분리)
+- unique 제약: 기존 단일 컬럼에서 `(column, user_id)` 복합으로 변경
+  - `customers(phone, user_id)`, `card_company_settings(name, user_id)`, `photo_tags(name, user_id)`, `sale_categories(value, user_id)`, `payment_methods(value, user_id)`
+- Server Action에서 INSERT 시 `user_id: user.id` 삽입 (requireAuth()로 획득)
+- app_config: RLS는 `auth.uid() IS NOT NULL` (공유 설정)
+
 ## 비즈니스 로직
 
-- 고객 식별: 전화번호 기준 (unique), 성별(male/female) 선택 가능
+- 고객 식별: 전화번호 + user_id 기준 (복합 unique), 성별(male/female) 선택 가능
+- 로드 구입: 매출 등록 시 간편 모드 (결제방식=현금, 채널=road로 고정, 카드사/주문자명/연락처 생략)
 - 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`
 - 입금 예정일: 영업일 기준 N일
 - 지출 총액: `unit_price * quantity`
@@ -98,4 +108,4 @@ src/
 
 ## 기술 스택 상세
 
-→ `docs/ARCHITECTURE.md` 참조~~
+→ `docs/ARCHITECTURE.md` 참조
