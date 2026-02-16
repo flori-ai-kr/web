@@ -41,6 +41,7 @@ export const PAYMENT_METHODS = [
 
 export interface Sale {
   id: string;
+  user_id: string;
   date: string;
   product_name: string;
   product_category: string;
@@ -66,6 +67,7 @@ export interface Sale {
 
 export interface Expense {
   id: string;
+  user_id: string;
   date: string;
   item_name: string;
   category: ExpenseCategory;
@@ -82,6 +84,7 @@ export interface Expense {
 
 export interface Customer {
   id: string;
+  user_id: string;
   name: string;
   phone: string;
   grade: CustomerGrade;
@@ -138,6 +141,7 @@ export interface PhotoFile {
 
 export interface PhotoCard {
   id: string;
+  user_id: string;
   title: string;
   description: string | null;
   tags: string[];
@@ -152,6 +156,7 @@ export type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancell
 
 export interface Reservation {
   id: string;
+  user_id: string;
   date: string;
   time: string | null;
   customer_name: string;

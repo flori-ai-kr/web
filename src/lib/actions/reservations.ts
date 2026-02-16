@@ -38,7 +38,7 @@ async function _createReservation(formData: {
   status?: ReservationStatus;
   reminder_at?: string | null;
 }): Promise<Reservation> {
-  await requireAuth();
+  const user = await requireAuth();
 
   const parsed = reservationSchema.safeParse(formData);
   if (!parsed.success) {
@@ -50,6 +50,7 @@ async function _createReservation(formData: {
   const { data, error } = await supabase
     .from('reservations')
     .insert({
+      user_id: user.id,
       date: parsed.data.date,
       time: parsed.data.time || null,
       customer_name: parsed.data.customer_name,

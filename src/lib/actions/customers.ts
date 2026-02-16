@@ -152,7 +152,7 @@ function parseGender(formData: FormData): 'male' | 'female' | null {
 }
 
 async function _createCustomer(formData: FormData) {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   const parsed = customerSchema.safeParse({
@@ -167,6 +167,7 @@ async function _createCustomer(formData: FormData) {
   }
 
   const customer = {
+    user_id: user.id,
     name: parsed.data.name,
     phone: parsed.data.phone,
     grade: parsed.data.grade || 'new',
@@ -242,14 +243,15 @@ async function _deleteCustomer(id: string) {
 export const deleteCustomer = withErrorLogging('deleteCustomer', _deleteCustomer);
 
 async function _findOrCreateCustomer(name: string, phone: string) {
+  const user = await requireAuth();
   const supabase = await createClient();
 
-  // upsert로 레이스 컨디션 방지 (phone이 unique 제약)
+  // upsert로 레이스 컨디션 방지 (phone+user_id unique 제약)
   const { data, error } = await supabase
     .from('customers')
     .upsert(
-      { name, phone, grade: 'new' },
-      { onConflict: 'phone', ignoreDuplicates: true }
+      { user_id: user.id, name, phone, grade: 'new' },
+      { onConflict: 'phone,user_id', ignoreDuplicates: true }
     )
     .select()
     .single();

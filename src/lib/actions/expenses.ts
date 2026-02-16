@@ -43,7 +43,7 @@ async function _getExpenseById(id: string): Promise<Expense | null> {
 export const getExpenseById = withErrorLogging('getExpenseById', _getExpenseById);
 
 async function _createExpense(formData: FormData) {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
@@ -65,6 +65,7 @@ async function _createExpense(formData: FormData) {
   }
 
   const expense = {
+    user_id: user.id,
     date: parsed.data.date,
     item_name: parsed.data.item_name,
     category: parsed.data.category,

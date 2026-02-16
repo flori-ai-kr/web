@@ -112,7 +112,7 @@ async function _getPhotoCardById(id: string): Promise<PhotoCard | null> {
 export const getPhotoCardById = withErrorLogging('getPhotoCardById', _getPhotoCardById);
 
 async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   const title = formData.get('title') as string;
@@ -143,6 +143,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
   const { data, error } = await supabase
     .from('photo_cards')
     .insert({
+      user_id: user.id,
       title: parsed.data.title,
       description: parsed.data.description || null,
       tags: parsed.data.tags || [],
@@ -416,7 +417,7 @@ async function _createOrUpdatePhotoCardForSale(
   description?: string | null,
   tags?: string[]
 ): Promise<PhotoCard> {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   // Check if card already exists for this sale
@@ -444,6 +445,7 @@ async function _createOrUpdatePhotoCardForSale(
     const { data, error } = await supabase
       .from('photo_cards')
       .insert({
+        user_id: user.id,
         title,
         description: description || null,
         tags: tags || [],
