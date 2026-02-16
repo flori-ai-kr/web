@@ -9,6 +9,7 @@ import {
   startOfWeek,
   endOfWeek,
   addDays,
+  subDays,
   addMonths,
   subMonths,
   isSameMonth,
@@ -96,6 +97,7 @@ function TimeSelect({ value, onChange, className, disabled }: {
 
 export function CalendarClient() {
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -128,6 +130,18 @@ export function CalendarClient() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
+
+  // 5일 뷰 days
+  const fiveDayDays = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => addDays(subDays(selectedDate, 2), i));
+  }, [selectedDate]);
+
+  // 5일 뷰에서 selectedDate 변경 시 currentMonth 동기화
+  useEffect(() => {
+    if (viewMode === '5day' && !isSameMonth(selectedDate, currentMonth)) {
+      setCurrentMonth(selectedDate);
+    }
+  }, [viewMode, selectedDate, currentMonth]);
 
   const fetchReservations = useCallback(async () => {
     setIsLoading(true);
@@ -389,96 +403,238 @@ export function CalendarClient() {
         {/* Calendar */}
         <Card className="lg:sticky lg:top-4">
           <CardContent className="p-4">
-            {/* Month navigation */}
+            {/* Navigation + View toggle */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground">
-                {format(currentMonth, 'yyyy년 M월', { locale: ko })}
+                {viewMode === 'month'
+                  ? format(currentMonth, 'yyyy년 M월', { locale: ko })
+                  : `${format(fiveDayDays[0], 'M월 d일', { locale: ko })} - ${format(fiveDayDays[4], 'd일', { locale: ko })}`
+                }
               </h2>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon-sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} aria-label="이전 달">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setCurrentMonth(new Date()); setSelectedDate(new Date()); }}>
-                  오늘
-                </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} aria-label="다음 달">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-2">
+                {/* View toggle */}
+                <div className="flex bg-muted rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('month')}
+                    className={cn(
+                      'px-2.5 py-1 text-xs rounded-md transition-colors',
+                      viewMode === 'month' ? 'bg-background shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    월간
+                  </button>
+                  <button
+                    onClick={() => setViewMode('5day')}
+                    className={cn(
+                      'px-2.5 py-1 text-xs rounded-md transition-colors',
+                      viewMode === '5day' ? 'bg-background shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    5일
+                  </button>
+                </div>
+                {/* Navigation */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      if (viewMode === 'month') {
+                        setCurrentMonth(subMonths(currentMonth, 1));
+                      } else {
+                        setSelectedDate(subDays(selectedDate, 1));
+                      }
+                    }}
+                    aria-label={viewMode === 'month' ? '이전 달' : '이전 날'}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      setCurrentMonth(new Date());
+                      setSelectedDate(new Date());
+                    }}
+                  >
+                    오늘
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => {
+                      if (viewMode === 'month') {
+                        setCurrentMonth(addMonths(currentMonth, 1));
+                      } else {
+                        setSelectedDate(addDays(selectedDate, 1));
+                      }
+                    }}
+                    aria-label={viewMode === 'month' ? '다음 달' : '다음 날'}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Week day headers */}
-            <div className="grid grid-cols-7">
-              {weekDays.map((day, i) => (
-                <div key={day} className={cn(
-                  'text-center text-xs font-medium py-1.5',
-                  i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-muted-foreground'
-                )}>
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 border-t border-border">
-              {calendarDays.map((day) => {
-                const dateKey = format(day, 'yyyy-MM-dd');
-                const dayReservations = reservationsByDate.get(dateKey) || [];
-                const isSelected = isSameDay(day, selectedDate);
-                const isCurrentMonth = isSameMonth(day, currentMonth);
-                const isTodayDate = isToday(day);
-                const dayOfWeek = day.getDay();
-
-                return (
-                  <button
-                    key={dateKey}
-                    onClick={() => setSelectedDate(day)}
-                    aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}`}
-                    className={cn(
-                      'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col',
-                      !isCurrentMonth && 'opacity-30',
-                      isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
-                    )}
-                  >
-                    <span className={cn(
-                      'inline-flex items-center justify-center w-6 h-6 text-xs rounded-full mb-0.5 shrink-0',
-                      isTodayDate && 'bg-brand text-brand-foreground font-semibold',
-                      !isTodayDate && dayOfWeek === 0 && 'text-red-400',
-                      !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
-                      !isTodayDate && isSelected && 'font-semibold text-foreground',
+            {viewMode === 'month' ? (
+              <>
+                {/* Week day headers */}
+                <div className="grid grid-cols-7">
+                  {weekDays.map((day, i) => (
+                    <div key={day} className={cn(
+                      'text-center text-xs font-medium py-1.5',
+                      i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-muted-foreground'
                     )}>
-                      {format(day, 'd')}
-                    </span>
-                    {dayReservations.length > 0 && (() => {
-                      const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
-                      return (
-                      <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
-                        {dayReservations.slice(0, 5).map((r) => (
-                          <div
-                            key={r.id}
-                            className={cn(
-                              'text-[10px] leading-tight px-1 py-0.5 rounded truncate',
-                              r.status === 'completed'
-                                ? 'bg-sage-muted text-sage line-through'
-                                : 'bg-brand/15 text-brand'
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Month calendar grid */}
+                <div className="grid grid-cols-7 border-t border-border">
+                  {calendarDays.map((day) => {
+                    const dateKey = format(day, 'yyyy-MM-dd');
+                    const dayReservations = reservationsByDate.get(dateKey) || [];
+                    const isSelected = isSameDay(day, selectedDate);
+                    const isCurrentMonth = isSameMonth(day, currentMonth);
+                    const isTodayDate = isToday(day);
+                    const dayOfWeek = day.getDay();
+
+                    return (
+                      <button
+                        key={dateKey}
+                        onClick={() => setSelectedDate(day)}
+                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}`}
+                        className={cn(
+                          'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col',
+                          !isCurrentMonth && 'opacity-30',
+                          isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
+                        )}
+                      >
+                        <span className={cn(
+                          'inline-flex items-center justify-center w-6 h-6 text-xs rounded-full mb-0.5 shrink-0',
+                          isTodayDate && 'bg-brand text-brand-foreground font-semibold',
+                          !isTodayDate && dayOfWeek === 0 && 'text-red-400',
+                          !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
+                          !isTodayDate && isSelected && 'font-semibold text-foreground',
+                        )}>
+                          {format(day, 'd')}
+                        </span>
+                        {dayReservations.length > 0 && (() => {
+                          const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
+                          return (
+                          <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
+                            {dayReservations.slice(0, 5).map((r) => (
+                              <div
+                                key={r.id}
+                                className={cn(
+                                  'text-[10px] leading-tight px-1 py-0.5 rounded truncate',
+                                  r.status === 'completed'
+                                    ? 'bg-sage-muted text-sage line-through'
+                                    : 'bg-brand/15 text-brand'
+                                )}
+                              >
+                                {r.time ? r.time.slice(0, 5) : ''}{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
+                              </div>
+                            ))}
+                            {dayReservations.length > 5 && (
+                              <span className="text-[10px] text-muted-foreground leading-none px-1">+{dayReservations.length - 5}건</span>
                             )}
-                          >
-                            {r.time ? r.time.slice(0, 5) : ''}{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
+                            {dayPendingCount > 0 && (
+                              <span className="text-[10px] font-medium text-brand mt-auto px-1">{dayPendingCount}개 제작</span>
+                            )}
                           </div>
-                        ))}
-                        {dayReservations.length > 5 && (
-                          <span className="text-[10px] text-muted-foreground leading-none px-1">+{dayReservations.length - 5}건</span>
-                        )}
-                        {dayPendingCount > 0 && (
-                          <span className="text-[10px] font-medium text-brand mt-auto px-1">{dayPendingCount}개 제작</span>
-                        )}
+                          );
+                        })()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 5-day view headers */}
+                <div className="grid grid-cols-5">
+                  {fiveDayDays.map((day) => {
+                    const dayOfWeek = day.getDay();
+                    return (
+                      <div key={format(day, 'yyyy-MM-dd')} className={cn(
+                        'text-center text-xs font-medium py-1.5',
+                        dayOfWeek === 0 ? 'text-red-400' : dayOfWeek === 6 ? 'text-blue-400' : 'text-muted-foreground'
+                      )}>
+                        {weekDays[dayOfWeek]}
                       </div>
-                      );
-                    })()}
-                  </button>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+
+                {/* 5-day grid */}
+                <div className="grid grid-cols-5 border-t border-border">
+                  {fiveDayDays.map((day) => {
+                    const dateKey = format(day, 'yyyy-MM-dd');
+                    const dayReservations = reservationsByDate.get(dateKey) || [];
+                    const isSelected = isSameDay(day, selectedDate);
+                    const isTodayDate = isToday(day);
+                    const dayOfWeek = day.getDay();
+                    const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
+
+                    return (
+                      <button
+                        key={dateKey}
+                        onClick={() => setSelectedDate(day)}
+                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}`}
+                        className={cn(
+                          'relative min-h-[200px] p-2 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(5n)]:border-r-0 flex flex-col',
+                          isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
+                        )}
+                      >
+                        <span className={cn(
+                          'inline-flex items-center justify-center w-7 h-7 text-sm rounded-full mb-1 shrink-0',
+                          isTodayDate && 'bg-brand text-brand-foreground font-semibold',
+                          !isTodayDate && dayOfWeek === 0 && 'text-red-400',
+                          !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
+                          !isTodayDate && isSelected && 'font-semibold text-foreground',
+                        )}>
+                          {format(day, 'd')}
+                        </span>
+                        {dayReservations.length > 0 ? (
+                          <div className="flex flex-col gap-1 overflow-hidden flex-1">
+                            {dayReservations.map((r) => (
+                              <div
+                                key={r.id}
+                                className={cn(
+                                  'text-xs leading-snug px-1.5 py-1 rounded',
+                                  r.status === 'completed'
+                                    ? 'bg-sage-muted text-sage line-through'
+                                    : 'bg-brand/15 text-brand'
+                                )}
+                              >
+                                <div className="font-medium truncate">
+                                  {r.time ? r.time.slice(0, 5) : ''}{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
+                                </div>
+                                {r.title && r.customer_name && (
+                                  <div className="truncate opacity-80">{r.title}</div>
+                                )}
+                                {r.estimated_amount > 0 && (
+                                  <div className="opacity-70">{formatCurrency(r.estimated_amount)}</div>
+                                )}
+                              </div>
+                            ))}
+                            {dayPendingCount > 0 && (
+                              <span className="text-xs font-medium text-brand mt-auto px-1">{dayPendingCount}개 제작</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50 mt-2">예약 없음</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
             {/* Reservation count + pending */}
             <div className="mt-3 pt-3 border-t border-border flex items-center justify-center gap-3">
               <p className="text-sm text-muted-foreground">
