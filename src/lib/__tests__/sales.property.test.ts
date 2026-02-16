@@ -27,6 +27,7 @@ const arbitrarySale = (): fc.Arbitrary<Sale> => {
   
   return fc.record({
     id: fc.uuid(),
+    user_id: fc.uuid(),
     date: arbitraryDateString,
     product_name: fc.string({ minLength: 1, maxLength: 50 }),
     product_category: fc.constantFrom(...categories),
