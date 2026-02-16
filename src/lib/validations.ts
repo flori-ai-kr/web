@@ -55,15 +55,29 @@ export const expenseSchema = z.object({
 // 예약 생성
 export const reservationSchema = z.object({
   date: dateSchema,
-  time: z.string().max(10).optional(),
+  time: z.string().max(10).nullable().optional(),
   customer_name: z.string().min(1, '고객명을 입력해주세요').max(100),
-  customer_phone: z.string().max(20).optional(),
+  customer_phone: z.string().max(20).nullable().optional(),
   title: z.string().min(1, '제목을 입력해주세요').max(255),
-  description: z.string().max(1000).optional(),
+  description: z.string().max(1000).nullable().optional(),
   estimated_amount: z.number().int().min(0).max(100_000_000).optional(),
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
   reminder_at: z.string().datetime({ offset: true }).nullable().optional(),
 });
+
+// 캘린더 이벤트
+export const calendarEventBaseSchema = z.object({
+  title: z.string().min(1, '제목을 입력해주세요').max(255),
+  start_date: dateSchema,
+  end_date: dateSchema,
+  color: colorSchema.optional(),
+  description: z.string().max(1000).nullable().optional(),
+});
+
+export const calendarEventSchema = calendarEventBaseSchema.refine(
+  (data) => data.end_date >= data.start_date,
+  { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
+);
 
 // 카테고리 설정
 export const categorySettingSchema = z.object({
