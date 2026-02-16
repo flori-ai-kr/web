@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { findOrCreateCustomer } from './customers';
 import type { Sale } from '@/types/database';
-import { saleSchema, idsSchema, uuidSchema, validateImageFile } from '@/lib/validations';
+import { saleSchema, uuidSchema, validateImageFile } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
 import { uploadFile, deleteFileByUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
@@ -195,23 +195,6 @@ async function _deleteSale(id: string) {
 }
 
 export const deleteSale = withErrorLogging('deleteSale', _deleteSale);
-
-async function _confirmDeposits(ids: string[]) {
-  await requireAuth();
-  const parsed = idsSchema.safeParse(ids);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID 목록입니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('sales')
-    .update({ deposit_status: 'completed', deposited_at: new Date().toISOString() })
-    .in('id', ids);
-  if (error) throw error;
-
-  revalidatePath('/deposits');
-  revalidatePath('/');
-}
-
-export const confirmDeposits = withErrorLogging('confirmDeposits', _confirmDeposits);
 
 // Photo upload functions
 async function _uploadSalePhotos(saleId: string, formData: FormData): Promise<string[]> {

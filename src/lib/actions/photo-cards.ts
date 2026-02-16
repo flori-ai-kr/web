@@ -351,6 +351,7 @@ export const reorderPhotos = withErrorLogging('reorderPhotos', _reorderPhotos);
 
 
 async function _downloadPhoto(photo: PhotoFile): Promise<{ url: string; filename: string } | null> {
+  await requireAuth();
   try {
     // R2 Storage: 서명된 다운로드 URL 생성
     const signedUrl = await getSignedDownloadUrl(photo.url, 60);
@@ -368,6 +369,7 @@ async function _downloadPhoto(photo: PhotoFile): Promise<{ url: string; filename
 export const downloadPhoto = withErrorLogging('downloadPhoto', _downloadPhoto);
 
 async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: string; filename: string }> }> {
+  await requireAuth();
   const supabase = await createClient();
 
   const { data: card } = await supabase

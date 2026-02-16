@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
@@ -13,13 +14,15 @@ function ensureVapid() {
   vapidConfigured = true;
 }
 
-// Cron 보안: CRON_SECRET으로 인증
+// Cron 보안: CRON_SECRET으로 인증 (timing-safe)
 function verifyCronAuth(request: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
   const authHeader = request.headers.get('authorization');
-  if (authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
-
-  // Vercel Cron은 자동으로 Authorization 헤더를 붙임
-  // 로컬 테스트용 fallback
+  const expected = `Bearer ${cronSecret}`;
+  if (authHeader && authHeader.length === expected.length) {
+    if (timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) return true;
+  }
   if (process.env.NODE_ENV === 'development') return true;
   return false;
 }
@@ -56,10 +59,11 @@ export async function GET(request: Request) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
+    if (!supabaseServiceKey) {
+      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 오늘 날짜 (KST 기준)
     const now = new Date();
