@@ -46,7 +46,12 @@ import { formatCurrency } from '@/lib/utils';
 function getMonthOptions() {
   const options = [];
   const now = new Date();
-  for (let i = 0; i < 12; i++) {
+  const startDate = new Date(2024, 11, 1); // 2024년 12월
+  const totalMonths =
+    (now.getFullYear() - startDate.getFullYear()) * 12 +
+    (now.getMonth() - startDate.getMonth()) +
+    1;
+  for (let i = 0; i < totalMonths; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     options.push({
       value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
