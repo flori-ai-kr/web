@@ -125,6 +125,7 @@ export function CalendarClient() {
     reservation_channel: 'other',
     reminder_date: '',
     reminder_time: '',
+    payment_date: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -322,6 +323,7 @@ export function CalendarClient() {
       reservation_channel: 'other',
       reminder_date: '',
       reminder_time: '',
+      payment_date: '',
     });
     setEditingId(null);
     setShowForm(false);
@@ -339,8 +341,9 @@ export function CalendarClient() {
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
-      reminder_date: reservation.reminder_at ? reservation.reminder_at.slice(0, 10) : '',
-      reminder_time: reservation.reminder_at ? reservation.reminder_at.slice(11, 16) : '',
+      reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
+      reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
+      payment_date: reservation.payment_date || '',
     });
     setShowForm(true);
   }
@@ -410,6 +413,7 @@ export function CalendarClient() {
           estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : 0,
           status: 'pending',
           reminder_at: reminderAt,
+          payment_date: formData.payment_date || null,
         });
         toast.success('예약이 수정되었습니다');
       } else {
@@ -423,11 +427,12 @@ export function CalendarClient() {
           estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : undefined,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: reminderAt,
+          payment_date: formData.payment_date || null,
         });
 
         // 2. 매출 자동 생성
         const saleFormData = new FormData();
-        saleFormData.set('date', dateStr);
+        saleFormData.set('date', formData.payment_date || dateStr);
         saleFormData.set('product_category', formData.product_category);
         saleFormData.set('amount', formData.estimated_amount);
         saleFormData.set('payment_method', formData.payment_method);
@@ -1073,7 +1078,7 @@ export function CalendarClient() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">시간 <span className="text-brand">*</span></Label>
+                      <Label className="text-xs text-muted-foreground">픽업 시간 <span className="text-brand">*</span></Label>
                       <TimeSelect
                         value={formData.time}
                         onChange={(val) => setFormData({ ...formData, time: val })}
@@ -1103,6 +1108,37 @@ export function CalendarClient() {
                         className="h-8 text-sm"
                       />
                     </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!formData.payment_date}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, payment_date: format(new Date(), 'yyyy-MM-dd') });
+                          } else {
+                            setFormData({ ...formData, payment_date: '' });
+                          }
+                        }}
+                        className="rounded border-input"
+                      />
+                      <span className="text-xs text-muted-foreground">결제일자 지정</span>
+                    </label>
+                    {formData.payment_date && (
+                      <Input
+                        type="date"
+                        value={formData.payment_date}
+                        onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                        className="h-8 text-sm"
+                        aria-label="결제일자"
+                      />
+                    )}
+                    {formData.payment_date && (
+                      <p className="text-[10px] text-muted-foreground">
+                        매출이 {formData.payment_date} 일자로 등록됩니다
+                      </p>
+                    )}
                   </div>
                   {!editingId && (
                     <>
@@ -1245,7 +1281,7 @@ export function CalendarClient() {
                         {r.reminder_at && (
                           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                             <BellRing className="w-3 h-3" />
-                            {r.reminder_at.slice(0, 10)} {r.reminder_at.slice(11, 16)} 알림
+                            {format(new Date(r.reminder_at), 'yyyy-MM-dd HH:mm')} 알림
                           </p>
                         )}
 

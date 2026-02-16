@@ -37,6 +37,7 @@ async function _createReservation(formData: {
   estimated_amount?: number;
   status?: ReservationStatus;
   reminder_at?: string | null;
+  payment_date?: string | null;
 }): Promise<Reservation> {
   const user = await requireAuth();
 
@@ -60,6 +61,7 @@ async function _createReservation(formData: {
       estimated_amount: parsed.data.estimated_amount || 0,
       status: parsed.data.status || 'pending',
       reminder_at: parsed.data.reminder_at || null,
+      payment_date: formData.payment_date || null,
     })
     .select()
     .single();
@@ -83,6 +85,7 @@ async function _updateReservation(
     status?: ReservationStatus;
     sale_id?: string | null;
     reminder_at?: string | null;
+    payment_date?: string | null;
     pickup_completed?: boolean;
   }
 ): Promise<void> {
@@ -110,6 +113,9 @@ async function _updateReservation(
     ...parsed.data,
     updated_at: new Date().toISOString(),
   };
+  if (formData.payment_date !== undefined) {
+    updates.payment_date = formData.payment_date;
+  }
   if (formData.pickup_completed !== undefined) {
     updates.pickup_completed = formData.pickup_completed;
   }
@@ -165,7 +171,10 @@ async function _convertReservationToSale(
     throw new AppError(ErrorCode.NOT_FOUND, '예약을 찾을 수 없습니다');
   }
 
-  // 2. FormData에 reservation_id 포함하여 매출 생성
+  // 2. 결제일자가 지정되어 있으면 매출 날짜를 결제일자로 덮어쓰기
+  if (reservation.payment_date) {
+    saleFormData.set('date', reservation.payment_date);
+  }
   saleFormData.set('reservation_id', reservationId);
   const sale = await createSale(saleFormData);
 
