@@ -178,6 +178,28 @@ export const RESERVATION_STATUS = [
   { value: 'cancelled', label: '취소', color: '#9B9B93' },
 ] as const;
 
+// Calendar Events (multi-day schedule)
+export interface CalendarEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  color: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const CALENDAR_EVENT_COLORS = [
+  { value: '#f43f5e', label: '로즈' },
+  { value: '#a855f7', label: '퍼플' },
+  { value: '#3b82f6', label: '블루' },
+  { value: '#10b981', label: '그린' },
+  { value: '#f59e0b', label: '앰버' },
+  { value: '#6b7280', label: '그레이' },
+] as const;
+
 export const PHOTO_TAG_COLORS = [
   { value: '#f5f5f5', label: '화이트' },
   { value: '#ec4899', label: '핑크' },

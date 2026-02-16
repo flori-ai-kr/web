@@ -65,6 +65,20 @@ export const reservationSchema = z.object({
   reminder_at: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
+// 캘린더 이벤트
+export const calendarEventBaseSchema = z.object({
+  title: z.string().min(1, '제목을 입력해주세요').max(255),
+  start_date: dateSchema,
+  end_date: dateSchema,
+  color: colorSchema.optional(),
+  description: z.string().max(1000).nullable().optional(),
+});
+
+export const calendarEventSchema = calendarEventBaseSchema.refine(
+  (data) => data.end_date >= data.start_date,
+  { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
+);
+
 // 카테고리 설정
 export const categorySettingSchema = z.object({
   label: z.string().min(1).max(100),

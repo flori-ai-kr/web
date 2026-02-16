@@ -144,6 +144,14 @@ export {
   convertReservationToSale,
 } from './reservations';
 
+// Calendar Events
+export {
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from './calendar-events';
+
 // Push Notifications
 export {
   subscribeToPush,
