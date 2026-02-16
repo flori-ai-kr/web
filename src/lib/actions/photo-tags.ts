@@ -31,7 +31,7 @@ function getRandomColor(): string {
 }
 
 async function _createPhotoTag(name: string, color?: string): Promise<PhotoTag | null> {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   const trimmedName = name.trim();
@@ -42,6 +42,7 @@ async function _createPhotoTag(name: string, color?: string): Promise<PhotoTag |
   const { data, error } = await supabase
     .from('photo_tags')
     .insert({
+      user_id: user.id,
       name: trimmedName,
       color: color || getRandomColor(),
     })

@@ -132,8 +132,10 @@ export function SalesList({
                       >
                         {paymentLabels[sale.payment_method] || sale.payment_method}
                       </span>
-                      {sale.customer_name && (
-                        <span className="text-xs text-muted-foreground truncate">{sale.customer_name}</span>
+                      {(sale.reservation_channel === 'road' || sale.customer_name) && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          {sale.reservation_channel === 'road' ? '로드' : sale.customer_name}
+                        </span>
                       )}
                     </div>
                     <span className="font-semibold text-sm text-foreground whitespace-nowrap tabular-nums">

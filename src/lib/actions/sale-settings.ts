@@ -39,7 +39,7 @@ export const getSaleCategories = withErrorLogging('getSaleCategories', _getSaleC
 
 // 카테고리 생성
 async function _createSaleCategory(label: string, color?: string): Promise<SaleCategory> {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   // value 생성 (영문 스네이크케이스)
@@ -56,7 +56,7 @@ async function _createSaleCategory(label: string, color?: string): Promise<SaleC
 
   const { data, error } = await supabase
     .from('sale_categories')
-    .insert({ value, label, color: color || '#f43f5e', sort_order: nextOrder })
+    .insert({ user_id: user.id, value, label, color: color || '#f43f5e', sort_order: nextOrder })
     .select()
     .single();
 
@@ -127,7 +127,7 @@ export const getPaymentMethods = withErrorLogging('getPaymentMethods', _getPayme
 // 결제방식 생성 (주의: value는 sales 테이블 CHECK 제약조건에 맞아야 함)
 // 기본 결제방식: cash, card, transfer, naverpay, kakaopay
 async function _createPaymentMethod(label: string, color?: string, value?: string): Promise<PaymentMethod> {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   // value가 없으면 생성 (영문 스네이크케이스)
@@ -144,7 +144,7 @@ async function _createPaymentMethod(label: string, color?: string, value?: strin
 
   const { data, error } = await supabase
     .from('payment_methods')
-    .insert({ value: finalValue, label, color: color || '#3b82f6', sort_order: nextOrder })
+    .insert({ user_id: user.id, value: finalValue, label, color: color || '#3b82f6', sort_order: nextOrder })
     .select()
     .single();
 

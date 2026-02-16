@@ -47,13 +47,13 @@ async function _createCardCompanySetting(
   feeRate: number = 2.0,
   depositDays: number = 3
 ): Promise<CardCompanySetting> {
-  await requireAuth();
+  const user = await requireAuth();
 
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('card_company_settings')
-    .insert({ name, fee_rate: feeRate, deposit_days: depositDays })
+    .insert({ user_id: user.id, name, fee_rate: feeRate, deposit_days: depositDays })
     .select()
     .single();
 

@@ -68,7 +68,7 @@ async function _getSales(month?: string) {
 export const getSales = withErrorLogging('getSales', _getSales);
 
 async function _createSale(formData: FormData) {
-  await requireAuth();
+  const user = await requireAuth();
   const supabase = await createClient();
 
   const productCategory = formData.get('product_category') as string;
@@ -100,6 +100,7 @@ async function _createSale(formData: FormData) {
   const finalCustomerId = await resolveCustomerId(customerId, customerName, customerPhone);
 
   const sale = {
+    user_id: user.id,
     date: parsed.data.date,
     product_name: productCategory,
     product_category: productCategory,
