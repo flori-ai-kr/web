@@ -157,12 +157,13 @@ export function CalendarClient() {
     return Array.from({ length: 5 }, (_, i) => addDays(subDays(selectedDate, 2), i));
   }, [selectedDate]);
 
-  // 5일 뷰에서 selectedDate 변경 시 currentMonth 동기화
-  useEffect(() => {
-    if (viewMode === '5day' && !isSameMonth(selectedDate, currentMonth)) {
-      setCurrentMonth(selectedDate);
+  // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화
+  function selectDate(date: Date) {
+    setSelectedDate(date);
+    if (!isSameMonth(date, currentMonth)) {
+      setCurrentMonth(date);
     }
-  }, [viewMode, selectedDate, currentMonth]);
+  }
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -573,7 +574,12 @@ export function CalendarClient() {
                     월간
                   </button>
                   <button
-                    onClick={() => setViewMode('5day')}
+                    onClick={() => {
+                      setViewMode('5day');
+                      if (!isSameMonth(selectedDate, currentMonth)) {
+                        setCurrentMonth(selectedDate);
+                      }
+                    }}
                     className={cn(
                       'px-2 min-[450px]:px-2.5 py-1 text-xs rounded-md transition-colors',
                       viewMode === '5day' ? 'bg-background shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -591,7 +597,7 @@ export function CalendarClient() {
                       if (viewMode === 'month') {
                         setCurrentMonth(subMonths(currentMonth, 1));
                       } else {
-                        setSelectedDate(subDays(selectedDate, 1));
+                        selectDate(subDays(selectedDate, 1));
                       }
                     }}
                     aria-label={viewMode === 'month' ? '이전 달' : '이전 날'}
@@ -604,7 +610,7 @@ export function CalendarClient() {
                     className="text-xs px-2"
                     onClick={() => {
                       setCurrentMonth(new Date());
-                      setSelectedDate(new Date());
+                      selectDate(new Date());
                     }}
                   >
                     오늘
@@ -616,7 +622,7 @@ export function CalendarClient() {
                       if (viewMode === 'month') {
                         setCurrentMonth(addMonths(currentMonth, 1));
                       } else {
-                        setSelectedDate(addDays(selectedDate, 1));
+                        selectDate(addDays(selectedDate, 1));
                       }
                     }}
                     aria-label={viewMode === 'month' ? '다음 달' : '다음 날'}
@@ -655,7 +661,7 @@ export function CalendarClient() {
                     return (
                       <button
                         key={dateKey}
-                        onClick={() => setSelectedDate(day)}
+                        onClick={() => selectDate(day)}
                         aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 이벤트 ${dayEvents.length}건` : ''}`}
                         className={cn(
                           'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col overflow-visible',
@@ -770,7 +776,7 @@ export function CalendarClient() {
                     return (
                       <button
                         key={dateKey}
-                        onClick={() => setSelectedDate(day)}
+                        onClick={() => selectDate(day)}
                         aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 이벤트 ${dayEvents.length}건` : ''}`}
                         className={cn(
                           'relative min-h-[100px] min-[450px]:min-h-[200px] p-1.5 min-[450px]:p-2 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(5n)]:border-r-0 flex flex-col',
