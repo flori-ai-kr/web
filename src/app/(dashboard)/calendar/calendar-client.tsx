@@ -17,7 +17,7 @@ import {
   isToday,
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2, Loader2, ExternalLink, BellRing, Check, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2, Loader2, ExternalLink, BellRing, Check, CalendarDays, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -211,6 +211,29 @@ export function CalendarClient() {
         reminder_at: reservation.reminder_at,
       });
       toast.success(newStatus === 'completed' ? '제작이 완료되었습니다' : '제작 완료가 취소되었습니다');
+      fetchData();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
+    }
+  }
+
+  // 픽업 완료 토글
+  async function togglePickup(reservation: Reservation) {
+    const newVal = !reservation.pickup_completed;
+    try {
+      await updateReservation(reservation.id, {
+        date: reservation.date,
+        time: reservation.time || '',
+        customer_name: reservation.customer_name,
+        customer_phone: reservation.customer_phone || '',
+        title: reservation.title,
+        description: reservation.description || '',
+        estimated_amount: reservation.estimated_amount,
+        status: reservation.status,
+        reminder_at: reservation.reminder_at,
+        pickup_completed: newVal,
+      });
+      toast.success(newVal ? '픽업 완료 처리되었습니다' : '픽업 완료가 취소되었습니다');
       fetchData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
@@ -681,12 +704,20 @@ export function CalendarClient() {
                                 key={r.id}
                                 className={cn(
                                   'text-[10px] leading-tight px-1 py-0.5 rounded truncate',
-                                  r.status === 'completed'
-                                    ? 'bg-sage-muted text-sage line-through'
-                                    : 'bg-brand/15 text-brand'
+                                  r.pickup_completed
+                                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                    : r.status === 'completed'
+                                      ? 'bg-sage-muted text-sage'
+                                      : 'bg-brand/15 text-brand'
                                 )}
                               >
-                                {r.time ? r.time.slice(0, 5) : ''}<span className="hidden min-[450px]:inline">{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}</span>
+                                {r.pickup_completed && <span className="hidden min-[450px]:inline">📦 </span>}
+                                <span className={(r.pickup_completed || r.status === 'completed') ? 'line-through' : undefined}>
+                                  {r.time ? r.time.slice(0, 5) : ''}
+                                  <span className="hidden min-[450px]:inline">
+                                    {r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
+                                  </span>
+                                </span>
                               </div>
                             ))}
                             {dayReservations.length > 5 && (
@@ -782,15 +813,20 @@ export function CalendarClient() {
                                 key={r.id}
                                 className={cn(
                                   'text-[10px] min-[450px]:text-xs leading-snug px-1 min-[450px]:px-1.5 py-0.5 min-[450px]:py-1 rounded',
-                                  r.status === 'completed'
-                                    ? 'bg-sage-muted text-sage line-through'
-                                    : 'bg-brand/15 text-brand'
+                                  r.pickup_completed
+                                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                    : r.status === 'completed'
+                                      ? 'bg-sage-muted text-sage'
+                                      : 'bg-brand/15 text-brand'
                                 )}
                               >
                                 <div className="font-medium truncate">
-                                  {r.time ? r.time.slice(0, 5) : ''}<span className="hidden min-[450px]:inline">{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}</span>
+                                  {r.pickup_completed && <span className="hidden min-[450px]:inline">📦 </span>}
+                                  <span className={(r.pickup_completed || r.status === 'completed') ? 'line-through' : undefined}>
+                                    {r.time ? r.time.slice(0, 5) : ''}<span className="hidden min-[450px]:inline">{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}</span>
+                                  </span>
                                 </div>
-                                <div className="hidden min-[450px]:block">
+                                <div className={cn('hidden min-[450px]:block', (r.pickup_completed || r.status === 'completed') && 'line-through')}>
                                   {r.title && r.customer_name && (
                                     <div className="truncate opacity-80">{r.title}</div>
                                   )}
@@ -1227,23 +1263,41 @@ export function CalendarClient() {
                           </button>
                         )}
 
-                        {/* 제작 완료 토글 */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCompletion(r);
-                          }}
-                          className={cn(
-                            'mt-2 text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
-                            r.status === 'completed'
-                              ? 'bg-brand text-brand-foreground'
-                              : 'border border-input text-muted-foreground hover:bg-muted'
-                          )}
-                          aria-label={r.status === 'completed' ? '제작 완료 취소' : '제작 완료로 변경'}
-                        >
-                          {r.status === 'completed' && <Check className="w-3 h-3" />}
-                          제작 완료
-                        </button>
+                        {/* 상태 토글 */}
+                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCompletion(r);
+                            }}
+                            className={cn(
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              r.status === 'completed'
+                                ? 'bg-brand text-brand-foreground'
+                                : 'border border-input text-muted-foreground hover:bg-muted'
+                            )}
+                            aria-label={r.status === 'completed' ? '제작 완료 취소' : '제작 완료로 변경'}
+                          >
+                            {r.status === 'completed' && <Check className="w-3 h-3" />}
+                            제작 완료
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePickup(r);
+                            }}
+                            className={cn(
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              r.pickup_completed
+                                ? 'bg-blue-500 text-white'
+                                : 'border border-input text-muted-foreground hover:bg-muted'
+                            )}
+                            aria-label={r.pickup_completed ? '픽업 완료 취소' : '픽업 완료로 변경'}
+                          >
+                            {r.pickup_completed && <PackageCheck className="w-3 h-3" />}
+                            픽업 완료
+                          </button>
+                        </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">

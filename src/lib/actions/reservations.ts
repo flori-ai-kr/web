@@ -83,6 +83,7 @@ async function _updateReservation(
     status?: ReservationStatus;
     sale_id?: string | null;
     reminder_at?: string | null;
+    pickup_completed?: boolean;
   }
 ): Promise<void> {
   await requireAuth();
@@ -109,6 +110,9 @@ async function _updateReservation(
     ...parsed.data,
     updated_at: new Date().toISOString(),
   };
+  if (formData.pickup_completed !== undefined) {
+    updates.pickup_completed = formData.pickup_completed;
+  }
   if (formData.sale_id !== undefined) {
     const saleParsed = formData.sale_id ? uuidSchema.safeParse(formData.sale_id) : null;
     if (formData.sale_id && (!saleParsed || !saleParsed.success)) {
