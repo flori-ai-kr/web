@@ -1,6 +1,8 @@
 // Sales
 export {
   getSales,
+  loadMoreSales,
+  getSalesSummary,
   getSaleById,
   createSale,
   updateSale,
@@ -8,6 +10,7 @@ export {
   uploadSalePhotos,
   deleteSalePhoto,
 } from './sales';
+export type { SalesFilters } from './sales';
 
 // Expenses
 export {
