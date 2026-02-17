@@ -202,15 +202,7 @@ export function CalendarClient() {
     const newStatus: ReservationStatus = reservation.status === 'completed' ? 'pending' : 'completed';
     try {
       await updateReservation(reservation.id, {
-        date: reservation.date,
-        time: reservation.time || '',
-        customer_name: reservation.customer_name,
-        customer_phone: reservation.customer_phone || '',
-        title: reservation.title,
-        description: reservation.description || '',
-        estimated_amount: reservation.estimated_amount,
         status: newStatus,
-        reminder_at: reservation.reminder_at,
       });
       toast.success(newStatus === 'completed' ? '제작이 완료되었습니다' : '제작 완료가 취소되었습니다');
       fetchData();
@@ -224,15 +216,6 @@ export function CalendarClient() {
     const newVal = !reservation.pickup_completed;
     try {
       await updateReservation(reservation.id, {
-        date: reservation.date,
-        time: reservation.time || '',
-        customer_name: reservation.customer_name,
-        customer_phone: reservation.customer_phone || '',
-        title: reservation.title,
-        description: reservation.description || '',
-        estimated_amount: reservation.estimated_amount,
-        status: reservation.status,
-        reminder_at: reservation.reminder_at,
         pickup_completed: newVal,
       });
       toast.success(newVal ? '픽업 완료 처리되었습니다' : '픽업 완료가 취소되었습니다');
