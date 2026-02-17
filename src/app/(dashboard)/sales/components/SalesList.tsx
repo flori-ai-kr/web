@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, ImageIcon, TrendingUp } from 'lucide-react';
+import { Search, ImageIcon, TrendingUp, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
@@ -17,6 +17,9 @@ interface SalesListProps {
   paymentLabels: Record<string, string>;
   paymentColors: Record<string, string>;
   hasActiveFilters: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
   onSelectSale: (sale: Sale) => void;
   onResetFilters: () => void;
   onOpenForm: () => void;
@@ -36,10 +39,32 @@ export function SalesList({
   paymentLabels,
   paymentColors,
   hasActiveFilters,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
   onSelectSale,
   onResetFilters,
   onOpenForm,
 }: SalesListProps) {
+  // 무한스크롤 IntersectionObserver
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasMore || isLoadingMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore]);
   // 일자별 그룹핑
   const dateGroups: DateGroup[] = useMemo(() => {
     const map = new Map<string, Sale[]>();
@@ -168,6 +193,15 @@ export function SalesList({
           </div>
         </div>
       ))}
+
+      {/* 무한스크롤 sentinel */}
+      {hasMore && (
+        <div ref={sentinelRef} className="flex justify-center py-4">
+          {isLoadingMore && (
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          )}
+        </div>
+      )}
     </div>
   );
 }
