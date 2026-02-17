@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -13,6 +14,8 @@ import {
   UserCheck,
   Users,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -31,7 +34,9 @@ import type {
   CustomerStat,
   ExpenseCategoryStat,
 } from '@/lib/actions/statistics';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getTodayKST } from '@/lib/utils';
+
+const PAGE_SIZE = 5;
 
 function getMonthOptions() {
   const options = [];
@@ -114,8 +119,27 @@ export function DashboardClient() {
   const [customerStats, setCustomerStats] = useState<CustomerStat | null>(null);
   const [expenseStats, setExpenseStats] = useState<ExpenseCategoryStat[]>([]);
   const [isMonthLoading, setIsMonthLoading] = useState(true);
+  const [reservationPage, setReservationPage] = useState(0);
 
   const statusMap = useMemo(() => new Map(RESERVATION_STATUS.map((s) => [s.value, s])), []);
+
+  // 현재 시간 이후 픽업만 필터링
+  const upcomingReservations = useMemo(() => {
+    const today = getTodayKST();
+    const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const nowTime = `${String(nowKST.getUTCHours()).padStart(2, '0')}:${String(nowKST.getUTCMinutes()).padStart(2, '0')}`;
+    return reservations.filter((r) => {
+      if (r.date > today) return true;
+      // 오늘: 시간이 현재 이후이거나 시간 미지정
+      return !r.time || r.time.slice(0, 5) >= nowTime;
+    });
+  }, [reservations]);
+
+  const totalReservationPages = Math.ceil(upcomingReservations.length / PAGE_SIZE);
+  const pagedReservations = useMemo(
+    () => upcomingReservations.slice(reservationPage * PAGE_SIZE, (reservationPage + 1) * PAGE_SIZE),
+    [upcomingReservations, reservationPage],
+  );
 
   // Fetch today data (once) - 단일 Server Action (기존 4개 → 1개 HTTP)
   useEffect(() => {
@@ -270,14 +294,14 @@ export function DashboardClient() {
 
       {/* Two Column: Reservations + Recent Sales */}
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Today's Reservations */}
+        {/* Upcoming Reservations */}
         <Card className="overflow-hidden">
           <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-brand" />
-              오늘 예약
-              {reservations.length > 0 && (
-                <span className="text-muted-foreground">({reservations.length}건)</span>
+              다가오는 예약
+              {upcomingReservations.length > 0 && (
+                <span className="text-muted-foreground">({upcomingReservations.length}건)</span>
               )}
             </h2>
             <Link
@@ -290,7 +314,7 @@ export function DashboardClient() {
           <CardContent className="p-4">
             {isTodayLoading ? (
               <div className="space-y-2 py-1">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(5)].map((_, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                     <Skeleton className="h-4 w-11 shrink-0" />
                     <div className="flex-1 space-y-1.5">
@@ -300,53 +324,89 @@ export function DashboardClient() {
                   </div>
                 ))}
               </div>
-            ) : reservations.length > 0 ? (
-              <div className="space-y-2">
-                {reservations.map((r) => {
-                  const status = statusMap.get(r.status);
-                  return (
-                    <div key={r.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground w-11 pt-0.5 shrink-0 tabular-nums">
-                        {r.time ? r.time.slice(0, 5) : '--:--'}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {r.title}
+            ) : upcomingReservations.length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  {pagedReservations.map((r) => {
+                    const status = statusMap.get(r.status);
+                    const today = getTodayKST();
+                    const isToday = r.date === today;
+                    return (
+                      <div key={r.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="pt-0.5 shrink-0 text-right">
+                          <span className="text-xs font-medium text-muted-foreground tabular-nums block">
+                            {isToday ? '오늘' : r.date.slice(5).replace('-', '/')}
                           </span>
-                          {status && (
-                            <span
-                              className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0"
-                              style={{
-                                backgroundColor: `${status.color}20`,
-                                color: status.color,
-                              }}
-                            >
-                              {status.label}
+                          <span className="text-[10px] text-muted-foreground tabular-nums block">
+                            {r.time ? r.time.slice(0, 5) : '--:--'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {r.title}
                             </span>
+                            {status && (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0"
+                                style={{
+                                  backgroundColor: `${status.color}20`,
+                                  color: status.color,
+                                }}
+                              >
+                                {status.label}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {r.customer_name}
+                            {r.amount > 0 && ` · ${formatCurrency(r.amount)}`}
+                          </p>
+                          {(r.status === 'pending' || r.status === 'confirmed') && !r.sale_id && (
+                            <Link
+                              href={`/calendar?date=${r.date}&action=sale&reservationId=${r.id}`}
+                              className="text-[11px] text-brand hover:text-brand/80 mt-1 inline-flex items-center gap-0.5 transition-colors"
+                            >
+                              매출 등록하기 <ArrowUpRight className="w-2.5 h-2.5" />
+                            </Link>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {r.customer_name}
-                          {r.amount > 0 && ` · ${formatCurrency(r.amount)}`}
-                        </p>
-                        {(r.status === 'pending' || r.status === 'confirmed') && !r.sale_id && (
-                          <Link
-                            href={`/calendar?date=${r.date}&action=sale&reservationId=${r.id}`}
-                            className="text-[11px] text-brand hover:text-brand/80 mt-1 inline-flex items-center gap-0.5 transition-colors"
-                          >
-                            매출 등록하기 <ArrowUpRight className="w-2.5 h-2.5" />
-                          </Link>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                {totalReservationPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={reservationPage === 0}
+                      onClick={() => setReservationPage((p) => p - 1)}
+                      aria-label="이전 페이지"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {reservationPage + 1} / {totalReservationPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={reservationPage >= totalReservationPages - 1}
+                      onClick={() => setReservationPage((p) => p + 1)}
+                      aria-label="다음 페이지"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">오늘 예약이 없습니다</p>
+                <p className="text-sm">다가오는 예약이 없습니다</p>
               </div>
             )}
           </CardContent>

@@ -167,7 +167,7 @@ async function _getDashboardTodayData(): Promise<DashboardTodayData> {
 
   const [salesRes, reservationsRes, recentRes, categoriesRes] = await Promise.all([
     supabase.from('sales').select('amount, payment_method, deposit_status').eq('date', today),
-    supabase.from('reservations').select('*').eq('date', today).order('time', { nullsFirst: false }),
+    supabase.from('reservations').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }).order('time', { ascending: true, nullsFirst: false }),
     supabase.from('sales').select('*').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
     supabase.from('sale_categories').select('value, label').order('sort_order', { ascending: true }),
   ]);

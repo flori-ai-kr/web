@@ -20,8 +20,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { signOut } from '@/lib/actions/auth';
-import { getReservations } from '@/lib/actions';
-import { getTodayKST } from '@/lib/utils';
+import { getTriggeredReminders } from '@/lib/actions';
 import type { Reservation } from '@/types/database';
 
 interface HeaderProps {
@@ -61,35 +60,30 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
   const pageTitle = getPageTitle(pathname);
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [todayReservations, setTodayReservations] = useState<Reservation[]>([]);
+  const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
-  const fetchTodayReservations = useCallback(async () => {
+  const fetchReminders = useCallback(async () => {
     try {
-      const today = getTodayKST();
-      const month = today.slice(0, 7);
-      const all = await getReservations(month);
-      const todayItems = all
-        .filter((r) => r.date === today && r.status !== 'cancelled')
-        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-      setTodayReservations(todayItems);
+      const data = await getTriggeredReminders();
+      setReminders(data);
     } catch {
       // 조용히 실패
     }
   }, []);
 
   useEffect(() => {
-    fetchTodayReservations();
-  }, [fetchTodayReservations]);
+    fetchReminders();
+  }, [fetchReminders]);
 
   // Popover 열 때 새로고침
   useEffect(() => {
-    if (notifOpen) fetchTodayReservations();
-  }, [notifOpen, fetchTodayReservations]);
+    if (notifOpen) fetchReminders();
+  }, [notifOpen, fetchReminders]);
 
-  const pendingCount = todayReservations.filter((r) => r.status === 'pending' || r.status === 'confirmed').length;
+  const unhandledCount = reminders.filter((r) => r.status !== 'completed').length;
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -130,42 +124,54 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
                 aria-label="알림"
               >
                 <Bell className="h-5 w-5" />
-                {pendingCount > 0 && (
+                {unhandledCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-brand text-brand-foreground text-[10px] font-bold flex items-center justify-center">
-                    {pendingCount > 9 ? '9+' : pendingCount}
+                    {unhandledCount > 9 ? '9+' : unhandledCount}
                   </span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-72 p-0">
+            <PopoverContent align="end" className="w-80 p-0">
               <div className="px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-semibold">오늘 예약</h3>
+                <h3 className="text-sm font-semibold">리마인더 알림</h3>
               </div>
-              <div className="max-h-64 overflow-y-auto">
-                {todayReservations.length === 0 ? (
+              <div className="max-h-72 overflow-y-auto">
+                {reminders.length === 0 ? (
                   <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-                    오늘 예약이 없습니다
+                    발동된 리마인더가 없습니다
                   </p>
                 ) : (
-                  todayReservations.map((r) => (
-                    <div key={r.id} className="px-4 py-2.5 border-b border-border last:border-b-0 hover:bg-muted/50">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium truncate">{r.title}</span>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
-                          r.status === 'completed' ? 'bg-green-600 text-white dark:bg-green-700 dark:text-white' :
-                          r.status === 'confirmed' ? 'bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400' :
-                          'bg-amber-200 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
-                        }`}>
-                          {r.status === 'completed' ? '완료' : r.status === 'confirmed' ? '확정' : '대기'}
-                        </span>
+                  reminders.map((r) => {
+                    const reminderTime = r.reminder_at ? new Date(r.reminder_at) : null;
+                    const isCompleted = r.status === 'completed';
+                    return (
+                      <div key={r.id} className={`px-4 py-2.5 border-b border-border last:border-b-0 hover:bg-muted/50 ${isCompleted ? 'opacity-50' : ''}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-sm font-medium truncate ${isCompleted ? 'line-through' : ''}`}>{r.title}</span>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
+                            isCompleted ? 'bg-green-600 text-white dark:bg-green-700 dark:text-white' :
+                            r.status === 'confirmed' ? 'bg-blue-600 text-white dark:bg-blue-700 dark:text-white' :
+                            'bg-amber-500 text-white dark:bg-amber-600 dark:text-white'
+                          }`}>
+                            {isCompleted ? '픽업 완료' : r.status === 'confirmed' ? '픽업 필요' : '제작 필요'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                          {reminderTime && (
+                            <span>
+                              {reminderTime.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}{' '}
+                              {reminderTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                            </span>
+                          )}
+                          {r.customer_name && <span>· {r.customer_name}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground/70">
+                          <span>픽업 {r.date} {r.time ? r.time.slice(0, 5) : ''}</span>
+                          {r.amount ? <span>· {new Intl.NumberFormat('ko-KR').format(r.amount)}원</span> : null}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                        <span>{r.time ? r.time.slice(0, 5) : '--:--'}</span>
-                        {r.customer_name && <span>{r.customer_name}</span>}
-                        {r.amount ? <span>{new Intl.NumberFormat('ko-KR').format(r.amount)}원</span> : null}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <div className="px-4 py-2 border-t border-border">

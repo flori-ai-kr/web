@@ -1603,7 +1603,7 @@ export function CalendarClient() {
                                 ? 'bg-brand text-brand-foreground'
                                 : 'border border-input text-muted-foreground hover:bg-muted'
                             )}
-                            aria-label={r.status === 'completed' ? '제작 완료 취소' : '제작 완료로 변경'}
+                            aria-label={r.status === 'completed' ? '픽업 완료 취소' : '픽업 완료로 변경'}
                           >
                             {r.status === 'completed' && <Check className="w-3 h-3" />}
                             제작 완료

@@ -144,6 +144,8 @@ export {
   convertReservationToSale,
   addPickupToSale,
   getReservationsForSale,
+  getTriggeredReminders,
+  getUpcomingReservations,
 } from './reservations';
 
 // Calendar Events

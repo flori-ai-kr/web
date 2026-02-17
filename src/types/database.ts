@@ -172,9 +172,9 @@ export interface Reservation {
 }
 
 export const RESERVATION_STATUS = [
-  { value: 'pending', label: '대기', color: '#F5A623' },
-  { value: 'confirmed', label: '확정', color: '#5B8DEF' },
-  { value: 'completed', label: '완료', color: '#8B9D83' },
+  { value: 'pending', label: '제작 필요', color: '#F5A623' },
+  { value: 'confirmed', label: '픽업 필요', color: '#5B8DEF' },
+  { value: 'completed', label: '픽업 완료', color: '#8B9D83' },
   { value: 'cancelled', label: '취소', color: '#9B9B93' },
 ] as const;
 

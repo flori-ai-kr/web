@@ -279,3 +279,55 @@ async function _getReservationsForSale(saleId: string): Promise<Reservation[]> {
 }
 
 export const getReservationsForSale = withErrorLogging('getReservationsForSale', _getReservationsForSale);
+
+/**
+ * 발동된 리마인더 목록을 조회한다.
+ * reminder_at <= 현재 시간(KST) && 최근 48시간 이내, 취소 제외
+ */
+async function _getTriggeredReminders(): Promise<Reservation[]> {
+  await requireAuth();
+  const supabase = await createClient();
+
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const cutoff = new Date(kstNow.getTime() - 48 * 60 * 60 * 1000);
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*')
+    .not('reminder_at', 'is', null)
+    .neq('status', 'cancelled')
+    .lte('reminder_at', kstNow.toISOString())
+    .gte('reminder_at', cutoff.toISOString())
+    .order('reminder_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []) as Reservation[];
+}
+
+export const getTriggeredReminders = withErrorLogging('getTriggeredReminders', _getTriggeredReminders);
+
+/**
+ * 다가오는 예약 목록을 조회한다.
+ * 현재 시점(KST) 이후 픽업인 예약, 취소 제외, 날짜+시간 오름차순
+ */
+async function _getUpcomingReservations(): Promise<Reservation[]> {
+  await requireAuth();
+  const supabase = await createClient();
+
+  const now = new Date();
+  const todayKST = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*')
+    .neq('status', 'cancelled')
+    .gte('date', todayKST)
+    .order('date', { ascending: true })
+    .order('time', { ascending: true, nullsFirst: false });
+
+  if (error) throw error;
+  return (data || []) as Reservation[];
+}
+
+export const getUpcomingReservations = withErrorLogging('getUpcomingReservations', _getUpcomingReservations);
