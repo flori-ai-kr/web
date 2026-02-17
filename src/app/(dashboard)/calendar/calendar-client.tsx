@@ -108,7 +108,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -172,6 +172,7 @@ export function CalendarClient() {
   // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화
   function selectDate(date: Date) {
     setSelectedDate(date);
+    setAddPickupSaleId(null);
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
@@ -293,7 +294,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, Reservation[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -1382,16 +1383,23 @@ export function CalendarClient() {
 
                         {/* 매출 확인 링크 */}
                         {r.sale_id && (
-                          <button
-                            className="mt-2 text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/sales?saleId=${r.sale_id}`);
-                            }}
-                            aria-label="연결된 매출 확인"
-                          >
-                            매출 확인 <ExternalLink className="w-3 h-3" />
-                          </button>
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              className="text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/sales?saleId=${r.sale_id}`);
+                              }}
+                              aria-label="연결된 매출 확인"
+                            >
+                              매출 확인 <ExternalLink className="w-3 h-3" />
+                            </button>
+                            {r.sale_date && (
+                              <span className="text-[10px] text-muted-foreground">
+                                결제 {format(new Date(r.sale_date), 'yy.MM.dd')}
+                              </span>
+                            )}
+                          </div>
                         )}
 
                         {/* 같은 매출의 다른 픽업 날짜 */}
@@ -1412,14 +1420,14 @@ export function CalendarClient() {
                         )}
 
                         {/* 상태 토글 */}
-                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                        <div className="flex gap-1.5 mt-2 items-center">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleCompletion(r);
                             }}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
                               r.status === 'completed'
                                 ? 'bg-brand text-brand-foreground'
                                 : 'border border-input text-muted-foreground hover:bg-muted'
@@ -1435,7 +1443,7 @@ export function CalendarClient() {
                               togglePickup(r);
                             }}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
                               r.pickup_completed
                                 ? 'bg-blue-500 text-white'
                                 : 'border border-input text-muted-foreground hover:bg-muted'
@@ -1456,7 +1464,7 @@ export function CalendarClient() {
                                   setPickupFormData({ date: '', time: '', title: '', estimated_amount: '', reminder_date: '', reminder_time: '' });
                                 }
                               }}
-                              className="text-xs py-1 px-2 rounded border border-dashed border-input text-muted-foreground hover:bg-muted transition-colors inline-flex items-center gap-1"
+                              className="text-xs py-1 px-2 rounded border border-dashed border-input text-muted-foreground hover:bg-muted transition-colors inline-flex items-center gap-1 shrink-0"
                               aria-label="픽업 추가"
                             >
                               <Plus className="w-3 h-3" />
@@ -1478,7 +1486,7 @@ export function CalendarClient() {
                 </Card>
 
                 {/* 인라인 픽업 추가 폼 */}
-                {addPickupSaleId === r.sale_id && (
+                {addPickupSaleId && addPickupSaleId === r.sale_id && (
                   <Card className="border-dashed">
                     <CardContent className="p-3">
                       <form onSubmit={handleAddPickup} className="space-y-2">

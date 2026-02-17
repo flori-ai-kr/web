@@ -9,20 +9,24 @@ import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
 
-async function _getReservations(month: string): Promise<Reservation[]> {
+async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string })[]> {
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('*')
+    .select('*, sale:sales!sale_id(date)')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date')
     .order('time', { nullsFirst: false });
 
   if (error) throw error;
-  return (data || []) as Reservation[];
+  return (data || []).map((r: Record<string, unknown>) => {
+    const sale = r.sale as { date: string } | null;
+    const { sale: _, ...rest } = r;
+    return { ...rest, sale_date: sale?.date ?? undefined } as Reservation & { sale_date?: string };
+  });
 }
 
 export const getReservations = withErrorLogging('getReservations', _getReservations);
