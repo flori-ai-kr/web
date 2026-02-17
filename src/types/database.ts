@@ -166,6 +166,7 @@ export interface Reservation {
   sale_id: string | null;
   amount: number;
   reminder_at: string | null;
+  reminder_sent: boolean;
   pickup_completed: boolean;
   created_at: string;
   updated_at: string;

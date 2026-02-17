@@ -68,12 +68,12 @@ export async function GET(request: Request) {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-    // reminder_at이 지난 1시간 이내인 미완료/미취소 예약 조회
+    // reminder_at이 현재 이전이고 아직 전송되지 않은 미완료/미취소 예약 조회
     const { data: reminders, error: reminderError } = await supabase
       .from('reservations')
-      .select('id, title, customer_name, date, time, amount')
+      .select('id, user_id, title, customer_name, date, time, amount')
       .lte('reminder_at', now.toISOString())
-      .gt('reminder_at', oneHourAgo.toISOString())
+      .eq('reminder_sent', false)
       .neq('status', 'cancelled')
       .neq('status', 'completed')
       .order('date');
@@ -87,17 +87,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'No scheduled reminders', sent: 0 });
     }
 
-    // 활성 구독 조회
+    // 예약 소유자별 구독 조회를 위해 user_id 수집
+    const userIds = [...new Set(reminders.map((r) => r.user_id))];
     const { data: subscriptions } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('is_active', true);
+      .select('endpoint, p256dh, auth, user_id')
+      .eq('is_active', true)
+      .in('user_id', userIds);
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ message: 'No active subscriptions', sent: 0 });
     }
 
-    const subs = subscriptions as unknown as SubscriptionRow[];
+    // user_id별 구독 그룹화
+    const subsByUser = new Map<string, SubscriptionRow[]>();
+    for (const sub of subscriptions) {
+      const uid = (sub as unknown as { user_id: string }).user_id;
+      const existing = subsByUser.get(uid) || [];
+      existing.push(sub as unknown as SubscriptionRow);
+      subsByUser.set(uid, existing);
+    }
+
     let totalSent = 0;
     let totalFailed = 0;
 
@@ -107,6 +117,9 @@ export async function GET(request: Request) {
     const today = kstDate.toISOString().split('T')[0];
 
     for (const r of reminders) {
+      // 해당 유저의 구독만 가져오기
+      const subs = subsByUser.get(r.user_id) || [];
+      if (subs.length === 0) continue;
       const daysUntil = Math.ceil(
         (new Date(r.date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24),
       );
@@ -185,11 +198,11 @@ export async function GET(request: Request) {
       totalFailed += reminderFailed;
     }
 
-    // 전송 완료된 리마인더 초기화 (중복 방지)
+    // 전송 완료 마킹 (중복 방지, reminder_at 유지)
     const reminderIds = reminders.map((r) => r.id);
     await supabase
       .from('reservations')
-      .update({ reminder_at: null } as never)
+      .update({ reminder_sent: true } as never)
       .in('id', reminderIds);
 
     return NextResponse.json({

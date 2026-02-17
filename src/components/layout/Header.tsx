@@ -62,13 +62,22 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
   const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const LAST_READ_KEY = 'hazel-reminder-last-read';
 
   useEffect(() => setMounted(true), []);
 
   const fetchReminders = useCallback(async () => {
     try {
       const data = await getTriggeredReminders();
-      setReminders(data);
+      // localStorage의 마지막 읽은 시간 이후 리마인더만 표시
+      const lastRead = localStorage.getItem(LAST_READ_KEY);
+      if (lastRead) {
+        const cutoff = new Date(lastRead);
+        const unread = data.filter((r) => r.reminder_at && new Date(r.reminder_at) > cutoff);
+        setReminders(unread);
+      } else {
+        setReminders(data);
+      }
     } catch {
       // 조용히 실패
     }
@@ -78,12 +87,18 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
     fetchReminders();
   }, [fetchReminders]);
 
-  // Popover 열 때 새로고침
+  // Popover 닫을 때 읽음 처리
   useEffect(() => {
-    if (notifOpen) fetchReminders();
-  }, [notifOpen, fetchReminders]);
+    if (notifOpen) {
+      fetchReminders();
+    } else if (reminders.length > 0) {
+      // 닫힐 때 현재 시간을 마지막 읽은 시간으로 저장
+      localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
+      setReminders([]);
+    }
+  }, [notifOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const unhandledCount = reminders.filter((r) => r.status !== 'completed').length;
+  const unreadCount = reminders.length;
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -124,9 +139,9 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
                 aria-label="알림"
               >
                 <Bell className="h-5 w-5" />
-                {unhandledCount > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-brand text-brand-foreground text-[10px] font-bold flex items-center justify-center">
-                    {unhandledCount > 9 ? '9+' : unhandledCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </Button>
