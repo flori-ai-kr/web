@@ -26,7 +26,6 @@ export const saleSchema = z.object({
   customer_name: z.string().max(100).nullable().optional(),
   customer_phone: z.string().max(20).nullable().optional(),
   customer_id: uuidSchema.nullable().optional(),
-  reservation_id: uuidSchema.nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
 });
 

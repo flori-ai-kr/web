@@ -142,6 +142,8 @@ export {
   updateReservation,
   deleteReservation,
   convertReservationToSale,
+  addPickupToSale,
+  getReservationsForSale,
 } from './reservations';
 
 // Calendar Events

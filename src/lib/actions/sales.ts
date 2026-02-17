@@ -90,7 +90,6 @@ async function _createSale(formData: FormData) {
     reservation_channel: formData.get('reservation_channel') || 'other',
     customer_name: customerName,
     customer_phone: customerPhone,
-    reservation_id: formData.get('reservation_id') as string || null,
     note: formData.get('note') || null,
   });
   if (!parsed.success) {
@@ -115,7 +114,6 @@ async function _createSale(formData: FormData) {
     customer_name: customerName,
     customer_phone: customerPhone,
     customer_id: finalCustomerId,
-    reservation_id: parsed.data.reservation_id || null,
     note: parsed.data.note || null,
   };
 
@@ -185,8 +183,10 @@ export const updateSale = withErrorLogging('updateSale', _updateSale);
 
 async function _deleteSale(id: string) {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
   const supabase = await createClient();
-  const { error } = await supabase.from('sales').delete().eq('id', id);
+  const { error } = await supabase.from('sales').delete().eq('id', idParsed.data);
   if (error) throw error;
 
   revalidatePath('/sales');

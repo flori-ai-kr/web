@@ -3,17 +3,18 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ImageIcon, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { ImageIcon, Pencil, Trash2, ExternalLink, CalendarDays, Check, PackageCheck } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import { CHANNEL_LABELS } from '@/lib/constants';
-import type { Sale, PhotoCard } from '@/types/database';
+import type { Sale, PhotoCard, Reservation } from '@/types/database';
 
 interface SaleDetailDialogProps {
   sale: Sale | null;
   photos: PhotoCard | null;
+  reservations: Reservation[];
   categoryLabels: Record<string, string>;
   categoryColors: Record<string, string>;
   paymentLabels: Record<string, string>;
@@ -27,6 +28,7 @@ interface SaleDetailDialogProps {
 export function SaleDetailDialog({
   sale,
   photos,
+  reservations,
   categoryLabels,
   categoryColors,
   paymentLabels,
@@ -138,6 +140,44 @@ export function SaleDetailDialog({
                           <span className="text-white font-medium">+{photos.photos.length - 6}</span>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 연결된 예약(픽업) */}
+            {reservations.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  연결된 픽업 ({reservations.length}건)
+                </p>
+                <div className="space-y-1.5">
+                  {reservations.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{r.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(r.date), 'M월 d일', { locale: ko })}
+                          {r.time && ` ${r.time.slice(0, 5)}`}
+                          {r.estimated_amount > 0 && ` · ${formatCurrency(r.estimated_amount)}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {r.status === 'completed' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand text-brand-foreground inline-flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5" />
+                            제작
+                          </span>
+                        )}
+                        {r.pickup_completed && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white inline-flex items-center gap-0.5">
+                            <PackageCheck className="w-2.5 h-2.5" />
+                            픽업
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

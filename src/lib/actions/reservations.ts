@@ -37,7 +37,6 @@ async function _createReservation(formData: {
   estimated_amount?: number;
   status?: ReservationStatus;
   reminder_at?: string | null;
-  payment_date?: string | null;
 }): Promise<Reservation> {
   const user = await requireAuth();
 
@@ -58,10 +57,9 @@ async function _createReservation(formData: {
       customer_phone: parsed.data.customer_phone || null,
       title: parsed.data.title,
       description: parsed.data.description || null,
-      estimated_amount: parsed.data.estimated_amount || 0,
+      estimated_amount: parsed.data.estimated_amount ?? 0,
       status: parsed.data.status || 'pending',
       reminder_at: parsed.data.reminder_at || null,
-      payment_date: formData.payment_date || null,
     })
     .select()
     .single();
@@ -85,7 +83,6 @@ async function _updateReservation(
     status?: ReservationStatus;
     sale_id?: string | null;
     reminder_at?: string | null;
-    payment_date?: string | null;
     pickup_completed?: boolean;
   }
 ): Promise<void> {
@@ -113,9 +110,6 @@ async function _updateReservation(
     ...parsed.data,
     updated_at: new Date().toISOString(),
   };
-  if (formData.payment_date !== undefined) {
-    updates.payment_date = formData.payment_date;
-  }
   if (formData.pickup_completed !== undefined) {
     updates.pickup_completed = formData.pickup_completed;
   }
@@ -151,42 +145,40 @@ export const deleteReservation = withErrorLogging('deleteReservation', _deleteRe
 
 /**
  * 예약을 매출로 변환한다.
- * 1) 예약 조회 → 2) 매출 생성 (FormData 사용) → 3) 예약 상태 completed + sale_id 연결
+ * 1) 예약 조회 → 2) 매출 생성 (FormData 사용) → 3) 예약 상태 confirmed + sale_id 연결
  */
 async function _convertReservationToSale(
   reservationId: string,
   saleFormData: FormData,
 ): Promise<Sale> {
   await requireAuth();
+
+  const idParsed = uuidSchema.safeParse(reservationId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
   const supabase = await createClient();
 
-  // 1. 예약 조회
   const { data: reservation, error: fetchError } = await supabase
     .from('reservations')
     .select('*')
-    .eq('id', reservationId)
+    .eq('id', idParsed.data)
     .single();
 
   if (fetchError || !reservation) {
     throw new AppError(ErrorCode.NOT_FOUND, '예약을 찾을 수 없습니다');
   }
 
-  // 2. 결제일자가 지정되어 있으면 매출 날짜를 결제일자로 덮어쓰기
-  if (reservation.payment_date) {
-    saleFormData.set('date', reservation.payment_date);
-  }
-  saleFormData.set('reservation_id', reservationId);
   const sale = await createSale(saleFormData);
 
-  // 3. 예약 상태 업데이트: confirmed (매출 연결) + sale_id 연결
-  await supabase
+  const { error: updateError } = await supabase
     .from('reservations')
     .update({
       status: 'confirmed',
       sale_id: sale.id,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', reservationId);
+    .eq('id', idParsed.data);
+  if (updateError) throw updateError;
 
   revalidatePath('/calendar');
   revalidatePath('/');
@@ -194,3 +186,92 @@ async function _convertReservationToSale(
 }
 
 export const convertReservationToSale = withErrorLogging('convertReservationToSale', _convertReservationToSale);
+
+/**
+ * 기존 매출에 픽업(예약)을 추가한다.
+ * 고객 정보는 매출에서 상속받는다.
+ */
+async function _addPickupToSale(
+  saleId: string,
+  formData: {
+    date: string;
+    time?: string;
+    title: string;
+    estimated_amount?: number;
+    reminder_at?: string | null;
+  }
+): Promise<Reservation> {
+  const user = await requireAuth();
+
+  const saleParsed = uuidSchema.safeParse(saleId);
+  if (!saleParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 매출 ID입니다');
+
+  const supabase = await createClient();
+  const { data: sale, error: saleError } = await supabase
+    .from('sales')
+    .select('customer_name, customer_phone')
+    .eq('id', saleParsed.data)
+    .single();
+  if (saleError || !sale) throw new AppError(ErrorCode.NOT_FOUND, '매출을 찾을 수 없습니다');
+
+  const parsed = reservationSchema.pick({
+    date: true,
+    time: true,
+    title: true,
+    estimated_amount: true,
+    reminder_at: true,
+  }).safeParse({
+    date: formData.date,
+    time: formData.time || null,
+    title: formData.title,
+    estimated_amount: formData.estimated_amount,
+    reminder_at: formData.reminder_at,
+  });
+  if (!parsed.success) {
+    throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
+  }
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .insert({
+      user_id: user.id,
+      date: parsed.data.date,
+      time: parsed.data.time || null,
+      customer_name: sale.customer_name || '',
+      customer_phone: sale.customer_phone || null,
+      title: parsed.data.title,
+      estimated_amount: parsed.data.estimated_amount ?? 0,
+      status: 'confirmed',
+      sale_id: saleParsed.data,
+      reminder_at: parsed.data.reminder_at || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  revalidatePath('/calendar');
+  return data as Reservation;
+}
+
+export const addPickupToSale = withErrorLogging('addPickupToSale', _addPickupToSale);
+
+/**
+ * 매출에 연결된 예약 목록을 조회한다.
+ */
+async function _getReservationsForSale(saleId: string): Promise<Reservation[]> {
+  await requireAuth();
+
+  const idParsed = uuidSchema.safeParse(saleId);
+  if (!idParsed.success) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*')
+    .eq('sale_id', idParsed.data)
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return (data || []) as Reservation[];
+}
+
+export const getReservationsForSale = withErrorLogging('getReservationsForSale', _getReservationsForSale);
