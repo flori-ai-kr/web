@@ -89,7 +89,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl">{isEditMode ? '고객 수정' : '고객 등록'}</DialogTitle>
           {!isEditMode && (
