@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     // 오늘 예약 조회 (취소 제외)
     const { data: reservations, error: resError } = await supabase
       .from('reservations')
-      .select('id, title, customer_name, time, estimated_amount, status')
+      .select('id, title, customer_name, time, amount, status')
       .eq('date', today)
       .neq('status', 'cancelled')
       .order('time', { nullsFirst: false });

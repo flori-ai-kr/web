@@ -38,7 +38,7 @@ async function _createReservation(formData: {
   customer_phone?: string;
   title: string;
   description?: string;
-  estimated_amount?: number;
+  amount?: number;
   status?: ReservationStatus;
   reminder_at?: string | null;
 }): Promise<Reservation> {
@@ -61,7 +61,7 @@ async function _createReservation(formData: {
       customer_phone: parsed.data.customer_phone || null,
       title: parsed.data.title,
       description: parsed.data.description || null,
-      estimated_amount: parsed.data.estimated_amount ?? 0,
+      amount: parsed.data.amount ?? 0,
       status: parsed.data.status || 'pending',
       reminder_at: parsed.data.reminder_at || null,
     })
@@ -83,7 +83,7 @@ async function _updateReservation(
     customer_phone?: string | null;
     title?: string;
     description?: string | null;
-    estimated_amount?: number;
+    amount?: number;
     status?: ReservationStatus;
     sale_id?: string | null;
     reminder_at?: string | null;
@@ -102,7 +102,7 @@ async function _updateReservation(
     customer_phone: formData.customer_phone,
     title: formData.title,
     description: formData.description,
-    estimated_amount: formData.estimated_amount,
+    amount: formData.amount,
     status: formData.status,
     reminder_at: formData.reminder_at,
   });
@@ -201,7 +201,7 @@ async function _addPickupToSale(
     date: string;
     time?: string;
     title: string;
-    estimated_amount?: number;
+    amount?: number;
     reminder_at?: string | null;
   }
 ): Promise<Reservation> {
@@ -222,13 +222,13 @@ async function _addPickupToSale(
     date: true,
     time: true,
     title: true,
-    estimated_amount: true,
+    amount: true,
     reminder_at: true,
   }).safeParse({
     date: formData.date,
     time: formData.time || null,
     title: formData.title,
-    estimated_amount: formData.estimated_amount,
+    amount: formData.amount,
     reminder_at: formData.reminder_at,
   });
   if (!parsed.success) {
@@ -244,7 +244,7 @@ async function _addPickupToSale(
       customer_name: sale.customer_name || '',
       customer_phone: sale.customer_phone || null,
       title: parsed.data.title,
-      estimated_amount: parsed.data.estimated_amount ?? 0,
+      amount: parsed.data.amount ?? 0,
       status: 'confirmed',
       sale_id: saleParsed.data,
       reminder_at: parsed.data.reminder_at || null,

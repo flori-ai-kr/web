@@ -50,7 +50,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEvent,
 } from '@/lib/actions/calendar-events';
-import { checkPhoneDuplicate } from '@/lib/actions';
+import { checkPhoneDuplicate, updateSale, deleteSale } from '@/lib/actions';
 import { getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
 import type { SaleCategory, PaymentMethod as PaymentMethodType } from '@/lib/actions/sale-settings';
 import type { Reservation, ReservationStatus, CalendarEvent } from '@/types/database';
@@ -120,13 +120,14 @@ export function CalendarClient() {
     customer_phone: '',
     time: '',
     description: '',
-    estimated_amount: '',
+    amount: '',
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
     reminder_date: '',
     reminder_time: '',
     pickup_date: '',
+    sale_date: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -140,14 +141,15 @@ export function CalendarClient() {
     date: '',
     time: '',
     title: '',
-    estimated_amount: '',
+    amount: '',
     reminder_date: '',
     reminder_time: '',
   });
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -173,6 +175,10 @@ export function CalendarClient() {
   function selectDate(date: Date) {
     setSelectedDate(date);
     setAddPickupSaleId(null);
+    setShowForm(false);
+    setEditingId(null);
+    setShowEventForm(false);
+    setEditingEventId(null);
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
@@ -263,12 +269,12 @@ export function CalendarClient() {
         date: pickupFormData.date,
         time: pickupFormData.time || undefined,
         title: pickupFormData.title,
-        estimated_amount: pickupFormData.estimated_amount ? parseInt(pickupFormData.estimated_amount) : undefined,
+        amount: pickupFormData.amount ? parseInt(pickupFormData.amount) : undefined,
         reminder_at: reminderAt,
       });
       toast.success('픽업이 추가되었습니다');
       setAddPickupSaleId(null);
-      setPickupFormData({ date: '', time: '', title: '', estimated_amount: '', reminder_date: '', reminder_time: '' });
+      setPickupFormData({ date: '', time: '', title: '', amount: '', reminder_date: '', reminder_time: '' });
       fetchData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '픽업 추가 실패');
@@ -381,25 +387,27 @@ export function CalendarClient() {
   }, [reservations]);
 
   function resetForm() {
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     setFormData({
       title: '',
       customer_name: '',
       customer_phone: '',
       time: '',
       description: '',
-      estimated_amount: '',
+      amount: '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       reminder_date: '',
       reminder_time: '',
-      pickup_date: '',
+      pickup_date: dateStr,
+      sale_date: dateStr,
     });
     setEditingId(null);
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation) {
+  function startEdit(reservation: Reservation & { sale_date?: string }) {
     setEditingId(reservation.id);
     setFormData({
       title: reservation.title,
@@ -407,13 +415,14 @@ export function CalendarClient() {
       customer_phone: reservation.customer_phone || '',
       time: reservation.time?.slice(0, 5) || '',
       description: reservation.description || '',
-      estimated_amount: reservation.estimated_amount ? String(reservation.estimated_amount) : '',
+      amount: reservation.amount ? String(reservation.amount) : '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
       reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
-      pickup_date: '',
+      pickup_date: reservation.date,
+      sale_date: reservation.sale_date || '',
     });
     setShowForm(true);
   }
@@ -436,8 +445,8 @@ export function CalendarClient() {
       toast.error('전화번호를 입력해주세요');
       return;
     }
-    if (!formData.estimated_amount || parseInt(formData.estimated_amount) <= 0) {
-      toast.error('예상 금액을 입력해주세요');
+    if (!formData.amount || parseInt(formData.amount) <= 0) {
+      toast.error('금액을 입력해주세요');
       return;
     }
     if (!editingId && !formData.product_category) {
@@ -480,10 +489,25 @@ export function CalendarClient() {
           customer_phone: formData.customer_phone || null,
           title: formData.title,
           description: formData.description || null,
-          estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : 0,
+          amount: formData.amount ? parseInt(formData.amount) : 0,
           status: 'pending',
           reminder_at: reminderAt,
         });
+
+        // 연결된 매출 동기화
+        const editedReservation = reservations.find(r => r.id === editingId);
+        if (editedReservation?.sale_id) {
+          try {
+            const saleFormData = new FormData();
+            if (formData.sale_date) saleFormData.set('date', formData.sale_date);
+            saleFormData.set('amount', formData.amount || '0');
+            saleFormData.set('note', formData.description || '');
+            await updateSale(editedReservation.sale_id, saleFormData);
+          } catch {
+            toast.error('매출 동기화에 실패했습니다');
+          }
+        }
+
         toast.success('예약이 수정되었습니다');
       } else {
         // 1. 예약 생성 (픽업일자가 있으면 픽업일로, 없으면 선택 날짜로)
@@ -493,16 +517,16 @@ export function CalendarClient() {
           customer_name: formData.customer_name,
           title: formData.title,
           description: formData.description || undefined,
-          estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : undefined,
+          amount: formData.amount ? parseInt(formData.amount) : undefined,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: reminderAt,
         });
 
-        // 2. 매출 자동 생성 (매출 날짜는 항상 선택한 캘린더 날짜)
+        // 2. 매출 자동 생성 (결제일자 사용, 없으면 선택한 캘린더 날짜)
         const saleFormData = new FormData();
-        saleFormData.set('date', dateStr);
+        saleFormData.set('date', formData.sale_date || dateStr);
         saleFormData.set('product_category', formData.product_category);
-        saleFormData.set('amount', formData.estimated_amount);
+        saleFormData.set('amount', formData.amount);
         saleFormData.set('payment_method', formData.payment_method);
         saleFormData.set('reservation_channel', formData.reservation_channel);
         saleFormData.set('customer_name', formData.customer_name);
@@ -524,7 +548,22 @@ export function CalendarClient() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
+      const saleId = deleteTarget.sale_id;
+      const saleDate = deleteTarget.sale_date;
       await deleteReservation(deleteTarget.id);
+
+      // 마지막 예약이었으면 매출 삭제 확인
+      if (saleId) {
+        const siblings = (siblingReservations.get(saleId) || []).filter(r => r.id !== deleteTarget.id);
+        if (siblings.length === 0) {
+          setSaleDeleteInfo({ saleId, saleDate });
+          setDeleteTarget(null);
+          fetchData();
+          setIsDeleting(false);
+          return;
+        }
+      }
+
       toast.success('예약이 삭제되었습니다');
       setDeleteTarget(null);
       fetchData();
@@ -532,6 +571,20 @@ export function CalendarClient() {
       toast.error(error instanceof Error ? error.message : '삭제 실패');
     }
     setIsDeleting(false);
+  }
+
+  async function handleSaleDelete() {
+    if (!saleDeleteInfo) return;
+    setIsDeleting(true);
+    try {
+      await deleteSale(saleDeleteInfo.saleId);
+      toast.success('예약과 매출이 삭제되었습니다');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : '매출 삭제 실패');
+    }
+    setSaleDeleteInfo(null);
+    setIsDeleting(false);
+    fetchData();
   }
 
   // === Calendar Event handlers ===
@@ -930,8 +983,8 @@ export function CalendarClient() {
                                   {r.title && r.customer_name && (
                                     <div className="truncate opacity-80">{r.title}</div>
                                   )}
-                                  {r.estimated_amount > 0 && (
-                                    <div className="opacity-70">{formatCurrency(r.estimated_amount)}</div>
+                                  {r.amount > 0 && (
+                                    <div className="opacity-70">{formatCurrency(r.amount)}</div>
                                   )}
                                 </div>
                               </div>
@@ -1173,15 +1226,6 @@ export function CalendarClient() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">픽업 시간 <span className="text-brand">*</span></Label>
-                      <TimeSelect
-                        value={formData.time}
-                        onChange={(val) => setFormData({ ...formData, time: val })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">전화번호 <span className="text-brand">*</span></Label>
                       <Input
                         value={formData.customer_phone}
@@ -1192,48 +1236,48 @@ export function CalendarClient() {
                         autoComplete="tel"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">예상 금액 <span className="text-brand">*</span></Label>
-                      <Input
-                        type="number"
-                        step={10000}
-                        value={formData.estimated_amount}
-                        onChange={(e) => setFormData({ ...formData, estimated_amount: e.target.value })}
-                        placeholder="50000"
-                        className="h-8 text-sm"
-                      />
-                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!formData.pickup_date}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, pickup_date: format(new Date(), 'yyyy-MM-dd') });
-                          } else {
-                            setFormData({ ...formData, pickup_date: '' });
-                          }
-                        }}
-                        className="rounded border-input"
-                      />
-                      <span className="text-xs text-muted-foreground">픽업일자 지정</span>
-                    </label>
-                    {formData.pickup_date && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">픽업 일자 <span className="text-brand">*</span></Label>
                       <Input
                         type="date"
                         value={formData.pickup_date}
                         onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
-                        className="h-8"
-                        aria-label="픽업일자"
+                        className="h-8 text-sm"
+                        aria-label="픽업 일자"
                       />
-                    )}
-                    {formData.pickup_date && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {formData.pickup_date}에 픽업 예정
-                      </p>
-                    )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">픽업 시간 <span className="text-brand">*</span></Label>
+                      <TimeSelect
+                        value={formData.time}
+                        onChange={(val) => setFormData({ ...formData, time: val })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">결제 일자</Label>
+                      <Input
+                        type="date"
+                        value={formData.sale_date}
+                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                        className="h-8 text-sm"
+                        aria-label="결제 일자"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">금액 <span className="text-brand">*</span></Label>
+                      <Input
+                        type="number"
+                        step={10000}
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        placeholder="50000"
+                        className="h-8 text-sm"
+                      />
+                    </div>
                   </div>
                   {!editingId && (
                     <>
@@ -1368,8 +1412,8 @@ export function CalendarClient() {
                             {r.customer_phone && ` · ${r.customer_phone}`}
                           </p>
                         )}
-                        {r.estimated_amount > 0 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.estimated_amount)}</p>
+                        {r.amount > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.amount)}</p>
                         )}
                         {r.description && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
@@ -1461,7 +1505,7 @@ export function CalendarClient() {
                                   setAddPickupSaleId(null);
                                 } else {
                                   setAddPickupSaleId(r.sale_id);
-                                  setPickupFormData({ date: '', time: '', title: '', estimated_amount: '', reminder_date: '', reminder_time: '' });
+                                  setPickupFormData({ date: '', time: '', title: '', amount: '', reminder_date: '', reminder_time: '' });
                                 }
                               }}
                               className="text-xs py-1 px-2 rounded border border-dashed border-input text-muted-foreground hover:bg-muted transition-colors inline-flex items-center gap-1 shrink-0"
@@ -1524,8 +1568,8 @@ export function CalendarClient() {
                             <Label className="text-xs text-muted-foreground">금액</Label>
                             <Input
                               type="number"
-                              value={pickupFormData.estimated_amount}
-                              onChange={(e) => setPickupFormData({ ...pickupFormData, estimated_amount: e.target.value })}
+                              value={pickupFormData.amount}
+                              onChange={(e) => setPickupFormData({ ...pickupFormData, amount: e.target.value })}
                               placeholder="0"
                               className="h-8 text-sm"
                             />
@@ -1589,6 +1633,37 @@ export function CalendarClient() {
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sale delete confirmation (after reservation deleted) */}
+      <Dialog open={!!saleDeleteInfo} onOpenChange={(open) => {
+        if (!open) {
+          toast.success('예약이 삭제되었습니다');
+          setSaleDeleteInfo(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>매출도 삭제하시겠습니까?</DialogTitle>
+            <DialogDescription>
+              {saleDeleteInfo?.saleDate
+                ? `${format(new Date(saleDeleteInfo.saleDate), 'yyyy년 M월 d일', { locale: ko })}의 매출도 함께 삭제하시겠습니까?`
+                : '연결된 매출도 함께 삭제하시겠습니까?'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              toast.success('예약이 삭제되었습니다');
+              setSaleDeleteInfo(null);
+            }}>
+              아니요
+            </Button>
+            <Button variant="destructive" onClick={handleSaleDelete} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              매출도 삭제
             </Button>
           </DialogFooter>
         </DialogContent>

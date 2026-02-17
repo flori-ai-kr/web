@@ -59,7 +59,7 @@ export const reservationSchema = z.object({
   customer_phone: z.string().max(20).nullable().optional(),
   title: z.string().min(1, '제목을 입력해주세요').max(255),
   description: z.string().max(1000).nullable().optional(),
-  estimated_amount: z.number().int().min(0).max(100_000_000).optional(),
+  amount: z.number().int().min(0).max(100_000_000).optional(),
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
   reminder_at: z.string().datetime({ offset: true }).nullable().optional(),
 });

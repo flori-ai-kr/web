@@ -161,7 +161,7 @@ export function SaleDetailDialog({
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(r.date), 'M월 d일', { locale: ko })}
                           {r.time && ` ${r.time.slice(0, 5)}`}
-                          {r.estimated_amount > 0 && ` · ${formatCurrency(r.estimated_amount)}`}
+                          {r.amount > 0 && ` · ${formatCurrency(r.amount)}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">

@@ -328,7 +328,7 @@ export function DashboardClient() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {r.customer_name}
-                          {r.estimated_amount > 0 && ` · ${formatCurrency(r.estimated_amount)}`}
+                          {r.amount > 0 && ` · ${formatCurrency(r.amount)}`}
                         </p>
                         {(r.status === 'pending' || r.status === 'confirmed') && !r.sale_id && (
                           <Link

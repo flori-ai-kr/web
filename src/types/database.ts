@@ -164,7 +164,7 @@ export interface Reservation {
   description: string | null;
   status: ReservationStatus;
   sale_id: string | null;
-  estimated_amount: number;
+  amount: number;
   reminder_at: string | null;
   pickup_completed: boolean;
   created_at: string;

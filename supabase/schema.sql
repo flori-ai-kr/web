@@ -53,7 +53,7 @@ CREATE TABLE reservations (
   description TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
   sale_id UUID,  -- FK 아래에서 설정
-  estimated_amount INTEGER DEFAULT 0,
+  amount INTEGER DEFAULT 0,
   reminder_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
