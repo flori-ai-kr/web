@@ -112,7 +112,7 @@ export function CalendarClient() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
-  type PickupItem = { id?: string; date: string; time: string; title: string; amount: string };
+  type PickupItem = { id?: string; date: string; time: string; title: string; amount: string; reminder_date: string; reminder_time: string };
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
@@ -123,11 +123,9 @@ export function CalendarClient() {
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
-    reminder_date: '',
-    reminder_time: '',
     sale_date: '',
   });
-  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', title: '', amount: '' }]);
+  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', title: '', amount: '', reminder_date: '', reminder_time: '' }]);
   const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -345,11 +343,9 @@ export function CalendarClient() {
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
-      reminder_date: '',
-      reminder_time: '',
       sale_date: dateStr,
     });
-    setPickups([{ date: dateStr, time: '', title: '', amount: '' }]);
+    setPickups([{ date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
     setDeletedPickupIds([]);
     setEditingId(null);
     setEditingSaleId(null);
@@ -372,6 +368,8 @@ export function CalendarClient() {
           time: s.time?.slice(0, 5) || '',
           title: s.title,
           amount: s.amount ? String(s.amount) : '',
+          reminder_date: s.reminder_at ? format(new Date(s.reminder_at), 'yyyy-MM-dd') : '',
+          reminder_time: s.reminder_at ? format(new Date(s.reminder_at), 'HH:mm') : '',
         });
       }
     }
@@ -382,6 +380,8 @@ export function CalendarClient() {
         time: reservation.time?.slice(0, 5) || '',
         title: reservation.title,
         amount: reservation.amount ? String(reservation.amount) : '',
+        reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
+        reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
       });
     }
 
@@ -392,8 +392,6 @@ export function CalendarClient() {
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
-      reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
-      reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
       sale_date: reservation.sale_date || '',
     });
     setPickups(allPickups);
@@ -407,12 +405,51 @@ export function CalendarClient() {
   }, [pickups]);
 
   function updatePickup(index: number, field: keyof PickupItem, value: string) {
-    setPickups(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
+    setPickups(prev => prev.map((p, i) => {
+      if (i !== index) return p;
+      const updated = { ...p, [field]: value };
+
+      // 날짜 변경 시 리마인더 날짜 동기화
+      if (field === 'date' && value) {
+        updated.reminder_date = value;
+        // 시간이 있으면 2시간 전 계산
+        if (updated.time) {
+          const [h, m] = updated.time.split(':').map(Number);
+          const beforeH = h - 2;
+          if (beforeH >= 0) {
+            updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          } else {
+            // 자정 넘어가면 전날 + 보정된 시간
+            const prevDate = new Date(value);
+            prevDate.setDate(prevDate.getDate() - 1);
+            updated.reminder_date = format(prevDate, 'yyyy-MM-dd');
+            updated.reminder_time = `${String(24 + beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+        }
+      }
+
+      // 시간 변경 시 리마인더 시간 2시간 전으로 동기화
+      if (field === 'time' && value && updated.date) {
+        updated.reminder_date = updated.date;
+        const [h, m] = value.split(':').map(Number);
+        const beforeH = h - 2;
+        if (beforeH >= 0) {
+          updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        } else {
+          const prevDate = new Date(updated.date);
+          prevDate.setDate(prevDate.getDate() - 1);
+          updated.reminder_date = format(prevDate, 'yyyy-MM-dd');
+          updated.reminder_time = `${String(24 + beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+      }
+
+      return updated;
+    }));
   }
 
   function addPickup() {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setPickups(prev => [...prev, { date: dateStr, time: '', title: '', amount: '' }]);
+    setPickups(prev => [...prev, { date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
   }
 
   function removePickup(index: number) {
@@ -439,6 +476,15 @@ export function CalendarClient() {
       const p = pickups[i];
       if (!p.date) { toast.error(`픽업 ${i + 1}의 날짜를 입력해주세요`); return; }
       if (!p.title.trim()) { toast.error(`픽업 ${i + 1}의 제목을 입력해주세요`); return; }
+      // 불완전한 시간 검증 (시만 or 분만 선택한 경우)
+      if (p.time && !/^\d{2}:\d{2}$/.test(p.time)) {
+        toast.error(`픽업 ${i + 1}의 시간을 정확히 선택해주세요`);
+        return;
+      }
+      if (p.reminder_time && !/^\d{2}:\d{2}$/.test(p.reminder_time)) {
+        toast.error(`픽업 ${i + 1}의 리마인더 시간을 정확히 선택해주세요`);
+        return;
+      }
     }
     if (totalPickupAmount <= 0) {
       toast.error('금액을 입력해주세요');
@@ -466,10 +512,16 @@ export function CalendarClient() {
     } catch { /* 계속 진행 */ }
 
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    let reminderAt: string | null = null;
-    if (formData.reminder_date) {
-      const time = formData.reminder_time || '08:00';
-      reminderAt = `${formData.reminder_date}T${time}:00+09:00`;
+
+    function cleanTime(t: string): string | null {
+      if (!t || !/^\d{2}:\d{2}$/.test(t)) return null;
+      return t;
+    }
+
+    function pickupReminderAt(p: PickupItem): string | null {
+      if (!p.reminder_date) return null;
+      const time = cleanTime(p.reminder_time) || '08:00';
+      return `${p.reminder_date}T${time}:00+09:00`;
     }
 
     try {
@@ -480,13 +532,13 @@ export function CalendarClient() {
           if (p.id) {
             await updateReservation(p.id, {
               date: p.date,
-              time: p.time || null,
+              time: cleanTime(p.time),
               title: p.title,
               amount: parseInt(p.amount) || 0,
               customer_name: formData.customer_name,
               customer_phone: formData.customer_phone || null,
               description: formData.description || null,
-              reminder_at: reminderAt,
+              reminder_at: pickupReminderAt(p),
             });
           }
         }
@@ -497,9 +549,10 @@ export function CalendarClient() {
             if (!p.id) {
               await addPickupToSale(editingSaleId, {
                 date: p.date,
-                time: p.time || undefined,
+                time: cleanTime(p.time) || undefined,
                 title: p.title,
                 amount: parseInt(p.amount) || 0,
+                reminder_at: pickupReminderAt(p),
               });
             }
           }
@@ -531,13 +584,13 @@ export function CalendarClient() {
         // 1. 첫 번째 픽업으로 예약 생성
         const reservation = await createReservation({
           date: first.date || dateStr,
-          time: first.time || undefined,
+          time: cleanTime(first.time) || undefined,
           customer_name: formData.customer_name,
           title: first.title,
           description: formData.description || undefined,
           amount: parseInt(first.amount) || 0,
           customer_phone: formData.customer_phone || undefined,
-          reminder_at: reminderAt,
+          reminder_at: pickupReminderAt(first),
         });
 
         // 2. 매출 생성 (합산 금액)
@@ -558,9 +611,10 @@ export function CalendarClient() {
           const p = pickups[i];
           await addPickupToSale(sale.id, {
             date: p.date || dateStr,
-            time: p.time || undefined,
+            time: cleanTime(p.time) || undefined,
             title: p.title,
             amount: parseInt(p.amount) || 0,
+            reminder_at: pickupReminderAt(p),
           });
         }
 
@@ -1324,6 +1378,32 @@ export function CalendarClient() {
                             />
                           </div>
                         </div>
+                        {/* 픽업별 리마인더 */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">
+                            <BellRing className="w-3 h-3 inline mr-0.5" />
+                            리마인더
+                          </Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              type="date"
+                              value={pickup.reminder_date}
+                              onChange={(e) => updatePickup(idx, 'reminder_date', e.target.value)}
+                              className="h-8 !text-[12px]"
+                              aria-label={`픽업 ${idx + 1} 리마인더 날짜`}
+                            />
+                            <TimeSelect
+                              value={pickup.reminder_time}
+                              onChange={(val) => updatePickup(idx, 'reminder_time', val)}
+                              disabled={!pickup.reminder_date}
+                            />
+                          </div>
+                          {pickup.reminder_date && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {pickup.reminder_date} {pickup.reminder_time || '08:00'}에 알림
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <button
@@ -1398,31 +1478,6 @@ export function CalendarClient() {
                       </div>
                     </>
                   )}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">
-                      <BellRing className="w-3 h-3 inline mr-1" />
-                      리마인더 알림
-                    </Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        type="date"
-                        value={formData.reminder_date}
-                        onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
-                        className="h-8 !text-[12px]"
-                        aria-label="리마인더 알림 날짜"
-                      />
-                      <TimeSelect
-                        value={formData.reminder_time}
-                        onChange={(val) => setFormData({ ...formData, reminder_time: val })}
-                        disabled={!formData.reminder_date}
-                      />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {formData.reminder_date
-                        ? `${formData.reminder_date} ${formData.reminder_time || '08:00'}에 푸시 알림`
-                        : '날짜를 선택하면 해당 시간에 푸시 알림을 받아요 (기본 오전 8시)'}
-                    </p>
-                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">메모</Label>
                     <textarea
