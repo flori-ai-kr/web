@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { Menu, Settings, Sun, Moon, LogOut, Bell, CalendarDays, Flower2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,12 +59,10 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const LAST_READ_KEY = 'hazel-reminder-last-read';
-
-  useEffect(() => setMounted(true), []);
 
   const fetchReminders = useCallback(async () => {
     try {
@@ -84,19 +82,23 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    fetchReminders();
+    fetchReminders(); // eslint-disable-line react-hooks/set-state-in-effect -- async fetch on mount
   }, [fetchReminders]);
 
-  // Popover 닫을 때 읽음 처리
-  useEffect(() => {
-    if (notifOpen) {
+  // Popover open/close 핸들러
+  const handleNotifOpenChange = useCallback((open: boolean) => {
+    setNotifOpen(open);
+    if (open) {
       fetchReminders();
-    } else if (reminders.length > 0) {
-      // 닫힐 때 현재 시간을 마지막 읽은 시간으로 저장
-      localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
-      setReminders([]);
+    } else {
+      setReminders((prev) => {
+        if (prev.length > 0) {
+          localStorage.setItem(LAST_READ_KEY, new Date().toISOString());
+        }
+        return [];
+      });
     }
-  }, [notifOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchReminders]);
 
   const unreadCount = reminders.length;
 
@@ -130,7 +132,7 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
         {/* Right side */}
         <div className="flex items-center gap-0.5 shrink-0">
           {/* Notification bell */}
-          <Popover open={notifOpen} onOpenChange={setNotifOpen}>
+          <Popover open={notifOpen} onOpenChange={handleNotifOpenChange}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"

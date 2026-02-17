@@ -66,7 +66,6 @@ export async function GET(request: Request) {
 
     // 현재 시각 기준 1시간 윈도우 (KST)
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
     // reminder_at이 현재 이전이고 아직 전송되지 않은 미완료/미취소 예약 조회
     const { data: reminders, error: reminderError } = await supabase
