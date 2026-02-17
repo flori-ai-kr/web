@@ -10,7 +10,8 @@ function ensureVapid() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!publicKey || !privateKey) throw new Error('VAPID 키가 설정되지 않았습니다');
-  webpush.setVapidDetails('mailto:admin@hazel.local', publicKey, privateKey);
+  const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@hazel.local';
+  webpush.setVapidDetails(vapidSubject, publicKey, privateKey);
   vapidConfigured = true;
 }
 

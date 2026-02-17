@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-02-16
+> 최종 업데이트: 2026-02-18
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -451,6 +451,18 @@ erDiagram
         text key PK
         text value
     }
+
+    calendar_events {
+        uuid id PK
+        uuid user_id FK
+        string title
+        date start_date
+        date end_date
+        string color "hex (#f43f5e 등 6색)"
+        text description
+        timestamptz created_at
+        timestamptz updated_at
+    }
 ```
 
 모든 주요 테이블에 `user_id` 컬럼이 있다. RLS 정책이 `auth.uid() = user_id`를 검사하므로, 한 Supabase 인스턴스에서 여러 사용자의 데이터가 완전히 격리된다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
@@ -461,13 +473,13 @@ erDiagram
 
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
-| `/` | 대시보드 | 오늘 요약 + 월별 분석 |
-| `/sales` | 매출 관리 | 카드형 목록 (일자별 그룹) + 필터 + 사진 연동 |
+| `/` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
+| `/sales` | 매출 관리 | 카드형 목록 (일자별 그룹) + 서버사이드 필터 + 무한 스크롤 + 사진 연동 |
 | `/expenses` | 지출 관리 | CRUD + 카테고리/결제방식 설정 |
 | `/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 |
 | `/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 |
-| `/calendar` | 예약 캘린더 | 예약 CRUD + 리마인더 + 매출 자동 생성 + 제작 완료 토글 |
+| `/calendar` | 예약 캘린더 | 예약 CRUD + 캘린더 이벤트 + 리마인더 + 매출 자동 생성 + 픽업 완료 토글 |
 | `/statistics` | 통계 | 카테고리/결제/채널/고객/지출 분석 |
 | `/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 |
 | `/login` | 로그인 | 이메일/비밀번호 |
@@ -479,12 +491,13 @@ erDiagram
 | 파일 | 기능 |
 |------|------|
 | `auth.ts` | login, logout |
-| `sales.ts` | createSale, updateSale, deleteSale |
+| `sales.ts` | createSale, updateSale, deleteSale, loadMoreSales (무한 스크롤), addPickupToSale |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
 | `expenses.ts` | createExpense, updateExpense, deleteExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
-| `reservations.ts` | CRUD + convertReservationToSale (throw 패턴, reminder_at 지원) |
-| `dashboard.ts` | getDashboardTodayData, getDashboardMonthData |
+| `reservations.ts` | CRUD + convertReservationToSale (throw 패턴, reminder_at, pickup_completed 지원) |
+| `calendar-events.ts` | getCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent |
+| `dashboard.ts` | getDashboardTodayData, getDashboardMonthData, getTriggeredReminders, getUpcomingReservations |
 | `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
 | `photo-cards.ts` | CRUD + getPhotoCardBySaleId |
 | `photo-tags.ts` | CRUD |
@@ -500,10 +513,19 @@ erDiagram
 type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay'
 type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist'
 type CustomerGender = 'male' | 'female'
-type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
+type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' // 제작 필요 | 픽업 필요 | 픽업 완료 | 취소
 type DepositStatus = 'pending' | 'completed' | 'not_applicable'
 type ProductCategory = 'mini_bouquet' | ... // 11종
 type ReservationChannel = 'phone' | 'kakaotalk' | 'naver_booking' | 'road' | 'other'
+
+// 2026-02-18 추가
+interface CalendarEvent {
+    id: string; user_id: string; title: string
+    start_date: string; end_date: string; color: string // 6색 프리셋
+    description: string | null
+}
+
+interface SalesFilters { category?: string; payment?: string; channel?: string } // 서버사이드 필터
 ```
 
 ---
@@ -654,7 +676,7 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 
 ---
 
-## 핵심 의존성 버전 (2026-02-16 기준)
+## 핵심 의존성 버전 (2026-02-18 기준)
 
 | 패키지 | 버전 | 용도 |
 |--------|------|------|
