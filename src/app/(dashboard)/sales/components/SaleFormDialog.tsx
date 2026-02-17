@@ -168,116 +168,97 @@ export function SaleFormDialog({
               </SelectContent>
             </Select>
           </div>
+          {/* 결제방식 - 항상 표시 */}
+          <div className="space-y-2">
+            <Label>결제방식 *</Label>
+            <input type="hidden" name="payment_method" value={paymentMethod} />
+            <div className="flex flex-wrap gap-2">
+              {payments.map(pm => (
+                <button
+                  key={pm.id}
+                  type="button"
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                    paymentMethod === pm.value
+                      ? "ring-2 ring-offset-1 ring-brand/50"
+                      : "border-border text-muted-foreground hover:border-foreground/30"
+                  )}
+                  style={paymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
+                  onClick={() => setPaymentMethod(pm.value)}
+                >
+                  {pm.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* 카드사 - 카드 결제일 때만 */}
+          {paymentMethod === 'card' && (
+            <div className="space-y-2">
+              <Label>카드사 *</Label>
+              <Select name="card_company" defaultValue={sale?.card_company || ''} key={sale?.id ? `cc-${sale.id}` : 'cc-create'} required>
+                <SelectTrigger className="bg-muted">
+                  <SelectValue placeholder="카드사 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cardCompanies.map(cc => (
+                    <SelectItem key={cc.id} value={cc.name}>{cc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">카드사별 수수료가 자동 계산돼요</p>
+            </div>
+          )}
+          {/* 예약방식 - 로드 구입이면 road 고정, 아니면 선택 */}
           {isRoadPurchase ? (
-            <>
-              <input type="hidden" name="payment_method" value="cash" />
-              <input type="hidden" name="reservation_channel" value="road" />
-            </>
+            <input type="hidden" name="reservation_channel" value="road" />
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>결제방식 *</Label>
-                  <input type="hidden" name="payment_method" value={paymentMethod} />
-                  <div className="flex flex-wrap gap-2">
-                    {payments.map(pm => (
-                      <button
-                        key={pm.id}
-                        type="button"
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                          paymentMethod === pm.value
-                            ? "ring-2 ring-offset-1 ring-brand/50"
-                            : "border-border text-muted-foreground hover:border-foreground/30"
-                        )}
-                        style={paymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
-                        onClick={() => setPaymentMethod(pm.value)}
-                      >
-                        {pm.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {paymentMethod === 'card' ? (
-                  <div className="space-y-2">
-                    <Label>카드사 *</Label>
-                    <Select name="card_company" defaultValue={sale?.card_company || ''} key={sale?.id ? `cc-${sale.id}` : 'cc-create'} required>
-                      <SelectTrigger className="bg-muted">
-                        <SelectValue placeholder="카드사 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cardCompanies.map(cc => (
-                          <SelectItem key={cc.id} value={cc.name}>{cc.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[11px] text-muted-foreground">카드사별 수수료가 자동 계산돼요</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>예약방식</Label>
-                    <Select name="reservation_channel" defaultValue={sale?.reservation_channel || 'naver_booking'} key={sale?.id ? `ch1-${sale.id}` : 'ch1-create'}>
-                      <SelectTrigger className="bg-muted">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="phone">전화</SelectItem>
-                        <SelectItem value="kakaotalk">카카오톡</SelectItem>
-                        <SelectItem value="naver_booking">네이버예약</SelectItem>
-                        <SelectItem value="road">로드</SelectItem>
-                        <SelectItem value="other">기타</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="space-y-2">
+              <Label>예약방식</Label>
+              <Select name="reservation_channel" defaultValue={sale?.reservation_channel || 'naver_booking'} key={sale?.id ? `ch-${sale.id}` : 'ch-create'}>
+                <SelectTrigger className="bg-muted">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phone">전화</SelectItem>
+                  <SelectItem value="kakaotalk">카카오톡</SelectItem>
+                  <SelectItem value="naver_booking">네이버예약</SelectItem>
+                  <SelectItem value="road">로드</SelectItem>
+                  <SelectItem value="other">기타</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {/* 고객 정보 - 로드 구입이 아닐 때만 */}
+          {!isRoadPurchase && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>주문자명</Label>
+                <CustomerAutocomplete
+                  value={customerName}
+                  onChange={(name, id, phone) => {
+                    setCustomerName(name);
+                    setCustomerId(id);
+                    setCustomerPhone(phone);
+                  }}
+                  placeholder="고객명 검색 또는 입력"
+                />
+                {!isEditMode && (
+                  <p className="text-[11px] text-muted-foreground">이름을 입력하면 기존 고객이 자동 검색돼요</p>
                 )}
               </div>
-              {paymentMethod === 'card' && (
-                <div className="space-y-2">
-                  <Label>예약방식</Label>
-                  <Select name="reservation_channel" defaultValue={sale?.reservation_channel || 'naver_booking'} key={sale?.id ? `ch2-${sale.id}` : 'ch2-create'}>
-                    <SelectTrigger className="bg-muted">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="phone">전화</SelectItem>
-                      <SelectItem value="kakaotalk">카카오톡</SelectItem>
-                      <SelectItem value="naver_booking">네이버예약</SelectItem>
-                      <SelectItem value="road">로드</SelectItem>
-                      <SelectItem value="other">기타</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>주문자명</Label>
-                  <CustomerAutocomplete
-                    value={customerName}
-                    onChange={(name, id, phone) => {
-                      setCustomerName(name);
-                      setCustomerId(id);
-                      setCustomerPhone(phone);
-                    }}
-                    placeholder="고객명 검색 또는 입력"
-                  />
-                  {!isEditMode && (
-                    <p className="text-[11px] text-muted-foreground">이름을 입력하면 기존 고객이 자동 검색돼요</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>연락처</Label>
-                  <Input
-                    name="customer_phone"
-                    value={customerPhone || ''}
-                    onChange={(e) => setCustomerPhone(formatPhoneNumber(e.target.value))}
-                    placeholder="010-0000-0000"
-                    className="bg-muted"
-                    inputMode="tel"
-                    autoComplete="tel"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>연락처</Label>
+                <Input
+                  name="customer_phone"
+                  value={customerPhone || ''}
+                  onChange={(e) => setCustomerPhone(formatPhoneNumber(e.target.value))}
+                  placeholder="010-0000-0000"
+                  className="bg-muted"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
               </div>
-            </>
+            </div>
           )}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
