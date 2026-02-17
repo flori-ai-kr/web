@@ -36,7 +36,15 @@ async function resolveCustomerId(
   return null;
 }
 
-async function _getSales(month?: string) {
+const SALES_PAGE_SIZE = 100;
+
+export interface SalesFilters {
+  category?: string;
+  payment?: string;
+  channel?: string;
+}
+
+async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
   const supabase = await createClient();
 
   let query = supabase
@@ -45,27 +53,80 @@ async function _getSales(month?: string) {
       *,
       customer:customers(id, name, phone)
     `)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
+    if (month.length === 4) {
+      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
+    } else {
+      const { startDate, endDate } = getMonthDateRange(month);
+      query = query.gte('date', startDate).lte('date', endDate);
+    }
   }
+
+  if (filters?.category) query = query.eq('product_category', filters.category);
+  if (filters?.payment) query = query.eq('payment_method', filters.payment);
+  if (filters?.channel) query = query.eq('reservation_channel', filters.channel);
 
   const { data, error } = await query;
   if (error) throw error;
 
-  // 고객 정보를 매출 데이터에 병합
-  const salesWithCustomer = (data || []).map(sale => ({
+  const sales = (data || []).map(sale => ({
     ...sale,
     customer_name: sale.customer?.name || sale.customer_name,
     customer_phone: sale.customer?.phone || sale.customer_phone,
-  }));
+  })) as Sale[];
 
-  return salesWithCustomer as Sale[];
+  return { sales, hasMore: (data || []).length === limit };
 }
 
 export const getSales = withErrorLogging('getSales', _getSales);
+
+async function _loadMoreSales(month: string | null, offset: number, filters?: SalesFilters) {
+  return _getSales(month ?? undefined, offset, SALES_PAGE_SIZE, filters);
+}
+
+export const loadMoreSales = withErrorLogging('loadMoreSales', _loadMoreSales);
+
+// 요약 집계 (페이지네이션 무관하게 전체 기준, 서버사이드 필터 적용)
+async function _getSalesSummary(month?: string, filters?: SalesFilters) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('sales')
+    .select('amount, payment_method');
+
+  if (month) {
+    if (month.length === 4) {
+      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
+    } else {
+      const { startDate, endDate } = getMonthDateRange(month);
+      query = query.gte('date', startDate).lte('date', endDate);
+    }
+  }
+
+  if (filters?.category) query = query.eq('product_category', filters.category);
+  if (filters?.payment) query = query.eq('payment_method', filters.payment);
+  if (filters?.channel) query = query.eq('reservation_channel', filters.channel);
+
+  const { data, error } = await query.limit(10000);
+  if (error) throw error;
+
+  const summary = { total: 0, card: 0, naverpay: 0, transfer: 0, cash: 0, count: 0 };
+  for (const row of data || []) {
+    summary.total += row.amount;
+    summary.count += 1;
+    if (row.payment_method === 'card') summary.card += row.amount;
+    else if (row.payment_method === 'naverpay') summary.naverpay += row.amount;
+    else if (row.payment_method === 'transfer') summary.transfer += row.amount;
+    else if (row.payment_method === 'cash') summary.cash += row.amount;
+  }
+  return summary;
+}
+
+export const getSalesSummary = withErrorLogging('getSalesSummary', _getSalesSummary);
 
 async function _createSale(formData: FormData) {
   const user = await requireAuth();

@@ -1,22 +1,24 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, Settings, Loader2 } from 'lucide-react';
+import { Plus, Search, Settings, Loader2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { deleteSale } from '@/lib/actions/sales';
+import { deleteSale, loadMoreSales } from '@/lib/actions/sales';
 import { getReservationsForSale } from '@/lib/actions/reservations';
 import { getPhotoCardBySaleId } from '@/lib/actions/photo-cards';
 import { SalePhotoModal } from '@/components/sales/SalePhotoModal';
 import { SalesSettingsModal } from '@/components/sales/SalesSettingsModal';
-import { calculateSalesSummary, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
+import type { SalesSummary as SalesSummaryType } from '@/lib/utils';
 import type { PhotoCard, Sale, CardCompanySetting, Reservation } from '@/types/database';
+import type { SalesFilters } from '@/lib/actions/sales';
 import { SaleCategory, PaymentMethod, getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
 import { getCardCompanySettings } from '@/lib/actions/settings';
 import { ExportButton } from '@/components/ui/export-button';
@@ -34,22 +36,28 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 interface Props {
   initialSales: Sale[];
+  initialHasMore: boolean;
+  initialSummary: SalesSummaryType;
+  monthParam: string | null;
   currentYear: number;
   currentMonth: number;
+  initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
   initialCardCompanies: CardCompanySetting[];
   initialSelectedSale?: Sale | null;
 }
 
-export function SalesClient({ initialSales, currentYear, currentMonth, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, initialFilters, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(initialSelectedSale || null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [paymentFilter, setPaymentFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  // 필터는 URL 파라미터 기반 (서버 쿼리에 적용됨)
+  const paymentFilter = initialFilters.payment || 'all';
+  const categoryFilter = initialFilters.category || 'all';
+  const channelFilter = initialFilters.channel || 'all';
   const [searchQuery, setSearchQuery] = useState('');
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
@@ -62,6 +70,20 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
+
+  // 무한스크롤 상태
+  const [allSales, setAllSales] = useState<Sale[]>(initialSales);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const dataVersionRef = useRef(0);
+
+  // initialSales가 변경되면(년/월/필터 변경) 리셋
+  useEffect(() => {
+    dataVersionRef.current += 1;
+    setAllSales(initialSales);
+    setHasMore(initialHasMore);
+    setIsLoadingMore(false);
+  }, [initialSales, initialHasMore]);
 
   // 카테고리/결제방식 라벨 및 색상 맵 생성 (value -> label/color)
   const categoryLabels = useMemo(() =>
@@ -99,42 +121,35 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
 
       setIsFormOpen(true);
       // URL 파라미터 정리
-      router.replace(`/sales?year=${currentYear}&month=${currentMonth}`, { scroll: false });
+      const cleanParams = new URLSearchParams();
+      cleanParams.set('year', currentYear === 0 ? 'all' : currentYear.toString());
+      cleanParams.set('month', currentMonth === 0 ? 'all' : currentMonth.toString());
+      router.replace(`/sales?${cleanParams.toString()}`, { scroll: false });
     }
   }, [searchParams, router, currentYear, currentMonth]);
 
+  // 서버에서 필터 적용된 데이터 → 검색만 클라이언트에서 추가 필터
   const filteredSales = useMemo(() => {
-    let result = initialSales;
+    if (!searchQuery) return allSales;
 
-    // Payment filter
-    if (paymentFilter !== 'all') {
-      result = result.filter(s => s.payment_method === paymentFilter);
-    }
+    const q = searchQuery.toLowerCase();
+    return allSales.filter(s =>
+      (s.product_category || s.product_name || '').toLowerCase().includes(q) ||
+      s.customer_name?.toLowerCase().includes(q)
+    );
+  }, [allSales, searchQuery]);
 
-    // Category filter
-    if (categoryFilter !== 'all') {
-      result = result.filter(s => s.product_category === categoryFilter);
-    }
+  // 서버에서 필터 적용된 요약 (페이지네이션 무관)
+  const summary = initialSummary;
 
-    // Search filter
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(s =>
-        (s.product_category || s.product_name || '').toLowerCase().includes(q) ||
-        s.customer_name?.toLowerCase().includes(q)
-      );
-    }
+  const hasActiveFilters = paymentFilter !== 'all' || categoryFilter !== 'all' || channelFilter !== 'all' || searchQuery !== '';
 
-    return result;
-  }, [initialSales, paymentFilter, categoryFilter, searchQuery]);
-
-  const summary = useMemo(() => calculateSalesSummary(filteredSales), [filteredSales]);
-
-  const hasActiveFilters = paymentFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== '';
+  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
+  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
 
   const getExportConfig = useCallback((): ExportConfig<Sale> => ({
-    filename: `매출_${currentYear}-${String(currentMonth).padStart(2, '0')}`,
-    title: `매출 내역 (${currentYear}년 ${currentMonth}월)`,
+    filename: currentYear === 0 || currentMonth === 0 ? '매출_전체' : `매출_${currentYear}-${String(currentMonth).padStart(2, '0')}`,
+    title: `매출 내역 (${yearLabel} ${monthLabel})`,
     columns: [
       { header: '날짜', accessor: (s) => String(s.date || '') },
       { header: '카테고리', accessor: (s) => categoryLabels[s.product_category] || s.product_category || '' },
@@ -145,7 +160,7 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
       { header: '비고', accessor: (s) => String(s.note || '') },
     ],
     data: filteredSales,
-  }), [filteredSales, currentYear, currentMonth, categoryLabels, paymentLabels]);
+  }), [filteredSales, currentYear, currentMonth, yearLabel, monthLabel, categoryLabels, paymentLabels]);
 
   // 매출 상세 선택 시 사진 + 연결 예약 로드
   const handleSelectSale = async (sale: Sale) => {
@@ -160,12 +175,46 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
     setSelectedSaleReservations(reservations);
   };
 
+  const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
+  const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
+
+  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략
+  const buildUrl = useCallback((overrides: Record<string, string> = {}) => {
+    const p = {
+      year: yearParam,
+      month: monthParam,
+      category: categoryFilter,
+      payment: paymentFilter,
+      channel: channelFilter,
+      ...overrides,
+    };
+    const params = new URLSearchParams();
+    params.set('year', p.year);
+    params.set('month', p.month);
+    if (p.category !== 'all') params.set('category', p.category);
+    if (p.payment !== 'all') params.set('payment', p.payment);
+    if (p.channel !== 'all') params.set('channel', p.channel);
+    return `/sales?${params.toString()}`;
+  }, [yearParam, monthParam, categoryFilter, paymentFilter, channelFilter]);
+
   const handleYearChange = (year: string) => {
-    router.push(`/sales?year=${year}&month=${currentMonth}`);
+    router.push(buildUrl({ year }));
   };
 
   const handleMonthChange = (month: string) => {
-    router.push(`/sales?year=${currentYear}&month=${month}`);
+    router.push(buildUrl({ month }));
+  };
+
+  const handleCategoryChange = (category: string) => {
+    router.push(buildUrl({ category }));
+  };
+
+  const handlePaymentChange = (payment: string) => {
+    router.push(buildUrl({ payment }));
+  };
+
+  const handleChannelChange = (channel: string) => {
+    router.push(buildUrl({ channel }));
   };
 
   const handleOpenPhotoModal = async (sale: Sale) => {
@@ -210,10 +259,28 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
     }
   };
 
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const version = dataVersionRef.current;
+    try {
+      const result = await loadMoreSales(serverMonthParam, allSales.length, initialFilters);
+      // 로드 중 필터/네비게이션이 변경됐으면 stale 데이터 무시
+      if (version !== dataVersionRef.current) return;
+      setAllSales(prev => [...prev, ...result.sales]);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Failed to load more sales:', error);
+    } finally {
+      if (version === dataVersionRef.current) {
+        setIsLoadingMore(false);
+      }
+    }
+  }, [isLoadingMore, hasMore, serverMonthParam, allSales.length, initialFilters]);
+
   const handleResetFilters = () => {
-    setPaymentFilter('all');
-    setCategoryFilter('all');
     setSearchQuery('');
+    router.push(buildUrl({ category: 'all', payment: 'all', channel: 'all' }));
   };
 
   const handleOpenForm = () => {
@@ -243,27 +310,29 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <Select value={currentYear.toString()} onValueChange={handleYearChange}>
+        <Select value={yearParam} onValueChange={handleYearChange}>
           <SelectTrigger className="w-[100px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
             {YEAR_OPTIONS.map(year => (
               <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={currentMonth.toString()} onValueChange={handleMonthChange}>
+        <Select value={monthParam} onValueChange={handleMonthChange}>
           <SelectTrigger className="w-[80px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
             {MONTH_OPTIONS.map(month => (
               <SelectItem key={month} value={month.toString()}>{month}월</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-auto min-w-[140px] bg-background">
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground text-xs">카테고리</span>
@@ -293,10 +362,10 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
             ))}
           </SelectContent>
         </Select>
-        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-          <SelectTrigger className="w-auto min-w-[120px] bg-background">
+        <Select value={paymentFilter} onValueChange={handlePaymentChange}>
+          <SelectTrigger className="w-auto min-w-[130px] bg-background">
             <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground text-xs">결제</span>
+              <span className="text-muted-foreground text-xs">결제방식</span>
               {paymentFilter === 'all' ? (
                 <span>전체</span>
               ) : (
@@ -323,6 +392,20 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
             ))}
           </SelectContent>
         </Select>
+        <Select value={channelFilter} onValueChange={handleChannelChange}>
+          <SelectTrigger className="w-auto min-w-[130px] bg-background">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground text-xs">예약방식</span>
+              <span>{channelFilter === 'all' ? '전체' : (CHANNEL_LABELS[channelFilter] || channelFilter)}</span>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            {Object.entries(CHANNEL_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           size="icon"
@@ -342,6 +425,18 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
             aria-label="매출 검색"
           />
         </div>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-9 shrink-0"
+          onClick={() => {
+            setSearchQuery('');
+            router.push('/sales');
+          }}
+        >
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+          초기화
+        </Button>
       </div>
 
       {/* Sales List */}
@@ -352,6 +447,9 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
         paymentLabels={paymentLabels}
         paymentColors={paymentColors}
         hasActiveFilters={hasActiveFilters}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={handleLoadMore}
         onSelectSale={handleSelectSale}
         onResetFilters={handleResetFilters}
         onOpenForm={handleOpenForm}
