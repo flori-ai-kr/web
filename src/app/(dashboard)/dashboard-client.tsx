@@ -362,14 +362,6 @@ export function DashboardClient() {
                             {r.customer_name}
                             {r.amount > 0 && ` · ${formatCurrency(r.amount)}`}
                           </p>
-                          {(r.status === 'pending' || r.status === 'confirmed') && !r.sale_id && (
-                            <Link
-                              href={`/calendar?date=${r.date}&action=sale&reservationId=${r.id}`}
-                              className="text-[11px] text-brand hover:text-brand/80 mt-1 inline-flex items-center gap-0.5 transition-colors"
-                            >
-                              매출 등록하기 <ArrowUpRight className="w-2.5 h-2.5" />
-                            </Link>
-                          )}
                         </div>
                       </div>
                     );
