@@ -582,15 +582,22 @@ export function CalendarClient() {
       const saleDate = deleteTarget.sale_date;
       await deleteReservation(deleteTarget.id);
 
-      // 마지막 예약이었으면 매출 삭제 확인
+      // 매출 연동 처리
       if (saleId) {
         const siblings = (siblingReservations.get(saleId) || []).filter(r => r.id !== deleteTarget.id);
         if (siblings.length === 0) {
+          // 마지막 픽업 → 매출 삭제 확인
           setSaleDeleteInfo({ saleId, saleDate });
           setDeleteTarget(null);
           fetchData();
           setIsDeleting(false);
           return;
+        } else {
+          // 남은 픽업이 있으면 매출 금액 차감
+          const newTotal = siblings.reduce((sum, r) => sum + (r.amount || 0), 0);
+          const saleFormData = new FormData();
+          saleFormData.set('amount', String(newTotal));
+          await updateSale(saleId, saleFormData);
         }
       }
 
