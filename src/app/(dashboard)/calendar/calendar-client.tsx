@@ -78,7 +78,7 @@ function TimeSelect({ value, onChange, className, disabled }: {
         value={h}
         onChange={(e) => onChange(`${e.target.value}:${m || '00'}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="시"
       >
         <option value="">시</option>
@@ -86,12 +86,12 @@ function TimeSelect({ value, onChange, className, disabled }: {
           <option key={hour} value={hour}>{hour}</option>
         ))}
       </select>
-      <span className="text-muted-foreground text-sm">:</span>
+      <span className="text-muted-foreground text-[12px]">:</span>
       <select
         value={m}
         onChange={(e) => onChange(`${h || '00'}:${e.target.value}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="분"
       >
         <option value="">분</option>
@@ -1283,7 +1283,7 @@ export function CalendarClient() {
                               type="date"
                               value={pickup.date}
                               onChange={(e) => updatePickup(idx, 'date', e.target.value)}
-                              className="h-8 text-sm"
+                              className="h-8 !text-[12px]"
                               aria-label={`픽업 ${idx + 1} 날짜`}
                             />
                           </div>
@@ -1340,7 +1340,7 @@ export function CalendarClient() {
                       type="date"
                       value={formData.sale_date}
                       onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                      className="h-8 text-sm"
+                      className="h-8 !text-[12px]"
                       aria-label="결제 일자"
                     />
                   </div>
@@ -1401,7 +1401,7 @@ export function CalendarClient() {
                         type="date"
                         value={formData.reminder_date}
                         onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
-                        className="h-8"
+                        className="h-8 !text-[12px]"
                         aria-label="리마인더 알림 날짜"
                       />
                       <TimeSelect
