@@ -10,7 +10,8 @@ function ensureVapid() {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!publicKey || !privateKey) throw new Error('VAPID 키가 설정되지 않았습니다');
-  webpush.setVapidDetails('mailto:admin@hazel.local', publicKey, privateKey);
+  const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@hazel.local';
+  webpush.setVapidDetails(vapidSubject, publicKey, privateKey);
   vapidConfigured = true;
 }
 
@@ -71,10 +72,10 @@ export async function GET(request: Request) {
     const kstDate = new Date(now.getTime() + kstOffset);
     const today = kstDate.toISOString().split('T')[0];
 
-    // 오늘 예약 조회 (취소 제외)
+    // 오늘 예약 조회 (취소 제외, user_id 포함)
     const { data: reservations, error: resError } = await supabase
       .from('reservations')
-      .select('id, title, customer_name, time, amount, status')
+      .select('id, user_id, title, customer_name, time, amount, status')
       .eq('date', today)
       .neq('status', 'cancelled')
       .order('time', { nullsFirst: false });
@@ -88,73 +89,98 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'No reservations today', sent: 0 });
     }
 
-    // 알림 메시지 구성
-    const count = reservations.length;
-    const summaryLines = reservations.slice(0, 3).map((r) => {
-      const time = r.time ? r.time.slice(0, 5) : '--:--';
-      return `${time} ${r.title}${r.customer_name ? ` (${r.customer_name})` : ''}`;
-    });
-
-    let body = summaryLines.join('\n');
-    if (count > 3) {
-      body += `\n외 ${count - 3}건`;
+    // 유저별 예약 그룹화
+    const reservationsByUser = new Map<string, typeof reservations>();
+    for (const r of reservations) {
+      const existing = reservationsByUser.get(r.user_id) || [];
+      existing.push(r);
+      reservationsByUser.set(r.user_id, existing);
     }
 
-    const payload = JSON.stringify({
-      title: `오늘 예약 ${count}건`,
-      body,
-      tag: `daily-reminder-${today}`,
-      url: '/calendar',
-      requireInteraction: false,
-    });
-
-    // 모든 활성 구독에 전송
+    // 해당 유저들의 활성 구독 조회
+    const userIds = [...reservationsByUser.keys()];
     const { data: subscriptions } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('is_active', true);
+      .select('endpoint, p256dh, auth, user_id')
+      .eq('is_active', true)
+      .in('user_id', userIds);
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ message: 'No active subscriptions', sent: 0 });
     }
 
-    const subs = subscriptions as unknown as SubscriptionRow[];
+    // 유저별 구독 그룹화
+    const subsByUser = new Map<string, SubscriptionRow[]>();
+    for (const sub of subscriptions) {
+      const uid = (sub as unknown as { user_id: string }).user_id;
+      const existing = subsByUser.get(uid) || [];
+      existing.push(sub as unknown as SubscriptionRow);
+      subsByUser.set(uid, existing);
+    }
 
-    console.log(`[Cron:daily] ${subs.length}개 구독에 전송 시작`, {
-      endpoints: subs.map((s) => getEndpointType(s.endpoint)),
-    });
-
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh || '', auth: sub.auth || '' },
-          },
-          payload,
-        ),
-      ),
-    );
-
-    // 실패 분석 + 영구 실패만 비활성화
+    let totalSent = 0;
+    let totalFailed = 0;
     const permanentFailEndpoints: string[] = [];
-    let failCount = 0;
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i]!;
-      if (result.status === 'rejected') {
-        failCount++;
-        const err = result.reason as { statusCode?: number; body?: string; message?: string };
-        const endpointType = getEndpointType(subs[i]!.endpoint);
-        console.error(
-          `[Cron:daily] 전송 실패 [${endpointType}]`,
-          `status=${err.statusCode}`,
-          `body=${typeof err.body === 'string' ? err.body.slice(0, 200) : ''}`,
-          `message=${err.message || ''}`,
-        );
-        if (err.statusCode && PERMANENT_FAILURE_CODES.has(err.statusCode)) {
-          permanentFailEndpoints.push(subs[i]!.endpoint);
+
+    // 유저별로 해당 유저의 예약만 포함된 알림 전송
+    for (const [userId, userReservations] of reservationsByUser) {
+      const subs = subsByUser.get(userId) || [];
+      if (subs.length === 0) continue;
+
+      const count = userReservations.length;
+      const summaryLines = userReservations.slice(0, 3).map((r) => {
+        const time = r.time ? r.time.slice(0, 5) : '--:--';
+        return `${time} ${r.title}${r.customer_name ? ` (${r.customer_name})` : ''}`;
+      });
+
+      let body = summaryLines.join('\n');
+      if (count > 3) {
+        body += `\n외 ${count - 3}건`;
+      }
+
+      const payload = JSON.stringify({
+        title: `오늘 예약 ${count}건`,
+        body,
+        tag: `daily-reminder-${today}`,
+        url: '/calendar',
+        requireInteraction: false,
+      });
+
+      console.log(`[Cron:daily] user=${userId} ${count}건 예약 -> ${subs.length}개 구독 전송`, {
+        endpoints: subs.map((s) => getEndpointType(s.endpoint)),
+      });
+
+      const results = await Promise.allSettled(
+        subs.map((sub) =>
+          webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh || '', auth: sub.auth || '' },
+            },
+            payload,
+          ),
+        ),
+      );
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i]!;
+        if (result.status === 'rejected') {
+          totalFailed++;
+          const err = result.reason as { statusCode?: number; body?: string; message?: string };
+          const endpointType = getEndpointType(subs[i]!.endpoint);
+          console.error(
+            `[Cron:daily] 전송 실패 [${endpointType}]`,
+            `status=${err.statusCode}`,
+            `body=${typeof err.body === 'string' ? err.body.slice(0, 200) : ''}`,
+            `message=${err.message || ''}`,
+          );
+          if (err.statusCode && PERMANENT_FAILURE_CODES.has(err.statusCode)) {
+            permanentFailEndpoints.push(subs[i]!.endpoint);
+          }
         }
       }
+
+      totalSent += results.filter((r) => r.status === 'fulfilled').length;
     }
 
     if (permanentFailEndpoints.length > 0) {
@@ -165,13 +191,11 @@ export async function GET(request: Request) {
       console.log(`[Cron:daily] ${permanentFailEndpoints.length}개 구독 비활성화 (영구 실패)`);
     }
 
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
-
     return NextResponse.json({
       message: 'Daily reminder sent',
-      reservations: count,
-      sent,
-      failed: failCount,
+      reservations: reservations.length,
+      sent: totalSent,
+      failed: totalFailed,
     });
   } catch (error) {
     console.error('Daily reminder error:', error);
