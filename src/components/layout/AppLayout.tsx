@@ -9,9 +9,10 @@ const SIDEBAR_COLLAPSED_KEY = 'hazel-sidebar-collapsed';
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  userEmail: string;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, userEmail }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -35,13 +36,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         isCollapsed={isCollapsed}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={handleToggleCollapse}
+        userEmail={userEmail}
       />
 
       <div className={cn(
         'transition-[margin] duration-200',
         isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
       )}>
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header onMenuClick={() => setSidebarOpen(true)} userEmail={userEmail} />
 
         <main className="p-4 sm:p-6 lg:p-8" aria-label="주요 콘텐츠">
           <div className="max-w-7xl mx-auto">

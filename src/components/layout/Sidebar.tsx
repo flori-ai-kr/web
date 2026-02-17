@@ -9,15 +9,12 @@ import {
   Wallet,
   Users,
   CreditCard,
-  Settings,
   X,
   Flower2,
   Image,
   ChevronsLeft,
   ChevronsRight,
-  LogOut,
 } from 'lucide-react';
-import { signOut } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,6 +60,7 @@ interface SidebarProps {
   isCollapsed: boolean;
   onClose: () => void;
   onToggleCollapse: () => void;
+  userEmail: string;
 }
 
 function NavLink({
@@ -118,7 +116,11 @@ function NavLink({
   return link;
 }
 
-export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: SidebarProps) {
+function getInitial(email: string): string {
+  return (email[0] || '?').toUpperCase();
+}
+
+export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -211,39 +213,27 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
 
           {/* Bottom section */}
           <div className={cn('border-t border-sidebar-border py-3', isCollapsed ? 'px-2' : 'px-3')}>
-            <NavLink
-              href="/settings"
-              icon={Settings}
-              label="설정"
-              isActive={pathname === '/settings'}
-              isCollapsed={isCollapsed}
-              onClick={onClose}
-            />
-
-            {/* Logout */}
+            {/* User avatar + email */}
             {isCollapsed ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    onClick={() => signOut()}
-                    className="flex items-center justify-center rounded-lg text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full mt-1 px-2 py-2.5"
-                    aria-label="로그아웃"
-                  >
-                    <LogOut className="h-4 w-4 shrink-0" />
-                  </button>
+                  <div className="flex items-center justify-center py-1.5">
+                    <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground font-semibold text-sm flex items-center justify-center shrink-0">
+                      {getInitial(userEmail)}
+                    </div>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>
-                  로그아웃
+                  {userEmail}
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <button
-                onClick={() => signOut()}
-                className="flex items-center gap-3 rounded-lg text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full mt-1 px-3 py-2"
-              >
-                <LogOut className="h-4 w-4 shrink-0" />
-                <span>로그아웃</span>
-              </button>
+              <div className="flex items-center gap-2.5 px-3 py-1.5">
+                <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground font-semibold text-sm flex items-center justify-center shrink-0">
+                  {getInitial(userEmail)}
+                </div>
+                <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
+              </div>
             )}
 
             {/* Collapse toggle (desktop only) */}
