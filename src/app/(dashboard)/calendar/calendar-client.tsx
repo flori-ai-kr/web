@@ -275,8 +275,30 @@ export function CalendarClient() {
     return reservationsByDate.get(key) || [];
   }, [selectedDate, reservationsByDate]);
 
-  // Group calendar events by date (expand multi-day events)
-  const eventsByDate = useMemo(() => {
+  // Compute event lanes for consistent vertical positioning across days
+  const { eventsByDate, eventLaneMap } = useMemo(() => {
+    // 1. 레인 할당: 시작일 빠른 순 → 기간 긴 순 → id 순
+    const sorted = [...calendarEvents].sort((a, b) => {
+      const startCmp = a.start_date.localeCompare(b.start_date);
+      if (startCmp !== 0) return startCmp;
+      const endCmp = b.end_date.localeCompare(a.end_date);
+      if (endCmp !== 0) return endCmp;
+      return a.id.localeCompare(b.id);
+    });
+
+    const laneMap = new Map<string, number>();
+    const occupied: { start: string; end: string; lane: number }[] = [];
+
+    for (const event of sorted) {
+      let lane = 0;
+      while (occupied.some(o => o.lane === lane && o.start <= event.end_date && o.end >= event.start_date)) {
+        lane++;
+      }
+      laneMap.set(event.id, lane);
+      occupied.push({ start: event.start_date, end: event.end_date, lane });
+    }
+
+    // 2. 날짜별 이벤트 맵 (멀티데이 이벤트 펼치기)
     const map = new Map<string, CalendarEvent[]>();
     for (const event of calendarEvents) {
       let current = new Date(event.start_date);
@@ -288,11 +310,12 @@ export function CalendarClient() {
         current = addDays(current, 1);
       }
     }
-    // 일관된 순서 유지 (start_date → id)
+    // 레인 순서로 정렬
     for (const events of map.values()) {
-      events.sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id.localeCompare(b.id));
+      events.sort((a, b) => (laneMap.get(a.id) ?? 0) - (laneMap.get(b.id) ?? 0));
     }
-    return map;
+
+    return { eventsByDate: map, eventLaneMap: laneMap };
   }, [calendarEvents]);
 
   // Events overlapping selected date
@@ -678,33 +701,44 @@ export function CalendarClient() {
                         )}>
                           {format(day, 'd')}
                         </span>
-                        {/* Event bars */}
-                        {dayEvents.length > 0 && (
-                          <div className="flex flex-col gap-px mb-0.5">
-                            {dayEvents.map((event) => {
-                              const isStart = event.start_date === dateKey;
-                              const isEnd = event.end_date === dateKey;
-                              const isSingle = isStart && isEnd;
-                              return (
-                                <div
-                                  key={event.id}
-                                  onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
-                                  className={cn(
-                                    'text-[10px] leading-tight px-1 py-px font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1',
-                                    isStart && !isSingle ? 'whitespace-nowrap overflow-visible relative z-10' : 'truncate',
-                                  )}
-                                  style={{
-                                    backgroundColor: `${event.color}30`,
-                                    color: event.color,
-                                    borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
-                                  }}
-                                >
-                                  {isStart ? event.title : '\u00A0'}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                        {/* Event bars (lane-based positioning) */}
+                        {dayEvents.length > 0 && (() => {
+                          const maxLane = Math.max(...dayEvents.map(e => eventLaneMap.get(e.id) ?? 0));
+                          const lanes: (CalendarEvent | null)[] = Array(maxLane + 1).fill(null);
+                          for (const event of dayEvents) {
+                            const lane = eventLaneMap.get(event.id) ?? 0;
+                            lanes[lane] = event;
+                          }
+                          return (
+                            <div className="flex flex-col gap-px mb-0.5">
+                              {lanes.map((event, lane) => {
+                                if (!event) {
+                                  return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{'\u00A0'}</div>;
+                                }
+                                const isStart = event.start_date === dateKey;
+                                const isEnd = event.end_date === dateKey;
+                                const isSingle = isStart && isEnd;
+                                return (
+                                  <div
+                                    key={event.id}
+                                    onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
+                                    className={cn(
+                                      'text-[10px] leading-tight px-1 py-px font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1',
+                                      isStart && !isSingle ? 'whitespace-nowrap overflow-visible relative z-10' : 'truncate',
+                                    )}
+                                    style={{
+                                      backgroundColor: `${event.color}30`,
+                                      color: event.color,
+                                      borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
+                                    }}
+                                  >
+                                    {isStart ? event.title : '\u00A0'}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                         {/* Reservations */}
                         {dayReservations.length > 0 && (() => {
                           const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
@@ -792,30 +826,41 @@ export function CalendarClient() {
                         )}>
                           {format(day, 'd')}
                         </span>
-                        {/* Event bars */}
-                        {dayEvents.length > 0 && (
-                          <div className="flex flex-col gap-px mb-0.5">
-                            {dayEvents.map((event) => {
-                              const isStart = event.start_date === dateKey;
-                              const isEnd = event.end_date === dateKey;
-                              const isSingle = isStart && isEnd;
-                              return (
-                                <div
-                                  key={event.id}
-                                  onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
-                                  className="text-[10px] min-[450px]:text-xs leading-tight px-1 min-[450px]:px-1.5 py-px min-[450px]:py-0.5 truncate font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1.5 min-[450px]:-mx-2"
-                                  style={{
-                                    backgroundColor: `${event.color}30`,
-                                    color: event.color,
-                                    borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
-                                  }}
-                                >
-                                  {isStart ? event.title : '\u00A0'}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                        {/* Event bars (lane-based positioning) */}
+                        {dayEvents.length > 0 && (() => {
+                          const maxLane = Math.max(...dayEvents.map(e => eventLaneMap.get(e.id) ?? 0));
+                          const lanes: (CalendarEvent | null)[] = Array(maxLane + 1).fill(null);
+                          for (const event of dayEvents) {
+                            const lane = eventLaneMap.get(event.id) ?? 0;
+                            lanes[lane] = event;
+                          }
+                          return (
+                            <div className="flex flex-col gap-px mb-0.5">
+                              {lanes.map((event, lane) => {
+                                if (!event) {
+                                  return <div key={`spacer-${lane}`} className="text-[10px] min-[450px]:text-xs leading-tight py-px min-[450px]:py-0.5 -mx-1.5 min-[450px]:-mx-2 invisible" aria-hidden="true">{'\u00A0'}</div>;
+                                }
+                                const isStart = event.start_date === dateKey;
+                                const isEnd = event.end_date === dateKey;
+                                const isSingle = isStart && isEnd;
+                                return (
+                                  <div
+                                    key={event.id}
+                                    onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
+                                    className="text-[10px] min-[450px]:text-xs leading-tight px-1 min-[450px]:px-1.5 py-px min-[450px]:py-0.5 truncate font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1.5 min-[450px]:-mx-2"
+                                    style={{
+                                      backgroundColor: `${event.color}30`,
+                                      color: event.color,
+                                      borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
+                                    }}
+                                  >
+                                    {isStart ? event.title : '\u00A0'}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                         {/* Reservations */}
                         {dayReservations.length > 0 ? (
                           <div className="flex flex-col gap-0.5 min-[450px]:gap-1 overflow-hidden flex-1">
@@ -978,7 +1023,7 @@ export function CalendarClient() {
                         type="date"
                         value={eventFormData.start_date}
                         onChange={(e) => setEventFormData({ ...eventFormData, start_date: e.target.value })}
-                        className="h-8 text-sm"
+                        className="h-8"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -987,7 +1032,7 @@ export function CalendarClient() {
                         type="date"
                         value={eventFormData.end_date}
                         onChange={(e) => setEventFormData({ ...eventFormData, end_date: e.target.value })}
-                        className="h-8 text-sm"
+                        className="h-8"
                       />
                     </div>
                   </div>
@@ -1136,7 +1181,7 @@ export function CalendarClient() {
                         type="date"
                         value={formData.payment_date}
                         onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                        className="h-8 text-sm"
+                        className="h-8"
                         aria-label="결제일자"
                       />
                     )}
@@ -1203,7 +1248,7 @@ export function CalendarClient() {
                         type="date"
                         value={formData.reminder_date}
                         onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
-                        className="h-8 text-sm"
+                        className="h-8"
                         aria-label="리마인더 알림 날짜"
                       />
                       <TimeSelect
