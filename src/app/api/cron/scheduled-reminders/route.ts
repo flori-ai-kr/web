@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     // reminder_at이 지난 1시간 이내인 미완료/미취소 예약 조회
     const { data: reminders, error: reminderError } = await supabase
       .from('reservations')
-      .select('id, title, customer_name, date, time, estimated_amount')
+      .select('id, title, customer_name, date, time, amount')
       .lte('reminder_at', now.toISOString())
       .gt('reminder_at', oneHourAgo.toISOString())
       .neq('status', 'cancelled')
@@ -122,8 +122,8 @@ export async function GET(request: Request) {
         `${dateLabel} (${r.date})`,
         r.time ? `시간: ${r.time.slice(0, 5)}` : null,
         r.customer_name ? `고객: ${r.customer_name}` : null,
-        r.estimated_amount
-          ? `금액: ${new Intl.NumberFormat('ko-KR').format(r.estimated_amount)}원`
+        r.amount
+          ? `금액: ${new Intl.NumberFormat('ko-KR').format(r.amount)}원`
           : null,
       ]
         .filter(Boolean)

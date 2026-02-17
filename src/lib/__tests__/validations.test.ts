@@ -301,7 +301,7 @@ describe('Reservation Schema (예약)', () => {
     date: '2024-01-15',
     customer_name: '홍길동',
     title: '프로포즈 꽃다발',
-    estimated_amount: 100000,
+    amount: 100000,
     status: 'pending' as const,
   }
 

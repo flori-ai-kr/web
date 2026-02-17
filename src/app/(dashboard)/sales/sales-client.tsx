@@ -11,11 +11,12 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { deleteSale } from '@/lib/actions/sales';
+import { getReservationsForSale } from '@/lib/actions/reservations';
 import { getPhotoCardBySaleId } from '@/lib/actions/photo-cards';
 import { SalePhotoModal } from '@/components/sales/SalePhotoModal';
 import { SalesSettingsModal } from '@/components/sales/SalesSettingsModal';
 import { calculateSalesSummary, formatCurrency } from '@/lib/utils';
-import type { PhotoCard, Sale, CardCompanySetting } from '@/types/database';
+import type { PhotoCard, Sale, CardCompanySetting, Reservation } from '@/types/database';
 import { SaleCategory, PaymentMethod, getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
 import { getCardCompanySettings } from '@/lib/actions/settings';
 import { ExportButton } from '@/components/ui/export-button';
@@ -53,6 +54,7 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
   const [selectedSalePhotos, setSelectedSalePhotos] = useState<PhotoCard | null>(null);
+  const [selectedSaleReservations, setSelectedSaleReservations] = useState<Reservation[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
@@ -145,12 +147,17 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
     data: filteredSales,
   }), [filteredSales, currentYear, currentMonth, categoryLabels, paymentLabels]);
 
-  // 매출 상세 선택 시 사진 로드
+  // 매출 상세 선택 시 사진 + 연결 예약 로드
   const handleSelectSale = async (sale: Sale) => {
     setSelectedSale(sale);
     setSelectedSalePhotos(null);
-    const photoCard = await getPhotoCardBySaleId(sale.id);
+    setSelectedSaleReservations([]);
+    const [photoCard, reservations] = await Promise.all([
+      getPhotoCardBySaleId(sale.id),
+      getReservationsForSale(sale.id),
+    ]);
     setSelectedSalePhotos(photoCard);
+    setSelectedSaleReservations(reservations);
   };
 
   const handleYearChange = (year: string) => {
@@ -371,6 +378,7 @@ export function SalesClient({ initialSales, currentYear, currentMonth, initialCa
       <SaleDetailDialog
         sale={selectedSale}
         photos={selectedSalePhotos}
+        reservations={selectedSaleReservations}
         categoryLabels={categoryLabels}
         categoryColors={categoryColors}
         paymentLabels={paymentLabels}

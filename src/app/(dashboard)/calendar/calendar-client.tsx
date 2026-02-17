@@ -42,6 +42,7 @@ import {
   updateReservation,
   deleteReservation,
   convertReservationToSale,
+  addPickupToSale,
 } from '@/lib/actions/reservations';
 import {
   getCalendarEvents,
@@ -49,7 +50,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEvent,
 } from '@/lib/actions/calendar-events';
-import { checkPhoneDuplicate } from '@/lib/actions';
+import { checkPhoneDuplicate, updateSale, deleteSale } from '@/lib/actions';
 import { getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
 import type { SaleCategory, PaymentMethod as PaymentMethodType } from '@/lib/actions/sale-settings';
 import type { Reservation, ReservationStatus, CalendarEvent } from '@/types/database';
@@ -77,7 +78,7 @@ function TimeSelect({ value, onChange, className, disabled }: {
         value={h}
         onChange={(e) => onChange(`${e.target.value}:${m || '00'}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="시"
       >
         <option value="">시</option>
@@ -85,12 +86,12 @@ function TimeSelect({ value, onChange, className, disabled }: {
           <option key={hour} value={hour}>{hour}</option>
         ))}
       </select>
-      <span className="text-muted-foreground text-sm">:</span>
+      <span className="text-muted-foreground text-[12px]">:</span>
       <select
         value={m}
         onChange={(e) => onChange(`${h || '00'}:${e.target.value}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="분"
       >
         <option value="">분</option>
@@ -107,26 +108,27 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
+  type PickupItem = { id?: string; date: string; time: string; title: string; amount: string };
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    title: '',
     customer_name: '',
     customer_phone: '',
-    time: '',
     description: '',
-    estimated_amount: '',
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
     reminder_date: '',
     reminder_time: '',
-    payment_date: '',
+    sale_date: '',
   });
+  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', title: '', amount: '' }]);
+  const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Sale settings
@@ -134,8 +136,9 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -160,6 +163,10 @@ export function CalendarClient() {
   // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화
   function selectDate(date: Date) {
     setSelectedDate(date);
+    setShowForm(false);
+    setEditingId(null);
+    setShowEventForm(false);
+    setEditingEventId(null);
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
@@ -243,7 +250,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, Reservation[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -307,6 +314,18 @@ export function CalendarClient() {
     return eventsByDate.get(key) || [];
   }, [selectedDate, eventsByDate]);
 
+  // sale_id로 같은 매출의 모든 예약 찾기 (다른 날짜 포함)
+  const siblingReservations = useMemo(() => {
+    const map = new Map<string, Reservation[]>();
+    for (const r of reservations) {
+      if (r.sale_id) {
+        if (!map.has(r.sale_id)) map.set(r.sale_id, []);
+        map.get(r.sale_id)!.push(r);
+      }
+    }
+    return map;
+  }, [reservations]);
+
   // Count reservations for current month
   const currentMonthReservationCount = useMemo(() => {
     return reservations.length;
@@ -318,63 +337,111 @@ export function CalendarClient() {
   }, [reservations]);
 
   function resetForm() {
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     setFormData({
-      title: '',
       customer_name: '',
       customer_phone: '',
-      time: '',
       description: '',
-      estimated_amount: '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       reminder_date: '',
       reminder_time: '',
-      payment_date: '',
+      sale_date: dateStr,
     });
+    setPickups([{ date: dateStr, time: '', title: '', amount: '' }]);
+    setDeletedPickupIds([]);
     setEditingId(null);
+    setEditingSaleId(null);
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation) {
+  function startEdit(reservation: Reservation & { sale_date?: string }) {
+    const saleId = reservation.sale_id;
     setEditingId(reservation.id);
+    setEditingSaleId(saleId || null);
+
+    // 같은 매출의 모든 픽업을 로드
+    const allPickups: PickupItem[] = [];
+    if (saleId) {
+      const siblings = siblingReservations.get(saleId) || [];
+      for (const s of siblings) {
+        allPickups.push({
+          id: s.id,
+          date: s.date,
+          time: s.time?.slice(0, 5) || '',
+          title: s.title,
+          amount: s.amount ? String(s.amount) : '',
+        });
+      }
+    }
+    if (allPickups.length === 0) {
+      allPickups.push({
+        id: reservation.id,
+        date: reservation.date,
+        time: reservation.time?.slice(0, 5) || '',
+        title: reservation.title,
+        amount: reservation.amount ? String(reservation.amount) : '',
+      });
+    }
+
     setFormData({
-      title: reservation.title,
       customer_name: reservation.customer_name,
       customer_phone: reservation.customer_phone || '',
-      time: reservation.time?.slice(0, 5) || '',
       description: reservation.description || '',
-      estimated_amount: reservation.estimated_amount ? String(reservation.estimated_amount) : '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
       reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
-      payment_date: reservation.payment_date || '',
+      sale_date: reservation.sale_date || '',
     });
+    setPickups(allPickups);
+    setDeletedPickupIds([]);
     setShowForm(true);
+  }
+
+  // 픽업 금액 합계
+  const totalPickupAmount = useMemo(() => {
+    return pickups.reduce((sum, p) => sum + (parseInt(p.amount) || 0), 0);
+  }, [pickups]);
+
+  function updatePickup(index: number, field: keyof PickupItem, value: string) {
+    setPickups(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
+  }
+
+  function addPickup() {
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    setPickups(prev => [...prev, { date: dateStr, time: '', title: '', amount: '' }]);
+  }
+
+  function removePickup(index: number) {
+    const pickup = pickups[index];
+    if (pickup.id) {
+      setDeletedPickupIds(prev => [...prev, pickup.id!]);
+    }
+    setPickups(prev => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!formData.title.trim()) {
-      toast.error('제목을 입력해주세요');
-      return;
-    }
+
+    // 검증
     if (!formData.customer_name.trim()) {
       toast.error('고객명을 입력해주세요');
-      return;
-    }
-    if (!formData.time) {
-      toast.error('시간을 입력해주세요');
       return;
     }
     if (!formData.customer_phone.trim()) {
       toast.error('전화번호를 입력해주세요');
       return;
     }
-    if (!formData.estimated_amount || parseInt(formData.estimated_amount) <= 0) {
-      toast.error('예상 금액을 입력해주세요');
+    for (let i = 0; i < pickups.length; i++) {
+      const p = pickups[i];
+      if (!p.date) { toast.error(`픽업 ${i + 1}의 날짜를 입력해주세요`); return; }
+      if (!p.title.trim()) { toast.error(`픽업 ${i + 1}의 제목을 입력해주세요`); return; }
+    }
+    if (totalPickupAmount <= 0) {
+      toast.error('금액을 입력해주세요');
       return;
     }
     if (!editingId && !formData.product_category) {
@@ -388,7 +455,7 @@ export function CalendarClient() {
 
     setIsSaving(true);
 
-    // 전화번호 중복 체크 (다른 고객의 번호인지 확인)
+    // 전화번호 중복 체크
     try {
       const existing = await checkPhoneDuplicate(formData.customer_phone);
       if (existing && existing.name !== formData.customer_name.trim()) {
@@ -396,12 +463,9 @@ export function CalendarClient() {
         setIsSaving(false);
         return;
       }
-    } catch {
-      // 중복 체크 실패 시 계속 진행
-    }
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    } catch { /* 계속 진행 */ }
 
-    // 리마인더 날짜+시간 → ISO 8601 (KST +09:00)
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     let reminderAt: string | null = null;
     if (formData.reminder_date) {
       const time = formData.reminder_time || '08:00';
@@ -410,45 +474,96 @@ export function CalendarClient() {
 
     try {
       if (editingId) {
-        await updateReservation(editingId, {
-          date: dateStr,
-          time: formData.time || null,
-          customer_name: formData.customer_name,
-          customer_phone: formData.customer_phone || null,
-          title: formData.title,
-          description: formData.description || null,
-          estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : 0,
-          status: 'pending',
-          reminder_at: reminderAt,
-          payment_date: formData.payment_date || null,
-        });
+        // === 수정 모드 ===
+        // 1. 기존 픽업 업데이트
+        for (const p of pickups) {
+          if (p.id) {
+            await updateReservation(p.id, {
+              date: p.date,
+              time: p.time || null,
+              title: p.title,
+              amount: parseInt(p.amount) || 0,
+              customer_name: formData.customer_name,
+              customer_phone: formData.customer_phone || null,
+              description: formData.description || null,
+              reminder_at: reminderAt,
+            });
+          }
+        }
+
+        // 2. 새 픽업 추가
+        if (editingSaleId) {
+          for (const p of pickups) {
+            if (!p.id) {
+              await addPickupToSale(editingSaleId, {
+                date: p.date,
+                time: p.time || undefined,
+                title: p.title,
+                amount: parseInt(p.amount) || 0,
+              });
+            }
+          }
+        }
+
+        // 3. 삭제된 픽업 제거
+        for (const id of deletedPickupIds) {
+          await deleteReservation(id);
+        }
+
+        // 4. 매출 동기화
+        if (editingSaleId) {
+          try {
+            const saleFormData = new FormData();
+            if (formData.sale_date) saleFormData.set('date', formData.sale_date);
+            saleFormData.set('amount', String(totalPickupAmount));
+            saleFormData.set('note', formData.description || '');
+            await updateSale(editingSaleId, saleFormData);
+          } catch {
+            toast.error('매출 동기화에 실패했습니다');
+          }
+        }
+
         toast.success('예약이 수정되었습니다');
       } else {
-        // 1. 예약 생성
+        // === 생성 모드 ===
+        const first = pickups[0];
+
+        // 1. 첫 번째 픽업으로 예약 생성
         const reservation = await createReservation({
-          date: dateStr,
-          time: formData.time || undefined,
+          date: first.date || dateStr,
+          time: first.time || undefined,
           customer_name: formData.customer_name,
-          title: formData.title,
+          title: first.title,
           description: formData.description || undefined,
-          estimated_amount: formData.estimated_amount ? parseInt(formData.estimated_amount) : undefined,
+          amount: parseInt(first.amount) || 0,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: reminderAt,
-          payment_date: formData.payment_date || null,
         });
 
-        // 2. 매출 자동 생성
+        // 2. 매출 생성 (합산 금액)
         const saleFormData = new FormData();
-        saleFormData.set('date', formData.payment_date || dateStr);
+        saleFormData.set('date', formData.sale_date || dateStr);
         saleFormData.set('product_category', formData.product_category);
-        saleFormData.set('amount', formData.estimated_amount);
+        saleFormData.set('amount', String(totalPickupAmount));
         saleFormData.set('payment_method', formData.payment_method);
         saleFormData.set('reservation_channel', formData.reservation_channel);
         saleFormData.set('customer_name', formData.customer_name);
         saleFormData.set('customer_phone', formData.customer_phone);
         saleFormData.set('note', formData.description || '');
 
-        await convertReservationToSale(reservation.id, saleFormData);
+        const sale = await convertReservationToSale(reservation.id, saleFormData);
+
+        // 3. 추가 픽업 생성
+        for (let i = 1; i < pickups.length; i++) {
+          const p = pickups[i];
+          await addPickupToSale(sale.id, {
+            date: p.date || dateStr,
+            time: p.time || undefined,
+            title: p.title,
+            amount: parseInt(p.amount) || 0,
+          });
+        }
+
         toast.success('예약과 매출이 등록되었습니다');
       }
       resetForm();
@@ -463,7 +578,29 @@ export function CalendarClient() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
+      const saleId = deleteTarget.sale_id;
+      const saleDate = deleteTarget.sale_date;
       await deleteReservation(deleteTarget.id);
+
+      // 매출 연동 처리
+      if (saleId) {
+        const siblings = (siblingReservations.get(saleId) || []).filter(r => r.id !== deleteTarget.id);
+        if (siblings.length === 0) {
+          // 마지막 픽업 → 매출 삭제 확인
+          setSaleDeleteInfo({ saleId, saleDate });
+          setDeleteTarget(null);
+          fetchData();
+          setIsDeleting(false);
+          return;
+        } else {
+          // 남은 픽업이 있으면 매출 금액 차감
+          const newTotal = siblings.reduce((sum, r) => sum + (r.amount || 0), 0);
+          const saleFormData = new FormData();
+          saleFormData.set('amount', String(newTotal));
+          await updateSale(saleId, saleFormData);
+        }
+      }
+
       toast.success('예약이 삭제되었습니다');
       setDeleteTarget(null);
       fetchData();
@@ -471,6 +608,20 @@ export function CalendarClient() {
       toast.error(error instanceof Error ? error.message : '삭제 실패');
     }
     setIsDeleting(false);
+  }
+
+  async function handleSaleDelete() {
+    if (!saleDeleteInfo) return;
+    setIsDeleting(true);
+    try {
+      await deleteSale(saleDeleteInfo.saleId);
+      toast.success('예약과 매출이 삭제되었습니다');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : '매출 삭제 실패');
+    }
+    setSaleDeleteInfo(null);
+    setIsDeleting(false);
+    fetchData();
   }
 
   // === Calendar Event handlers ===
@@ -869,8 +1020,8 @@ export function CalendarClient() {
                                   {r.title && r.customer_name && (
                                     <div className="truncate opacity-80">{r.title}</div>
                                   )}
-                                  {r.estimated_amount > 0 && (
-                                    <div className="opacity-70">{formatCurrency(r.estimated_amount)}</div>
+                                  {r.amount > 0 && (
+                                    <div className="opacity-70">{formatCurrency(r.amount)}</div>
                                   )}
                                 </div>
                               </div>
@@ -1086,15 +1237,6 @@ export function CalendarClient() {
                   </Button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="프로포즈 꽃다발"
-                      className="h-8 text-sm"
-                    />
-                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">고객명 <span className="text-brand">*</span></Label>
@@ -1112,15 +1254,6 @@ export function CalendarClient() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">픽업 시간 <span className="text-brand">*</span></Label>
-                      <TimeSelect
-                        value={formData.time}
-                        onChange={(val) => setFormData({ ...formData, time: val })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">전화번호 <span className="text-brand">*</span></Label>
                       <Input
                         value={formData.customer_phone}
@@ -1131,48 +1264,92 @@ export function CalendarClient() {
                         autoComplete="tel"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">예상 금액 <span className="text-brand">*</span></Label>
-                      <Input
-                        type="number"
-                        step={10000}
-                        value={formData.estimated_amount}
-                        onChange={(e) => setFormData({ ...formData, estimated_amount: e.target.value })}
-                        placeholder="50000"
-                        className="h-8 text-sm"
-                      />
-                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={!!formData.payment_date}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({ ...formData, payment_date: format(new Date(), 'yyyy-MM-dd') });
-                          } else {
-                            setFormData({ ...formData, payment_date: '' });
-                          }
-                        }}
-                        className="rounded border-input"
-                      />
-                      <span className="text-xs text-muted-foreground">결제일자 지정</span>
-                    </label>
-                    {formData.payment_date && (
-                      <Input
-                        type="date"
-                        value={formData.payment_date}
-                        onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                        className="h-8"
-                        aria-label="결제일자"
-                      />
-                    )}
-                    {formData.payment_date && (
-                      <p className="text-[10px] text-muted-foreground">
-                        매출이 {formData.payment_date} 일자로 등록됩니다
+
+                  {/* 픽업 섹션 */}
+                  <div className="space-y-2">
+                    {pickups.map((pickup, idx) => (
+                      <div key={idx} className={cn('space-y-2', pickups.length > 1 && 'p-2.5 rounded-md border border-dashed border-input')}>
+                        {pickups.length > 1 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-medium text-muted-foreground">픽업 {idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => removePickup(idx)}
+                              className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+                              aria-label={`픽업 ${idx + 1} 삭제`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 일자' : '날짜'} <span className="text-brand">*</span></Label>
+                            <Input
+                              type="date"
+                              value={pickup.date}
+                              onChange={(e) => updatePickup(idx, 'date', e.target.value)}
+                              className="h-8 !text-[12px]"
+                              aria-label={`픽업 ${idx + 1} 날짜`}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 시간' : '시간'}</Label>
+                            <TimeSelect
+                              value={pickup.time}
+                              onChange={(val) => updatePickup(idx, 'time', val)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">제목 <span className="text-brand">*</span></Label>
+                            <Input
+                              value={pickup.title}
+                              onChange={(e) => updatePickup(idx, 'title', e.target.value)}
+                              placeholder={idx === 0 ? '프로포즈 꽃다발' : '센터피스'}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">금액</Label>
+                            <Input
+                              type="number"
+                              step={10000}
+                              value={pickup.amount}
+                              onChange={(e) => updatePickup(idx, 'amount', e.target.value)}
+                              placeholder="0"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addPickup}
+                      className="w-full py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-input rounded-md hover:bg-muted transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      픽업 추가
+                    </button>
+                    {pickups.length > 1 && (
+                      <p className="text-[10px] text-muted-foreground text-right">
+                        합계: <span className="font-medium text-foreground">{new Intl.NumberFormat('ko-KR').format(totalPickupAmount)}원</span>
                       </p>
                     )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">결제 일자</Label>
+                    <Input
+                      type="date"
+                      value={formData.sale_date}
+                      onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                      className="h-8 !text-[12px]"
+                      aria-label="결제 일자"
+                    />
                   </div>
                   {!editingId && (
                     <>
@@ -1231,7 +1408,7 @@ export function CalendarClient() {
                         type="date"
                         value={formData.reminder_date}
                         onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
-                        className="h-8"
+                        className="h-8 !text-[12px]"
                         aria-label="리마인더 알림 날짜"
                       />
                       <TimeSelect
@@ -1290,7 +1467,8 @@ export function CalendarClient() {
           ) : selectedDateReservations.length > 0 ? (
             <div className="space-y-2">
               {selectedDateReservations.map((r) => (
-                <Card key={r.id} className="group">
+                <div key={r.id} className="space-y-2">
+                <Card className="group">
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -1306,8 +1484,8 @@ export function CalendarClient() {
                             {r.customer_phone && ` · ${r.customer_phone}`}
                           </p>
                         )}
-                        {r.estimated_amount > 0 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.estimated_amount)}</p>
+                        {r.amount > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.amount)}</p>
                         )}
                         {r.description && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
@@ -1321,27 +1499,51 @@ export function CalendarClient() {
 
                         {/* 매출 확인 링크 */}
                         {r.sale_id && (
-                          <button
-                            className="mt-2 text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/sales?saleId=${r.sale_id}`);
-                            }}
-                            aria-label="연결된 매출 확인"
-                          >
-                            매출 확인 <ExternalLink className="w-3 h-3" />
-                          </button>
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              className="text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/sales?saleId=${r.sale_id}`);
+                              }}
+                              aria-label="연결된 매출 확인"
+                            >
+                              매출 확인 <ExternalLink className="w-3 h-3" />
+                            </button>
+                            {r.sale_date && (
+                              <span className="text-[10px] text-muted-foreground">
+                                결제 {format(new Date(r.sale_date), 'yy.MM.dd')}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 같은 매출의 다른 픽업 날짜 */}
+                        {r.sale_id && (siblingReservations.get(r.sale_id) || []).length > 1 && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-medium">다른 픽업:</span>
+                            {(siblingReservations.get(r.sale_id) || [])
+                              .filter(s => s.id !== r.id)
+                              .map(s => (
+                                <span
+                                  key={s.id}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                                >
+                                  {s.date} {s.time?.slice(0, 5) || ''}
+                                </span>
+                              ))}
+                          </div>
                         )}
 
                         {/* 상태 토글 */}
-                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                        <div className="flex gap-1.5 mt-2 items-center">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleCompletion(r);
                             }}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
                               r.status === 'completed'
                                 ? 'bg-brand text-brand-foreground'
                                 : 'border border-input text-muted-foreground hover:bg-muted'
@@ -1357,7 +1559,7 @@ export function CalendarClient() {
                               togglePickup(r);
                             }}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1',
+                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
                               r.pickup_completed
                                 ? 'bg-blue-500 text-white'
                                 : 'border border-input text-muted-foreground hover:bg-muted'
@@ -1380,6 +1582,8 @@ export function CalendarClient() {
                     </div>
                   </CardContent>
                 </Card>
+
+                </div>
               ))}
             </div>
           ) : !showForm && selectedDateEvents.length === 0 ? (
@@ -1404,6 +1608,37 @@ export function CalendarClient() {
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sale delete confirmation (after reservation deleted) */}
+      <Dialog open={!!saleDeleteInfo} onOpenChange={(open) => {
+        if (!open) {
+          toast.success('예약이 삭제되었습니다');
+          setSaleDeleteInfo(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>매출도 삭제하시겠습니까?</DialogTitle>
+            <DialogDescription>
+              {saleDeleteInfo?.saleDate
+                ? `${format(new Date(saleDeleteInfo.saleDate), 'yyyy년 M월 d일', { locale: ko })}의 매출도 함께 삭제하시겠습니까?`
+                : '연결된 매출도 함께 삭제하시겠습니까?'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              toast.success('예약이 삭제되었습니다');
+              setSaleDeleteInfo(null);
+            }}>
+              아니요
+            </Button>
+            <Button variant="destructive" onClick={handleSaleDelete} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              매출도 삭제
             </Button>
           </DialogFooter>
         </DialogContent>
