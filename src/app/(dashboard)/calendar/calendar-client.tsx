@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   format,
   startOfMonth,
@@ -105,10 +105,19 @@ function TimeSelect({ value, onChange, className, disabled }: {
 
 export function CalendarClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialDate = useMemo(() => {
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const parsed = new Date(dateParam + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string })[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(initialDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -134,7 +143,7 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
@@ -252,7 +261,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, (Reservation & { sale_date?: string })[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -356,7 +365,7 @@ export function CalendarClient() {
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation & { sale_date?: string }) {
+  function startEdit(reservation: Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number }) {
     const saleId = reservation.sale_id;
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
@@ -1538,10 +1547,33 @@ export function CalendarClient() {
                         </div>
                         <p className="text-sm font-medium text-foreground mt-1 truncate">{r.title}</p>
                         {r.customer_name && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {r.customer_name}
-                            {r.customer_phone && ` · ${r.customer_phone}`}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {r.customer_id ? (
+                              <button
+                                type="button"
+                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/customers?customerId=${r.customer_id}`);
+                                }}
+                                aria-label={`${r.customer_name} 고객 상세 보기`}
+                              >
+                                {r.customer_name}
+                                {r.customer_phone && ` · ${r.customer_phone}`}
+                                <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {r.customer_name}
+                                {r.customer_phone && ` · ${r.customer_phone}`}
+                              </span>
+                            )}
+                            {r.purchase_count != null && r.purchase_count > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium shrink-0">
+                                {r.purchase_count}번 방문
+                              </span>
+                            )}
+                          </div>
                         )}
                         {r.amount > 0 && (
                           <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.amount)}</p>

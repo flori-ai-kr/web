@@ -155,7 +155,16 @@ export function SaleDetailDialog({
                 </p>
                 <div className="space-y-1.5">
                   {reservations.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="w-full flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors text-left cursor-pointer"
+                      onClick={() => {
+                        onClose();
+                        router.push(`/calendar?date=${r.date}`);
+                      }}
+                      aria-label={`${r.title} 예약으로 이동`}
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{r.title}</p>
                         <p className="text-xs text-muted-foreground">
@@ -165,7 +174,7 @@ export function SaleDetailDialog({
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {r.status === 'completed' && (
+                        {r.status === 'confirmed' && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand text-brand-foreground inline-flex items-center gap-0.5">
                             <Check className="w-2.5 h-2.5" />
                             제작
@@ -177,8 +186,9 @@ export function SaleDetailDialog({
                             픽업
                           </span>
                         )}
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>

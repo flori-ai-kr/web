@@ -9,13 +9,13 @@ import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
 
-async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string })[]> {
+async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]> {
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('*, sale:sales!sale_id(date)')
+    .select('*, sale:sales!sale_id(date, customer_id, customer:customers!customer_id(total_purchase_count))')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date')
@@ -23,9 +23,14 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
 
   if (error) throw error;
   return (data || []).map((r: Record<string, unknown>) => {
-    const sale = r.sale as { date: string } | null;
+    const sale = r.sale as { date: string; customer_id: string | null; customer: { total_purchase_count: number } | null } | null;
     const { sale: _, ...rest } = r;
-    return { ...rest, sale_date: sale?.date ?? undefined } as Reservation & { sale_date?: string };
+    return {
+      ...rest,
+      sale_date: sale?.date ?? undefined,
+      customer_id: sale?.customer_id ?? undefined,
+      purchase_count: sale?.customer?.total_purchase_count ?? undefined,
+    } as Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number };
   });
 }
 
@@ -177,7 +182,7 @@ async function _convertReservationToSale(
   const { error: updateError } = await supabase
     .from('reservations')
     .update({
-      status: 'confirmed',
+      status: 'pending',
       sale_id: sale.id,
       updated_at: new Date().toISOString(),
     })
@@ -245,7 +250,7 @@ async function _addPickupToSale(
       customer_phone: sale.customer_phone || null,
       title: parsed.data.title,
       amount: parsed.data.amount ?? 0,
-      status: 'confirmed',
+      status: 'pending',
       sale_id: saleParsed.data,
       reminder_at: parsed.data.reminder_at || null,
     })
