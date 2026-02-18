@@ -15,7 +15,7 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('*, sale:sales!sale_id(date)')
+    .select('*, sale:sales!sale_id(date, customer_id)')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date')
@@ -23,9 +23,13 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
 
   if (error) throw error;
   return (data || []).map((r: Record<string, unknown>) => {
-    const sale = r.sale as { date: string } | null;
+    const sale = r.sale as { date: string; customer_id: string | null } | null;
     const { sale: _, ...rest } = r;
-    return { ...rest, sale_date: sale?.date ?? undefined } as Reservation & { sale_date?: string };
+    return {
+      ...rest,
+      sale_date: sale?.date ?? undefined,
+      customer_id: sale?.customer_id ?? undefined,
+    } as Reservation & { sale_date?: string; customer_id?: string };
   });
 }
 
