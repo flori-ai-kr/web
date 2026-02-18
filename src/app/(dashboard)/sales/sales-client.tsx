@@ -85,6 +85,19 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setIsLoadingMore(false);
   }, [initialSales, initialHasMore]);
 
+  // URL saleId로 직접 열린 경우 photos/reservations 로드
+  useEffect(() => {
+    if (initialSelectedSale) {
+      Promise.all([
+        getPhotoCardBySaleId(initialSelectedSale.id),
+        getReservationsForSale(initialSelectedSale.id),
+      ]).then(([photoCard, reservations]) => {
+        setSelectedSalePhotos(photoCard);
+        setSelectedSaleReservations(reservations);
+      });
+    }
+  }, [initialSelectedSale]);
+
   // 카테고리/결제방식 라벨 및 색상 맵 생성 (value -> label/color)
   const categoryLabels = useMemo(() =>
     Object.fromEntries(categories.map(c => [c.value, c.label])), [categories]);
