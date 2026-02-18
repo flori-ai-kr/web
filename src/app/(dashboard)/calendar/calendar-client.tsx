@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   format,
   startOfMonth,
@@ -105,9 +105,18 @@ function TimeSelect({ value, onChange, className, disabled }: {
 
 export function CalendarClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialDate = useMemo(() => {
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const parsed = new Date(dateParam + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState(initialDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
   const [reservations, setReservations] = useState<(Reservation & { sale_date?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

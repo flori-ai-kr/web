@@ -177,7 +177,7 @@ async function _convertReservationToSale(
   const { error: updateError } = await supabase
     .from('reservations')
     .update({
-      status: 'confirmed',
+      status: 'pending',
       sale_id: sale.id,
       updated_at: new Date().toISOString(),
     })
@@ -245,7 +245,7 @@ async function _addPickupToSale(
       customer_phone: sale.customer_phone || null,
       title: parsed.data.title,
       amount: parsed.data.amount ?? 0,
-      status: 'confirmed',
+      status: 'pending',
       sale_id: saleParsed.data,
       reminder_at: parsed.data.reminder_at || null,
     })
