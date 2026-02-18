@@ -90,40 +90,41 @@ async function _loadMoreSales(month: string | null, offset: number, filters?: Sa
 
 export const loadMoreSales = withErrorLogging('loadMoreSales', _loadMoreSales);
 
-// 요약 집계 (페이지네이션 무관하게 전체 기준, 서버사이드 필터 적용)
+// 요약 집계 (DB RPC로 직접 집계 — row limit 영향 없음)
 async function _getSalesSummary(month?: string, filters?: SalesFilters) {
   const supabase = await createClient();
 
-  let query = supabase
-    .from('sales')
-    .select('amount, payment_method');
+  let startDate: string | null = null;
+  let endDate: string | null = null;
 
   if (month) {
     if (month.length === 4) {
-      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
+      startDate = `${month}-01-01`;
+      endDate = `${month}-12-31`;
     } else {
-      const { startDate, endDate } = getMonthDateRange(month);
-      query = query.gte('date', startDate).lte('date', endDate);
+      const range = getMonthDateRange(month);
+      startDate = range.startDate;
+      endDate = range.endDate;
     }
   }
 
-  if (filters?.category) query = query.eq('product_category', filters.category);
-  if (filters?.payment) query = query.eq('payment_method', filters.payment);
-  if (filters?.channel) query = query.eq('reservation_channel', filters.channel);
-
-  const { data, error } = await query.limit(10000);
+  const { data, error } = await supabase.rpc('get_sales_summary', {
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_category: filters?.category || null,
+    p_payment: filters?.payment || null,
+    p_channel: filters?.channel || null,
+  });
   if (error) throw error;
 
-  const summary = { total: 0, card: 0, naverpay: 0, transfer: 0, cash: 0, count: 0 };
-  for (const row of data || []) {
-    summary.total += row.amount;
-    summary.count += 1;
-    if (row.payment_method === 'card') summary.card += row.amount;
-    else if (row.payment_method === 'naverpay') summary.naverpay += row.amount;
-    else if (row.payment_method === 'transfer') summary.transfer += row.amount;
-    else if (row.payment_method === 'cash') summary.cash += row.amount;
-  }
-  return summary;
+  return {
+    total: data?.total ?? 0,
+    card: data?.card ?? 0,
+    naverpay: data?.naverpay ?? 0,
+    transfer: data?.transfer ?? 0,
+    cash: data?.cash ?? 0,
+    count: data?.count ?? 0,
+  };
 }
 
 export const getSalesSummary = withErrorLogging('getSalesSummary', _getSalesSummary);
