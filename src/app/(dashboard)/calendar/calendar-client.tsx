@@ -356,7 +356,7 @@ export function CalendarClient() {
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
-      sale_date: dateStr,
+      sale_date: format(new Date(), 'yyyy-MM-dd'),
     });
     setPickups([{ date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
     setDeletedPickupIds([]);
