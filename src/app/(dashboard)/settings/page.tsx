@@ -220,7 +220,7 @@ export default function SettingsPage() {
                       onChange={(e) => setCardSettings(prev =>
                         prev.map(c => c.id === card.id ? { ...c, fee_rate: parseFloat(e.target.value) || 0 } : c)
                       )}
-                      className="h-8 text-sm bg-background"
+                      className="h-8 bg-background"
                       aria-label={`${card.name} 수수료율`}
                       inputMode="decimal"
                     />
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                       onChange={(e) => setCardSettings(prev =>
                         prev.map(c => c.id === card.id ? { ...c, deposit_days: parseInt(e.target.value) || 0 } : c)
                       )}
-                      className="h-8 text-sm bg-background"
+                      className="h-8 bg-background"
                       aria-label={`${card.name} 입금 주기`}
                       inputMode="numeric"
                     />

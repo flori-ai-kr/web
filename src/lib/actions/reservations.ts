@@ -9,13 +9,13 @@ import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 
-async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]> {
+async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number })[]> {
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('*, sale:sales!sale_id(date, customer_id, customer:customers!customer_id(total_purchase_count))')
+    .select('*, sale:sales!sale_id(date, product_category, customer_id, customer:customers!customer_id(total_purchase_count))')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date')
@@ -23,14 +23,15 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
 
   if (error) throw error;
   return (data || []).map((r: Record<string, unknown>) => {
-    const sale = r.sale as { date: string; customer_id: string | null; customer: { total_purchase_count: number } | null } | null;
+    const sale = r.sale as { date: string; product_category: string | null; customer_id: string | null; customer: { total_purchase_count: number } | null } | null;
     const { sale: _, ...rest } = r;
     return {
       ...rest,
       sale_date: sale?.date ?? undefined,
+      product_category: sale?.product_category ?? undefined,
       customer_id: sale?.customer_id ?? undefined,
       purchase_count: sale?.customer?.total_purchase_count ?? undefined,
-    } as Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number };
+    } as Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number };
   });
 }
 
