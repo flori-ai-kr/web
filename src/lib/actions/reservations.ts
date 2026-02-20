@@ -7,7 +7,7 @@ import { createSale } from './sales';
 import type { Reservation, ReservationStatus, Sale } from '@/types/database';
 import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange } from '@/lib/utils';
+import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 
 async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]> {
   const supabase = await createClient();
@@ -336,3 +336,23 @@ async function _getUpcomingReservations(): Promise<Reservation[]> {
 }
 
 export const getUpcomingReservations = withErrorLogging('getUpcomingReservations', _getUpcomingReservations);
+
+/**
+ * 예약 제목/메모 자동완성용 과거 값 조회
+ */
+async function _getReservationSuggestions(): Promise<{ titles: string[]; descriptions: string[] }> {
+  const user = await requireAuth();
+  const supabase = await createClient();
+
+  const [titlesRes, descriptionsRes] = await Promise.all([
+    supabase.from('reservations').select('title').eq('user_id', user.id).neq('title', '').order('title'),
+    supabase.from('reservations').select('description').eq('user_id', user.id).not('description', 'is', null).neq('description', '').order('description'),
+  ]);
+
+  const titles = sortByFrequency(titlesRes.data?.map(r => r.title) || []);
+  const descriptions = sortByFrequency(descriptionsRes.data?.map(r => r.description) || []);
+
+  return { titles, descriptions };
+}
+
+export const getReservationSuggestions = withErrorLogging('getReservationSuggestions', _getReservationSuggestions);

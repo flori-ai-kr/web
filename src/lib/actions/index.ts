@@ -9,6 +9,7 @@ export {
   deleteSale,
   uploadSalePhotos,
   deleteSalePhoto,
+  getSaleSuggestions,
 } from './sales';
 export type { SalesFilters } from './sales';
 
@@ -18,6 +19,7 @@ export {
   createExpense,
   updateExpense,
   deleteExpense,
+  getExpenseSuggestions,
 } from './expenses';
 
 // Customers
@@ -149,6 +151,7 @@ export {
   getReservationsForSale,
   getTriggeredReminders,
   getUpcomingReservations,
+  getReservationSuggestions,
 } from './reservations';
 
 // Calendar Events

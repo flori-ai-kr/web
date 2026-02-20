@@ -109,3 +109,16 @@ export function formatPhoneNumber(value: string): string {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   }
 }
+
+/**
+ * 문자열 배열을 빈도순(내림차순)으로 정렬하여 중복 제거된 배열 반환
+ */
+export function sortByFrequency(values: string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const v of values) {
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([value]) => value);
+}

@@ -7,13 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AmountInput } from '@/components/ui/amount-input';
-import { Textarea } from '@/components/ui/textarea';
+import { SuggestionInput } from '@/components/ui/suggestion-input';
 import { CustomerAutocomplete } from '@/components/sales/CustomerAutocomplete';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn, formatPhoneNumber } from '@/lib/utils';
-import { createSale, updateSale } from '@/lib/actions/sales';
+import { createSale, updateSale, getSaleSuggestions } from '@/lib/actions/sales';
 import type { Sale, CardCompanySetting } from '@/types/database';
 import type { SaleCategory, PaymentMethod } from '@/lib/actions/sale-settings';
 
@@ -39,6 +39,7 @@ export function SaleFormDialog({
   onSuccess,
 }: SaleFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saleSuggestions, setSaleSuggestions] = useState<{ notes: string[] }>({ notes: [] });
   const [paymentMethod, setPaymentMethod] = useState<string>(payments[0]?.value || 'card');
   const [noteValue, setNoteValue] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -47,6 +48,12 @@ export function SaleFormDialog({
   const [isRoadPurchase, setIsRoadPurchase] = useState(false);
 
   const isEditMode = !!sale;
+
+  useEffect(() => {
+    if (open) {
+      getSaleSuggestions().then(setSaleSuggestions).catch(() => {});
+    }
+  }, [open]);
 
   // Initialize form state when dialog opens
   useEffect(() => {
@@ -267,12 +274,12 @@ export function SaleFormDialog({
                 {noteValue.length}/100
               </span>
             </div>
-            <Textarea
+            <SuggestionInput
               name="note"
               value={noteValue}
-              onChange={(e) => setNoteValue(e.target.value.slice(0, 100))}
+              onChange={(val) => setNoteValue(val)}
+              suggestions={saleSuggestions.notes}
               placeholder="추가 정보를 입력하세요"
-              className="bg-muted min-h-[60px] resize-none"
               maxLength={100}
             />
           </div>

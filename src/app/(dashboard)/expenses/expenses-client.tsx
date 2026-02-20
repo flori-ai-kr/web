@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,13 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AmountInput } from '@/components/ui/amount-input';
-import { Textarea } from '@/components/ui/textarea';
+import { SuggestionInput } from '@/components/ui/suggestion-input';
 import { Plus, Search, Trash2, Loader2, Wallet, Pencil, Settings, ShoppingCart, Truck, Megaphone, Home, Zap, Package } from 'lucide-react';
 import { ExpensesList } from './components/ExpensesList';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { createExpense, updateExpense, deleteExpense } from '@/lib/actions/expenses';
+import { createExpense, updateExpense, deleteExpense, getExpenseSuggestions } from '@/lib/actions/expenses';
 import { ExpenseCategory, ExpensePaymentMethod, getExpenseCategories, getExpensePaymentMethods } from '@/lib/actions/expense-settings';
 import { ExpenseSettingsModal } from '@/components/expenses/ExpenseSettingsModal';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -71,6 +71,36 @@ export function ExpensesClient({
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; notes: string[] }>({ itemNames: [], vendors: [], notes: [] });
+  const [createItemName, setCreateItemName] = useState('');
+  const [createVendor, setCreateVendor] = useState('');
+  const [editItemName, setEditItemName] = useState('');
+  const [editVendor, setEditVendor] = useState('');
+
+  // 폼/수정 다이얼로그 열릴 때 자동완성 데이터 로드
+  useEffect(() => {
+    if (isFormOpen || editingExpense) {
+      getExpenseSuggestions().then(setExpenseSuggestions).catch(() => {});
+    }
+  }, [isFormOpen, editingExpense]);
+
+  // 등록 폼 닫힐 때 controlled 값 초기화
+  useEffect(() => {
+    if (!isFormOpen) {
+      setCreateItemName('');
+      setCreateVendor('');
+      setNoteValue('');
+    }
+  }, [isFormOpen]);
+
+  // 수정 폼 열릴 때 controlled 값 초기화
+  useEffect(() => {
+    if (editingExpense) {
+      setEditItemName(editingExpense.item_name);
+      setEditVendor(editingExpense.vendor || '');
+      setEditNoteValue(editingExpense.note || '');
+    }
+  }, [editingExpense]);
 
   // 카테고리/결제방식 라벨 및 색상 맵 생성
   const categoryLabels = useMemo(() =>
@@ -415,7 +445,14 @@ export function ExpensesClient({
             </div>
             <div className="space-y-2">
               <Label>물품명 *</Label>
-              <Input name="item_name" placeholder="예: 장미 50송이, 배달비" required className="bg-muted" />
+              <SuggestionInput
+                name="item_name"
+                value={createItemName}
+                onChange={setCreateItemName}
+                suggestions={expenseSuggestions.itemNames}
+                placeholder="예: 장미 50송이, 배달비"
+                required
+              />
               <p className="text-[11px] text-muted-foreground">어디서 뭘 샀는지 적어주세요</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -452,7 +489,13 @@ export function ExpensesClient({
             </div>
             <div className="space-y-2">
               <Label>거래처</Label>
-              <Input name="vendor" placeholder="예: 고속터미널 꽃시장" className="bg-muted" />
+              <SuggestionInput
+                name="vendor"
+                value={createVendor}
+                onChange={setCreateVendor}
+                suggestions={expenseSuggestions.vendors}
+                placeholder="예: 고속터미널 꽃시장"
+              />
               <p className="text-[11px] text-muted-foreground">어디서 구매했는지 적어두면 나중에 찾기 편해요</p>
             </div>
             <div className="space-y-2">
@@ -462,12 +505,12 @@ export function ExpensesClient({
                   {noteValue.length}/100
                 </span>
               </div>
-              <Textarea
+              <SuggestionInput
                 name="note"
                 value={noteValue}
-                onChange={(e) => setNoteValue(e.target.value.slice(0, 100))}
+                onChange={setNoteValue}
+                suggestions={expenseSuggestions.notes}
                 placeholder="메모"
-                className="bg-muted min-h-[60px] resize-none"
                 maxLength={100}
               />
             </div>
@@ -600,7 +643,14 @@ export function ExpensesClient({
               </div>
               <div className="space-y-2">
                 <Label>물품명 *</Label>
-                <Input name="item_name" defaultValue={editingExpense.item_name} required className="bg-muted" />
+                <SuggestionInput
+                  name="item_name"
+                  value={editItemName}
+                  onChange={setEditItemName}
+                  suggestions={expenseSuggestions.itemNames}
+                  placeholder="물품명"
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -636,7 +686,13 @@ export function ExpensesClient({
               </div>
               <div className="space-y-2">
                 <Label>거래처</Label>
-                <Input name="vendor" defaultValue={editingExpense.vendor || ''} placeholder="거래처명" className="bg-muted" />
+                <SuggestionInput
+                  name="vendor"
+                  value={editVendor}
+                  onChange={setEditVendor}
+                  suggestions={expenseSuggestions.vendors}
+                  placeholder="거래처명"
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -645,12 +701,12 @@ export function ExpensesClient({
                     {editNoteValue.length}/100
                   </span>
                 </div>
-                <Textarea
+                <SuggestionInput
                   name="note"
                   value={editNoteValue}
-                  onChange={(e) => setEditNoteValue(e.target.value.slice(0, 100))}
+                  onChange={setEditNoteValue}
+                  suggestions={expenseSuggestions.notes}
                   placeholder="메모"
-                  className="bg-muted min-h-[60px] resize-none"
                   maxLength={100}
                 />
               </div>
