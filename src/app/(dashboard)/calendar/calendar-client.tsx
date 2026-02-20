@@ -1159,15 +1159,31 @@ export function CalendarClient() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {format(selectedDate, 'M월 d일 (EEE)', { locale: ko })}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {selectedDateReservations.length > 0
-                      ? `${selectedDateReservations.length}건의 예약`
-                      : '예약 없음'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => selectDate(subDays(selectedDate, 1))}
+                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
+                    aria-label="이전 날"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      {format(selectedDate, 'M월 d일 (EEE)', { locale: ko })}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedDateReservations.length > 0
+                        ? `${selectedDateReservations.length}건의 예약`
+                        : '예약 없음'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => selectDate(addDays(selectedDate, 1))}
+                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
+                    aria-label="다음 날"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                   <Plus className="h-3.5 w-3.5 mr-1" />

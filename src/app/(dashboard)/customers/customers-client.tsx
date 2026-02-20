@@ -86,7 +86,8 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
       .filter(c => {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
-        return c.name.toLowerCase().includes(q) || c.phone.includes(q);
+        const qDigits = q.replace(/-/g, '');
+        return c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.phone.replace(/-/g, '').includes(qDigits);
       });
     return sortCustomers(filtered);
   }, [initialCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
