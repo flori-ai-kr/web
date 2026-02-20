@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-02-18
+> 최종 업데이트: 2026-02-20
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -392,6 +392,8 @@ erDiagram
         string status
         int estimated_amount
         timestamptz reminder_at
+        bool reminder_sent
+        bool pickup_completed
         uuid sale_id FK
     }
 
@@ -491,11 +493,11 @@ erDiagram
 | 파일 | 기능 |
 |------|------|
 | `auth.ts` | login, logout |
-| `sales.ts` | createSale, updateSale, deleteSale, loadMoreSales (무한 스크롤), addPickupToSale |
+| `sales.ts` | createSale, updateSale, deleteSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
-| `expenses.ts` | createExpense, updateExpense, deleteExpense |
+| `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성) |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
-| `reservations.ts` | CRUD + convertReservationToSale (throw 패턴, reminder_at, pickup_completed 지원) |
+| `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
 | `calendar-events.ts` | getCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent |
 | `dashboard.ts` | getDashboardTodayData, getDashboardMonthData, getTriggeredReminders, getUpcomingReservations |
 | `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
@@ -676,7 +678,7 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 
 ---
 
-## 핵심 의존성 버전 (2026-02-18 기준)
+## 핵심 의존성 버전 (2026-02-20 기준)
 
 | 패키지 | 버전 | 용도 |
 |--------|------|------|

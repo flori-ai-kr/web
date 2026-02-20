@@ -49,7 +49,6 @@ next-env.d.ts
 
 ### Claude ###
 .serena
-/docs/
 
 ### IDE ####
 .idea

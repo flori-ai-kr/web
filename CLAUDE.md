@@ -36,6 +36,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 src/
 ├── app/(dashboard)/     # 라우트 그룹 (사이드바 레이아웃)
 │   ├── page.tsx         # 대시보드
+│   ├── dashboard-client.tsx  # 대시보드 클라이언트
 │   ├── sales/           # 매출
 │   │   ├── sales-client.tsx       # 메인 컨테이너 (상태 관리)
 │   │   └── components/            # SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog
@@ -59,10 +60,11 @@ src/
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/       # shadcn/ui (21개)
 ├── components/layout/   # AppLayout, Header, Sidebar
+├── components/theme-provider.tsx  # next-themes 프로바이더
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
-├── lib/actions/         # Server Actions (14개, barrel: index.ts)
+├── lib/actions/         # Server Actions (15개, barrel: index.ts)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts

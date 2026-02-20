@@ -154,7 +154,7 @@ src/
 │   ├── expenses/               # 지출 컴포넌트
 │   └── ui/                     # shadcn/ui 컴포넌트
 ├── lib/
-│   ├── actions/                # Server Actions (14개)
+│   ├── actions/                # Server Actions (15개)
 │   ├── supabase/               # Supabase 클라이언트 (client, server, middleware)
 │   ├── errors.ts               # AppError, withErrorLogging()
 │   ├── logger.ts               # Discord 웹훅 에러 로깅
