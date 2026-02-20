@@ -123,20 +123,22 @@ export function CalendarClient() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
-  type PickupItem = { id?: string; date: string; time: string; title: string; amount: string; reminder_date: string; reminder_time: string };
+  type PickupItem = { id?: string; date: string; time: string; reminder_date: string; reminder_time: string };
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
+    title: '',
+    amount: '',
     description: '',
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
     sale_date: '',
   });
-  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', title: '', amount: '', reminder_date: '', reminder_time: '' }]);
+  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', reminder_date: '', reminder_time: '' }]);
   const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<{ titles: string[]; descriptions: string[] }>({ titles: [], descriptions: [] });
@@ -197,6 +199,20 @@ export function CalendarClient() {
     setIsLoading(false);
   }, [monthStr]);
 
+  // 로딩 표시 없이 데이터만 조용히 갱신 (토글 등 간단한 변경용)
+  const refreshData = useCallback(async () => {
+    try {
+      const [reservationsData, eventsData] = await Promise.all([
+        getReservations(monthStr),
+        getCalendarEvents(monthStr),
+      ]);
+      setReservations(reservationsData);
+      setCalendarEvents(eventsData);
+    } catch {
+      // 조용히 실패
+    }
+  }, [monthStr]);
+
   useEffect(() => {
     const load = async () => { await fetchData(); };
     load();
@@ -231,7 +247,7 @@ export function CalendarClient() {
         ...(newStatus === 'pending' && { pickup_completed: false }),
       });
       toast.success(newStatus === 'confirmed' ? '제작이 완료되었습니다' : '제작 완료가 취소되었습니다');
-      fetchData();
+      refreshData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
@@ -247,7 +263,7 @@ export function CalendarClient() {
         pickup_completed: isCompleting,
       });
       toast.success(isCompleting ? '픽업 완료 처리되었습니다' : '픽업 완료가 취소되었습니다');
-      fetchData();
+      refreshData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
@@ -362,13 +378,15 @@ export function CalendarClient() {
     setFormData({
       customer_name: '',
       customer_phone: '',
+      title: '',
+      amount: '',
       description: '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       sale_date: format(new Date(), 'yyyy-MM-dd'),
     });
-    setPickups([{ date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
+    setPickups([{ date: dateStr, time: '', reminder_date: dateStr, reminder_time: '' }]);
     setDeletedPickupIds([]);
     setEditingId(null);
     setEditingSaleId(null);
@@ -382,6 +400,7 @@ export function CalendarClient() {
 
     // 같은 매출의 모든 픽업을 로드
     const allPickups: PickupItem[] = [];
+    let totalAmount = 0;
     if (saleId) {
       const siblings = siblingReservations.get(saleId) || [];
       for (const s of siblings) {
@@ -389,11 +408,10 @@ export function CalendarClient() {
           id: s.id,
           date: s.date,
           time: s.time?.slice(0, 5) || '',
-          title: s.title,
-          amount: s.amount ? String(s.amount) : '',
           reminder_date: s.reminder_at ? format(new Date(s.reminder_at), 'yyyy-MM-dd') : '',
           reminder_time: s.reminder_at ? format(new Date(s.reminder_at), 'HH:mm') : '',
         });
+        totalAmount += s.amount || 0;
       }
     }
     if (allPickups.length === 0) {
@@ -401,16 +419,17 @@ export function CalendarClient() {
         id: reservation.id,
         date: reservation.date,
         time: reservation.time?.slice(0, 5) || '',
-        title: reservation.title,
-        amount: reservation.amount ? String(reservation.amount) : '',
         reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
         reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
       });
+      totalAmount = reservation.amount || 0;
     }
 
     setFormData({
       customer_name: reservation.customer_name,
       customer_phone: reservation.customer_phone || '',
+      title: reservation.title,
+      amount: totalAmount ? String(totalAmount) : '',
       description: reservation.description || '',
       product_category: '',
       payment_method: '',
@@ -422,10 +441,10 @@ export function CalendarClient() {
     setShowForm(true);
   }
 
-  // 픽업 금액 합계
-  const totalPickupAmount = useMemo(() => {
-    return pickups.reduce((sum, p) => sum + (parseInt(p.amount) || 0), 0);
-  }, [pickups]);
+  // 금액 (공유 필드)
+  const totalAmount = useMemo(() => {
+    return parseInt(formData.amount) || 0;
+  }, [formData.amount]);
 
   function updatePickup(index: number, field: keyof PickupItem, value: string) {
     setPickups(prev => prev.map((p, i) => {
@@ -472,7 +491,7 @@ export function CalendarClient() {
 
   function addPickup() {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setPickups(prev => [...prev, { date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
+    setPickups(prev => [...prev, { date: dateStr, time: '', reminder_date: dateStr, reminder_time: '' }]);
   }
 
   function removePickup(index: number) {
@@ -495,10 +514,13 @@ export function CalendarClient() {
       toast.error('전화번호를 입력해주세요');
       return;
     }
+    if (!formData.title.trim()) {
+      toast.error('제목을 입력해주세요');
+      return;
+    }
     for (let i = 0; i < pickups.length; i++) {
       const p = pickups[i];
       if (!p.date) { toast.error(`픽업 ${i + 1}의 날짜를 입력해주세요`); return; }
-      if (!p.title.trim()) { toast.error(`픽업 ${i + 1}의 제목을 입력해주세요`); return; }
       // 불완전한 시간 검증 (시만 or 분만 선택한 경우)
       if (p.time && !/^\d{2}:\d{2}$/.test(p.time)) {
         toast.error(`픽업 ${i + 1}의 시간을 정확히 선택해주세요`);
@@ -509,7 +531,7 @@ export function CalendarClient() {
         return;
       }
     }
-    if (totalPickupAmount <= 0) {
+    if (totalAmount <= 0) {
       toast.error('금액을 입력해주세요');
       return;
     }
@@ -556,8 +578,8 @@ export function CalendarClient() {
             await updateReservation(p.id, {
               date: p.date,
               time: cleanTime(p.time),
-              title: p.title,
-              amount: parseInt(p.amount) || 0,
+              title: formData.title,
+              amount: totalAmount,
               customer_name: formData.customer_name,
               customer_phone: formData.customer_phone || null,
               description: formData.description || null,
@@ -573,8 +595,8 @@ export function CalendarClient() {
               await addPickupToSale(editingSaleId, {
                 date: p.date,
                 time: cleanTime(p.time) || undefined,
-                title: p.title,
-                amount: parseInt(p.amount) || 0,
+                title: formData.title,
+                amount: 0,
                 reminder_at: pickupReminderAt(p),
               });
             }
@@ -591,7 +613,7 @@ export function CalendarClient() {
           try {
             const saleFormData = new FormData();
             if (formData.sale_date) saleFormData.set('date', formData.sale_date);
-            saleFormData.set('amount', String(totalPickupAmount));
+            saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
             await updateSale(editingSaleId, saleFormData);
           } catch {
@@ -609,18 +631,18 @@ export function CalendarClient() {
           date: first.date || dateStr,
           time: cleanTime(first.time) || undefined,
           customer_name: formData.customer_name,
-          title: first.title,
+          title: formData.title,
           description: formData.description || undefined,
-          amount: parseInt(first.amount) || 0,
+          amount: totalAmount,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: pickupReminderAt(first),
         });
 
-        // 2. 매출 생성 (합산 금액)
+        // 2. 매출 생성
         const saleFormData = new FormData();
         saleFormData.set('date', formData.sale_date || dateStr);
         saleFormData.set('product_category', formData.product_category);
-        saleFormData.set('amount', String(totalPickupAmount));
+        saleFormData.set('amount', String(totalAmount));
         saleFormData.set('payment_method', formData.payment_method);
         saleFormData.set('reservation_channel', formData.reservation_channel);
         saleFormData.set('customer_name', formData.customer_name);
@@ -635,8 +657,8 @@ export function CalendarClient() {
           await addPickupToSale(sale.id, {
             date: p.date || dateStr,
             time: cleanTime(p.time) || undefined,
-            title: p.title,
-            amount: parseInt(p.amount) || 0,
+            title: formData.title,
+            amount: 0,
             reminder_at: pickupReminderAt(p),
           });
         }
@@ -1314,6 +1336,7 @@ export function CalendarClient() {
                   </Button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
+                  {/* 고객명 | 전화번호 */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">고객명 <span className="text-brand">*</span></Label>
@@ -1339,6 +1362,104 @@ export function CalendarClient() {
                         className="h-8 text-sm"
                         inputMode="tel"
                         autoComplete="tel"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 카테고리 | 제목 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {!editingId ? (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">카테고리 <span className="text-brand">*</span></Label>
+                        <select
+                          value={formData.product_category}
+                          onChange={(e) => {
+                            const cat = saleCategories.find(c => c.value === e.target.value);
+                            setFormData({
+                              ...formData,
+                              product_category: e.target.value,
+                              title: cat ? cat.label : formData.title,
+                            });
+                          }}
+                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          aria-label="상품 카테고리"
+                        >
+                          <option value="">선택</option>
+                          {saleCategories.map((cat) => (
+                            <option key={cat.id} value={cat.value}>{cat.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div />
+                    )}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
+                      <SuggestionInput
+                        value={formData.title}
+                        onChange={(val) => setFormData({ ...formData, title: val })}
+                        suggestions={suggestions.titles}
+                        placeholder="프로포즈 꽃다발"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 예약 채널 | 결제방식 (생성 모드만) */}
+                  {!editingId && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">예약 채널</Label>
+                        <select
+                          value={formData.reservation_channel}
+                          onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
+                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          aria-label="예약 채널"
+                        >
+                          {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">결제방식 <span className="text-brand">*</span></Label>
+                        <select
+                          value={formData.payment_method}
+                          onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          aria-label="결제방식"
+                        >
+                          <option value="">선택</option>
+                          {salePaymentMethods.map((pm) => (
+                            <option key={pm.id} value={pm.value}>{pm.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 결제일자 | 금액 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">결제일자</Label>
+                      <Input
+                        type="date"
+                        value={formData.sale_date}
+                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                        className="h-8 !text-[12px]"
+                        aria-label="결제일자"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">금액 <span className="text-brand">*</span></Label>
+                      <Input
+                        type="number"
+                        step={10000}
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        placeholder="0"
+                        className="h-8 text-sm"
+                        aria-label="금액"
                       />
                     </div>
                   </div>
@@ -1379,30 +1500,7 @@ export function CalendarClient() {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">제목 <span className="text-brand">*</span></Label>
-                            <SuggestionInput
-                              value={pickup.title}
-                              onChange={(val) => updatePickup(idx, 'title', val)}
-                              suggestions={suggestions.titles}
-                              placeholder={idx === 0 ? '프로포즈 꽃다발' : '센터피스'}
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">금액</Label>
-                            <Input
-                              type="number"
-                              step={10000}
-                              value={pickup.amount}
-                              onChange={(e) => updatePickup(idx, 'amount', e.target.value)}
-                              placeholder="0"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-                        {/* 픽업별 리마인더 */}
+                        {/* 리마인더 */}
                         <div className="space-y-1">
                           <Label className="text-[10px] text-muted-foreground">
                             <BellRing className="w-3 h-3 inline mr-0.5" />
@@ -1438,70 +1536,9 @@ export function CalendarClient() {
                       <Plus className="w-3 h-3" />
                       픽업 추가
                     </button>
-                    {pickups.length > 1 && (
-                      <p className="text-[10px] text-muted-foreground text-right">
-                        합계: <span className="font-medium text-foreground">{new Intl.NumberFormat('ko-KR').format(totalPickupAmount)}원</span>
-                      </p>
-                    )}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">결제 일자</Label>
-                    <Input
-                      type="date"
-                      value={formData.sale_date}
-                      onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                      className="h-8 !text-[12px]"
-                      aria-label="결제 일자"
-                    />
-                  </div>
-                  {!editingId && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">상품 카테고리 <span className="text-brand">*</span></Label>
-                          <select
-                            value={formData.product_category}
-                            onChange={(e) => setFormData({ ...formData, product_category: e.target.value })}
-                            className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                            aria-label="상품 카테고리"
-                          >
-                            <option value="">선택</option>
-                            {saleCategories.map((cat) => (
-                              <option key={cat.id} value={cat.value}>{cat.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">결제방식 <span className="text-brand">*</span></Label>
-                          <select
-                            value={formData.payment_method}
-                            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                            className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                            aria-label="결제방식"
-                          >
-                            <option value="">선택</option>
-                            {salePaymentMethods.map((pm) => (
-                              <option key={pm.id} value={pm.value}>{pm.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">예약 채널</Label>
-                        <select
-                          value={formData.reservation_channel}
-                          onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                          aria-label="예약 채널"
-                        >
-                          {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
-                            <option key={val} value={val}>{label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
+                  {/* 메모 */}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">메모</Label>
                     <SuggestionInput

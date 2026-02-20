@@ -229,20 +229,6 @@ CUD(Create/Update/Delete) 후 `router.refresh()`를 호출하면 Server Componen
 
 ---
 
-### recharts (차트)
-
-**왜 recharts인가:**
-
-대시보드와 통계 페이지에서 바 차트, 파이 차트 수준의 시각화가 필요하다. recharts는 SVG 기반 React 컴포넌트라 선언적으로 사용할 수 있고, `ResponsiveContainer`로 반응형이 자동 지원된다. shadcn/ui 차트 템플릿이 recharts 기반이라 통합이 자연스럽다. D3를 직접 쓰거나 Nivo를 쓰면 이 규모의 차트에는 과하다.
-
-| 탈락 후보 | 이유 |
-|-----------|------|
-| Chart.js + react-chartjs-2 | Canvas 기반이라 React 컴포넌트 패턴과 안 맞음 |
-| Nivo | 기능 많지만 D3 전체를 포함해서 번들 사이즈 큼 |
-| Victory | API가 복잡. 러닝커브 높음 |
-
----
-
 ### date-fns (날짜)
 
 **왜 date-fns인가:**
@@ -482,7 +468,6 @@ erDiagram
 | `/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 |
 | `/calendar` | 예약 캘린더 | 예약 CRUD + 캘린더 이벤트 + 리마인더 + 매출 자동 생성 + 픽업 완료 토글 |
-| `/statistics` | 통계 | 카테고리/결제/채널/고객/지출 분석 |
 | `/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 |
 | `/login` | 로그인 | 이메일/비밀번호 |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
@@ -691,7 +676,6 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 | tailwindcss | ^4 | 유틸리티 CSS |
 | radix-ui | ^1.4.3 | 접근성 UI 프리미티브 |
 | sonner | ^2.0.7 | 토스트 알림 |
-| recharts | ^3.5.1 | 차트/시각화 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
 | web-push | ^3.6.7 | 서버 사이드 웹 푸시 발송 |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
