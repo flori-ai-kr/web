@@ -49,7 +49,6 @@ src/
 │   ├── deposits/        # 입금 대조
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더
-│   ├── statistics/      # 통계
 │   ├── settings/        # 설정 (카드사 + 푸시 알림)
 │   └── error.tsx        # 에러 바운더리
 ├── app/api/cron/        # Vercel Cron 라우트

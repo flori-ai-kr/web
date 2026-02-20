@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       }] : []),
     ],
   },
+  serverExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
