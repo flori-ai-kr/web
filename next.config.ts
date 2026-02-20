@@ -1,12 +1,10 @@
 import type { NextConfig } from "next";
+import { validateEnv } from "./src/lib/env";
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL 환경변수가 설정되지 않았습니다');
-}
+const env = validateEnv();
 
-const supabaseHostname = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
-const r2PublicUrl = process.env.R2_PUBLIC_URL;
-const r2Hostname = r2PublicUrl ? new URL(r2PublicUrl).hostname : null;
+const supabaseHostname = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname;
+const r2Hostname = new URL(env.R2_PUBLIC_URL).hostname;
 
 const nextConfig: NextConfig = {
   images: {
@@ -16,11 +14,11 @@ const nextConfig: NextConfig = {
         hostname: supabaseHostname,
         pathname: '/storage/v1/object/public/**',
       },
-      ...(r2Hostname ? [{
-        protocol: 'https' as const,
+      {
+        protocol: 'https',
         hostname: r2Hostname,
         pathname: '/**',
-      }] : []),
+      },
     ],
   },
   serverExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
@@ -48,9 +46,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline'`,
-              `img-src 'self' data: blob: https://${supabaseHostname}${r2Hostname ? ` https://${r2Hostname}` : ''}`,
+              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname}`,
               `font-src 'self'`,
-              `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname}${r2Hostname ? ` https://${r2Hostname}` : ''}`,
+              `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self'",
