@@ -7,7 +7,7 @@ import { findOrCreateCustomer } from './customers';
 import type { Sale } from '@/types/database';
 import { saleSchema, uuidSchema, validateImageFile } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange } from '@/lib/utils';
+import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 import { uploadFile, deleteFileByUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
 
 /**
@@ -355,3 +355,24 @@ async function _getSaleById(id: string): Promise<Sale | null> {
 }
 
 export const getSaleById = withErrorLogging('getSaleById', _getSaleById);
+
+/**
+ * 매출 비고 자동완성용 과거 값 조회
+ */
+async function _getSaleSuggestions(): Promise<{ notes: string[] }> {
+  const user = await requireAuth();
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('sales')
+    .select('note')
+    .eq('user_id', user.id)
+    .not('note', 'is', null)
+    .neq('note', '')
+    .order('note');
+
+  const notes = sortByFrequency(data?.map(r => r.note as string) || []);
+  return { notes };
+}
+
+export const getSaleSuggestions = withErrorLogging('getSaleSuggestions', _getSaleSuggestions);

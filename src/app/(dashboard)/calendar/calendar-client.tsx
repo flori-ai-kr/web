@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SuggestionInput } from '@/components/ui/suggestion-input';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,7 @@ import {
   deleteReservation,
   convertReservationToSale,
   addPickupToSale,
+  getReservationSuggestions,
 } from '@/lib/actions/reservations';
 import {
   getCalendarEvents,
@@ -137,6 +139,7 @@ export function CalendarClient() {
   const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', title: '', amount: '', reminder_date: '', reminder_time: '' }]);
   const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ titles: string[]; descriptions: string[] }>({ titles: [], descriptions: [] });
 
   // Sale settings
   const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
@@ -210,6 +213,13 @@ export function CalendarClient() {
     };
     loadSettings();
   }, []);
+
+  // 폼이 열릴 때 자동완성 후보 로드
+  useEffect(() => {
+    if (showForm) {
+      getReservationSuggestions().then(setSuggestions).catch(() => {});
+    }
+  }, [showForm]);
 
   // 제작 완료 토글: pending ↔ confirmed
   async function toggleCompletion(reservation: Reservation) {
@@ -356,7 +366,7 @@ export function CalendarClient() {
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
-      sale_date: dateStr,
+      sale_date: format(new Date(), 'yyyy-MM-dd'),
     });
     setPickups([{ date: dateStr, time: '', title: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
     setDeletedPickupIds([]);
@@ -1372,9 +1382,10 @@ export function CalendarClient() {
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
                             <Label className="text-[10px] text-muted-foreground">제목 <span className="text-brand">*</span></Label>
-                            <Input
+                            <SuggestionInput
                               value={pickup.title}
-                              onChange={(e) => updatePickup(idx, 'title', e.target.value)}
+                              onChange={(val) => updatePickup(idx, 'title', val)}
+                              suggestions={suggestions.titles}
                               placeholder={idx === 0 ? '프로포즈 꽃다발' : '센터피스'}
                               className="h-8 text-sm"
                             />
@@ -1493,12 +1504,12 @@ export function CalendarClient() {
                   )}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">메모</Label>
-                    <textarea
+                    <SuggestionInput
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(val) => setFormData({ ...formData, description: val })}
+                      suggestions={suggestions.descriptions}
                       placeholder="메모를 입력하세요"
-                      rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                      className="text-sm"
                       aria-label="메모"
                     />
                   </div>
