@@ -120,6 +120,10 @@ async function _updateReservation(
     ...parsed.data,
     updated_at: new Date().toISOString(),
   };
+  // reminder_at이 변경되면 reminder_sent를 리셋하여 Cron이 다시 잡도록 함
+  if (formData.reminder_at !== undefined) {
+    updates.reminder_sent = false;
+  }
   if (formData.pickup_completed !== undefined) {
     updates.pickup_completed = formData.pickup_completed;
   }
