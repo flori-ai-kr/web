@@ -197,6 +197,20 @@ export function CalendarClient() {
     setIsLoading(false);
   }, [monthStr]);
 
+  // 로딩 표시 없이 데이터만 조용히 갱신 (토글 등 간단한 변경용)
+  const refreshData = useCallback(async () => {
+    try {
+      const [reservationsData, eventsData] = await Promise.all([
+        getReservations(monthStr),
+        getCalendarEvents(monthStr),
+      ]);
+      setReservations(reservationsData);
+      setCalendarEvents(eventsData);
+    } catch {
+      // 조용히 실패
+    }
+  }, [monthStr]);
+
   useEffect(() => {
     const load = async () => { await fetchData(); };
     load();
@@ -231,7 +245,7 @@ export function CalendarClient() {
         ...(newStatus === 'pending' && { pickup_completed: false }),
       });
       toast.success(newStatus === 'confirmed' ? '제작이 완료되었습니다' : '제작 완료가 취소되었습니다');
-      fetchData();
+      refreshData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
@@ -247,7 +261,7 @@ export function CalendarClient() {
         pickup_completed: isCompleting,
       });
       toast.success(isCompleting ? '픽업 완료 처리되었습니다' : '픽업 완료가 취소되었습니다');
-      fetchData();
+      refreshData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
