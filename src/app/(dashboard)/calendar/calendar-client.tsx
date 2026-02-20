@@ -80,7 +80,7 @@ function TimeSelect({ value, onChange, className, disabled }: {
         value={h}
         onChange={(e) => onChange(`${e.target.value}:${m || '00'}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-base md:text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="시"
       >
         <option value="">시</option>
@@ -93,7 +93,7 @@ function TimeSelect({ value, onChange, className, disabled }: {
         value={m}
         onChange={(e) => onChange(`${h || '00'}:${e.target.value}`)}
         disabled={disabled}
-        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+        className="flex-1 h-8 appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.25rem_center] bg-no-repeat pl-2 pr-6 text-base md:text-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
         aria-label="분"
       >
         <option value="">분</option>
@@ -119,7 +119,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
-  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]>([]);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -148,7 +148,7 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
@@ -287,7 +287,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, (Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number })[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -393,7 +393,7 @@ export function CalendarClient() {
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation & { sale_date?: string; customer_id?: string; purchase_count?: number }) {
+  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number }) {
     const saleId = reservation.sale_id;
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
@@ -431,7 +431,7 @@ export function CalendarClient() {
       title: reservation.title,
       amount: totalAmount ? String(totalAmount) : '',
       description: reservation.description || '',
-      product_category: '',
+      product_category: reservation.product_category || '',
       payment_method: '',
       reservation_channel: 'other',
       sale_date: reservation.sale_date || '',
@@ -615,6 +615,7 @@ export function CalendarClient() {
             if (formData.sale_date) saleFormData.set('date', formData.sale_date);
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
+            if (formData.product_category) saleFormData.set('product_category', formData.product_category);
             await updateSale(editingSaleId, saleFormData);
           } catch {
             toast.error('매출 동기화에 실패했습니다');
@@ -1246,7 +1247,7 @@ export function CalendarClient() {
                       value={eventFormData.title}
                       onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
                       placeholder="졸업 시즌"
-                      className="h-8 text-sm"
+                      className="h-8"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1295,7 +1296,7 @@ export function CalendarClient() {
                       onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
                       placeholder="메모를 입력하세요"
                       rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
                       aria-label="이벤트 메모"
                     />
                   </div>
@@ -1350,7 +1351,7 @@ export function CalendarClient() {
                           });
                         }}
                         placeholder="홍길동"
-                        className="h-8 text-sm"
+                        className="h-8"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1359,7 +1360,7 @@ export function CalendarClient() {
                         value={formData.customer_phone}
                         onChange={(e) => setFormData({ ...formData, customer_phone: formatPhoneNumber(e.target.value) })}
                         placeholder="010-0000-0000"
-                        className="h-8 text-sm"
+                        className="h-8"
                         inputMode="tel"
                         autoComplete="tel"
                       />
@@ -1368,31 +1369,27 @@ export function CalendarClient() {
 
                   {/* 카테고리 | 제목 */}
                   <div className="grid grid-cols-2 gap-3">
-                    {!editingId ? (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">카테고리 <span className="text-brand">*</span></Label>
-                        <select
-                          value={formData.product_category}
-                          onChange={(e) => {
-                            const cat = saleCategories.find(c => c.value === e.target.value);
-                            setFormData({
-                              ...formData,
-                              product_category: e.target.value,
-                              title: cat ? cat.label : formData.title,
-                            });
-                          }}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                          aria-label="상품 카테고리"
-                        >
-                          <option value="">선택</option>
-                          {saleCategories.map((cat) => (
-                            <option key={cat.id} value={cat.value}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <div />
-                    )}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">카테고리 {!editingId && <span className="text-brand">*</span>}</Label>
+                      <select
+                        value={formData.product_category}
+                        onChange={(e) => {
+                          const cat = saleCategories.find(c => c.value === e.target.value);
+                          setFormData({
+                            ...formData,
+                            product_category: e.target.value,
+                            title: cat ? cat.label : formData.title,
+                          });
+                        }}
+                        className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                        aria-label="상품 카테고리"
+                      >
+                        <option value="">선택</option>
+                        {saleCategories.map((cat) => (
+                          <option key={cat.id} value={cat.value}>{cat.label}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
                       <SuggestionInput
@@ -1400,7 +1397,7 @@ export function CalendarClient() {
                         onChange={(val) => setFormData({ ...formData, title: val })}
                         suggestions={suggestions.titles}
                         placeholder="프로포즈 꽃다발"
-                        className="h-8 text-sm"
+                        className="h-8"
                       />
                     </div>
                   </div>
@@ -1413,7 +1410,7 @@ export function CalendarClient() {
                         <select
                           value={formData.reservation_channel}
                           onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
                           aria-label="예약 채널"
                         >
                           {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
@@ -1426,7 +1423,7 @@ export function CalendarClient() {
                         <select
                           value={formData.payment_method}
                           onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
+                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
                           aria-label="결제방식"
                         >
                           <option value="">선택</option>
@@ -1439,14 +1436,14 @@ export function CalendarClient() {
                   )}
 
                   {/* 결제일자 | 금액 */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-[3fr_2fr] gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">결제일자</Label>
                       <Input
                         type="date"
                         value={formData.sale_date}
                         onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                        className="h-8 !text-[12px]"
+                        className="h-8"
                         aria-label="결제일자"
                       />
                     </div>
@@ -1458,7 +1455,7 @@ export function CalendarClient() {
                         value={formData.amount}
                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                         placeholder="0"
-                        className="h-8 text-sm"
+                        className="h-8"
                         aria-label="금액"
                       />
                     </div>
@@ -1481,14 +1478,14 @@ export function CalendarClient() {
                             </button>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-[3fr_2fr] gap-2">
                           <div className="space-y-1">
                             <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 일자' : '날짜'} <span className="text-brand">*</span></Label>
                             <Input
                               type="date"
                               value={pickup.date}
                               onChange={(e) => updatePickup(idx, 'date', e.target.value)}
-                              className="h-8 !text-[12px]"
+                              className="h-8"
                               aria-label={`픽업 ${idx + 1} 날짜`}
                             />
                           </div>
@@ -1506,12 +1503,12 @@ export function CalendarClient() {
                             <BellRing className="w-3 h-3 inline mr-0.5" />
                             리마인더
                           </Label>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-[3fr_2fr] gap-2">
                             <Input
                               type="date"
                               value={pickup.reminder_date}
                               onChange={(e) => updatePickup(idx, 'reminder_date', e.target.value)}
-                              className="h-8 !text-[12px]"
+                              className="h-8"
                               aria-label={`픽업 ${idx + 1} 리마인더 날짜`}
                             />
                             <TimeSelect
@@ -1546,7 +1543,6 @@ export function CalendarClient() {
                       onChange={(val) => setFormData({ ...formData, description: val })}
                       suggestions={suggestions.descriptions}
                       placeholder="메모를 입력하세요"
-                      className="text-sm"
                       aria-label="메모"
                     />
                   </div>

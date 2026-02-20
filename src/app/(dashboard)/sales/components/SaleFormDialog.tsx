@@ -119,7 +119,7 @@ export function SaleFormDialog({
           )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-[3fr_2fr] gap-4">
             <div className="space-y-2">
               <Label>날짜 *</Label>
               <Input

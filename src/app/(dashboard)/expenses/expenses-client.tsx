@@ -424,7 +424,7 @@ export function ExpensesClient({
             <p className="text-sm text-muted-foreground">꽃 구매, 배달비 등 지출 내역을 입력해주세요. 총액은 단가 x 수량으로 자동 계산돼요.</p>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5 pt-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-[3fr_2fr] gap-4">
               <div className="space-y-2">
                 <Label>날짜 *</Label>
                 <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="bg-muted" />
@@ -622,7 +622,7 @@ export function ExpensesClient({
           </DialogHeader>
           {editingExpense && (
             <form onSubmit={(e) => { e.preventDefault(); handleUpdate(e); }} className="space-y-5 pt-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-[3fr_2fr] gap-4">
                 <div className="space-y-2">
                   <Label>날짜 *</Label>
                   <Input type="date" name="date" defaultValue={editingExpense.date} required className="bg-muted" />
