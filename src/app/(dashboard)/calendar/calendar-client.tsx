@@ -616,6 +616,8 @@ export function CalendarClient() {
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
             if (formData.product_category) saleFormData.set('product_category', formData.product_category);
+            saleFormData.set('customer_name', formData.customer_name);
+            if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
             await updateSale(editingSaleId, saleFormData);
           } catch {
             toast.error('매출 동기화에 실패했습니다');
