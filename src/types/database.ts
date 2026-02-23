@@ -1,4 +1,4 @@
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay' | 'unpaid';
 export type DepositStatus = 'pending' | 'completed' | 'not_applicable';
 export type ExpenseCategory = 'flower_purchase' | 'delivery' | 'advertising' | 'rent' | 'utilities' | 'supplies' | 'other';
 export type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist';
@@ -58,6 +58,7 @@ export interface Sale {
   customer_phone?: string;
   customer_id?: string;
   note?: string;
+  is_unpaid: boolean;
   has_review: boolean;
   photos?: string[];
   created_at: string;

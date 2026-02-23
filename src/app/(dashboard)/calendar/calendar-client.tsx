@@ -52,7 +52,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEvent,
 } from '@/lib/actions/calendar-events';
-import { checkPhoneDuplicate, updateSale, deleteSale } from '@/lib/actions';
+import { checkPhoneDuplicate, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale } from '@/lib/actions';
 import { getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
 import type { SaleCategory, PaymentMethod as PaymentMethodType } from '@/lib/actions/sale-settings';
 import type { Reservation, ReservationStatus, CalendarEvent } from '@/types/database';
@@ -119,7 +119,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
-  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number })[]>([]);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -147,9 +147,14 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
+
+  // 미수 결제 완료 dialog
+  const [unpaidTarget, setUnpaidTarget] = useState<(Reservation & { sale_id: string }) | null>(null);
+  const [unpaidPaymentMethod, setUnpaidPaymentMethod] = useState('');
+  const [isCompletingUnpaid, setIsCompletingUnpaid] = useState(false);
 
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -253,10 +258,23 @@ export function CalendarClient() {
   }
 
   // 픽업 완료 토글: confirmed ↔ completed
-  async function togglePickup(reservation: Reservation) {
+  async function togglePickup(reservation: Reservation & { sale_is_unpaid?: boolean; sale_payment_method?: string }) {
     if (reservation.status === 'pending') return; // 제작 전에는 픽업 불가
     const isCompleting = reservation.status === 'confirmed';
+
+    // 미수건 픽업 완료 시 → 결제방식 선택 팝업
+    if (isCompleting && reservation.sale_id && reservation.sale_is_unpaid && reservation.sale_payment_method === 'unpaid') {
+      setUnpaidTarget(reservation as Reservation & { sale_id: string });
+      setUnpaidPaymentMethod('');
+      return;
+    }
+
     try {
+      // 미수건 픽업 취소 시 → payment_method를 unpaid로 되돌림
+      if (!isCompleting && reservation.sale_id && reservation.sale_is_unpaid) {
+        await revertUnpaidSale(reservation.sale_id);
+      }
+
       await updateReservation(reservation.id, {
         status: isCompleting ? 'completed' : 'confirmed',
         pickup_completed: isCompleting,
@@ -266,6 +284,25 @@ export function CalendarClient() {
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '상태 변경에 실패했습니다');
     }
+  }
+
+  // 미수 결제 완료 처리
+  async function handleUnpaidComplete() {
+    if (!unpaidTarget || !unpaidPaymentMethod) return;
+    setIsCompletingUnpaid(true);
+    try {
+      await completeUnpaidSale(unpaidTarget.sale_id, unpaidPaymentMethod);
+      await updateReservation(unpaidTarget.id, {
+        status: 'completed',
+        pickup_completed: true,
+      });
+      toast.success('픽업 완료 및 결제가 처리되었습니다');
+      setUnpaidTarget(null);
+      refreshData();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : '결제 처리에 실패했습니다');
+    }
+    setIsCompletingUnpaid(false);
   }
 
   // Calendar grid
@@ -286,7 +323,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, (Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number })[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -391,7 +428,7 @@ export function CalendarClient() {
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number }) {
+  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_payment_method?: string; sale_reservation_channel?: string }) {
     const saleId = reservation.sale_id;
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
@@ -428,8 +465,8 @@ export function CalendarClient() {
       title: reservation.title,
       description: reservation.description || '',
       product_category: reservation.product_category || '',
-      payment_method: '',
-      reservation_channel: 'other',
+      payment_method: reservation.sale_payment_method || '',
+      reservation_channel: reservation.sale_reservation_channel || 'other',
       sale_date: reservation.sale_date || '',
     });
     setPickups(allPickups);
@@ -446,6 +483,11 @@ export function CalendarClient() {
     setPickups(prev => prev.map((p, i) => {
       if (i !== index) return p;
       const updated = { ...p, [field]: value };
+
+      // 미수 선택 시 첫 번째 픽업 날짜 변경하면 결제일자 동기화
+      if (field === 'date' && index === 0 && value && formData.payment_method === 'unpaid') {
+        setFormData(prev => ({ ...prev, sale_date: value }));
+      }
 
       // 날짜 변경 시 리마인더 날짜 동기화
       if (field === 'date' && value) {
@@ -612,6 +654,8 @@ export function CalendarClient() {
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
             if (formData.product_category) saleFormData.set('product_category', formData.product_category);
+            if (formData.payment_method) saleFormData.set('payment_method', formData.payment_method);
+            if (formData.reservation_channel) saleFormData.set('reservation_channel', formData.reservation_channel);
             saleFormData.set('customer_name', formData.customer_name);
             if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
             await updateSale(editingSaleId, saleFormData);
@@ -1183,7 +1227,24 @@ export function CalendarClient() {
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                <Button size="sm" onClick={() => {
+                  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                  setFormData({
+                    customer_name: '',
+                    customer_phone: '',
+                    title: '',
+                    description: '',
+                    product_category: '',
+                    payment_method: '',
+                    reservation_channel: 'other',
+                    sale_date: format(new Date(), 'yyyy-MM-dd'),
+                  });
+                  setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
+                  setDeletedPickupIds([]);
+                  setEditingId(null);
+                  setEditingSaleId(null);
+                  setShowForm(true);
+                }}>
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   추가
                 </Button>
@@ -1416,8 +1477,8 @@ export function CalendarClient() {
                     </div>
                   </div>
 
-                  {/* 예약 채널 | 결제방식 (생성 모드만) */}
-                  {!editingId && (
+                  {/* 예약 채널 | 결제방식 */}
+                  {editingSaleId || !editingId ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">예약 채널</Label>
@@ -1436,7 +1497,15 @@ export function CalendarClient() {
                         <Label className="text-xs text-muted-foreground">결제방식 <span className="text-brand">*</span></Label>
                         <select
                           value={formData.payment_method}
-                          onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                          onChange={(e) => {
+                            const newMethod = e.target.value;
+                            const updates: Partial<typeof formData> = { payment_method: newMethod };
+                            // 미수 선택 시 결제일자를 첫 번째 픽업 일자로 동기화
+                            if (newMethod === 'unpaid' && pickups[0]?.date) {
+                              updates.sale_date = pickups[0].date;
+                            }
+                            setFormData({ ...formData, ...updates });
+                          }}
                           className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
                           aria-label="결제방식"
                         >
@@ -1447,7 +1516,7 @@ export function CalendarClient() {
                         </select>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* 결제일자 | 금액 */}
                   <div className="grid grid-cols-[3fr_2fr] gap-3">
@@ -1627,7 +1696,14 @@ export function CalendarClient() {
                             <span className="text-xs text-muted-foreground">{r.time.slice(0, 5)}</span>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-foreground mt-1 truncate">{r.title}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
+                          {r.sale_is_unpaid && r.sale_payment_method === 'unpaid' && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: '#ef444440', color: '#ef4444' }}>
+                              미수
+                            </span>
+                          )}
+                        </div>
                         {r.customer_name && (
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {r.customer_id ? (
@@ -1836,6 +1912,49 @@ export function CalendarClient() {
             <Button variant="destructive" onClick={handleDeleteEvent} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 미수 결제 완료 dialog */}
+      <Dialog open={!!unpaidTarget} onOpenChange={(open) => { if (!open) setUnpaidTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>결제방식 선택</DialogTitle>
+            <DialogDescription>
+              미수건의 최종 결제방식을 선택해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2 py-2">
+            {salePaymentMethods.filter(pm => pm.value !== 'unpaid').map(pm => (
+              <button
+                key={pm.id}
+                type="button"
+                className={cn(
+                  'text-sm py-2 px-4 rounded-lg border transition-colors',
+                  unpaidPaymentMethod === pm.value
+                    ? 'border-transparent font-medium'
+                    : 'border-input text-muted-foreground hover:bg-muted'
+                )}
+                style={unpaidPaymentMethod === pm.value
+                  ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color }
+                  : {}
+                }
+                onClick={() => setUnpaidPaymentMethod(pm.value)}
+              >
+                {pm.label}
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpaidTarget(null)}>취소</Button>
+            <Button
+              onClick={handleUnpaidComplete}
+              disabled={!unpaidPaymentMethod || isCompletingUnpaid}
+            >
+              {isCompletingUnpaid && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              결제 완료
             </Button>
           </DialogFooter>
         </DialogContent>

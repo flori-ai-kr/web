@@ -47,6 +47,8 @@ async function _getTodaySummary(): Promise<DashboardSummary> {
   };
 
   (sales || []).forEach((sale) => {
+    if (sale.payment_method === 'unpaid') return; // 미수건은 총 매출에서 제외
+
     summary.totalAmount += sale.amount;
 
     switch (sale.payment_method) {
@@ -134,6 +136,7 @@ function buildSummary(sales: { amount: number; payment_method: string; deposit_s
   };
 
   sales.forEach((sale) => {
+    if (sale.payment_method === 'unpaid') return; // 미수건은 총 매출에서 제외
     summary.totalAmount += sale.amount;
     switch (sale.payment_method) {
       case 'card': summary.cardAmount += sale.amount; break;
@@ -222,10 +225,13 @@ async function _getDashboardMonthData(month?: string): Promise<DashboardMonthDat
   const summary = buildSummary(sales);
   const expenseTotal = expenses.reduce((sum, e) => sum + e.total_amount, 0);
 
+  // 미수건 제외한 매출만 통계에 사용
+  const paidSales = sales.filter((s) => s.payment_method !== 'unpaid');
+
   // 카테고리별 매출
   const catMap = new Map<string, { count: number; amount: number }>();
   let catTotal = 0;
-  sales.forEach((s) => {
+  paidSales.forEach((s) => {
     const cat = s.product_category || '기타';
     const ex = catMap.get(cat) || { count: 0, amount: 0 };
     ex.count += 1; ex.amount += s.amount;
@@ -238,7 +244,7 @@ async function _getDashboardMonthData(month?: string): Promise<DashboardMonthDat
   // 결제방식별 매출
   const payMap = new Map<string, { count: number; amount: number }>();
   let payTotal = 0;
-  sales.forEach((s) => {
+  paidSales.forEach((s) => {
     const pm = s.payment_method;
     const ex = payMap.get(pm) || { count: 0, amount: 0 };
     ex.count += 1; ex.amount += s.amount;
@@ -251,7 +257,7 @@ async function _getDashboardMonthData(month?: string): Promise<DashboardMonthDat
   // 채널별 매출
   const chanMap = new Map<string, { count: number; amount: number }>();
   let chanTotal = 0;
-  sales.forEach((s) => {
+  paidSales.forEach((s) => {
     const ch = s.reservation_channel || 'other';
     const ex = chanMap.get(ch) || { count: 0, amount: 0 };
     ex.count += 1; ex.amount += s.amount;

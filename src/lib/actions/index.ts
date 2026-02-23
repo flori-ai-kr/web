@@ -7,6 +7,8 @@ export {
   createSale,
   updateSale,
   deleteSale,
+  completeUnpaidSale,
+  revertUnpaidSale,
   uploadSalePhotos,
   deleteSalePhoto,
   getSaleSuggestions,

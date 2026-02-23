@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { findOrCreateCustomer } from './customers';
 import type { Sale } from '@/types/database';
+import { z } from 'zod';
 import { saleSchema, uuidSchema, validateImageFile } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
@@ -160,6 +161,8 @@ async function _createSale(formData: FormData) {
 
   const finalCustomerId = await resolveCustomerId(customerId, customerName, customerPhone);
 
+  const isUnpaid = parsed.data.payment_method === 'unpaid';
+
   const sale = {
     user_id: user.id,
     date: parsed.data.date,
@@ -177,6 +180,7 @@ async function _createSale(formData: FormData) {
     customer_phone: customerPhone,
     customer_id: finalCustomerId,
     note: parsed.data.note || null,
+    is_unpaid: isUnpaid,
   };
 
   const { data, error } = await supabase.from('sales').insert(sale).select().single();
@@ -253,6 +257,57 @@ async function _updateSale(id: string, formData: FormData) {
 }
 
 export const updateSale = withErrorLogging('updateSale', _updateSale);
+
+/**
+ * 미수 매출의 결제를 완료한다.
+ * payment_method를 실제 결제방식으로 변경한다.
+ */
+async function _completeUnpaidSale(saleId: string, paymentMethod: string) {
+  await requireAuth();
+  const idParsed = uuidSchema.safeParse(saleId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  const pmParsed = z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']).safeParse(paymentMethod);
+  if (!pmParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 결제방식입니다');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('sales')
+    .update({ payment_method: pmParsed.data, updated_at: new Date().toISOString() })
+    .eq('id', idParsed.data)
+    .eq('is_unpaid', true);
+  if (error) throw error;
+
+  revalidatePath('/sales');
+  revalidatePath('/calendar');
+  revalidatePath('/');
+}
+
+export const completeUnpaidSale = withErrorLogging('completeUnpaidSale', _completeUnpaidSale);
+
+/**
+ * 미수 매출의 결제 완료를 되돌린다.
+ * payment_method를 다시 'unpaid'로 변경한다.
+ */
+async function _revertUnpaidSale(saleId: string) {
+  await requireAuth();
+  const idParsed = uuidSchema.safeParse(saleId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('sales')
+    .update({ payment_method: 'unpaid', updated_at: new Date().toISOString() })
+    .eq('id', idParsed.data)
+    .eq('is_unpaid', true);
+  if (error) throw error;
+
+  revalidatePath('/sales');
+  revalidatePath('/calendar');
+  revalidatePath('/');
+}
+
+export const revertUnpaidSale = withErrorLogging('revertUnpaidSale', _revertUnpaidSale);
 
 async function _deleteSale(id: string) {
   await requireAuth();
