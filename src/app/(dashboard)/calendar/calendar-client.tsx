@@ -1227,7 +1227,24 @@ export function CalendarClient() {
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                <Button size="sm" onClick={() => {
+                  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                  setFormData({
+                    customer_name: '',
+                    customer_phone: '',
+                    title: '',
+                    description: '',
+                    product_category: '',
+                    payment_method: '',
+                    reservation_channel: 'other',
+                    sale_date: format(new Date(), 'yyyy-MM-dd'),
+                  });
+                  setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
+                  setDeletedPickupIds([]);
+                  setEditingId(null);
+                  setEditingSaleId(null);
+                  setShowForm(true);
+                }}>
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   추가
                 </Button>
