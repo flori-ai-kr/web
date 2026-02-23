@@ -7,6 +7,7 @@ export const PAYMENT_LABELS: Record<string, string> = {
   transfer: '계좌이체',
   naverpay: '네이버페이',
   kakaopay: '카카오페이',
+  unpaid: '미수',
 } satisfies Record<PaymentMethod | 'kakaopay', string>;
 
 // ─── 채널 라벨 ─────────────────────────────────────────────────

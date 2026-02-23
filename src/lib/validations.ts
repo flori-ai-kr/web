@@ -16,7 +16,7 @@ export const saleSchema = z.object({
   date: dateSchema,
   product_category: z.string().min(1).max(100),
   amount: z.number().int().min(0).max(100_000_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay', 'unpaid']),
   card_company: z.string().max(50).nullable().optional(),
   fee: z.number().int().min(0).nullable().optional(),
   expected_deposit: z.number().int().min(0).nullable().optional(),

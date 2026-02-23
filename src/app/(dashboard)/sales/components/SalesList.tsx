@@ -78,7 +78,7 @@ export function SalesList({
       date,
       label: format(new Date(date), 'M월 d일 (EEE)', { locale: ko }),
       sales: dateSales,
-      total: dateSales.reduce((sum, s) => sum + s.amount, 0),
+      total: dateSales.reduce((sum, s) => s.payment_method === 'unpaid' ? sum : sum + s.amount, 0),
     }));
   }, [sales]);
 
