@@ -9,13 +9,13 @@ import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 
-async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string })[]> {
+async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]> {
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('*, sale:sales!sale_id(date, product_category, customer_id, is_unpaid, payment_method, customer:customers!customer_id(total_purchase_count))')
+    .select('*, sale:sales!sale_id(date, product_category, customer_id, is_unpaid, payment_method, reservation_channel, customer:customers!customer_id(total_purchase_count))')
     .gte('date', startDate)
     .lte('date', endDate)
     .order('date')
@@ -23,7 +23,7 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
 
   if (error) throw error;
   return (data || []).map((r: Record<string, unknown>) => {
-    const sale = r.sale as { date: string; product_category: string | null; customer_id: string | null; is_unpaid: boolean | null; payment_method: string | null; customer: { total_purchase_count: number } | null } | null;
+    const sale = r.sale as { date: string; product_category: string | null; customer_id: string | null; is_unpaid: boolean | null; payment_method: string | null; reservation_channel: string | null; customer: { total_purchase_count: number } | null } | null;
     const { sale: _, ...rest } = r;
     return {
       ...rest,
@@ -33,7 +33,8 @@ async function _getReservations(month: string): Promise<(Reservation & { sale_da
       purchase_count: sale?.customer?.total_purchase_count ?? undefined,
       sale_is_unpaid: sale?.is_unpaid ?? undefined,
       sale_payment_method: sale?.payment_method ?? undefined,
-    } as Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string };
+      sale_reservation_channel: sale?.reservation_channel ?? undefined,
+    } as Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string };
   });
 }
 

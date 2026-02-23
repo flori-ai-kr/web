@@ -119,7 +119,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
-  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string })[]>([]);
+  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -147,7 +147,7 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string }) | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
@@ -323,7 +323,7 @@ export function CalendarClient() {
 
   // Group reservations by date
   const reservationsByDate = useMemo(() => {
-    const map = new Map<string, (Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string })[]>();
+    const map = new Map<string, (Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>();
     for (const r of reservations) {
       const key = r.date;
       if (!map.has(key)) map.set(key, []);
@@ -428,7 +428,7 @@ export function CalendarClient() {
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number }) {
+  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_payment_method?: string; sale_reservation_channel?: string }) {
     const saleId = reservation.sale_id;
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
@@ -465,8 +465,8 @@ export function CalendarClient() {
       title: reservation.title,
       description: reservation.description || '',
       product_category: reservation.product_category || '',
-      payment_method: '',
-      reservation_channel: 'other',
+      payment_method: reservation.sale_payment_method || '',
+      reservation_channel: reservation.sale_reservation_channel || 'other',
       sale_date: reservation.sale_date || '',
     });
     setPickups(allPickups);
@@ -654,6 +654,8 @@ export function CalendarClient() {
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
             if (formData.product_category) saleFormData.set('product_category', formData.product_category);
+            if (formData.payment_method) saleFormData.set('payment_method', formData.payment_method);
+            if (formData.reservation_channel) saleFormData.set('reservation_channel', formData.reservation_channel);
             saleFormData.set('customer_name', formData.customer_name);
             if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
             await updateSale(editingSaleId, saleFormData);
@@ -1458,8 +1460,8 @@ export function CalendarClient() {
                     </div>
                   </div>
 
-                  {/* 예약 채널 | 결제방식 (생성 모드만) */}
-                  {!editingId && (
+                  {/* 예약 채널 | 결제방식 */}
+                  {editingSaleId || !editingId ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">예약 채널</Label>
@@ -1497,7 +1499,7 @@ export function CalendarClient() {
                         </select>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* 결제일자 | 금액 */}
                   <div className="grid grid-cols-[3fr_2fr] gap-3">
