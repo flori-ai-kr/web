@@ -35,6 +35,7 @@ const arbitrarySale = (): fc.Arbitrary<Sale> => {
     payment_method: fc.constantFrom(...paymentMethods),
     deposit_status: fc.constantFrom('pending', 'completed', 'not_applicable') as fc.Arbitrary<'pending' | 'completed' | 'not_applicable'>,
     reservation_channel: fc.constantFrom('phone', 'kakaotalk', 'naver_booking', 'road', 'other') as fc.Arbitrary<'phone' | 'kakaotalk' | 'naver_booking' | 'road' | 'other'>,
+    is_unpaid: fc.boolean(),
     has_review: fc.boolean(),
     created_at: fc.constant(new Date().toISOString()),
     updated_at: fc.constant(new Date().toISOString()),
