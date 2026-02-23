@@ -54,10 +54,7 @@ export default function SettingsPage() {
       setPushSupported(true);
       setPushPermission(Notification.permission);
 
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-        updateViaCache: 'none',
-      });
+      const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.getSubscription();
       setPushSubscription(sub);
     } catch (err) {

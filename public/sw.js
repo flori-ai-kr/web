@@ -10,6 +10,12 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// fetch 핸들러 (Chrome PWA installability 필수 조건)
+// 네트워크 우선 — 동적 어드민 앱이므로 캐싱 없이 패스스루
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request));
+});
+
 // 푸시 수신
 self.addEventListener('push', (event) => {
   if (!event.data) return;
