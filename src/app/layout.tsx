@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
             {children}
           </TooltipProvider>
           <Toaster position="bottom-center" richColors duration={2000} />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>
