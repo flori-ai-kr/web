@@ -196,8 +196,9 @@ async function _updateSale(id: string, formData: FormData) {
   const idParsed = uuidSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  const customerName = formData.get('customer_name') as string || null;
-  const customerPhone = formData.get('customer_phone') as string || null;
+  // formData.has()로 미전송 필드와 명시적 null을 구분하여 부분 업데이트를 안전하게 처리
+  const customerName = formData.has('customer_name') ? (formData.get('customer_name') as string || null) : undefined;
+  const customerPhone = formData.has('customer_phone') ? (formData.get('customer_phone') as string || null) : undefined;
   const customerId = formData.get('customer_id') as string || null;
 
   const parsed = saleSchema.partial().safeParse({
@@ -205,35 +206,45 @@ async function _updateSale(id: string, formData: FormData) {
     product_category: formData.get('product_category') || undefined,
     amount: formData.get('amount') ? parseInt(formData.get('amount') as string) : undefined,
     payment_method: formData.get('payment_method') || undefined,
-    card_company: formData.get('card_company') || null,
-    fee: formData.get('fee') ? parseInt(formData.get('fee') as string) : null,
-    expected_deposit: formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null,
-    expected_deposit_date: formData.get('expected_deposit_date') || null,
+    card_company: formData.has('card_company') ? (formData.get('card_company') as string || null) : undefined,
+    fee: formData.has('fee') ? (formData.get('fee') ? parseInt(formData.get('fee') as string) : null) : undefined,
+    expected_deposit: formData.has('expected_deposit') ? (formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null) : undefined,
+    expected_deposit_date: formData.has('expected_deposit_date') ? (formData.get('expected_deposit_date') as string || null) : undefined,
     deposit_status: formData.get('deposit_status') || undefined,
     reservation_channel: formData.get('reservation_channel') || undefined,
     customer_name: customerName,
     customer_phone: customerPhone,
-    note: formData.get('note') || null,
+    note: formData.has('note') ? (formData.get('note') as string || null) : undefined,
   });
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
   const supabase = await createClient();
-  const finalCustomerId = await resolveCustomerId(customerId, customerName, customerPhone);
+  const shouldResolveCustomer = formData.has('customer_name') || formData.has('customer_id');
+  const finalCustomerId = shouldResolveCustomer
+    ? await resolveCustomerId(customerId, customerName ?? null, customerPhone ?? null)
+    : undefined;
 
   const updates: Record<string, string | number | boolean | null | undefined> = {
     ...parsed.data,
     product_name: parsed.data.product_category,
-    customer_id: finalCustomerId,
   };
+  if (shouldResolveCustomer) {
+    updates.customer_id = finalCustomerId;
+  }
 
   const hasReview = formData.get('has_review');
   if (hasReview !== null) {
     updates.has_review = hasReview === 'true';
   }
 
-  const { error } = await supabase.from('sales').update(updates).eq('id', id);
+  // undefined 값 제거하여 미전송 필드가 DB에 null로 덮어쓰이는 것을 방지
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  );
+
+  const { error } = await supabase.from('sales').update(cleanUpdates).eq('id', id);
   if (error) throw error;
 
   revalidatePath('/sales');

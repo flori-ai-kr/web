@@ -123,7 +123,7 @@ export function CalendarClient() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
-  type PickupItem = { id?: string; date: string; time: string; reminder_date: string; reminder_time: string };
+  type PickupItem = { id?: string; date: string; time: string; amount: string; reminder_date: string; reminder_time: string };
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
@@ -131,14 +131,13 @@ export function CalendarClient() {
     customer_name: '',
     customer_phone: '',
     title: '',
-    amount: '',
     description: '',
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
     sale_date: '',
   });
-  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', reminder_date: '', reminder_time: '' }]);
+  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', amount: '', reminder_date: '', reminder_time: '' }]);
   const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<{ titles: string[]; descriptions: string[] }>({ titles: [], descriptions: [] });
@@ -379,14 +378,13 @@ export function CalendarClient() {
       customer_name: '',
       customer_phone: '',
       title: '',
-      amount: '',
       description: '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
       sale_date: format(new Date(), 'yyyy-MM-dd'),
     });
-    setPickups([{ date: dateStr, time: '', reminder_date: dateStr, reminder_time: '' }]);
+    setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
     setDeletedPickupIds([]);
     setEditingId(null);
     setEditingSaleId(null);
@@ -398,9 +396,8 @@ export function CalendarClient() {
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
 
-    // 같은 매출의 모든 픽업을 로드
+    // 같은 매출의 모든 픽업을 로드 (각 픽업의 개별 금액 유지)
     const allPickups: PickupItem[] = [];
-    let totalAmount = 0;
     if (saleId) {
       const siblings = siblingReservations.get(saleId) || [];
       for (const s of siblings) {
@@ -408,10 +405,10 @@ export function CalendarClient() {
           id: s.id,
           date: s.date,
           time: s.time?.slice(0, 5) || '',
+          amount: s.amount ? String(s.amount) : '',
           reminder_date: s.reminder_at ? format(new Date(s.reminder_at), 'yyyy-MM-dd') : '',
           reminder_time: s.reminder_at ? format(new Date(s.reminder_at), 'HH:mm') : '',
         });
-        totalAmount += s.amount || 0;
       }
     }
     if (allPickups.length === 0) {
@@ -419,17 +416,16 @@ export function CalendarClient() {
         id: reservation.id,
         date: reservation.date,
         time: reservation.time?.slice(0, 5) || '',
+        amount: reservation.amount ? String(reservation.amount) : '',
         reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
         reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
       });
-      totalAmount = reservation.amount || 0;
     }
 
     setFormData({
       customer_name: reservation.customer_name,
       customer_phone: reservation.customer_phone || '',
       title: reservation.title,
-      amount: totalAmount ? String(totalAmount) : '',
       description: reservation.description || '',
       product_category: reservation.product_category || '',
       payment_method: '',
@@ -441,10 +437,10 @@ export function CalendarClient() {
     setShowForm(true);
   }
 
-  // 금액 (공유 필드)
+  // 금액 (픽업별 합산)
   const totalAmount = useMemo(() => {
-    return parseInt(formData.amount) || 0;
-  }, [formData.amount]);
+    return pickups.reduce((sum, p) => sum + (parseInt(p.amount) || 0), 0);
+  }, [pickups]);
 
   function updatePickup(index: number, field: keyof PickupItem, value: string) {
     setPickups(prev => prev.map((p, i) => {
@@ -491,7 +487,7 @@ export function CalendarClient() {
 
   function addPickup() {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setPickups(prev => [...prev, { date: dateStr, time: '', reminder_date: dateStr, reminder_time: '' }]);
+    setPickups(prev => [...prev, { date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
   }
 
   function removePickup(index: number) {
@@ -579,7 +575,7 @@ export function CalendarClient() {
               date: p.date,
               time: cleanTime(p.time),
               title: formData.title,
-              amount: totalAmount,
+              amount: parseInt(p.amount) || 0,
               customer_name: formData.customer_name,
               customer_phone: formData.customer_phone || null,
               description: formData.description || null,
@@ -596,7 +592,7 @@ export function CalendarClient() {
                 date: p.date,
                 time: cleanTime(p.time) || undefined,
                 title: formData.title,
-                amount: 0,
+                amount: parseInt(p.amount) || 0,
                 reminder_at: pickupReminderAt(p),
               });
             }
@@ -616,6 +612,8 @@ export function CalendarClient() {
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('note', formData.description || '');
             if (formData.product_category) saleFormData.set('product_category', formData.product_category);
+            saleFormData.set('customer_name', formData.customer_name);
+            if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
             await updateSale(editingSaleId, saleFormData);
           } catch {
             toast.error('매출 동기화에 실패했습니다');
@@ -634,7 +632,7 @@ export function CalendarClient() {
           customer_name: formData.customer_name,
           title: formData.title,
           description: formData.description || undefined,
-          amount: totalAmount,
+          amount: parseInt(first.amount) || 0,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: pickupReminderAt(first),
         });
@@ -659,7 +657,7 @@ export function CalendarClient() {
             date: p.date || dateStr,
             time: cleanTime(p.time) || undefined,
             title: formData.title,
-            amount: 0,
+            amount: parseInt(p.amount) || 0,
             reminder_at: pickupReminderAt(p),
           });
         }
@@ -1463,18 +1461,20 @@ export function CalendarClient() {
                         aria-label="결제일자"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">금액 <span className="text-brand">*</span></Label>
-                      <Input
-                        type="number"
-                        step={10000}
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                        placeholder="0"
-                        className="h-8"
-                        aria-label="금액"
-                      />
-                    </div>
+                    {pickups.length === 1 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">금액 <span className="text-brand">*</span></Label>
+                        <Input
+                          type="number"
+                          step={10000}
+                          value={pickups[0].amount}
+                          onChange={(e) => updatePickup(0, 'amount', e.target.value)}
+                          placeholder="0"
+                          className="h-8"
+                          aria-label="금액"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* 픽업 섹션 */}
@@ -1494,9 +1494,12 @@ export function CalendarClient() {
                             </button>
                           </div>
                         )}
-                        <div className="grid grid-cols-[3fr_2fr] gap-2">
-                          <div className="space-y-1">
+                        <div className="space-y-1">
+                          <div className="grid grid-cols-[3fr_2fr] gap-2">
                             <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 일자' : '날짜'} <span className="text-brand">*</span></Label>
+                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 시간' : '시간'}</Label>
+                          </div>
+                          <div className="grid grid-cols-[3fr_2fr] gap-2">
                             <Input
                               type="date"
                               value={pickup.date}
@@ -1504,15 +1507,26 @@ export function CalendarClient() {
                               className="h-8"
                               aria-label={`픽업 ${idx + 1} 날짜`}
                             />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 시간' : '시간'}</Label>
                             <TimeSelect
                               value={pickup.time}
                               onChange={(val) => updatePickup(idx, 'time', val)}
                             />
                           </div>
                         </div>
+                        {pickups.length > 1 && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">금액 <span className="text-brand">*</span></Label>
+                            <Input
+                              type="number"
+                              step={10000}
+                              value={pickup.amount}
+                              onChange={(e) => updatePickup(idx, 'amount', e.target.value)}
+                              placeholder="0"
+                              className="h-8 w-full"
+                              aria-label={`픽업 ${idx + 1} 금액`}
+                            />
+                          </div>
+                        )}
                         {/* 리마인더 */}
                         <div className="space-y-1">
                           <Label className="text-[10px] text-muted-foreground">
@@ -1549,6 +1563,14 @@ export function CalendarClient() {
                       <Plus className="w-3 h-3" />
                       픽업 추가
                     </button>
+                    {pickups.length > 1 && (
+                      <div className="flex items-center justify-between px-1 pt-1">
+                        <span className="text-xs text-muted-foreground">합산 금액</span>
+                        <span className={cn('text-sm font-semibold', totalAmount > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                          {totalAmount > 0 ? formatCurrency(totalAmount) : '0원'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 메모 */}
