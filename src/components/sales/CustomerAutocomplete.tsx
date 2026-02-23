@@ -41,6 +41,12 @@ export function CustomerAutocomplete({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 외부 value prop 변경 시 내부 상태 동기화
+  useEffect(() => {
+    setInputValue(value);
+    if (!value) setSelectedId(null);
+  }, [value]);
+
   // 외부 클릭 감지
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
