@@ -412,6 +412,20 @@ async function _getPhotoCardBySaleId(saleId: string): Promise<PhotoCard | null> 
 
 export const getPhotoCardBySaleId = withErrorLogging('getPhotoCardBySaleId', _getPhotoCardBySaleId);
 
+async function _getSaleIdsWithPhotos(saleIds: string[]): Promise<string[]> {
+  if (saleIds.length === 0) return [];
+  await requireAuth();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('photo_cards')
+    .select('sale_id')
+    .in('sale_id', saleIds);
+  if (error) throw error;
+  return (data || []).map(r => r.sale_id).filter(Boolean) as string[];
+}
+
+export const getSaleIdsWithPhotos = withErrorLogging('getSaleIdsWithPhotos', _getSaleIdsWithPhotos);
+
 async function _createOrUpdatePhotoCardForSale(
   saleId: string,
   title: string,

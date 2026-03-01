@@ -25,6 +25,7 @@ import {
     ChevronRight,
     ExternalLink,
     Loader2,
+    ImageIcon,
     PackageCheck,
     Pencil,
     Plus,
@@ -66,6 +67,8 @@ import {
     updateCalendarEvent,
 } from '@/lib/actions/calendar-events';
 import {checkPhoneDuplicate, completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions';
+import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
+import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
 import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
 import type {CalendarEvent, Reservation, ReservationStatus} from '@/types/database';
@@ -132,6 +135,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
   const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
+  const [saleIdsWithPhotos, setSaleIdsWithPhotos] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -168,6 +172,9 @@ export function CalendarClient() {
   const [unpaidPaymentMethod, setUnpaidPaymentMethod] = useState('');
   const [isCompletingUnpaid, setIsCompletingUnpaid] = useState(false);
 
+  // Photo modal
+  const [photoModal, setPhotoModal] = useState<{ saleId: string; defaultTitle: string } | null>(null);
+
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -202,6 +209,17 @@ export function CalendarClient() {
     router.replace(`/calendar?date=${format(date, 'yyyy-MM-dd')}`, { scroll: false });
   }
 
+  const fetchPhotoStatus = useCallback(async (reservationsData: typeof reservations) => {
+    const saleIds = reservationsData.map(r => r.sale_id).filter(Boolean) as string[];
+    if (saleIds.length === 0) { setSaleIdsWithPhotos(new Set()); return; }
+    try {
+      const ids = await getSaleIdsWithPhotos([...new Set(saleIds)]);
+      setSaleIdsWithPhotos(new Set(ids));
+    } catch {
+      // 사진 상태 조회 실패는 무시
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -211,11 +229,12 @@ export function CalendarClient() {
       ]);
       setReservations(reservationsData);
       setCalendarEvents(eventsData);
+      fetchPhotoStatus(reservationsData);
     } catch {
       toast.error('데이터를 불러오지 못했습니다');
     }
     setIsLoading(false);
-  }, [monthStr]);
+  }, [monthStr, fetchPhotoStatus]);
 
   // 로딩 표시 없이 데이터만 조용히 갱신 (토글 등 간단한 변경용)
   const refreshData = useCallback(async () => {
@@ -226,10 +245,11 @@ export function CalendarClient() {
       ]);
       setReservations(reservationsData);
       setCalendarEvents(eventsData);
+      fetchPhotoStatus(reservationsData);
     } catch {
       // 조용히 실패
     }
-  }, [monthStr]);
+  }, [monthStr, fetchPhotoStatus]);
 
   useEffect(() => {
     const load = async () => { await fetchData(); };
@@ -1723,7 +1743,7 @@ export function CalendarClient() {
                             {r.customer_id ? (
                               <button
                                 type="button"
-                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors"
+                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors whitespace-nowrap"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   router.push(`/customers?customerId=${r.customer_id}`);
@@ -1840,6 +1860,23 @@ export function CalendarClient() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
+                        {r.sale_id && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className={saleIdsWithPhotos.has(r.sale_id) ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
+                            onClick={() => {
+                              const catLabel = r.product_category
+                                ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
+                                : r.title;
+                              const dateStr = format(new Date(r.date), 'yy/MM/dd');
+                              setPhotoModal({ saleId: r.sale_id!, defaultTitle: `${dateStr} ${catLabel}` });
+                            }}
+                            aria-label={saleIdsWithPhotos.has(r.sale_id) ? '사진 수정' : '사진 등록'}
+                          >
+                            <ImageIcon className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -1861,6 +1898,17 @@ export function CalendarClient() {
           ) : null}
         </div>
       </div>
+
+      {/* Photo modal */}
+      {photoModal && (
+        <SalePhotoModal
+          open={!!photoModal}
+          onClose={() => setPhotoModal(null)}
+          saleId={photoModal.saleId}
+          defaultTitle={photoModal.defaultTitle}
+          onSuccess={() => { refreshData(); }}
+        />
+      )}
 
       {/* Delete reservation confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
