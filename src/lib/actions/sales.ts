@@ -43,6 +43,7 @@ export interface SalesFilters {
   category?: string;
   payment?: string;
   channel?: string;
+  search?: string;
 }
 
 async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
@@ -70,6 +71,14 @@ async function _getSales(month?: string, offset: number = 0, limit: number = SAL
   if (filters?.category) query = query.eq('product_category', filters.category);
   if (filters?.payment) query = query.eq('payment_method', filters.payment);
   if (filters?.channel) query = query.eq('reservation_channel', filters.channel);
+  if (filters?.search) {
+    // PostgREST DSL 특수문자 이스케이핑 (%, _, 쉼표, 점, 괄호)
+    const searchTerm = filters.search
+      .replace(/[%_]/g, '\\$&')
+      .replace(/[,.()"']/g, '');
+    const q = `%${searchTerm}%`;
+    query = query.or(`product_category.ilike.${q},product_name.ilike.${q},customer_name.ilike.${q}`);
+  }
 
   const { data, error } = await query;
   if (error) throw error;

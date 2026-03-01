@@ -141,16 +141,48 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     }
   }, [searchParams, router, currentYear, currentMonth]);
 
-  // 서버에서 필터 적용된 데이터 → 검색만 클라이언트에서 추가 필터
-  const filteredSales = useMemo(() => {
-    if (!searchQuery) return allSales;
+  // 검색어 디바운스 → 서버사이드 검색
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const searchVersionRef = useRef(0);
 
-    const q = searchQuery.toLowerCase();
-    return allSales.filter(s =>
-      (s.product_category || s.product_name || '').toLowerCase().includes(q) ||
-      s.customer_name?.toLowerCase().includes(q)
-    );
-  }, [allSales, searchQuery]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const filtersKey = `${initialFilters.category ?? ''}-${initialFilters.payment ?? ''}-${initialFilters.channel ?? ''}`;
+
+  useEffect(() => {
+    if (debouncedSearch === '') {
+      // 검색어가 비어지면 초기 데이터로 복원
+      setIsSearching(false);
+      dataVersionRef.current += 1;
+      setAllSales(initialSales);
+      setHasMore(initialHasMore);
+      return;
+    }
+    const version = ++searchVersionRef.current;
+    setIsSearching(true);
+    loadMoreSales(serverMonthParam, 0, { ...initialFilters, search: debouncedSearch })
+      .then(result => {
+        if (version !== searchVersionRef.current) return;
+        dataVersionRef.current += 1;
+        setAllSales(result.sales);
+        setHasMore(result.hasMore);
+      })
+      .catch(() => {
+        toast.error('검색에 실패했습니다');
+      })
+      .finally(() => {
+        if (version === searchVersionRef.current) setIsSearching(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, serverMonthParam, filtersKey, initialSales, initialHasMore]);
+
+  const filteredSales = allSales;
 
   // 서버에서 필터 적용된 요약 (페이지네이션 무관)
   const summary = initialSummary;
@@ -276,8 +308,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     const version = dataVersionRef.current;
+    const filters = debouncedSearch
+      ? { ...initialFilters, search: debouncedSearch }
+      : initialFilters;
     try {
-      const result = await loadMoreSales(serverMonthParam, allSales.length, initialFilters);
+      const result = await loadMoreSales(serverMonthParam, allSales.length, filters);
       // 로드 중 필터/네비게이션이 변경됐으면 stale 데이터 무시
       if (version !== dataVersionRef.current) return;
       setAllSales(prev => [...prev, ...result.sales]);
@@ -289,7 +324,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         setIsLoadingMore(false);
       }
     }
-  }, [isLoadingMore, hasMore, serverMonthParam, allSales.length, initialFilters]);
+  }, [isLoadingMore, hasMore, serverMonthParam, allSales.length, initialFilters, debouncedSearch]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -461,7 +496,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         paymentColors={paymentColors}
         hasActiveFilters={hasActiveFilters}
         hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
+        isLoadingMore={isLoadingMore || isSearching}
         onLoadMore={handleLoadMore}
         onSelectSale={handleSelectSale}
         onResetFilters={handleResetFilters}

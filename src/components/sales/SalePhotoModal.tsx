@@ -13,14 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Upload, Loader2, Plus, GripVertical } from 'lucide-react';
+import { X, Upload, Loader2, Plus, GripVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import imageCompression from 'browser-image-compression';
 import {
   getPhotoCardBySaleId,
   createOrUpdatePhotoCardForSale,
   uploadPhotos,
-  reorderPhotos
+  reorderPhotos,
+  deletePhotoCard,
+  deletePhotosFromStorage,
 } from '@/lib/actions/photo-cards';
 import { createPhotoTag, getPhotoTags } from '@/lib/actions/photo-tags';
 import { cn } from '@/lib/utils';
@@ -67,6 +69,8 @@ export function SalePhotoModal({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -279,6 +283,25 @@ export function SalePhotoModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (!existingCard) return;
+    setIsDeleting(true);
+    try {
+      const photos = await deletePhotoCard(existingCard.id);
+      if (photos.length > 0) {
+        await deletePhotosFromStorage(photos);
+      }
+      toast.success('사진첩이 삭제되었습니다');
+      onSuccess?.();
+      onClose();
+    } catch {
+      toast.error('삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
@@ -459,17 +482,59 @@ export function SalePhotoModal({
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isCompressing || isSubmitting}>
-                취소
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={isCompressing || isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                저장
-              </Button>
+            <div className="flex justify-between pt-4">
+              {existingCard ? (
+                showDeleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-destructive">삭제하시겠습니까?</span>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      autoFocus
+                    >
+                      {isDeleting && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                      확인
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                    >
+                      취소
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={isCompressing || isSubmitting}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1.5" />
+                    삭제
+                  </Button>
+                )
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose} disabled={isCompressing || isSubmitting || isDeleting}>
+                  취소
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isCompressing || isSubmitting || isDeleting}
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  저장
+                </Button>
+              </div>
             </div>
           </div>
         )}

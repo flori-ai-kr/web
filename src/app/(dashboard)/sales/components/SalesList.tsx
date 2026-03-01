@@ -76,7 +76,7 @@ export function SalesList({
 
     return Array.from(map.entries()).map(([date, dateSales]) => ({
       date,
-      label: format(new Date(date), 'M월 d일 (EEE)', { locale: ko }),
+      label: format(new Date(date), 'yyyy년 M월 d일 (EEE)', { locale: ko }),
       sales: dateSales,
       total: dateSales.reduce((sum, s) => s.payment_method === 'unpaid' ? sum : sum + s.amount, 0),
     }));
