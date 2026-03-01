@@ -195,7 +195,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
             {card.sale_id && (
               <Link
-                href={`/sales?highlight=${card.sale_id}`}
+                href={`/sales?saleId=${card.sale_id}`}
                 className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand hover:underline"
               >
                 <ExternalLink className="w-4 h-4" />
