@@ -25,6 +25,7 @@ import {
     ChevronRight,
     ExternalLink,
     Loader2,
+    ImageIcon,
     PackageCheck,
     Pencil,
     Plus,
@@ -66,6 +67,7 @@ import {
     updateCalendarEvent,
 } from '@/lib/actions/calendar-events';
 import {checkPhoneDuplicate, completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions';
+import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
 import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
 import type {CalendarEvent, Reservation, ReservationStatus} from '@/types/database';
@@ -167,6 +169,9 @@ export function CalendarClient() {
   const [unpaidTarget, setUnpaidTarget] = useState<(Reservation & { sale_id: string }) | null>(null);
   const [unpaidPaymentMethod, setUnpaidPaymentMethod] = useState('');
   const [isCompletingUnpaid, setIsCompletingUnpaid] = useState(false);
+
+  // Photo modal
+  const [photoModal, setPhotoModal] = useState<{ saleId: string; defaultTitle: string } | null>(null);
 
   // Calendar events
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -1723,7 +1728,7 @@ export function CalendarClient() {
                             {r.customer_id ? (
                               <button
                                 type="button"
-                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors"
+                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors whitespace-nowrap"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   router.push(`/customers?customerId=${r.customer_id}`);
@@ -1840,6 +1845,23 @@ export function CalendarClient() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
+                        {r.sale_id && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const catLabel = r.product_category
+                                ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
+                                : r.title;
+                              const dateStr = format(new Date(r.date), 'yy/MM/dd');
+                              setPhotoModal({ saleId: r.sale_id!, defaultTitle: `${dateStr} ${catLabel}` });
+                            }}
+                            aria-label="사진 등록"
+                          >
+                            <ImageIcon className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -1861,6 +1883,17 @@ export function CalendarClient() {
           ) : null}
         </div>
       </div>
+
+      {/* Photo modal */}
+      {photoModal && (
+        <SalePhotoModal
+          open={!!photoModal}
+          onClose={() => setPhotoModal(null)}
+          saleId={photoModal.saleId}
+          defaultTitle={photoModal.defaultTitle}
+          onSuccess={() => router.refresh()}
+        />
+      )}
 
       {/* Delete reservation confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
