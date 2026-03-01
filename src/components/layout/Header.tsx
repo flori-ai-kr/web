@@ -57,16 +57,17 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
 
-  // Synchronous in-app navigation tracking (no flicker)
-  const prevPathnameRef = useRef<string | null>(null);
+  // In-app navigation tracking (useEffect to satisfy react-hooks/refs)
+  const isInitialMount = useRef(true);
   const hasNavigatedRef = useRef(false);
 
-  if (prevPathnameRef.current !== pathname) {
-    if (prevPathnameRef.current !== null) {
-      hasNavigatedRef.current = true;
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
-    prevPathnameRef.current = pathname;
-  }
+    hasNavigatedRef.current = true;
+  }, [pathname]);
 
   const showNavButtons = pathname !== '/';
   const handleBack = useCallback(() => {
