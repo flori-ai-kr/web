@@ -1,27 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { Menu, Settings, Sun, Moon, LogOut, Bell, CalendarDays, Flower2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
+import {Bell, CalendarDays, ChevronLeft, ChevronRight, Flower2, LogOut, Menu, Moon, Settings, Sun} from 'lucide-react';
+import {Button} from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import {Popover, PopoverContent, PopoverTrigger,} from '@/components/ui/popover';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
-import { signOut } from '@/lib/actions/auth';
-import { getTriggeredReminders } from '@/lib/actions';
-import type { Reservation } from '@/types/database';
+import {usePathname, useRouter} from 'next/navigation';
+import {useTheme} from 'next-themes';
+import {signOut} from '@/lib/actions/auth';
+import {getTriggeredReminders} from '@/lib/actions';
+import type {Reservation} from '@/types/database';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -58,7 +54,31 @@ function getInitial(email: string): string {
 export function Header({ onMenuClick, userEmail }: HeaderProps) {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
+  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+
+  // Synchronous in-app navigation tracking (no flicker)
+  const prevPathnameRef = useRef<string | null>(null);
+  const hasNavigatedRef = useRef(false);
+
+  if (prevPathnameRef.current !== pathname) {
+    if (prevPathnameRef.current !== null) {
+      hasNavigatedRef.current = true;
+    }
+    prevPathnameRef.current = pathname;
+  }
+
+  const showNavButtons = pathname !== '/';
+  const handleBack = useCallback(() => {
+    if (hasNavigatedRef.current) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  }, [router]);
+  const handleForward = useCallback(() => {
+    window.history.forward();
+  }, []);
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -116,13 +136,37 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          {/* 모바일: 로고 + Hazel (대시보드 링크) */}
-          <Link href="/" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
-            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
-              <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
+          {/* 모바일: 대시보드면 로고, 아니면 뒤로가기 + 페이지 타이틀 */}
+          {pathname === '/' ? (
+            <Link href="/" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
+              <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
+                <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
+              </div>
+              <span className="text-base font-bold text-foreground">Hazel</span>
+            </Link>
+          ) : (
+            <div className="lg:hidden flex items-center gap-2 min-w-0">
+              {showNavButtons && (
+                <button
+                  onClick={handleBack}
+                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
+                  aria-label="뒤로 가기"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <h1 className="text-sm font-semibold text-foreground truncate">{pageTitle}</h1>
+              {showNavButtons && (
+                <button
+                  onClick={handleForward}
+                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
+                  aria-label="앞으로 가기"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
-            <span className="text-base font-bold text-foreground">Hazel</span>
-          </Link>
+          )}
           {/* 데스크탑: 페이지 타이틀 */}
           <h1 className="hidden lg:block text-sm font-semibold text-foreground truncate">
             {pageTitle}

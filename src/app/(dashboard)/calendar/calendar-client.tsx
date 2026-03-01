@@ -1,63 +1,76 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useRouter, useSearchParams} from 'next/navigation';
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  addDays,
-  subDays,
-  addMonths,
-  subMonths,
-  isSameMonth,
-  isSameDay,
-  isToday,
+    addDays,
+    addMonths,
+    endOfMonth,
+    endOfWeek,
+    format,
+    isSameDay,
+    isSameMonth,
+    isToday,
+    startOfMonth,
+    startOfWeek,
+    subDays,
+    subMonths,
 } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, X, Pencil, Trash2, Loader2, ExternalLink, BellRing, Check, CalendarDays, PackageCheck } from 'lucide-react';
-import { toast } from 'sonner';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { SuggestionInput } from '@/components/ui/suggestion-input';
+import {ko} from 'date-fns/locale';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    BellRing,
+    CalendarDays,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    ExternalLink,
+    Loader2,
+    PackageCheck,
+    Pencil,
+    Plus,
+    Trash2,
+    X
+} from 'lucide-react';
+import {toast} from 'sonner';
+
+import {Button} from '@/components/ui/button';
+import {Card, CardContent} from '@/components/ui/card';
+import {Skeleton} from '@/components/ui/skeleton';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+import {SuggestionInput} from '@/components/ui/suggestion-input';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
-import { cn, formatPhoneNumber } from '@/lib/utils';
-import { CustomerAutocomplete } from '@/components/sales/CustomerAutocomplete';
+import {cn, formatPhoneNumber} from '@/lib/utils';
+import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
 
 import {
-  getReservations,
-  createReservation,
-  updateReservation,
-  deleteReservation,
-  convertReservationToSale,
-  addPickupToSale,
-  getReservationSuggestions,
+    addPickupToSale,
+    convertReservationToSale,
+    createReservation,
+    deleteReservation,
+    getReservations,
+    getReservationSuggestions,
+    updateReservation,
 } from '@/lib/actions/reservations';
 import {
-  getCalendarEvents,
-  createCalendarEvent,
-  updateCalendarEvent,
-  deleteCalendarEvent,
+    createCalendarEvent,
+    deleteCalendarEvent,
+    getCalendarEvents,
+    updateCalendarEvent,
 } from '@/lib/actions/calendar-events';
-import { checkPhoneDuplicate, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale } from '@/lib/actions';
-import { getSaleCategories, getPaymentMethods } from '@/lib/actions/sale-settings';
-import type { SaleCategory, PaymentMethod as PaymentMethodType } from '@/lib/actions/sale-settings';
-import type { Reservation, ReservationStatus, CalendarEvent } from '@/types/database';
-import { CALENDAR_EVENT_COLORS } from '@/types/database';
-import { CHANNEL_LABELS } from '@/lib/constants';
+import {checkPhoneDuplicate, completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions';
+import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';
+import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
+import type {CalendarEvent, Reservation, ReservationStatus} from '@/types/database';
+import {CALENDAR_EVENT_COLORS} from '@/types/database';
+import {CHANNEL_LABELS} from '@/lib/constants';
 
 function formatCurrency(amount: number): string {
   if (!amount) return '';
@@ -108,17 +121,16 @@ function TimeSelect({ value, onChange, className, disabled }: {
 export function CalendarClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialDate = useMemo(() => {
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const dateParam = searchParams.get('date');
     if (dateParam) {
       const parsed = new Date(dateParam + 'T00:00:00');
       if (!isNaN(parsed.getTime())) return parsed;
     }
     return new Date();
-  }, [searchParams]);
+  });
   const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
-  const [currentMonth, setCurrentMonth] = useState(initialDate);
-  const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
+  const [currentMonth, setCurrentMonth] = useState(selectedDate);
   const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -176,7 +188,7 @@ export function CalendarClient() {
     return Array.from({ length: 5 }, (_, i) => addDays(subDays(selectedDate, 2), i));
   }, [selectedDate]);
 
-  // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화
+  // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화 + URL 반영
   function selectDate(date: Date) {
     setSelectedDate(date);
     setShowForm(false);
@@ -186,6 +198,8 @@ export function CalendarClient() {
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
+    // URL에 날짜 반영 (router.back() 시 복원용, replace로 히스토리 오염 방지)
+    router.replace(`/calendar?date=${format(date, 'yyyy-MM-dd')}`, { scroll: false });
   }
 
   const fetchData = useCallback(async () => {
