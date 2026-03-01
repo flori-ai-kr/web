@@ -14,6 +14,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션에 적용
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
+- **검색**: 서버사이드 (Supabase ilike + `SalesFilters.search`) + 클라이언트 디바운스(300ms). 검색 시 페이지네이션 리셋
 - **다크모드**: next-themes + CSS 변수 (`:root` / `.dark`) — 하드코딩 색상 금지
 - **푸시 알림**: Service Worker + Web Push API (VAPID), 예약 리마인더
 
@@ -96,8 +97,9 @@ src/
 - 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`
 - 입금 예정일: 영업일 기준 N일
 - 지출 총액: `unit_price * quantity`
-- 사진: 3MB 초과 시 자동 압축, 카드당 최대 10장, Cloudflare R2 저장 (CDN 캐싱)
+- 사진: 3MB 초과 시 자동 압축, 카드당 최대 10장, Cloudflare R2 저장 (CDN 캐싱), 매출/캘린더 양쪽에서 등록/수정/삭제 가능
 - 예약 리마인더: `reminder_at` 시간 설정 → Cron으로 푸시 알림 발송
+- 미수(외상): `payment_method='unpaid'` + `is_unpaid=true`, 결제 완료 시 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
 
 ## 컬러 시스템

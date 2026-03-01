@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-02-20
+> 최종 업데이트: 2026-03-01
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -341,6 +341,7 @@ erDiagram
         string deposit_status
         uuid customer_id FK
         string note
+        bool is_unpaid
     }
 
     expenses {
@@ -478,7 +479,7 @@ erDiagram
 | 파일 | 기능 |
 |------|------|
 | `auth.ts` | login, logout |
-| `sales.ts` | createSale, updateSale, deleteSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
+| `sales.ts` | createSale, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
 | `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성) |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
@@ -497,7 +498,7 @@ erDiagram
 
 ```typescript
 // src/types/database.ts
-type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay'
+type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay' | 'unpaid'
 type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist'
 type CustomerGender = 'male' | 'female'
 type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' // 제작 필요 | 픽업 필요 | 픽업 완료 | 취소
@@ -512,7 +513,7 @@ interface CalendarEvent {
     description: string | null
 }
 
-interface SalesFilters { category?: string; payment?: string; channel?: string } // 서버사이드 필터
+interface SalesFilters { category?: string; payment?: string; channel?: string; search?: string } // 서버사이드 필터
 ```
 
 ---
