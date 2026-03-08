@@ -15,6 +15,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션에 적용
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
 - **검색**: 서버사이드 (Supabase ilike + `SalesFilters.search`) + 클라이언트 디바운스(300ms). 검색 시 페이지네이션 리셋
+- **네비게이션**: 데스크톱은 Sidebar, 모바일/태블릿은 BottomNav (lg 브레이크포인트 기준)
 - **다크모드**: next-themes + CSS 변수 (`:root` / `.dark`) — 하드코딩 색상 금지
 - **푸시 알림**: Service Worker + Web Push API (VAPID), 예약 리마인더
 
@@ -59,7 +60,7 @@ src/
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/       # shadcn/ui (21개)
-├── components/layout/   # AppLayout, Header, Sidebar
+├── components/layout/   # AppLayout, Header, Sidebar, BottomNav
 ├── components/theme-provider.tsx  # next-themes 프로바이더
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트

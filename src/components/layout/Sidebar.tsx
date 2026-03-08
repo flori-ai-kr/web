@@ -1,27 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import {usePathname} from 'next/navigation';
 import {
-  LayoutDashboard,
-  CalendarDays,
-  Receipt,
-  Wallet,
-  Users,
-  CreditCard,
-  X,
-  Flower2,
-  Image,
-  ChevronsLeft,
-  ChevronsRight,
+    CalendarDays,
+    ChevronsLeft,
+    ChevronsRight,
+    CreditCard,
+    Flower2,
+    Image,
+    LayoutDashboard,
+    Receipt,
+    Users,
+    Wallet,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import {cn} from '@/lib/utils';
+import {Tooltip, TooltipContent, TooltipTrigger,} from '@/components/ui/tooltip';
 
 interface NavItem {
   href: string;
@@ -56,9 +50,7 @@ const navSections: NavSection[] = [
 ];
 
 interface SidebarProps {
-  isOpen: boolean;
   isCollapsed: boolean;
-  onClose: () => void;
   onToggleCollapse: () => void;
   userEmail: string;
 }
@@ -69,19 +61,16 @@ function NavLink({
   label,
   isActive,
   isCollapsed,
-  onClick,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   isActive: boolean;
   isCollapsed: boolean;
-  onClick?: () => void;
 }) {
   const link = (
     <Link
       href={href}
-      onClick={onClick}
       className={cn(
         'relative flex items-center gap-3 rounded-lg text-[13px] font-medium transition-colors',
         isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
@@ -120,26 +109,16 @@ function getInitial(email: string): string {
   return (email[0] || '?').toUpperCase();
 }
 
-export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse, userEmail }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Desktop sidebar only — mobile uses BottomNav */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out',
-          isCollapsed ? 'w-16' : 'w-60',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-          'lg:translate-x-0'
+          'fixed left-0 top-0 z-50 h-full border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out hidden lg:block',
+          isCollapsed ? 'w-16' : 'w-60'
         )}
       >
         <div className="flex flex-col h-full">
@@ -156,9 +135,6 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse, userEm
                 <span className="text-base font-bold text-foreground truncate">Hazel</span>
               )}
             </Link>
-            <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={onClose} aria-label="사이드바 닫기">
-              <X className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Navigation */}
@@ -171,7 +147,6 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse, userEm
                 label={dashboardItem.label}
                 isActive={pathname === '/'}
                 isCollapsed={isCollapsed}
-                onClick={onClose}
               />
             </div>
 
@@ -202,8 +177,7 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse, userEm
                         label={item.label}
                         isActive={isActive}
                         isCollapsed={isCollapsed}
-                        onClick={onClose}
-                      />
+                              />
                     );
                   })}
                 </div>

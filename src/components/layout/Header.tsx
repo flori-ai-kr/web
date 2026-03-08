@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
-import {Bell, CalendarDays, ChevronLeft, ChevronRight, Flower2, LogOut, Menu, Moon, Settings, Sun} from 'lucide-react';
+import {Bell, CalendarDays, ChevronLeft, ChevronRight, Flower2, LogOut, Moon, Settings, Sun} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -20,7 +20,6 @@ import {getTriggeredReminders} from '@/lib/actions';
 import type {Reservation} from '@/types/database';
 
 interface HeaderProps {
-  onMenuClick: () => void;
   userEmail: string;
 }
 
@@ -51,7 +50,7 @@ function getInitial(email: string): string {
   return (email[0] || '?').toUpperCase();
 }
 
-export function Header({ onMenuClick, userEmail }: HeaderProps) {
+export function Header({ userEmail }: HeaderProps) {
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
   const router = useRouter();
@@ -128,15 +127,6 @@ export function Header({ onMenuClick, userEmail }: HeaderProps) {
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Left side */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden shrink-0"
-            onClick={onMenuClick}
-            aria-label="메뉴 열기"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
           {/* 모바일: 대시보드면 로고, 아니면 뒤로가기 + 페이지 타이틀 */}
           {pathname === '/' ? (
             <Link href="/" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
