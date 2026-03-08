@@ -148,6 +148,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* react-remove-scroll-bar가 body[data-scroll-locked]에 overscroll-behavior: contain을 설정함.
+     Safari는 이를 공격적으로 적용하여 fixed 자식(다이얼로그)의 스크롤까지 차단.
+     !important로 y축만 해제하여 다이얼로그 내부 터치 스크롤 허용.
+     라이브러리 업그레이드 시 재테스트 필요. */
+  body[data-scroll-locked] {
+    overscroll-behavior-y: auto !important;
+  }
 }
 
 @keyframes shimmer {
