@@ -79,7 +79,7 @@ export function ExpenseSettingsModal({
       setDeletingCatId(null);
       onRefresh();
       toast.success('카테고리가 삭제되었습니다');
-    } catch (error) {
+    } catch {
       toast.error('카테고리 삭제 실패');
     } finally {
       setIsDeletingCat(false);
@@ -88,7 +88,7 @@ export function ExpenseSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>지출 카테고리 관리</DialogTitle>
         </DialogHeader>
