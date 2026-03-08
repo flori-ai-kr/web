@@ -61,7 +61,7 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="하단 네비게이션"
     >
-      <div className="flex items-center justify-around px-1 h-14">
+      <div className="flex items-center justify-around px-1 h-14 pb-[5px]">
         {/* Left 3 items */}
         {leftItems.map((item) => (
           <NavTab key={item.href} item={item} isActive={checkActive(item)} />
