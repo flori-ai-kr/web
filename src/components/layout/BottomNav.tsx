@@ -71,7 +71,7 @@ export function BottomNav() {
         <Link
           href="/"
           className={cn(
-            'relative flex flex-col items-center justify-center min-w-0 flex-1 -mt-4'
+            'relative flex flex-col items-center justify-center min-w-0 flex-1'
           )}
           aria-label="대시보드"
         >
