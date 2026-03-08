@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-03-01
+> 최종 업데이트: 2026-03-08
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -473,6 +473,18 @@ erDiagram
 | `/login` | 로그인 | 이메일/비밀번호 |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
 | `/api/cron/scheduled-reminders` | Cron | 개별 예약 리마인더 푸시 |
+
+## 네비게이션 구조
+
+| 환경 | 컴포넌트 | 설명 |
+|------|----------|------|
+| 데스크톱 (lg+) | `Sidebar` | 좌측 고정 사이드바, 접기/펼치기 토글 |
+| 모바일/태블릿 (<lg) | `BottomNav` | 하단 고정 탭바 (7개: 캘린더, 매출, 지출, **홈**, 입금, 고객, 사진첩) |
+
+- `lg` 브레이크포인트(1024px) 기준으로 Sidebar는 `hidden lg:block`, BottomNav는 `lg:hidden`
+- BottomNav 가운데에 Flower2 로고를 사용한 홈(대시보드) 버튼 배치
+- iOS safe area 대응: `env(safe-area-inset-bottom)` 패딩 적용
+- 메인 콘텐츠에 `pb-20` (모바일), `lg:pb-8` (데스크톱) 적용하여 BottomNav와 겹침 방지
 
 ## Server Actions
 
