@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { PhotoCard as PhotoCardType, PhotoTag } from '@/types/database';
 import { PhotoCard } from './PhotoCard';
 import { Image } from 'lucide-react';
@@ -11,6 +12,9 @@ interface PhotoCardGridProps {
 }
 
 export function PhotoCardGrid({ cards, tags, onCardClick }: PhotoCardGridProps) {
+  // 태그 이름 -> 색상 맵 생성
+  const tagColorMap = useMemo(() => new Map(tags.map(t => [t.name, t.color])), [tags]);
+
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -20,9 +24,6 @@ export function PhotoCardGrid({ cards, tags, onCardClick }: PhotoCardGridProps) 
       </div>
     );
   }
-
-  // 태그 이름 -> 색상 맵 생성
-  const tagColorMap = new Map(tags.map(t => [t.name, t.color]));
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">

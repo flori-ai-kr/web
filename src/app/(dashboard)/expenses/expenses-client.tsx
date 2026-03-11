@@ -13,7 +13,7 @@ import { SuggestionInput } from '@/components/ui/suggestion-input';
 import { Plus, Search, Trash2, Loader2, Wallet, Pencil, Settings, ShoppingCart, Truck, Megaphone, Home, Zap, Package } from 'lucide-react';
 import { ExpensesList } from './components/ExpensesList';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { toast } from 'sonner';
 import { createExpense, updateExpense, deleteExpense, getExpenseSuggestions } from '@/lib/actions/expenses';
 import { ExpenseCategory, ExpensePaymentMethod, getExpenseCategories, getExpensePaymentMethods } from '@/lib/actions/expense-settings';
@@ -26,16 +26,21 @@ import type { ExportConfig } from '@/lib/export';
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-// 카테고리별 아이콘
-const categoryIcons: Record<string, React.ReactNode> = {
-  flower_purchase: <ShoppingCart className="h-4 w-4" />,
-  delivery: <Truck className="h-4 w-4" />,
-  advertising: <Megaphone className="h-4 w-4" />,
-  rent: <Home className="h-4 w-4" />,
-  utilities: <Zap className="h-4 w-4" />,
-  supplies: <Package className="h-4 w-4" />,
-  other: <Wallet className="h-4 w-4" />,
+// 카테고리별 아이콘 컴포넌트 맵
+const CATEGORY_ICON_MAP: Record<string, typeof ShoppingCart> = {
+  flower_purchase: ShoppingCart,
+  delivery: Truck,
+  advertising: Megaphone,
+  rent: Home,
+  utilities: Zap,
+  supplies: Package,
+  other: Wallet,
 };
+
+function CategoryIcon({ category }: { category: string }) {
+  const Icon = CATEGORY_ICON_MAP[category] || Wallet;
+  return <Icon className="h-4 w-4" />;
+}
 
 interface Props {
   initialExpenses: Expense[];
@@ -287,7 +292,7 @@ export function ExpensesClient({
                   style={{ backgroundColor: `${categoryColors[cat]}20` }}
                 >
                   <span style={{ color: categoryColors[cat] }}>
-                    {categoryIcons[cat] || <Wallet className="h-4 w-4" />}
+                    <CategoryIcon category={cat} />
                   </span>
                 </div>
                 <div className="min-w-0">

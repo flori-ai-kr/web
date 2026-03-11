@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, ImageIcon, TrendingUp, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { formatCurrency } from '@/lib/utils';
 import { CHANNEL_LABELS } from '@/lib/constants';
 import type { Sale } from '@/types/database';
@@ -117,9 +117,9 @@ export function SalesList({
         <div key={group.date}>
           {/* 날짜 헤더 */}
           <div className="flex items-center gap-3 mb-3">
-            <h3 className="text-sm font-semibold text-foreground whitespace-nowrap">
+            <h2 className="text-sm font-semibold text-foreground whitespace-nowrap">
               {group.label}
-            </h3>
+            </h2>
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {group.sales.length}건 · {formatCurrency(group.total)}
@@ -131,8 +131,11 @@ export function SalesList({
             {group.sales.map((sale) => (
               <Card
                 key={sale.id}
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer hover:bg-muted/30 active:bg-muted active:scale-[0.99] transition-colors touch-manipulation"
                 onClick={() => onSelectSale(sale)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSale(sale); } }}
                 aria-label={`${categoryLabels[sale.product_category] || sale.product_category} ${formatCurrency(sale.amount)} 상세 보기`}
               >
                 <CardContent className="px-4 py-3">

@@ -18,7 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import Link from 'next/link';
 import { RESERVATION_STATUS } from '@/types/database';
 import type { Reservation, Sale } from '@/types/database';
@@ -100,7 +100,7 @@ const paymentLabels: Record<string, string> = {
 export function DashboardClient() {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthOptions = getMonthOptions();
+  const monthOptions = useMemo(() => getMonthOptions(), []);
 
   // Today data (doesn't change with month selector)
   const [todaySummary, setTodaySummary] = useState<DashboardSummary | null>(null);

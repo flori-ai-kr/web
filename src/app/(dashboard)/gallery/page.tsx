@@ -1,6 +1,6 @@
 import { getPhotoCards } from '@/lib/actions/photo-cards';
 import { getPhotoTags } from '@/lib/actions/photo-tags';
-import { getCustomers } from '@/lib/actions';
+import { getCustomers } from '@/lib/actions/customers';
 import { GalleryClient } from './gallery-client';
 
 export default async function GalleryPage() {

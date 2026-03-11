@@ -80,7 +80,7 @@ export async function GET(request: Request) {
 
     if (reminderError) {
       console.error('Failed to fetch scheduled reminders:', reminderError);
-      return NextResponse.json({ error: reminderError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     if (!reminders || reminders.length === 0) {
@@ -214,7 +214,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Scheduled reminders error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

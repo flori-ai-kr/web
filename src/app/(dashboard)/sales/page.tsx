@@ -42,16 +42,14 @@ export default async function SalesPage({
     channel: params.channel || undefined,
   };
 
-  const [salesResult, summary, categories, payments, cardCompanies] = await Promise.all([
+  const [salesResult, summary, categories, payments, cardCompanies, initialSelectedSale] = await Promise.all([
     getSales(monthParam, 0, 100, filters),
     getSalesSummary(monthParam, filters),
     getSaleCategories(),
     getPaymentMethods(),
     getCardCompanySettings(),
+    params.saleId ? getSaleById(params.saleId) : Promise.resolve(null),
   ]);
-
-  // saleId가 있으면 해당 매출 정보 가져오기
-  const initialSelectedSale = params.saleId ? await getSaleById(params.saleId) : null;
 
   return (
     <SalesClient

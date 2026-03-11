@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight, Edit, Trash2, Loader2, Download, ExternalLin
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { toast } from 'sonner';
 import { deletePhotoCard, deletePhotosFromStorage, downloadPhoto, downloadAllPhotos } from '@/lib/actions/photo-cards';
 

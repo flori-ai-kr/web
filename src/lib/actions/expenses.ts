@@ -9,6 +9,7 @@ import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 
 async function _getExpenses(month?: string) {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -29,6 +30,7 @@ async function _getExpenses(month?: string) {
 export const getExpenses = withErrorLogging('getExpenses', _getExpenses);
 
 async function _getExpenseById(id: string): Promise<Expense | null> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('expenses')

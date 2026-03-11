@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
+import { uuidSchema } from '@/lib/validations';
 
 export interface SaleCategory {
   id: string;
@@ -25,6 +26,7 @@ export interface PaymentMethod {
 
 // 카테고리 조회
 async function _getSaleCategories(): Promise<SaleCategory[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('sale_categories')
@@ -76,6 +78,8 @@ export const createSaleCategory = withErrorLogging('createSaleCategory', _create
 // 카테고리 수정
 async function _updateSaleCategory(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
   const { error } = await supabase
     .from('sale_categories')
@@ -97,6 +101,8 @@ export const updateSaleCategory = withErrorLogging('updateSaleCategory', _update
 // 카테고리 삭제
 async function _deleteSaleCategory(id: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
   const { error } = await supabase
     .from('sale_categories')
@@ -112,6 +118,7 @@ export const deleteSaleCategory = withErrorLogging('deleteSaleCategory', _delete
 
 // 결제방식 조회
 async function _getPaymentMethods(): Promise<PaymentMethod[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('payment_methods')
@@ -164,6 +171,8 @@ export const createPaymentMethod = withErrorLogging('createPaymentMethod', _crea
 // 결제방식 수정 (value는 수정 불가 - CHECK 제약조건 때문)
 async function _updatePaymentMethod(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
   const { error } = await supabase
     .from('payment_methods')
@@ -185,6 +194,8 @@ export const updatePaymentMethod = withErrorLogging('updatePaymentMethod', _upda
 // 결제방식 삭제
 async function _deletePaymentMethod(id: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
   const { error } = await supabase
     .from('payment_methods')

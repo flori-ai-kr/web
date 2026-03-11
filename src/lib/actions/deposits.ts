@@ -14,6 +14,7 @@ export interface DepositsFilter {
 }
 
 async function _getDeposits(filter: DepositsFilter = {}): Promise<Sale[]> {
+  await requireAuth();
   const supabase = await createClient();
   
   let query = supabase
@@ -134,6 +135,7 @@ export interface DepositsSummary {
 }
 
 async function _getDepositsSummary(month?: string): Promise<DepositsSummary> {
+  await requireAuth();
   const supabase = await createClient();
   
   let query = supabase

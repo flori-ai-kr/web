@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ImageIcon, Pencil, Trash2, ExternalLink, CalendarDays, Check, PackageCheck } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { formatCurrency } from '@/lib/utils';
 import { CHANNEL_LABELS } from '@/lib/constants';
 import type { Sale, PhotoCard, Reservation } from '@/types/database';

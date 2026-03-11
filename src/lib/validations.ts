@@ -123,13 +123,18 @@ const ALLOWED_IMAGE_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
 ];
 
+const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+
 export function validateImageFile(file: File): string | null {
+  if (file.size > MAX_IMAGE_FILE_SIZE) {
+    return `파일 크기는 5MB 이하여야 합니다 (현재: ${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+  }
   const ext = file.name.split('.').pop()?.toLowerCase();
   if (!ext || !ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
     return `허용되지 않는 파일 형식입니다: .${ext || '(없음)'}`;
   }
-  if (file.type && !ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
-    return `허용되지 않는 MIME 타입입니다: ${file.type}`;
+  if (!file.type || !ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
+    return `허용되지 않는 MIME 타입입니다: ${file.type || '(없음)'}`;
   }
   return null;
 }

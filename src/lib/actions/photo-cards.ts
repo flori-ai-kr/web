@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { PhotoCard, PhotoFile } from '@/types/database';
-import { validateImageFile, photoCardSchema } from '@/lib/validations';
+import { validateImageFile, photoCardSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { reportError } from '@/lib/logger';
 import { uploadFile, deleteFileByUrl, deleteFilesByUrls, getSignedDownloadUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
@@ -23,6 +23,7 @@ async function _getPhotoCards(
   cursor?: string,
   customerId?: string
 ): Promise<PhotoCardsResponse> {
+  await requireAuth();
   const supabase = await createClient();
 
   // 고객 필터가 있으면 sales 테이블 JOIN으로 photo_cards를 조회
@@ -96,6 +97,9 @@ async function _getPhotoCards(
 export const getPhotoCards = withErrorLogging('getPhotoCards', _getPhotoCards);
 
 async function _getPhotoCardById(id: string): Promise<PhotoCard | null> {
+  await requireAuth();
+  const idParsed = uuidSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -232,6 +236,8 @@ export const deletePhotoCard = withErrorLogging('deletePhotoCard', _deletePhotoC
 
 async function _uploadPhotos(cardId: string, formData: FormData): Promise<PhotoFile[]> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   // Get current card to check photo count
@@ -288,6 +294,8 @@ export const uploadPhotos = withErrorLogging('uploadPhotos', _uploadPhotos);
 
 async function _deletePhoto(cardId: string, photoUrl: string): Promise<void> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   // Get current card
@@ -337,6 +345,8 @@ export const deletePhotosFromStorage = withErrorLogging('deletePhotosFromStorage
 
 async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -370,6 +380,8 @@ export const downloadPhoto = withErrorLogging('downloadPhoto', _downloadPhoto);
 
 async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: string; filename: string }> }> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { data: card } = await supabase
@@ -394,6 +406,9 @@ export const downloadAllPhotos = withErrorLogging('downloadAllPhotos', _download
 
 
 async function _getPhotoCardBySaleId(saleId: string): Promise<PhotoCard | null> {
+  await requireAuth();
+  const idParsed = uuidSchema.safeParse(saleId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { data, error } = await supabase

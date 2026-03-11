@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth-guard';
 import type { PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
 import { withErrorLogging } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
@@ -46,6 +47,7 @@ export interface ExpenseCategoryStat {
 
 
 async function _getCategoryStats(month?: string): Promise<CategoryStat[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -85,6 +87,7 @@ async function _getCategoryStats(month?: string): Promise<CategoryStat[]> {
 export const getCategoryStats = withErrorLogging('getCategoryStats', _getCategoryStats);
 
 async function _getPaymentMethodStats(month?: string): Promise<PaymentMethodStat[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -126,6 +129,7 @@ export const getPaymentMethodStats = withErrorLogging('getPaymentMethodStats', _
 
 
 async function _getChannelStats(month?: string): Promise<ChannelStat[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -166,6 +170,7 @@ async function _getChannelStats(month?: string): Promise<ChannelStat[]> {
 export const getChannelStats = withErrorLogging('getChannelStats', _getChannelStats);
 
 async function _getCustomerStats(month?: string): Promise<CustomerStat> {
+  await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
@@ -218,6 +223,7 @@ export const getCustomerStats = withErrorLogging('getCustomerStats', _getCustome
 
 
 async function _getExpenseCategoryStats(month?: string): Promise<ExpenseCategoryStat[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -262,6 +268,7 @@ export interface MonthlySalesTrend {
 }
 
 async function _getMonthlySalesTrend(months: number = 6): Promise<MonthlySalesTrend[]> {
+  await requireAuth();
   const supabase = await createClient();
   const now = new Date();
 
@@ -311,6 +318,7 @@ export interface DailySalesTrend {
 }
 
 async function _getDailySalesTrend(month?: string): Promise<DailySalesTrend[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 

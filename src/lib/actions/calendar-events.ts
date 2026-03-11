@@ -8,6 +8,7 @@ import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
 
 async function _getCalendarEvents(month: string): Promise<CalendarEvent[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 
