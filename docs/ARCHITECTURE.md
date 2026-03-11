@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-03-08
+> 최종 업데이트: 2026-03-11
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -18,7 +18,7 @@ graph TB
     subgraph NextServer["Next.js Server"]
         MW["Middleware<br/>세션 갱신 + 인증 리다이렉트"]
         SC["Server Components<br/>(page.tsx)<br/>초기 데이터 fetch → props 전달"]
-        SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + withErrorLogging()"]
+        SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + UUID검증 + withErrorLogging()"]
         CR["Cron Routes<br/>(api/cron/)<br/>예약 리마인더 푸시"]
     end
 
@@ -235,6 +235,8 @@ CUD(Create/Update/Delete) 후 `router.refresh()`를 호출하면 Server Componen
 
 함수형 API(`format`, `addDays`, `startOfMonth`)가 tree-shaking에 유리하다. 한국어 locale(`ko`)을 완벽 지원한다. `react-day-picker`(캘린더 컴포넌트)가 date-fns 기반이라 의존성이 통일된다. Moment.js는 deprecated이고, Day.js는 locale 플러그인 관리가 번거롭다. Temporal API는 아직 브라우저 지원이 불완전하다.
 
+**로케일 추상화**: `src/lib/date-locale.ts`에서 `ko`를 re-export한다. 모든 컴포넌트는 `@/lib/date-locale`에서 import한다. 향후 라이브러리 교체 시 단일 변경점이 된다.
+
 ---
 
 ### browser-image-compression (이미지 압축)
@@ -292,7 +294,7 @@ sequenceDiagram
 
 인증은 3중 방어로 구성된다:
 1. **Middleware**: 비인증 사용자를 `/login`으로 리다이렉트 (페이지 접근 차단)
-2. **requireAuth()**: 모든 CUD Server Action에서 인증 확인 (액션 실행 차단)
+2. **requireAuth()**: **읽기 포함 모든** Server Action에서 인증 확인 (액션 실행 차단)
 3. **RLS**: `auth.uid() = user_id` 정책으로 DB 레벨에서 데이터 격리 (최종 방어선)
 
 ---
@@ -537,15 +539,17 @@ interface SalesFilters { category?: string; payment?: string; channel?: string; 
 | 레이어 | 구현 | 방어 대상 |
 |--------|------|-----------|
 | **Middleware** | Supabase Auth 쿠키 검증 + 리다이렉트 | 비인증 페이지 접근 |
-| **requireAuth()** | 모든 CUD Server Action에서 호출 | 비인증 데이터 변경 |
+| **requireAuth()** | 읽기 포함 모든 Server Action에서 호출 | 비인증 데이터 접근/변경 |
 | **RLS** | `auth.uid() = user_id` (11개 테이블, CRUD별 분리) | DB 레벨 데이터 격리 (멀티테넌시) |
-| **Zod 검증** | `src/lib/validations.ts` 스키마 | 잘못된 입력 데이터 |
+| **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
+| **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |
+| **파일 검증** | 서버 사이드 5MB 제한 + 확장자/MIME 타입 검증 | 악성 파일 업로드 |
 | **R2 서버 업로드** | S3 API 키 서버 전용, 클라이언트에 키 미노출 | 무단 파일 업로드 |
 | **SQL 인젝션 방지** | `.eq()` 분리 사용, `.or()` 문자열 보간 금지, ilike 이스케이프 | SQL 인젝션 |
 | **보안 헤더** | X-Frame-Options, X-Content-Type-Options, HSTS, CSP 등 6종 | XSS, 클릭재킹 |
 | **CSP** | Supabase + R2 도메인만 허용 (img-src, connect-src) | 외부 리소스 로드 |
 | **Server Actions** | bodySizeLimit 10MB | 대용량 공격 |
-| **Cron 인증** | `CRON_SECRET` 헤더 검증 | Cron 엔드포인트 외부 호출 |
+| **Cron 인증** | `CRON_SECRET` 헤더 검증 (프로덕션: 16자 이상 필수), 에러 응답 정보 최소화 | Cron 엔드포인트 외부 호출 |
 | **에러 로깅** | Discord 웹훅 (민감 정보 제거, 5분 중복 제거) | 에러 모니터링 |
 
 ---
@@ -598,7 +602,7 @@ export const createSale = withErrorLogging('createSale', async (data) => {
   - 배경: Warm Cream `#FAFAF8` / Dark `#1A1A19`
 - **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
 - **라운딩**: `--radius: 0.75rem`
-- **접근성**: icon button `aria-label`, `inputMode`, `autoComplete`, `prefers-reduced-motion`
+- **접근성**: icon button `aria-label`, 클릭 가능 Card `role="button"` + 키보드 핸들러, 의미 있는 이미지 alt, `inputMode`, `autoComplete`, `prefers-reduced-motion`
 
 ---
 
@@ -634,7 +638,8 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 공개 키 |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push 공개키 (클라이언트) |
 | `VAPID_PRIVATE_KEY` | Web Push 비밀키 (서버) |
-| `CRON_SECRET` | Cron 라우트 인증 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Cron에서 RLS 우회 |
+| `CRON_SECRET` | Cron 라우트 인증 (프로덕션 16자+) |
 | `DISCORD_WEBHOOK_URL` | 에러 로깅 웹훅 |
 | `R2_ACCOUNT_ID` | Cloudflare 계정 ID |
 | `R2_ACCESS_KEY_ID` | R2 API 토큰 Access Key |
@@ -676,7 +681,7 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 
 ---
 
-## 핵심 의존성 버전 (2026-02-20 기준)
+## 핵심 의존성 버전 (2026-03-11 기준)
 
 | 패키지 | 버전 | 용도 |
 |--------|------|------|

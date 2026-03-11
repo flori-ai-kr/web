@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth-guard';
 import type { Sale, Reservation, PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
 import type {
   CategoryStat,
@@ -25,6 +26,7 @@ export interface DashboardSummary {
 }
 
 async function _getTodaySummary(): Promise<DashboardSummary> {
+  await requireAuth();
   const supabase = await createClient();
   const today = getTodayKST();
 
@@ -82,6 +84,7 @@ export const getTodaySummary = withErrorLogging('getTodaySummary', _getTodaySumm
 
 
 async function _getRecentSales(limit: number = 10): Promise<Sale[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -98,6 +101,7 @@ async function _getRecentSales(limit: number = 10): Promise<Sale[]> {
 export const getRecentSales = withErrorLogging('getRecentSales', _getRecentSales);
 
 async function _getMonthSummary(month?: string): Promise<DashboardSummary> {
+  await requireAuth();
   const supabase = await createClient();
 
   let startDate: string;
@@ -165,6 +169,7 @@ export interface DashboardTodayData {
 
 /** 오늘 대시보드 데이터를 단일 Server Action으로 조회 (4개 병렬 DB 쿼리) */
 async function _getDashboardTodayData(): Promise<DashboardTodayData> {
+  await requireAuth();
   const supabase = await createClient();
   const today = getTodayKST();
 
@@ -204,6 +209,7 @@ export interface DashboardMonthData {
 
 /** 월별 대시보드 데이터를 단일 Server Action으로 조회 (2~3개 DB 쿼리) */
 async function _getDashboardMonthData(month?: string): Promise<DashboardMonthData> {
+  await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 

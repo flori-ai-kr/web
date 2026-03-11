@@ -10,6 +10,7 @@ import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
 
 async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);
 

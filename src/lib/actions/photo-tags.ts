@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth-guard';
 import { PhotoTag } from '@/types/database';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
+import { uuidSchema } from '@/lib/validations';
 
 async function _getPhotoTags(): Promise<PhotoTag[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -63,6 +65,8 @@ export const createPhotoTag = withErrorLogging('createPhotoTag', _createPhotoTag
 
 async function _updatePhotoTag(id: string, name: string, color: string): Promise<void> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const trimmedName = name.trim();
@@ -87,6 +91,8 @@ export const updatePhotoTag = withErrorLogging('updatePhotoTag', _updatePhotoTag
 
 async function _deletePhotoTag(id: string): Promise<void> {
   await requireAuth();
+  const idParsed = uuidSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   // 먼저 태그 이름 가져오기

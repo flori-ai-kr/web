@@ -82,7 +82,7 @@ export async function GET(request: Request) {
 
     if (resError) {
       console.error('Failed to fetch reservations:', resError);
-      return NextResponse.json({ error: resError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     if (!reservations || reservations.length === 0) {
@@ -200,7 +200,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Daily reminder error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

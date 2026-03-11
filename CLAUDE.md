@@ -8,11 +8,11 @@
 page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 ```
 
-- **Server Actions**: `src/lib/actions/` — `'use server'`, throw 패턴 (withErrorLogging 래퍼)
+- **Server Actions**: `src/lib/actions/` — `'use server'`, throw 패턴 (withErrorLogging 래퍼), 직접 import 사용 (barrel import 금지)
 - **에러 처리**: `withErrorLogging()` 래퍼 → AppError(예상된 에러) / Unknown(Discord 로깅)
-- **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드
+- **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드 (읽기 포함 모든 액션에 적용)
 - **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
-- **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션에 적용
+- **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션 + ID 파라미터 UUID 검증 + 파일 크기 5MB 제한
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
 - **검색**: 서버사이드 (Supabase ilike + `SalesFilters.search`) + 클라이언트 디바운스(300ms). 검색 시 페이지네이션 리셋
 - **네비게이션**: 데스크톱은 Sidebar, 모바일/태블릿은 BottomNav (lg 브레이크포인트 기준)
@@ -26,7 +26,10 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - 삭제는 Dialog 사용 (`confirm()` 금지)
 - 금액: `AmountInput` 컴포넌트, 전화번호: 자동 포맷팅 + `inputMode="tel"`
 - 아이콘 버튼: `aria-label` 필수
+- 클릭 가능한 Card: `role="button"` + `tabIndex={0}` + `onKeyDown` (Enter/Space) + `aria-label`
+- 이미지 alt: 의미 있는 설명 (`alt=""` 금지)
 - 애니메이션: `transition-all` 금지 → 구체적 속성 명시 (`transition-colors` 등)
+- date-fns locale: `@/lib/date-locale`에서 import (`date-fns/locale` 직접 import 금지)
 - 통계 데이터: DB 하드코딩 금지, 실시간 집계
 - toast: `sonner` — `toast.success()` / `toast.error()`
 - UI 컴포넌트: `@/components/ui/*` (shadcn/ui), 아이콘: `lucide-react`
@@ -65,14 +68,16 @@ src/
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
-├── lib/actions/         # Server Actions (15개, barrel: index.ts)
+├── lib/actions/         # Server Actions (15개, 직접 import)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts
 ├── lib/errors.ts        # AppError, ErrorCode, withErrorLogging()
 ├── lib/logger.ts        # reportError() → Discord 웹훅
-├── lib/validations.ts   # Zod 스키마
+├── lib/validations.ts   # Zod 스키마 + 이미지 파일 검증
+├── lib/date-locale.ts   # date-fns 로케일 추상화 (ko)
 ├── lib/auth-guard.ts    # requireAuth()
+├── lib/env.ts           # 환경변수 Zod 검증
 ├── lib/utils.ts         # cn(), formatPhoneNumber(), getMonthDateRange() 등
 ├── lib/export.ts        # ExportConfig<T> 제네릭, CSV/Excel/PDF 내보내기
 ├── types/database.ts    # 전체 타입 정의

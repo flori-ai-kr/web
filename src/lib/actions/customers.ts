@@ -8,6 +8,7 @@ import { customerSchema, uuidSchema, searchQuerySchema, customerGradeSchema } fr
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 
 async function _getCustomers() {
+  await requireAuth();
   const supabase = await createClient();
 
   // 고객 + 매출 통계를 DB에서 집계 (RPC)
@@ -95,6 +96,7 @@ async function _getCustomers() {
 export const getCustomers = withErrorLogging('getCustomers', _getCustomers);
 
 async function _getCustomerById(id: string) {
+  await requireAuth();
   const supabase = await createClient();
 
   // 고객 정보 + 매출 통계를 병렬로 조회
@@ -294,6 +296,7 @@ export const getCustomerSales = withErrorLogging('getCustomerSales', _getCustome
 async function _searchCustomersByName(query: string) {
   if (!query || query.length < 1) return [];
 
+  await requireAuth();
   const supabase = await createClient();
 
   // PostgREST 와일드카드 이스케이프 (%, _, \)

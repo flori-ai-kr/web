@@ -24,7 +24,9 @@ const serverEnvSchema = z.object({
   VAPID_SUBJECT: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  CRON_SECRET: z.string().min(1).optional(),
+  CRON_SECRET: process.env.NODE_ENV === 'production'
+    ? z.string().min(16, 'CRON_SECRET은 프로덕션에서 16자 이상이어야 합니다')
+    : z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

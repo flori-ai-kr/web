@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging } from '@/lib/errors';
+import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
+import { uuidSchema } from '@/lib/validations';
 
 export interface ExpenseCategory {
   id: string;
@@ -41,6 +42,7 @@ const DEFAULT_PAYMENTS: Omit<ExpensePaymentMethod, 'id' | 'created_at'>[] = [
 ];
 
 async function _getExpenseCategories(): Promise<ExpenseCategory[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('expense_categories')
@@ -61,6 +63,7 @@ async function _getExpenseCategories(): Promise<ExpenseCategory[]> {
 export const getExpenseCategories = withErrorLogging('getExpenseCategories', _getExpenseCategories);
 
 async function _getExpensePaymentMethods(): Promise<ExpensePaymentMethod[]> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('expense_payment_methods')
@@ -112,6 +115,8 @@ export const createExpenseCategory = withErrorLogging('createExpenseCategory', _
 
 async function _updateExpenseCategory(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -128,6 +133,8 @@ export const updateExpenseCategory = withErrorLogging('updateExpenseCategory', _
 
 async function _deleteExpenseCategory(id: string): Promise<void> {
   await requireAuth();
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
   const { error } = await supabase

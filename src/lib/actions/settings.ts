@@ -4,11 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { CardCompanySetting } from '@/types/database';
 import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging } from '@/lib/errors';
+import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
+import { uuidSchema } from '@/lib/validations';
 
 // ============ Card Company Settings ============
 
 async function _getCardCompanySettings(): Promise<CardCompanySetting[]> {
+  await requireAuth();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -28,6 +30,9 @@ async function _updateCardCompanySetting(
   updates: { fee_rate?: number; deposit_days?: number }
 ): Promise<void> {
   await requireAuth();
+
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const supabase = await createClient();
 
@@ -66,6 +71,9 @@ export const createCardCompanySetting = withErrorLogging('createCardCompanySetti
 
 async function _deleteCardCompanySetting(id: string): Promise<void> {
   await requireAuth();
+
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const supabase = await createClient();
 
@@ -138,6 +146,9 @@ async function _updateProductCategory(
 ): Promise<void> {
   await requireAuth();
 
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -153,6 +164,9 @@ export const updateProductCategory = withErrorLogging('updateProductCategory', _
 
 async function _deleteProductCategory(id: string): Promise<void> {
   await requireAuth();
+
+  const parsed = uuidSchema.safeParse(id);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const supabase = await createClient();
 
@@ -174,6 +188,12 @@ async function _saveAllSettings(
   categories: string[]
 ): Promise<void> {
   await requireAuth();
+
+  // 카드 설정 ID 검증
+  for (const setting of cardSettings) {
+    const parsed = uuidSchema.safeParse(setting.id);
+    if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  }
 
   const supabase = await createClient();
 

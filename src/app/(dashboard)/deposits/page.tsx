@@ -36,7 +36,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { getDeposits, confirmMultipleDeposits, revertDeposit } from '@/lib/actions/deposits';
@@ -79,7 +79,7 @@ export default function DepositsPage() {
   const [cardFilter, setCardFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const monthOptions = getMonthOptions();
+  const monthOptions = useMemo(() => getMonthOptions(), []);
 
   // Fetch data via server action
   useEffect(() => {
@@ -212,13 +212,13 @@ export default function DepositsPage() {
     }
   };
 
-  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+  const renderSortButton = (field: SortField, label: string) => (
     <button
       onClick={() => toggleSort(field)}
       className="flex items-center gap-1 hover:text-foreground transition-colors"
-      aria-label={`${children} 정렬`}
+      aria-label={`${label} 정렬`}
     >
-      {children}
+      {label}
       <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-foreground' : 'text-muted-foreground/50'}`} aria-hidden="true" />
     </button>
   );
@@ -422,15 +422,15 @@ export default function DepositsPage() {
                                 />
                               </TableHead>
                               <TableHead className="w-[90px]">
-                                <SortButton field="date">날짜</SortButton>
+                                {renderSortButton("date", "날짜")}
                               </TableHead>
                               <TableHead>상품</TableHead>
                               <TableHead>고객</TableHead>
                               <TableHead className="w-[100px]">
-                                <SortButton field="card_company">카드사</SortButton>
+                                {renderSortButton("card_company", "카드사")}
                               </TableHead>
                               <TableHead className="text-right w-[110px]">
-                                <SortButton field="amount">결제금액</SortButton>
+                                {renderSortButton("amount", "결제금액")}
                               </TableHead>
                               <TableHead className="text-right w-[110px]" title="결제금액에서 카드 수수료를 뺀 금액">예상입금</TableHead>
                               <TableHead className="w-[90px]" title="영업일 기준 입금 예정일">입금예정</TableHead>
@@ -583,15 +583,15 @@ export default function DepositsPage() {
                           <TableHeader>
                             <TableRow className="bg-muted/40 hover:bg-muted/40">
                               <TableHead className="w-[90px] pl-4">
-                                <SortButton field="date">날짜</SortButton>
+                                {renderSortButton("date", "날짜")}
                               </TableHead>
                               <TableHead>상품</TableHead>
                               <TableHead>고객</TableHead>
                               <TableHead className="w-[100px]">
-                                <SortButton field="card_company">카드사</SortButton>
+                                {renderSortButton("card_company", "카드사")}
                               </TableHead>
                               <TableHead className="text-right w-[110px]">
-                                <SortButton field="amount">입금액</SortButton>
+                                {renderSortButton("amount", "입금액")}
                               </TableHead>
                               <TableHead className="w-[100px]">입금일</TableHead>
                               <TableHead className="w-10 pr-4" />

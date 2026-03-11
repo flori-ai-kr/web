@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 
 interface PhotoCardProps {
   card: PhotoCardType;
@@ -49,7 +49,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
             <div key={i} className="relative w-full h-full">
               <Image
                 src={photo.url}
-                alt=""
+                alt={`${card.title} 사진 ${i + 1}`}
                 fill
                 sizes="(max-width: 640px) 25vw, (max-width: 1024px) 16vw, (max-width: 1280px) 12vw, 10vw"
                 className="object-cover"
@@ -66,7 +66,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
           <div className="relative w-1/2 h-full">
             <Image
               src={photos[0].url}
-              alt=""
+              alt={`${card.title} 사진 1`}
               fill
               sizes="(max-width: 640px) 25vw, (max-width: 1024px) 16vw, (max-width: 1280px) 12vw, 10vw"
               className="object-cover"
@@ -76,7 +76,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
             <div className="relative w-full h-1/2">
               <Image
                 src={photos[1].url}
-                alt=""
+                alt={`${card.title} 사진 2`}
                 fill
                 sizes="(max-width: 640px) 25vw, (max-width: 1024px) 16vw, (max-width: 1280px) 12vw, 10vw"
                 className="object-cover"
@@ -85,7 +85,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
             <div className="relative w-full h-1/2">
               <Image
                 src={photos[2].url}
-                alt=""
+                alt={`${card.title} 사진 3`}
                 fill
                 sizes="(max-width: 640px) 25vw, (max-width: 1024px) 16vw, (max-width: 1280px) 12vw, 10vw"
                 className="object-cover"
@@ -103,7 +103,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
           <div key={i} className="relative overflow-hidden">
             <Image
               src={photo.url}
-              alt=""
+              alt={`${card.title} 사진 ${i + 1}`}
               fill
               sizes="(max-width: 640px) 25vw, (max-width: 1024px) 16vw, (max-width: 1280px) 12vw, 10vw"
               className="object-cover"
@@ -121,8 +121,12 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      aria-label={`${card.title} 사진 카드 보기`}
       className="group cursor-pointer overflow-hidden hover:shadow-lg transition-shadow"
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
       <div className="relative aspect-square bg-muted overflow-hidden rounded-t-lg">
         {renderCollage()}

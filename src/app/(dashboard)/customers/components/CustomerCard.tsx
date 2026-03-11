@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import type { Customer } from '@/types/database';
 

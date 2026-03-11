@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { Phone, ShoppingBag, ExternalLink, TrendingUp, Users, Pencil, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { formatCurrency } from '@/lib/utils';
 import type { Customer, Sale } from '@/types/database';
 import { gradeLabels, GenderBadge } from './CustomerCard';

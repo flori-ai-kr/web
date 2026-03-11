@@ -16,7 +16,7 @@ import {
     subDays,
     subMonths,
 } from 'date-fns';
-import {ko} from 'date-fns/locale';
+import {ko} from '@/lib/date-locale';
 import {
     BellRing,
     CalendarDays,
@@ -66,7 +66,8 @@ import {
     getCalendarEvents,
     updateCalendarEvent,
 } from '@/lib/actions/calendar-events';
-import {checkPhoneDuplicate, completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions';
+import { deleteSale, completeUnpaidSale, revertUnpaidSale, updateSale } from '@/lib/actions/sales';
+import { checkPhoneDuplicate } from '@/lib/actions/customers';
 import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
 import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
 import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';

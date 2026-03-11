@@ -8,12 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Search, Settings, Loader2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko } from '@/lib/date-locale';
 import { toast } from 'sonner';
 import { deleteSale, loadMoreSales } from '@/lib/actions/sales';
 import { getReservationsForSale } from '@/lib/actions/reservations';
 import { getPhotoCardBySaleId } from '@/lib/actions/photo-cards';
-import { SalePhotoModal } from '@/components/sales/SalePhotoModal';
+import dynamic from 'next/dynamic';
 import { SalesSettingsModal } from '@/components/sales/SalesSettingsModal';
 import { formatCurrency } from '@/lib/utils';
 import type { SalesSummary as SalesSummaryType } from '@/lib/utils';
@@ -28,6 +28,11 @@ import { SalesSummary } from './components/SalesSummary';
 import { SalesList } from './components/SalesList';
 import { SaleFormDialog } from './components/SaleFormDialog';
 import { SaleDetailDialog } from './components/SaleDetailDialog';
+
+const SalePhotoModal = dynamic(
+  () => import('@/components/sales/SalePhotoModal').then(mod => ({ default: mod.SalePhotoModal })),
+  { loading: () => null, ssr: false },
+);
 
 // Year options: 2024 ~ 2030
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);

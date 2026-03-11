@@ -16,7 +16,7 @@ import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {useTheme} from 'next-themes';
 import {signOut} from '@/lib/actions/auth';
-import {getTriggeredReminders} from '@/lib/actions';
+import {getTriggeredReminders} from '@/lib/actions/reservations';
 import type {Reservation} from '@/types/database';
 
 interface HeaderProps {

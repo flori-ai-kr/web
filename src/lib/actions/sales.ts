@@ -47,6 +47,7 @@ export interface SalesFilters {
 }
 
 async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
+  await requireAuth();
   const supabase = await createClient();
 
   let query = supabase
@@ -102,6 +103,7 @@ export const loadMoreSales = withErrorLogging('loadMoreSales', _loadMoreSales);
 
 // 요약 집계 (DB RPC로 직접 집계 — row limit 영향 없음)
 async function _getSalesSummary(month?: string, filters?: SalesFilters) {
+  await requireAuth();
   const supabase = await createClient();
 
   let startDate: string | null = null;
@@ -409,6 +411,7 @@ async function _deleteSalePhoto(saleId: string, photoUrl: string): Promise<void>
 export const deleteSalePhoto = withErrorLogging('deleteSalePhoto', _deleteSalePhoto);
 
 async function _getSaleById(id: string): Promise<Sale | null> {
+  await requireAuth();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('sales')
