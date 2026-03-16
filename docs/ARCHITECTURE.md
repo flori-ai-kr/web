@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-03-11
+> 최종 업데이트: 2026-03-16
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -485,7 +485,7 @@ erDiagram
 
 - `lg` 브레이크포인트(1024px) 기준으로 Sidebar는 `hidden lg:block`, BottomNav는 `lg:hidden`
 - BottomNav 가운데에 Flower2 로고를 사용한 홈(대시보드) 버튼 배치
-- iOS safe area 대응: `env(safe-area-inset-bottom)` 패딩 적용
+- iOS safe area 대응: `pb-[max(env(safe-area-inset-bottom),0.5rem)]` — 노치 없는 기기에서도 최소 0.5rem 보장
 - 메인 콘텐츠에 `pb-20` (모바일), `lg:pb-8` (데스크톱) 적용하여 BottomNav와 겹침 방지
 
 ## Server Actions
