@@ -8,6 +8,9 @@ const r2Hostname = new URL(env.R2_PUBLIC_URL).hostname;
 
 const nextConfig: NextConfig = {
   images: {
+    // Instagram signed URL은 며칠 뒤 만료. 최적화 캐시 30일 유지해서
+    // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: 'https',

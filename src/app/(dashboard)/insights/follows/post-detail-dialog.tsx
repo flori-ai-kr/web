@@ -85,7 +85,6 @@ export function PostDetailDialog({ post, open, onClose }: PostDetailDialogProps)
                   fill
                   sizes={images.length === 1 ? '(min-width: 768px) 768px, 100vw' : '(min-width: 768px) 33vw, 50vw'}
                   className="object-cover"
-                  unoptimized
                 />
               </a>
             ))}
