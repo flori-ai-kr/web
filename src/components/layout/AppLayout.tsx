@@ -5,15 +5,17 @@ import {Sidebar} from './Sidebar';
 import {Header} from './Header';
 import {BottomNav} from './BottomNav';
 import {cn} from '@/lib/utils';
+import type {NavItemKey} from '@/types/database';
 
 const SIDEBAR_COLLAPSED_KEY = 'hazel-sidebar-collapsed';
 
 interface AppLayoutProps {
   children: React.ReactNode;
   userEmail: string;
+  bottomNavItems?: NavItemKey[];
 }
 
-export function AppLayout({ children, userEmail }: AppLayoutProps) {
+export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -50,7 +52,7 @@ export function AppLayout({ children, userEmail }: AppLayoutProps) {
         </main>
       </div>
 
-      <BottomNav />
+      <BottomNav items={bottomNavItems} />
     </div>
   );
 }

@@ -334,3 +334,86 @@ CREATE POLICY "push_subscriptions_delete" ON push_subscriptions FOR DELETE USING
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "app_config_select" ON app_config FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "app_config_update" ON app_config FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+-- =============================================
+-- 인사이트 섹션 (트렌드 + 팔로우)
+-- 2026-04-17 추가 — 상세: supabase/migrations/2026-04-17-insights.sql
+-- =============================================
+
+-- 트렌드 기사 (공유)
+CREATE TABLE trend_articles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  category TEXT NOT NULL CHECK (category IN ('flower', 'inspiration', 'business', 'industry')),
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  key_points JSONB NOT NULL DEFAULT '[]'::jsonb,
+  source_url TEXT NOT NULL,
+  source_name TEXT,
+  published_at TIMESTAMPTZ,
+  collected_at DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_trend_articles_category ON trend_articles(category);
+CREATE INDEX idx_trend_articles_collected_at ON trend_articles(collected_at DESC);
+CREATE UNIQUE INDEX idx_trend_articles_source_url ON trend_articles(source_url);
+
+ALTER TABLE trend_articles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "trend_articles_select" ON trend_articles FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+-- Instagram 팔로우 계정 (공유)
+CREATE TABLE instagram_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT NOT NULL UNIQUE,
+  display_name TEXT,
+  profile_url TEXT NOT NULL,
+  region TEXT NOT NULL CHECK (region IN ('domestic', 'international')),
+  sort_order INT DEFAULT 0,
+  active BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_instagram_accounts_active ON instagram_accounts(active);
+CREATE INDEX idx_instagram_accounts_region ON instagram_accounts(region);
+
+CREATE TRIGGER update_instagram_accounts_updated_at
+  BEFORE UPDATE ON instagram_accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+ALTER TABLE instagram_accounts ENABLE ROW LEVEL SECURITY;
+-- SELECT만 인증 사용자에게 허용. 쓰기는 service_role(Server Action)로만 수행.
+CREATE POLICY "instagram_accounts_select" ON instagram_accounts FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+-- Instagram 포스트 (공유)
+CREATE TABLE instagram_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES instagram_accounts(id) ON DELETE CASCADE,
+  shortcode TEXT NOT NULL UNIQUE,
+  permalink TEXT NOT NULL,
+  image_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+  caption TEXT,
+  like_count INT DEFAULT 0,
+  posted_at TIMESTAMPTZ NOT NULL,
+  scraped_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_instagram_posts_account_id ON instagram_posts(account_id);
+CREATE INDEX idx_instagram_posts_posted_at ON instagram_posts(posted_at DESC);
+
+ALTER TABLE instagram_posts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "instagram_posts_select" ON instagram_posts FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+-- 유저 설정 (하단바 커스터마이즈)
+CREATE TABLE user_preferences (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  bottom_nav_items JSONB NOT NULL DEFAULT '["calendar","sales","expenses","customers","insights"]'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TRIGGER update_user_preferences_updated_at
+  BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_preferences_all" ON user_preferences FOR ALL
+  USING (auth.uid() = user_id);

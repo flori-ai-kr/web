@@ -213,3 +213,118 @@ export const PHOTO_TAG_COLORS = [
   { value: '#f97316', label: '오렌지' },
   { value: '#6b7280', label: '그레이' },
 ] as const;
+
+// ─── 인사이트 섹션 ────────────────────────────────────────────
+export type TrendCategory = 'flower' | 'inspiration' | 'business' | 'industry';
+export type InstagramRegion = 'domestic' | 'international';
+
+export interface TrendArticle {
+  id: string;
+  category: TrendCategory;
+  title: string;
+  summary: string;
+  key_points: string[];
+  source_url: string;
+  source_name: string | null;
+  published_at: string | null;
+  collected_at: string;
+  created_at: string;
+}
+
+export interface InstagramAccount {
+  id: string;
+  username: string;
+  display_name: string | null;
+  profile_url: string;
+  region: InstagramRegion;
+  sort_order: number;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InstagramPost {
+  id: string;
+  account_id: string;
+  shortcode: string;
+  permalink: string;
+  image_urls: string[];
+  caption: string | null;
+  like_count: number;
+  posted_at: string;
+  scraped_at: string;
+}
+
+export interface InstagramPostWithAccount extends InstagramPost {
+  account: InstagramAccount;
+}
+
+export const TREND_CATEGORIES = [
+  { value: 'flower', label: '꽃 트렌드', color: '#f43f5e' },
+  { value: 'inspiration', label: '영감', color: '#a855f7' },
+  { value: 'business', label: '사업 트렌드', color: '#3b82f6' },
+  { value: 'industry', label: '업계 뉴스', color: '#f59e0b' },
+] as const;
+
+export const TREND_CATEGORY_LABELS: Record<TrendCategory, string> = {
+  flower: '꽃 트렌드',
+  inspiration: '영감',
+  business: '사업 트렌드',
+  industry: '업계 뉴스',
+};
+
+export const INSTAGRAM_REGION_LABELS: Record<InstagramRegion, string> = {
+  domestic: '국내',
+  international: '해외',
+};
+
+// ─── 유저 설정 (하단바 커스터마이즈) ──────────────────────────
+export type NavItemKey =
+  | 'calendar'
+  | 'sales'
+  | 'expenses'
+  | 'customers'
+  | 'gallery'
+  | 'deposits'
+  | 'insights'
+  | 'follows';
+
+export interface UserPreferences {
+  user_id: string;
+  bottom_nav_items: NavItemKey[];
+  updated_at: string;
+}
+
+export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
+  calendar: '캘린더',
+  sales: '매출관리',
+  expenses: '지출관리',
+  customers: '고객관리',
+  gallery: '사진첩',
+  deposits: '입금대조',
+  insights: '인사이트',
+  follows: '팔로우',
+};
+
+export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
+  calendar: '/calendar',
+  sales: '/sales',
+  expenses: '/expenses',
+  customers: '/customers',
+  gallery: '/gallery',
+  deposits: '/deposits',
+  insights: '/insights',
+  follows: '/insights/follows',
+};
+
+export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [
+  'calendar',
+  'sales',
+  'expenses',
+  'customers',
+  'insights',
+];
+
+export const MIN_BOTTOM_NAV_ITEMS = 4;
+export const MAX_BOTTOM_NAV_ITEMS = 6;

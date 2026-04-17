@@ -1,6 +1,6 @@
 # Hazel Admin - 꽃집 관리 시스템
 
-꽃집(헤이즐) 매출/지출/고객/사진첩/예약을 관리하는 PWA 어드민 웹앱.
+꽃집(헤이즐) 매출/지출/고객/사진첩/예약/인사이트를 관리하는 PWA 어드민 웹앱.
 
 ## 핵심 패턴
 
@@ -15,7 +15,8 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션 + ID 파라미터 UUID 검증 + 파일 크기 5MB 제한
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
 - **검색**: 서버사이드 (Supabase ilike + `SalesFilters.search`) + 클라이언트 디바운스(300ms). 검색 시 페이지네이션 리셋
-- **네비게이션**: 데스크톱은 Sidebar, 모바일/태블릿은 BottomNav (lg 브레이크포인트 기준)
+- **네비게이션**: 데스크톱은 Sidebar, 모바일/태블릿은 BottomNav (lg 브레이크포인트 기준). BottomNav는 `user_preferences.bottom_nav_items` JSONB로 4~6개 항목을 사용자 지정 가능 (설정 → more-sheet + @dnd-kit/sortable)
+- **내부 API**: `src/app/api/internal/` — `Authorization: Bearer INTERNAL_API_KEY` (timing-safe 검증), Service Role로 RLS 우회, 외부 루틴(RemoteTrigger)에서 호출
 - **다크모드**: next-themes + CSS 변수 (`:root` / `.dark`) — 하드코딩 색상 금지
 - **푸시 알림**: Service Worker + Web Push API (VAPID), 예약 리마인더
 
@@ -54,24 +55,35 @@ src/
 │   ├── deposits/        # 입금 대조
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더
-│   ├── settings/        # 설정 (카드사 + 푸시 알림)
+│   ├── insights/        # 인사이트 (랜딩)
+│   │   ├── page.tsx / insights-client.tsx
+│   │   ├── trends/      # 트렌드 아티클 (카테고리 필터)
+│   │   └── follows/     # 인스타그램 피드 (계정별)
+│   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/api/cron/        # Vercel Cron 라우트
 │   ├── daily-reminder/  # 매일 08:00 KST 예약 요약 푸시
 │   └── scheduled-reminders/ # 개별 예약 리마인더 푸시
+├── app/api/internal/    # 내부 API (Bearer INTERNAL_API_KEY, Service Role)
+│   ├── trends/          # POST — 트렌드 아티클 수집 + 푸시 브로드캐스트
+│   ├── instagram/       # POST — 인스타그램 포스트 수집 + 푸시 브로드캐스트
+│   └── instagram-accounts/ # GET — 팔로우 계정 목록
 ├── app/login/           # 로그인
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
-├── components/ui/       # shadcn/ui (21개)
+├── components/ui/       # shadcn/ui (22개, sheet.tsx 추가)
 ├── components/layout/   # AppLayout, Header, Sidebar, BottomNav
 ├── components/theme-provider.tsx  # next-themes 프로바이더
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
-├── lib/actions/         # Server Actions (15개, 직접 import)
+├── components/insights/ # 인사이트 공통 (category-badge.tsx, PostDetailDialog)
+├── lib/actions/         # Server Actions (16개, 직접 import)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
-├── lib/supabase/        # client.ts, server.ts, middleware.ts
+├── lib/supabase/        # client.ts, server.ts, middleware.ts, service.ts (Service Role 클라이언트)
+├── lib/internal-auth.ts # Bearer INTERNAL_API_KEY timing-safe 검증
+├── lib/push-broadcast.ts # 모든 활성 구독자에게 푸시 브로드캐스트
 ├── lib/errors.ts        # AppError, ErrorCode, withErrorLogging()
 ├── lib/logger.ts        # reportError() → Discord 웹훅
 ├── lib/validations.ts   # Zod 스키마 + 이미지 파일 검증
@@ -88,8 +100,9 @@ src/
 
 ## 멀티테넌시
 
-- 10개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가
-  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions
+- 14개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 4개 추가)
+  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions, user_preferences
+  - 공유 읽기 테이블 (SELECT only, writes via service role): trend_articles, instagram_accounts, instagram_posts
 - RLS 정책: `auth.uid() = user_id` (CRUD별 분리)
 - unique 제약: 기존 단일 컬럼에서 `(column, user_id)` 복합으로 변경
   - `customers(phone, user_id)`, `card_company_settings(name, user_id)`, `photo_tags(name, user_id)`, `sale_categories(value, user_id)`, `payment_methods(value, user_id)`

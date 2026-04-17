@@ -8,9 +8,12 @@ import {
     ChevronsRight,
     CreditCard,
     Flower2,
+    Heart,
     Image,
     LayoutDashboard,
     Receipt,
+    Sparkles,
+    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -45,6 +48,14 @@ const navSections: NavSection[] = [
     items: [
       { href: '/customers', icon: Users, label: '고객관리' },
       { href: '/gallery', icon: Image, label: '사진첩' },
+    ],
+  },
+  {
+    title: '인사이트',
+    items: [
+      { href: '/insights', icon: TrendingUp, label: '인사이트' },
+      { href: '/insights/trends', icon: Sparkles, label: '트렌드' },
+      { href: '/insights/follows', icon: Heart, label: '팔로우' },
     ],
   },
 ];
@@ -112,6 +123,15 @@ function getInitial(email: string): string {
 export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
+  // 가장 구체적으로 매칭되는 항목 하나만 활성화 (중첩 라우트 대응)
+  const allHrefs: string[] = [
+    dashboardItem.href,
+    ...navSections.flatMap((s) => s.items.map((i) => i.href)),
+  ];
+  const bestMatchHref = allHrefs
+    .filter((href) => pathname === href || (href !== '/' && pathname.startsWith(href + '/')))
+    .reduce<string | null>((best, cur) => (best && best.length >= cur.length ? best : cur), null);
+
   return (
     <>
       {/* Desktop sidebar only — mobile uses BottomNav */}
@@ -145,7 +165,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
                 href={dashboardItem.href}
                 icon={dashboardItem.icon}
                 label={dashboardItem.label}
-                isActive={pathname === '/'}
+                isActive={bestMatchHref === dashboardItem.href}
                 isCollapsed={isCollapsed}
               />
             </div>
@@ -167,8 +187,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
                 {/* Items */}
                 <div className={cn('space-y-0.5', isCollapsed ? 'px-2' : 'px-3')}>
                   {section.items.map((item) => {
-                    const isActive = pathname === item.href ||
-                      (item.href !== '/' && pathname.startsWith(item.href));
+                    const isActive = bestMatchHref === item.href;
                     return (
                       <NavLink
                         key={item.href}
