@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hazel Insights — Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#E5614E',
+            sage: '#8B9D83',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; }
+    .tab-active { color: #E5614E; border-bottom-color: #E5614E !important; font-weight: 600; }
+    .cat-tab-active { background: #E5614E; color: white; }
+    .card-hover:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: box-shadow 0.2s; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Top view switcher -->
+  <div class="sticky top-0 bg-white border-b border-gray-200 z-20">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex items-center justify-between py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm">H</div>
+          <span class="font-semibold text-gray-900">Hazel Insights Mockup</span>
+        </div>
+        <div class="flex gap-2 text-xs text-gray-500">
+          <span>Mock Data</span>
+          <span>·</span>
+          <span>화면 전환 ↓</span>
+        </div>
+      </div>
+      <div class="flex gap-1">
+        <button onclick="switchView('dashboard')" class="tab px-5 py-3 border-b-2 border-transparent text-sm text-gray-600 tab-active" data-view="dashboard">
+          /insights <span class="text-gray-400 ml-1">랜딩</span>
+        </button>
+        <button onclick="switchView('trends')" class="tab px-5 py-3 border-b-2 border-transparent text-sm text-gray-600" data-view="trends">
+          /insights/trends <span class="text-gray-400 ml-1">트렌드</span>
+        </button>
+        <button onclick="switchView('follows')" class="tab px-5 py-3 border-b-2 border-transparent text-sm text-gray-600" data-view="follows">
+          /insights/follows <span class="text-gray-400 ml-1">팔로우</span>
+        </button>
+        <button onclick="switchView('mobile')" class="tab px-5 py-3 border-b-2 border-transparent text-sm text-gray-600" data-view="mobile">
+          모바일 BottomNav <span class="text-gray-400 ml-1">+ 커스터마이즈</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- ========== VIEW 1: DASHBOARD (/insights) ========== -->
+    <section id="view-dashboard">
+      <!-- Page header -->
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-brand font-medium mb-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            <span>INSIGHTS</span>
+          </div>
+          <h1 class="text-3xl font-bold text-gray-900">이번 주 인사이트</h1>
+          <p class="text-sm text-gray-500 mt-1">최근 업데이트 · 2시간 전 · 다음 수집: 금요일 08:00</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 card-hover">
+            계정 관리
+          </button>
+          <button class="px-4 py-2 bg-brand text-white rounded-lg text-sm hover:bg-brand/90">
+            지금 수집
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
+        <div class="bg-white rounded-xl p-5 border border-gray-200 card-hover">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span class="text-xs text-gray-500 font-medium">꽃 트렌드</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">3</div>
+          <div class="text-xs text-gray-400 mt-1">신규 리포트</div>
+        </div>
+        <div class="bg-white rounded-xl p-5 border border-gray-200 card-hover">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+            <span class="text-xs text-gray-500 font-medium">영감/레퍼런스</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">2</div>
+          <div class="text-xs text-gray-400 mt-1">신규 리포트</div>
+        </div>
+        <div class="bg-white rounded-xl p-5 border border-gray-200 card-hover">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span class="text-xs text-gray-500 font-medium">사업 트렌드</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">2</div>
+          <div class="text-xs text-gray-400 mt-1">신규 리포트</div>
+        </div>
+        <div class="bg-white rounded-xl p-5 border border-gray-200 card-hover">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="text-xs text-gray-500 font-medium">업계 뉴스</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">1</div>
+          <div class="text-xs text-gray-400 mt-1">신규 리포트</div>
+        </div>
+      </div>
+
+      <!-- Trend highlights -->
+      <div class="mb-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">트렌드 하이라이트</h2>
+          <button onclick="switchView('trends')" class="text-sm text-brand hover:underline">전체 보기 →</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <article class="bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-[16/9] bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center text-5xl">🌸</div>
+            <div class="p-5">
+              <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-rose-50 text-rose-700 mb-3">꽃 트렌드</span>
+              <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">2026 봄 웨딩 시즌, 작약과 라넌큘러스가 주도한다</h3>
+              <p class="text-sm text-gray-600 line-clamp-2 mb-3">글로벌 플로리스트들이 파스텔 톤 작약과 풍성한 라넌큘러스를 주요 웨딩 꽃으로 선택. 특히 '블러쉬 핑크' 계열이 SNS에서 급상승.</p>
+              <div class="flex items-center justify-between text-xs text-gray-400">
+                <span>Vogue Business</span>
+                <span>2시간 전</span>
+              </div>
+            </div>
+          </article>
+          <article class="bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-[16/9] bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center text-5xl">💐</div>
+            <div class="p-5">
+              <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-purple-50 text-purple-700 mb-3">영감</span>
+              <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">파리 플로리스트의 미니멀리즘: 3종 이하 꽃으로 완성하는 감각</h3>
+              <p class="text-sm text-gray-600 line-clamp-2 mb-3">Debeaulieu Paris가 제시하는 '3종 이하' 구성법. 꽃 수를 줄이고 형태와 높이 대비로 볼륨감 연출. 미디움 사이즈 부케에 특히 적용 가능.</p>
+              <div class="flex items-center justify-between text-xs text-gray-400">
+                <span>Floral Daily</span>
+                <span>5시간 전</span>
+              </div>
+            </div>
+          </article>
+          <article class="bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-[16/9] bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center text-5xl">📈</div>
+            <div class="p-5">
+              <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-blue-50 text-blue-700 mb-3">사업 트렌드</span>
+              <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">플라워 구독, 국내 시장 전년 대비 32% 성장</h3>
+              <p class="text-sm text-gray-600 line-clamp-2 mb-3">쿠카, 꾸까 등 정기구독 서비스가 급성장. 월 3만원대 미니 다발이 20~30대 주력. 동네 꽃집도 인근 정기배송 서비스 도입 사례 증가.</p>
+              <div class="flex items-center justify-between text-xs text-gray-400">
+                <span>매일경제</span>
+                <span>어제</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- Follow feed -->
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">팔로우 피드</h2>
+            <p class="text-xs text-gray-500 mt-0.5">16개 계정 · 신규 포스트 14건</p>
+          </div>
+          <button onclick="switchView('follows')" class="text-sm text-brand hover:underline">전체 보기 →</button>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <a class="relative group aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-rose-200 to-pink-300 card-hover cursor-pointer">
+            <div class="absolute inset-0 flex items-center justify-center text-6xl">🌺</div>
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div class="text-white text-xs font-medium">@futurejenn</div>
+              <div class="text-white/70 text-xs">1,234 ♥ · 1일 전</div>
+            </div>
+          </a>
+          <a class="relative group aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-purple-200 to-rose-200 card-hover cursor-pointer">
+            <div class="absolute inset-0 flex items-center justify-center text-6xl">🌷</div>
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div class="text-white text-xs font-medium">@ffoliar</div>
+              <div class="text-white/70 text-xs">892 ♥ · 2일 전</div>
+            </div>
+          </a>
+          <a class="relative group aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-amber-100 to-orange-200 card-hover cursor-pointer">
+            <div class="absolute inset-0 flex items-center justify-center text-6xl">🌻</div>
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div class="text-white text-xs font-medium">@yourlondonflorist</div>
+              <div class="text-white/70 text-xs">2,103 ♥ · 3일 전</div>
+            </div>
+          </a>
+          <a class="relative group aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-green-100 to-emerald-200 card-hover cursor-pointer">
+            <div class="absolute inset-0 flex items-center justify-center text-6xl">🌿</div>
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+              <div class="text-white text-xs font-medium">@dada.island</div>
+              <div class="text-white/70 text-xs">456 ♥ · 4일 전</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW 2: TRENDS (/insights/trends) ========== -->
+    <section id="view-trends" class="hidden">
+      <div class="mb-6">
+        <button onclick="switchView('dashboard')" class="text-sm text-gray-500 hover:text-brand mb-3">← 인사이트</button>
+        <h1 class="text-2xl font-bold text-gray-900">트렌드</h1>
+        <p class="text-sm text-gray-500 mt-1">주 2회 자동 수집 · 월·금 08:00</p>
+      </div>
+
+      <!-- Category tabs -->
+      <div class="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
+        <button class="cat-tab-active px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap flex items-center gap-2">
+          전체 <span class="text-xs opacity-75">8</span>
+        </button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          🌸 꽃 트렌드 <span class="text-xs text-gray-400">3</span>
+        </button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          💐 영감 <span class="text-xs text-gray-400">2</span>
+        </button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          📈 사업 트렌드 <span class="text-xs text-gray-400">2</span>
+        </button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          📰 업계 뉴스 <span class="text-xs text-gray-400">1</span>
+        </button>
+      </div>
+
+      <!-- Date group -->
+      <div class="mb-8">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">2026년 4월 17일 금요일</h3>
+        <div class="space-y-3">
+          <article class="bg-white rounded-xl border border-gray-200 p-5 card-hover cursor-pointer">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-rose-50 text-rose-700">꽃 트렌드</span>
+                <span class="text-xs text-gray-400">Vogue Business</span>
+              </div>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">2026 봄 웨딩 시즌, 작약과 라넌큘러스가 주도한다</h3>
+            <p class="text-sm text-gray-600 line-clamp-2 mb-3">글로벌 플로리스트들이 파스텔 톤 작약과 풍성한 라넌큘러스를 주요 웨딩 꽃으로 선택. 특히 '블러쉬 핑크' 계열이 SNS에서 급상승하며 올해 가장 요청이 많은 꽃으로 떠올랐다.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#작약</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#라넌큘러스</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#웨딩</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#파스텔</span>
+            </div>
+          </article>
+
+          <article class="bg-white rounded-xl border border-gray-200 p-5 card-hover cursor-pointer">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-purple-50 text-purple-700">영감</span>
+                <span class="text-xs text-gray-400">Floral Daily</span>
+              </div>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">파리 플로리스트의 미니멀리즘: 3종 이하 꽃으로 완성하는 감각</h3>
+            <p class="text-sm text-gray-600 line-clamp-2 mb-3">Debeaulieu Paris가 제시하는 '3종 이하' 구성법. 꽃 수를 줄이고 형태와 높이 대비로 볼륨감 연출. 미디움 사이즈 부케에 특히 적용 가능한 테크닉.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#미니멀</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#Debeaulieu</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#기법</span>
+            </div>
+          </article>
+
+          <article class="bg-white rounded-xl border border-gray-200 p-5 card-hover cursor-pointer">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-blue-50 text-blue-700">사업 트렌드</span>
+                <span class="text-xs text-gray-400">매일경제</span>
+              </div>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">플라워 구독, 국내 시장 전년 대비 32% 성장</h3>
+            <p class="text-sm text-gray-600 line-clamp-2 mb-3">쿠카, 꾸까 등 정기구독 서비스가 급성장. 월 3만원대 미니 다발이 20~30대 주력. 동네 꽃집도 인근 정기배송 서비스 도입 사례 증가.</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#구독</span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">#정기배송</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">2026년 4월 14일 월요일</h3>
+        <div class="space-y-3">
+          <article class="bg-white rounded-xl border border-gray-200 p-5 card-hover cursor-pointer">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="inline-block text-xs font-medium px-2 py-1 rounded-md bg-amber-50 text-amber-700">업계 뉴스</span>
+                <span class="text-xs text-gray-400">한국화훼신문</span>
+              </div>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">네덜란드 수입꽃 가격 5% 상승, 어버이날 수요 대비 필요</h3>
+            <p class="text-sm text-gray-600 line-clamp-2 mb-3">유로화 강세와 운송비 상승으로 수입꽃 단가 인상. 5월 성수기 앞두고 국산 대체품 비중 조정 권고.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW 3: FOLLOWS (/insights/follows) ========== -->
+    <section id="view-follows" class="hidden">
+      <div class="mb-6">
+        <button onclick="switchView('dashboard')" class="text-sm text-gray-500 hover:text-brand mb-3">← 인사이트</button>
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">팔로우</h1>
+            <p class="text-sm text-gray-500 mt-1">16개 계정 · 최근 7일 신규 포스트 14건</p>
+          </div>
+          <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+            + 계정 추가
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-2 mb-6">
+        <button class="cat-tab-active px-4 py-2 rounded-full text-sm font-medium">전체 <span class="text-xs opacity-75 ml-1">16</span></button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700">🌍 해외 <span class="text-xs text-gray-400 ml-1">15</span></button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-700">🇰🇷 국내 <span class="text-xs text-gray-400 ml-1">1</span></button>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="text-xs text-gray-500">정렬</span>
+          <select class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
+            <option>최신순</option>
+            <option>좋아요순</option>
+            <option>계정별</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Account group: futurejenn -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-rose-300 to-pink-400 flex items-center justify-center text-white font-bold">F</div>
+            <div>
+              <div class="font-semibold text-gray-900">@futurejenn</div>
+              <div class="text-xs text-gray-500">해외 · 최근 3건</div>
+            </div>
+          </div>
+          <a href="#" class="text-xs text-brand hover:underline">Instagram →</a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-rose-200 to-pink-300 flex items-center justify-center text-6xl">🌺</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">Spring blush bouquet with garden roses and sweet peas 🌸</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 1,234</span>
+                <span>1일 전</span>
+              </div>
+            </div>
+          </a>
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-pink-200 to-rose-300 flex items-center justify-center text-6xl">💐</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">Minimal wedding arch design, only 3 flower types but huge impact</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 2,156</span>
+                <span>3일 전</span>
+              </div>
+            </div>
+          </a>
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-rose-100 to-pink-200 flex items-center justify-center text-6xl">🌷</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">Behind the scenes — building a peony-heavy centerpiece</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 891</span>
+                <span>5일 전</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Account group: ffoliar -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-300 to-rose-300 flex items-center justify-center text-white font-bold">F</div>
+            <div>
+              <div class="font-semibold text-gray-900">@ffoliar</div>
+              <div class="text-xs text-gray-500">해외 · 최근 2건</div>
+            </div>
+          </div>
+          <a href="#" class="text-xs text-brand hover:underline">Instagram →</a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-purple-200 to-rose-200 flex items-center justify-center text-6xl">🌸</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">Earthy palette with muted lavender and sage tones</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 723</span>
+                <span>2일 전</span>
+              </div>
+            </div>
+          </a>
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center text-6xl">🌿</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">Dried + fresh mixed arrangement for autumn vibe</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 445</span>
+                <span>6일 전</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Account group: duodesfleurs_kr (국내) -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sage to-green-400 flex items-center justify-center text-white font-bold">D</div>
+            <div>
+              <div class="font-semibold text-gray-900">@duodesfleurs_kr</div>
+              <div class="text-xs text-gray-500">국내 · 최근 2건</div>
+            </div>
+          </div>
+          <a href="#" class="text-xs text-brand hover:underline">Instagram →</a>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <a class="block bg-white rounded-xl border border-gray-200 overflow-hidden card-hover cursor-pointer">
+            <div class="aspect-square bg-gradient-to-br from-green-200 to-emerald-300 flex items-center justify-center text-6xl">🌿</div>
+            <div class="p-3">
+              <p class="text-sm text-gray-700 line-clamp-2">4월 어버이날 맞이 카네이션 꽃다발 신상</p>
+              <div class="flex items-center justify-between mt-2 text-xs text-gray-400">
+                <span>♥ 312</span>
+                <span>어제</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW 4: MOBILE + Customize ========== -->
+    <section id="view-mobile" class="hidden">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">모바일 BottomNav</h1>
+        <p class="text-sm text-gray-500 mt-1">왼쪽: 기본 / 오른쪽: 설정 페이지 커스터마이즈 UI</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Mobile preview -->
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">1. 모바일 하단바 (기본)</h3>
+          <div class="mx-auto w-[320px] h-[640px] bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl">
+            <div class="bg-gray-50 rounded-[2rem] h-full overflow-hidden flex flex-col">
+              <!-- Status bar -->
+              <div class="bg-white px-5 py-2 flex justify-between text-xs font-medium text-gray-700">
+                <span>9:41</span>
+                <span>●●●</span>
+              </div>
+              <!-- Header -->
+              <div class="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div class="font-bold text-gray-900">인사이트</div>
+                <div class="w-8 h-8 rounded-full bg-gray-100"></div>
+              </div>
+              <!-- Content -->
+              <div class="flex-1 p-4 overflow-y-auto">
+                <div class="space-y-3">
+                  <div class="bg-white rounded-xl p-4 border border-gray-200">
+                    <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 mb-2">꽃 트렌드</span>
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">2026 봄 웨딩…</h4>
+                    <p class="text-xs text-gray-500 line-clamp-2">작약과 라넌큘러스가 주도한다…</p>
+                  </div>
+                  <div class="bg-white rounded-xl p-4 border border-gray-200">
+                    <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 mb-2">영감</span>
+                    <h4 class="text-sm font-semibold text-gray-900 mb-1">파리 플로리스트…</h4>
+                    <p class="text-xs text-gray-500 line-clamp-2">미니멀리즘 기법…</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Bottom nav -->
+              <div class="bg-white border-t border-gray-200 grid grid-cols-6 py-2">
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span class="text-[10px] text-gray-500">캘린더</span>
+                </button>
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                  <span class="text-[10px] text-gray-500">매출</span>
+                </button>
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <span class="text-[10px] text-gray-500">지출</span>
+                </button>
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <span class="text-[10px] text-gray-500">고객</span>
+                </button>
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                  <span class="text-[10px] text-brand font-semibold">인사이트</span>
+                </button>
+                <button class="flex flex-col items-center gap-1 py-1">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  <span class="text-[10px] text-gray-500">더보기</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 text-center mt-3">⋯ 더보기 탭 → 시트 (입금/사진첩/팔로우/설정)</p>
+        </div>
+
+        <!-- Customize -->
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">2. 설정 → 하단바 커스터마이즈</h3>
+          <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-1">
+                <h4 class="font-semibold text-gray-900">하단 네비게이션</h4>
+                <span class="text-xs text-gray-500">5 / 6</span>
+              </div>
+              <p class="text-xs text-gray-500">드래그로 순서 변경, 4~6개까지 선택 가능. 나머지는 "더보기"에 표시됩니다.</p>
+            </div>
+
+            <div class="mb-5">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">하단바에 표시</div>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between px-3 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-move">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-sm font-medium text-gray-900">캘린더</span>
+                  </div>
+                  <button class="text-xs text-gray-400 hover:text-red-500">제거</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-move">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-sm font-medium text-gray-900">매출관리</span>
+                  </div>
+                  <button class="text-xs text-gray-400 hover:text-red-500">제거</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-move">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-sm font-medium text-gray-900">지출관리</span>
+                  </div>
+                  <button class="text-xs text-gray-400 hover:text-red-500">제거</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border border-gray-200 rounded-lg bg-gray-50 cursor-move">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-sm font-medium text-gray-900">고객관리</span>
+                  </div>
+                  <button class="text-xs text-gray-400 hover:text-red-500">제거</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border-2 border-brand rounded-lg bg-brand/5 cursor-move">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-sm font-medium text-brand">인사이트 <span class="text-xs font-normal">NEW</span></span>
+                  </div>
+                  <button class="text-xs text-gray-400 hover:text-red-500">제거</button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">⋯ 더보기에 표시</div>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between px-3 py-3 border border-dashed border-gray-200 rounded-lg">
+                  <span class="text-sm text-gray-700">사진첩</span>
+                  <button class="text-xs text-brand hover:underline">하단바로 올리기</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border border-dashed border-gray-200 rounded-lg">
+                  <span class="text-sm text-gray-700">입금대조</span>
+                  <button class="text-xs text-brand hover:underline">하단바로 올리기</button>
+                </div>
+                <div class="flex items-center justify-between px-3 py-3 border border-dashed border-gray-200 rounded-lg">
+                  <span class="text-sm text-gray-700">팔로우</span>
+                  <button class="text-xs text-brand hover:underline">하단바로 올리기</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="w-full mt-5 py-3 bg-brand text-white rounded-lg text-sm font-medium">저장</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function switchView(view) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+      document.querySelector(`[data-view="${view}"]`).classList.add('tab-active');
+      document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+  </script>
+
+</body>
+</html>

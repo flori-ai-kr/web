@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-03-16
+> 최종 업데이트: 2026-04-17
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -24,10 +24,11 @@ graph TB
 
     subgraph External
         DC["Discord Webhook<br/>에러 로깅"]
+        RT["RemoteTrigger<br/>(claude.ai 루틴)<br/>Mon/Fri 08:00 KST"]
     end
 
     subgraph Supabase
-        PG["PostgreSQL<br/>11개 테이블 + RLS"]
+        PG["PostgreSQL<br/>15개 테이블 + RLS"]
         AU["Auth<br/>이메일/비밀번호 + 쿠키 세션"]
     end
 
@@ -48,6 +49,9 @@ graph TB
     CR -->|"예약 조회"| PG
     CR -->|"푸시 발송"| SW
     CR -->|"에러 보고"| DC
+    RT -->|"Bearer INTERNAL_API_KEY"| IA["Internal API<br/>(api/internal/)<br/>Service Role, 푸시 브로드캐스트"]
+    IA -->|"Service Role (RLS 우회)"| PG
+    IA -->|"Web Push"| SW
 ```
 
 핵심 원칙: **Server Components가 데이터를 fetch하고, Client Components는 UI만 담당한다.** 데이터 변경은 Server Actions를 통해서만 일어나며, 변경 후 `router.refresh()`로 서버 데이터를 다시 가져온다. 이 패턴 덕분에 클라이언트 캐시나 글로벌 상태 관리 라이브러리가 필요 없다.
@@ -454,9 +458,49 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
     }
+
+    trend_articles {
+        uuid id PK
+        string title
+        string category
+        text summary
+        string source_url
+        string image_url
+        jsonb tags
+        timestamptz published_at
+        timestamptz created_at
+    }
+
+    instagram_accounts {
+        uuid id PK
+        string username UK
+        string display_name
+        string profile_image_url
+        bool is_active
+    }
+
+    instagram_posts {
+        uuid id PK
+        uuid account_id FK
+        string post_id UK
+        string caption
+        jsonb image_urls "배열 (멀티 이미지)"
+        string permalink
+        timestamptz posted_at
+        timestamptz created_at
+    }
+
+    user_preferences {
+        uuid id PK
+        uuid user_id FK "UK"
+        jsonb bottom_nav_items "4~6개 항목 순서"
+        timestamptz updated_at
+    }
 ```
 
 모든 주요 테이블에 `user_id` 컬럼이 있다. RLS 정책이 `auth.uid() = user_id`를 검사하므로, 한 Supabase 인스턴스에서 여러 사용자의 데이터가 완전히 격리된다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
+
+인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 SELECT only RLS가 적용되며, 쓰기는 Service Role(내부 API)만 허용된다. `user_preferences`는 `user_id` 기준 per-user RLS.
 
 ---
 
@@ -471,17 +515,23 @@ erDiagram
 | `/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 |
 | `/calendar` | 예약 캘린더 | 예약 CRUD + 캘린더 이벤트 + 리마인더 + 매출 자동 생성 + 픽업 완료 토글 |
-| `/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 |
+| `/insights` | 인사이트 | 랜딩 (트렌드/팔로우 섹션 소개) |
+| `/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
+| `/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
+| `/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
 | `/login` | 로그인 | 이메일/비밀번호 |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
 | `/api/cron/scheduled-reminders` | Cron | 개별 예약 리마인더 푸시 |
+| `/api/internal/trends` | Internal API | POST — 트렌드 아티클 수집 (Bearer auth, Service Role) |
+| `/api/internal/instagram` | Internal API | POST — 인스타그램 포스트 수집 (Bearer auth, Service Role) |
+| `/api/internal/instagram-accounts` | Internal API | GET — 팔로우 계정 목록 (Bearer auth) |
 
 ## 네비게이션 구조
 
 | 환경 | 컴포넌트 | 설명 |
 |------|----------|------|
 | 데스크톱 (lg+) | `Sidebar` | 좌측 고정 사이드바, 접기/펼치기 토글 |
-| 모바일/태블릿 (<lg) | `BottomNav` | 하단 고정 탭바 (7개: 캘린더, 매출, 지출, **홈**, 입금, 고객, 사진첩) |
+| 모바일/태블릿 (<lg) | `BottomNav` | 하단 고정 탭바 (4~6개, `user_preferences.bottom_nav_items` JSONB로 사용자 지정 가능) |
 
 - `lg` 브레이크포인트(1024px) 기준으로 Sidebar는 `hidden lg:block`, BottomNav는 `lg:hidden`
 - BottomNav 가운데에 Flower2 로고를 사용한 홈(대시보드) 버튼 배치
@@ -507,6 +557,7 @@ erDiagram
 | `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods |
 | `settings.ts` | getCardCompanySettings, updateCardCompanySetting |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendPushToUser, sendPushToAllUsers, sendTestNotification |
+| `insights.ts` | getTrendArticles, getInstagramAccounts, getInstagramPosts, markArticleRead, markPostRead, getUserPreferences, updateUserPreferences |
 
 ## 타입 시스템
 
@@ -540,7 +591,8 @@ interface SalesFilters { category?: string; payment?: string; channel?: string; 
 |--------|------|-----------|
 | **Middleware** | Supabase Auth 쿠키 검증 + 리다이렉트 | 비인증 페이지 접근 |
 | **requireAuth()** | 읽기 포함 모든 Server Action에서 호출 | 비인증 데이터 접근/변경 |
-| **RLS** | `auth.uid() = user_id` (11개 테이블, CRUD별 분리) | DB 레벨 데이터 격리 (멀티테넌시) |
+| **RLS** | `auth.uid() = user_id` (14개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
+| **Internal API 인증** | `Authorization: Bearer INTERNAL_API_KEY` timing-safe 검증 (`src/lib/internal-auth.ts`), ≥32자 필수 | RemoteTrigger 외 외부 호출 차단 |
 | **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
 | **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |
 | **파일 검증** | 서버 사이드 5MB 제한 + 확장자/MIME 타입 검증 | 악성 파일 업로드 |
@@ -638,8 +690,9 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 공개 키 |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push 공개키 (클라이언트) |
 | `VAPID_PRIVATE_KEY` | Web Push 비밀키 (서버) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Cron에서 RLS 우회 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Cron + Internal API에서 RLS 우회 (**필수**, 이전에는 선택) |
 | `CRON_SECRET` | Cron 라우트 인증 (프로덕션 16자+) |
+| `INTERNAL_API_KEY` | Internal API Bearer 인증 (**필수**, ≥32자) |
 | `DISCORD_WEBHOOK_URL` | 에러 로깅 웹훅 |
 | `R2_ACCOUNT_ID` | Cloudflare 계정 ID |
 | `R2_ACCESS_KEY_ID` | R2 API 토큰 Access Key |
@@ -696,5 +749,6 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 | sonner | ^2.0.7 | 토스트 알림 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
 | web-push | ^3.6.7 | 서버 사이드 웹 푸시 발송 |
+| @dnd-kit/sortable | ^10.x | BottomNav 아이템 드래그 정렬 (설정 화면) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |

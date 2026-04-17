@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, Bell, BellOff, BellRing, Send } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { getCardCompanySettings, updateCardCompanySetting } from '@/lib/actions/settings';
-import { subscribeToPush, unsubscribeFromPush, sendTestNotification } from '@/lib/actions/push';
-import type { PushSubscriptionData } from '@/lib/actions/push';
-import type { CardCompanySetting } from '@/types/database';
+import {useCallback, useEffect, useState} from 'react';
+import {Card, CardContent} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Bell, BellOff, BellRing, Loader2, Send} from 'lucide-react';
+import {Skeleton} from '@/components/ui/skeleton';
+import {toast} from 'sonner';
+import {getCardCompanySettings, updateCardCompanySetting} from '@/lib/actions/settings';
+import type {PushSubscriptionData} from '@/lib/actions/push';
+import {sendTestNotification, subscribeToPush, unsubscribeFromPush} from '@/lib/actions/push';
+import type {CardCompanySetting} from '@/types/database';
+import {BottomNavCustomizer} from './components/bottom-nav-customizer';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -335,6 +336,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 하단바 커스터마이즈 */}
+      <BottomNavCustomizer />
 
       <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
         <p>매출 카테고리와 결제방식은 매출 관리 페이지의 설정 버튼에서 관리할 수 있습니다.</p>

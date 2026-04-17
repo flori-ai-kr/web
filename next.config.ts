@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
-import { validateEnv } from "./src/lib/env";
+import type {NextConfig} from "next";
+import {validateEnv} from "./src/lib/env";
 
 const env = validateEnv();
 
@@ -17,6 +17,17 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: r2Hostname,
+        pathname: '/**',
+      },
+      // Instagram CDN (Apify 스크랩 썸네일)
+      {
+        protocol: 'https',
+        hostname: '**.cdninstagram.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.fbcdn.net',
         pathname: '/**',
       },
     ],
@@ -46,7 +57,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline'`,
-              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname}`,
+              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net`,
               `font-src 'self'`,
               `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname}`,
               `frame-ancestors 'none'`,

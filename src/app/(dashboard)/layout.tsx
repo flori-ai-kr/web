@@ -1,5 +1,6 @@
-import { AppLayout } from '@/components/layout';
-import { requireAuth } from '@/lib/auth-guard';
+import {AppLayout} from '@/components/layout';
+import {requireAuth} from '@/lib/auth-guard';
+import {getUserPreferences} from '@/lib/actions/insights';
 
 export default async function DashboardLayout({
   children,
@@ -7,5 +8,10 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAuth();
-  return <AppLayout userEmail={user.email || ''}>{children}</AppLayout>;
+  const prefs = await getUserPreferences();
+  return (
+    <AppLayout userEmail={user.email || ''} bottomNavItems={prefs.bottom_nav_items}>
+      {children}
+    </AppLayout>
+  );
 }

@@ -1,97 +1,196 @@
 'use client';
 
+import {useMemo, useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {CalendarDays, CreditCard, Flower2, Image, Receipt, Users, Wallet,} from 'lucide-react';
+import {
+    CalendarDays,
+    CreditCard,
+    Heart,
+    Image as ImageIcon,
+    MoreHorizontal,
+    Receipt,
+    Settings as SettingsIcon,
+    Sparkles,
+    TrendingUp,
+    Users,
+    Wallet,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {DEFAULT_BOTTOM_NAV_ITEMS, NAV_ITEM_HREFS, NAV_ITEM_LABELS, type NavItemKey,} from '@/types/database';
+import {Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle,} from '@/components/ui/sheet';
 
-interface NavItem {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
+const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> = {
+  calendar: CalendarDays,
+  sales: Receipt,
+  expenses: Wallet,
+  customers: Users,
+  gallery: ImageIcon,
+  deposits: CreditCard,
+  insights: TrendingUp,
+  follows: Heart,
+};
+
+const ALL_NAV_ITEMS: NavItemKey[] = [
+  'calendar',
+  'sales',
+  'expenses',
+  'customers',
+  'gallery',
+  'deposits',
+  'insights',
+  'follows',
+];
+
+interface BottomNavProps {
+  items?: NavItemKey[];
 }
 
-const leftItems: NavItem[] = [
-  { href: '/calendar', icon: CalendarDays, label: '캘린더' },
-  { href: '/sales', icon: Receipt, label: '매출' },
-  { href: '/expenses', icon: Wallet, label: '지출' },
-];
+export function BottomNav({ items }: BottomNavProps) {
+  const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
 
-const rightItems: NavItem[] = [
-  { href: '/deposits', icon: CreditCard, label: '입금' },
-  { href: '/customers', icon: Users, label: '고객' },
-  { href: '/gallery', icon: Image, label: '사진첩' },
-];
+  const displayedItems = useMemo(() => {
+    const source = items && items.length >= 4 ? items : DEFAULT_BOTTOM_NAV_ITEMS;
+    return source.slice(0, 6);
+  }, [items]);
 
-function NavTab({ item, isActive }: { item: NavItem; isActive: boolean }) {
+  const hiddenItems = useMemo(() => {
+    const displayed = new Set(displayedItems);
+    return ALL_NAV_ITEMS.filter((key) => !displayed.has(key));
+  }, [displayedItems]);
+
+  const bestMatchHref = useMemo(() => {
+    const candidates: string[] = displayedItems.map((k) => NAV_ITEM_HREFS[k]);
+    return candidates
+      .filter((href) => pathname === href || pathname.startsWith(href + '/'))
+      .reduce<string | null>((best, cur) => (best && best.length >= cur.length ? best : cur), null);
+  }, [pathname, displayedItems]);
+
+  // 총 컬럼: items + 더보기
+  const totalCols = displayedItems.length + 1;
+
   return (
-    <Link
-      href={item.href}
-      aria-current={isActive ? 'page' : undefined}
-      className={cn(
-        'relative flex flex-col items-center justify-center gap-1 min-w-0 flex-1 py-2 transition-colors',
-        isActive
-          ? 'text-brand'
-          : 'text-muted-foreground active:text-foreground'
-      )}
-    >
-      <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'stroke-[2.5]')} aria-hidden="true" />
-      <span
-        className={cn(
-          'text-[11px] leading-tight truncate max-w-full',
-          isActive ? 'font-semibold' : 'font-medium'
-        )}
+    <>
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-sm lg:hidden pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+        aria-label="하단 네비게이션"
       >
-        {item.label}
-      </span>
-    </Link>
+        <div
+          className="grid h-16 px-1"
+          style={{ gridTemplateColumns: `repeat(${totalCols}, minmax(0, 1fr))` }}
+        >
+          {displayedItems.map((key) => (
+            <NavTab
+              key={key}
+              href={NAV_ITEM_HREFS[key]}
+              icon={ICON_MAP[key]}
+              label={NAV_ITEM_LABELS[key]}
+              isActive={bestMatchHref === NAV_ITEM_HREFS[key]}
+            />
+          ))}
+          <button
+            onClick={() => setMoreOpen(true)}
+            aria-label="더보기 메뉴"
+            className={cn(
+              'relative flex flex-col items-center justify-center gap-1 min-w-0 py-2 transition-colors',
+              'text-muted-foreground active:text-foreground',
+            )}
+          >
+            <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="text-[11px] leading-tight font-medium">더보기</span>
+          </button>
+        </div>
+      </nav>
+
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom">
+          <SheetHeader>
+            <SheetTitle>더보기</SheetTitle>
+            <SheetDescription>하단바에 없는 메뉴를 한 번에 열 수 있어요</SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 pt-3 pb-5 space-y-4">
+            {hiddenItems.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {hiddenItems.map((key) => {
+                  const Icon = ICON_MAP[key];
+                  return (
+                    <SheetClose asChild key={key}>
+                      <Link
+                        href={NAV_ITEM_HREFS[key]}
+                        className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-3 transition-colors active:bg-accent"
+                      >
+                        <Icon className="h-5 w-5 text-foreground" aria-hidden="true" />
+                        <span className="text-[11px] font-medium text-foreground text-center">
+                          {NAV_ITEM_LABELS[key]}
+                        </span>
+                      </Link>
+                    </SheetClose>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-border">
+              <SheetClose asChild>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <SettingsIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>설정</span>
+                </Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link
+                  href="/"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>대시보드</span>
+                </Link>
+              </SheetClose>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
-export function BottomNav() {
-  const pathname = usePathname();
-  const isHome = pathname === '/';
-
-  const checkActive = (item: NavItem) =>
-    pathname === item.href ||
-    (item.href !== '/' && pathname.startsWith(item.href));
-
+function NavTab({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  isActive: boolean;
+}) {
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-sm lg:hidden pb-[max(env(safe-area-inset-bottom),0.5rem)]"
-      aria-label="하단 네비게이션"
+    <Link
+      href={href}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'relative flex flex-col items-center justify-center gap-1 min-w-0 py-2 transition-colors',
+        isActive ? 'text-brand' : 'text-muted-foreground active:text-foreground',
+      )}
     >
-      <div className="flex items-center justify-around px-1 h-16">
-        {/* Left 3 items */}
-        {leftItems.map((item) => (
-          <NavTab key={item.href} item={item} isActive={checkActive(item)} />
-        ))}
-
-        {/* Center home button */}
-        <Link
-          href="/"
-          aria-current={isHome ? 'page' : undefined}
-          className={cn(
-            'relative flex flex-col items-center justify-center min-w-0 flex-1'
-          )}
-          aria-label="대시보드"
-        >
-          <div
-            className={cn(
-              'w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-colors',
-              'bg-brand text-brand-foreground',
-              isHome && 'ring-2 ring-brand/30'
-            )}
-          >
-            <Flower2 className="h-[1.375rem] w-[1.375rem]" aria-hidden="true" />
-          </div>
-        </Link>
-
-        {/* Right 3 items */}
-        {rightItems.map((item) => (
-          <NavTab key={item.href} item={item} isActive={checkActive(item)} />
-        ))}
-      </div>
-    </nav>
+      <Icon
+        className={cn('h-5 w-5 shrink-0', isActive && 'stroke-[2.5]')}
+        aria-hidden="true"
+      />
+      <span
+        className={cn(
+          'text-[11px] leading-tight truncate max-w-full',
+          isActive ? 'font-semibold' : 'font-medium',
+        )}
+      >
+        {label}
+      </span>
+    </Link>
   );
 }

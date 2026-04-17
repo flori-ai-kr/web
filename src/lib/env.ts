@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 // ─── 서버 환경변수 스키마 ───────────────────────────────────
 // 빌드 시 필수 환경변수가 누락되면 빌드를 실패시킨다.
@@ -19,11 +19,14 @@ const serverEnvSchema = z.object({
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
+  // ─── 필수: 서버 기능 ──────────────────────────────────────
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Service Role 키 필수'),
+  INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
+
   // ─── 선택: 기능별 ─────────────────────────────────────────
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   CRON_SECRET: z.string().min(1).optional(),
 });
 
