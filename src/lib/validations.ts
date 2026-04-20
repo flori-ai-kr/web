@@ -219,6 +219,20 @@ export const bottomNavItemsSchema = z
     message: '중복된 메뉴가 있습니다',
   });
 
+// 스크랩/메모
+export const scrapTargetTypeSchema = z.enum(['trend', 'post']);
+
+export const scrapToggleSchema = z.object({
+  target_type: scrapTargetTypeSchema,
+  target_id: uuidSchema,
+});
+
+export const scrapMemoSchema = z.object({
+  target_type: scrapTargetTypeSchema,
+  target_id: uuidSchema,
+  memo: z.string().max(1000, '메모는 1000자 이내로 입력해주세요').nullable(),
+});
+
 // FormData에서 값을 안전하게 추출하는 헬퍼
 export function getFormString(formData: FormData, key: string): string {
   const val = formData.get(key);

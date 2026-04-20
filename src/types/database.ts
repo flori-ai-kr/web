@@ -279,6 +279,36 @@ export const INSTAGRAM_REGION_LABELS: Record<InstagramRegion, string> = {
   international: '해외',
 };
 
+// ─── 스크랩/메모 ──────────────────────────────────────────
+export type ScrapTargetType = 'trend' | 'post';
+
+export interface InsightScrap {
+  id: string;
+  user_id: string;
+  target_type: ScrapTargetType;
+  target_id: string;
+  memo: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrendScrap {
+  scrap: InsightScrap;
+  article: TrendArticle;
+}
+
+export interface PostScrap {
+  scrap: InsightScrap;
+  post: InstagramPostWithAccount;
+}
+
+export interface ScrapInfo {
+  id: string;
+  memo: string | null;
+}
+
+export type ScrapMap = Record<string, ScrapInfo>;
+
 // ─── 유저 설정 (하단바 커스터마이즈) ──────────────────────────
 export type NavItemKey =
   | 'calendar'

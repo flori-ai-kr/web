@@ -2,22 +2,28 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import {ArrowRight, Clock, Heart, Sparkles} from 'lucide-react';
+import {ArrowRight, Bookmark, Clock, Heart, NotebookPen, Sparkles} from 'lucide-react';
 import {
     type InstagramPostWithAccount,
+    type PostScrap,
     TREND_CATEGORIES,
     type TrendArticle,
     type TrendCategory,
+    type TrendScrap,
 } from '@/types/database';
 import {CategoryBadge} from '@/components/insights/category-badge';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
+import {normalizeInstagramImageUrl} from '@/lib/instagram-url';
 
 interface InsightsClientProps {
   counts: Record<TrendCategory, number>;
   highlights: TrendArticle[];
   recentPosts: InstagramPostWithAccount[];
   latestScrapedAt: string | null;
+  scrapCounts: { trend: number; post: number };
+  scrappedTrends: TrendScrap[];
+  scrappedPosts: PostScrap[];
 }
 
 export function InsightsClient({
@@ -25,12 +31,16 @@ export function InsightsClient({
   highlights,
   recentPosts,
   latestScrapedAt,
+  scrapCounts,
+  scrappedTrends,
+  scrappedPosts,
 }: InsightsClientProps) {
   const updateLabel = latestScrapedAt
     ? `최근 업데이트 · ${formatDistanceToNow(new Date(latestScrapedAt), { addSuffix: true, locale: ko })}`
     : '수집 대기 중';
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totalScrapCount = scrapCounts.trend + scrapCounts.post;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
@@ -106,6 +116,52 @@ export function InsightsClient({
         )}
       </section>
 
+      {/* My scraps */}
+      {totalScrapCount > 0 && (
+        <section aria-label="내 스크랩">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-brand fill-current" aria-hidden />
+                내 스크랩
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                트렌드 {scrapCounts.trend}건 · 포스트 {scrapCounts.post}건
+              </p>
+            </div>
+            <Link
+              href="/insights/scraps"
+              className="text-sm text-brand hover:underline flex items-center gap-1"
+            >
+              전체 보기
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {scrappedTrends.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">최근 스크랩한 트렌드</div>
+                <div className="space-y-2">
+                  {scrappedTrends.slice(0, 3).map(({ scrap, article }) => (
+                    <ScrappedTrendItem key={scrap.id} article={article} memo={scrap.memo} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {scrappedPosts.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">최근 스크랩한 포스트</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {scrappedPosts.slice(0, 4).map(({ scrap, post }) => (
+                    <ScrappedPostThumb key={scrap.id} post={post} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Follow feed */}
       <section aria-label="팔로우 최근 피드">
         <div className="flex items-center justify-between mb-4">
@@ -163,7 +219,7 @@ function TrendHighlightCard({ article }: { article: TrendArticle }) {
 }
 
 function FollowPreviewCard({ post }: { post: InstagramPostWithAccount }) {
-  const coverUrl = post.image_urls[0] ?? '';
+  const coverUrl = post.image_urls[0] ? normalizeInstagramImageUrl(post.image_urls[0]) : '';
   return (
     <a
       href={post.permalink}
@@ -188,6 +244,59 @@ function FollowPreviewCard({ post }: { post: InstagramPostWithAccount }) {
         )}
       </div>
     </a>
+  );
+}
+
+function ScrappedTrendItem({
+  article,
+  memo,
+}: {
+  article: TrendArticle;
+  memo: string | null;
+}) {
+  return (
+    <Link
+      href={`/insights/trends?articleId=${article.id}`}
+      className="block rounded-lg border border-border bg-card p-3 hover:border-brand/50 transition-colors"
+    >
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <CategoryBadge category={article.category} />
+        {article.source_name && (
+          <span className="text-[11px] text-muted-foreground truncate">{article.source_name}</span>
+        )}
+      </div>
+      <div className="text-sm font-medium text-foreground line-clamp-1">{article.title}</div>
+      {memo && (
+        <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+          <NotebookPen className="w-3 h-3 text-brand mt-0.5 shrink-0" aria-hidden />
+          <p className="line-clamp-1">{memo}</p>
+        </div>
+      )}
+    </Link>
+  );
+}
+
+function ScrappedPostThumb({ post }: { post: InstagramPostWithAccount }) {
+  const coverUrl = post.image_urls[0] ? normalizeInstagramImageUrl(post.image_urls[0]) : '';
+  return (
+    <Link
+      href="/insights/scraps?tab=post"
+      className="relative group aspect-square rounded-lg overflow-hidden bg-muted block"
+      aria-label={`@${post.account.username} 포스트`}
+    >
+      {coverUrl && (
+        <Image
+          src={coverUrl}
+          alt={post.caption?.slice(0, 60) || `@${post.account.username} 포스트`}
+          fill
+          sizes="(min-width: 768px) 12vw, 40vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      )}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-2">
+        <div className="text-white text-[10px] font-medium truncate">@{post.account.username}</div>
+      </div>
+    </Link>
   );
 }
 

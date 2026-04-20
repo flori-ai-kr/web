@@ -3,30 +3,37 @@
 import {useMemo, useState} from 'react';
 import Link from 'next/link';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
-import {ArrowLeft, ExternalLink, Sparkles} from 'lucide-react';
+import {ArrowLeft, Bookmark, ExternalLink, Sparkles} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
-import {TREND_CATEGORIES, type TrendArticle, type TrendCategory,} from '@/types/database';
+import {type ScrapMap, TREND_CATEGORIES, type TrendArticle, type TrendCategory,} from '@/types/database';
 import {CategoryBadge} from '@/components/insights/category-badge';
+import {ScrapButton} from '@/components/insights/scrap-button';
+import {ScrapMemoEditor} from '@/components/insights/scrap-memo-editor';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 
 interface TrendsClientProps {
   initialArticles: TrendArticle[];
   initialCategory: TrendCategory | null;
   initialArticleId: string | null;
+  initialScrapMap: ScrapMap;
+  initialScrapedOnly: boolean;
 }
 
 export function TrendsClient({
   initialArticles,
   initialCategory,
   initialArticleId,
+  initialScrapMap,
+  initialScrapedOnly,
 }: TrendsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [selectedCategory, setSelectedCategory] = useState<TrendCategory | null>(initialCategory);
+  const [scrapedOnly, setScrapedOnly] = useState(initialScrapedOnly);
 
   const selectedArticle = useMemo(
     () => initialArticles.find((a) => a.id === initialArticleId) ?? null,
@@ -34,9 +41,11 @@ export function TrendsClient({
   );
 
   const filteredArticles = useMemo(() => {
-    if (!selectedCategory) return initialArticles;
-    return initialArticles.filter((a) => a.category === selectedCategory);
-  }, [initialArticles, selectedCategory]);
+    let list = initialArticles;
+    if (selectedCategory) list = list.filter((a) => a.category === selectedCategory);
+    if (scrapedOnly) list = list.filter((a) => initialScrapMap[a.id]);
+    return list;
+  }, [initialArticles, selectedCategory, scrapedOnly, initialScrapMap]);
 
   // 일자별 그룹핑
   const groupedByDate = useMemo(() => {
@@ -60,6 +69,11 @@ export function TrendsClient({
     return counts;
   }, [initialArticles]);
 
+  const scrappedCount = useMemo(
+    () => initialArticles.filter((a) => initialScrapMap[a.id]).length,
+    [initialArticles, initialScrapMap],
+  );
+
   const updateCategoryUrl = (cat: TrendCategory | null) => {
     setSelectedCategory(cat);
     const params = new URLSearchParams(searchParams.toString());
@@ -67,6 +81,16 @@ export function TrendsClient({
     else params.delete('category');
     params.delete('articleId');
     router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const toggleScrapedOnly = () => {
+    const next = !scrapedOnly;
+    setScrapedOnly(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set('scraped', '1');
+    else params.delete('scraped');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
   };
 
   const openDetail = (id: string) => {
@@ -93,10 +117,21 @@ export function TrendsClient({
           <ArrowLeft className="w-4 h-4" />
           인사이트
         </Link>
-        <h1 className="text-2xl font-bold text-foreground">트렌드</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          주 2회 자동 수집 · 월·금 08:00 KST
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">트렌드</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              주 2회 자동 수집 · 월·금 08:00 KST
+            </p>
+          </div>
+          <Link
+            href="/insights/scraps"
+            className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
+          >
+            <Bookmark className="w-4 h-4" />
+            내 스크랩 보기
+          </Link>
+        </div>
       </header>
 
       {/* Category filter */}
@@ -117,6 +152,23 @@ export function TrendsClient({
             color={cat.color}
           />
         ))}
+        <button
+          type="button"
+          onClick={toggleScrapedOnly}
+          aria-pressed={scrapedOnly}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors border shrink-0',
+            scrapedOnly
+              ? 'bg-brand text-white border-brand'
+              : 'bg-card border-border text-foreground hover:border-brand/50',
+          )}
+        >
+          <Bookmark className={cn('w-3.5 h-3.5', scrapedOnly && 'fill-current')} />
+          스크랩만
+          <span className={cn('text-xs', scrapedOnly ? 'opacity-80' : 'text-muted-foreground')}>
+            {scrappedCount}
+          </span>
+        </button>
       </div>
 
       {/* List */}
@@ -125,8 +177,12 @@ export function TrendsClient({
           <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
             <Sparkles className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-foreground mb-1">수집된 트렌드가 없어요</h3>
-          <p className="text-sm text-muted-foreground">다음 수집 시각에 자동으로 도착합니다</p>
+          <h3 className="font-medium text-foreground mb-1">
+            {scrapedOnly ? '스크랩한 트렌드가 없어요' : '수집된 트렌드가 없어요'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {scrapedOnly ? '관심 있는 기사를 스크랩해보세요' : '다음 수집 시각에 자동으로 도착합니다'}
+          </p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -140,6 +196,7 @@ export function TrendsClient({
                   <TrendListItem
                     key={article.id}
                     article={article}
+                    scraped={!!initialScrapMap[article.id]}
                     onClick={() => openDetail(article.id)}
                   />
                 ))}
@@ -149,7 +206,12 @@ export function TrendsClient({
         </div>
       )}
 
-      <TrendDetailDialog article={selectedArticle} open={!!selectedArticle} onClose={closeDetail} />
+      <TrendDetailDialog
+        article={selectedArticle}
+        open={!!selectedArticle}
+        onClose={closeDetail}
+        scrapMap={initialScrapMap}
+      />
     </div>
   );
 }
@@ -194,30 +256,42 @@ function CategoryTab({
 
 function TrendListItem({
   article,
+  scraped,
   onClick,
 }: {
   article: TrendArticle;
+  scraped: boolean;
   onClick: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left rounded-xl border border-border bg-card p-5 hover:shadow-sm transition-shadow group"
-    >
-      <div className="flex items-start justify-between gap-3 mb-2.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <CategoryBadge category={article.category} />
-          {article.source_name && (
-            <span className="text-xs text-muted-foreground">{article.source_name}</span>
-          )}
+    <div className="relative group">
+      <button
+        onClick={onClick}
+        className="w-full text-left rounded-xl border border-border bg-card p-5 pr-14 hover:shadow-sm transition-shadow"
+      >
+        <div className="flex items-start justify-between gap-3 mb-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <CategoryBadge category={article.category} />
+            {article.source_name && (
+              <span className="text-xs text-muted-foreground">{article.source_name}</span>
+            )}
+          </div>
+          <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
         </div>
-        <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        <h3 className="font-semibold text-foreground mb-1.5 line-clamp-2 group-hover:text-brand transition-colors">
+          {article.title}
+        </h3>
+        <p className="text-sm text-muted-foreground line-clamp-2">{article.summary}</p>
+      </button>
+      <div className="absolute top-3 right-3">
+        <ScrapButton
+          targetType="trend"
+          targetId={article.id}
+          scraped={scraped}
+          size="sm"
+        />
       </div>
-      <h3 className="font-semibold text-foreground mb-1.5 line-clamp-2 group-hover:text-brand transition-colors">
-        {article.title}
-      </h3>
-      <p className="text-sm text-muted-foreground line-clamp-2">{article.summary}</p>
-    </button>
+    </div>
   );
 }
 
@@ -225,12 +299,15 @@ function TrendDetailDialog({
   article,
   open,
   onClose,
+  scrapMap,
 }: {
   article: TrendArticle | null;
   open: boolean;
   onClose: () => void;
+  scrapMap: ScrapMap;
 }) {
   if (!article) return null;
+  const scrap = scrapMap[article.id];
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -242,7 +319,7 @@ function TrendDetailDialog({
               <span className="text-xs text-muted-foreground">{article.source_name}</span>
             )}
           </div>
-          <DialogTitle className="text-xl leading-snug">{article.title}</DialogTitle>
+          <DialogTitle className="text-xl leading-snug pr-8">{article.title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5">
@@ -263,6 +340,13 @@ function TrendDetailDialog({
               </ul>
             </div>
           )}
+
+          <ScrapMemoEditor
+            targetType="trend"
+            targetId={article.id}
+            initialScraped={!!scrap}
+            initialMemo={scrap?.memo ?? null}
+          />
 
           <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
             <span>
