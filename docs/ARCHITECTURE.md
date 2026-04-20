@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-04-17
+> 최종 업데이트: 2026-04-20
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -28,7 +28,7 @@ graph TB
     end
 
     subgraph Supabase
-        PG["PostgreSQL<br/>15개 테이블 + RLS"]
+        PG["PostgreSQL<br/>16개 테이블 + RLS"]
         AU["Auth<br/>이메일/비밀번호 + 쿠키 세션"]
     end
 
@@ -496,11 +496,20 @@ erDiagram
         jsonb bottom_nav_items "4~6개 항목 순서"
         timestamptz updated_at
     }
+
+    insight_scraps {
+        uuid id PK
+        uuid user_id FK
+        string target_type "trend | post"
+        uuid target_id "trend_articles.id or instagram_posts.id (polymorphic, FK 없음)"
+        text memo
+        timestamptz created_at
+    }
 ```
 
 모든 주요 테이블에 `user_id` 컬럼이 있다. RLS 정책이 `auth.uid() = user_id`를 검사하므로, 한 Supabase 인스턴스에서 여러 사용자의 데이터가 완전히 격리된다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
 
-인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 SELECT only RLS가 적용되며, 쓰기는 Service Role(내부 API)만 허용된다. `user_preferences`는 `user_id` 기준 per-user RLS.
+인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 SELECT only RLS가 적용되며, 쓰기는 Service Role(내부 API)만 허용된다. `user_preferences`와 `insight_scraps`는 `user_id` 기준 per-user RLS. `insight_scraps.target_id`는 `trend_articles.id` 또는 `instagram_posts.id`를 가리키는 polymorphic 참조로, FK 없이 2단계 조회로 처리한다. UNIQUE 제약 `(user_id, target_type, target_id)`로 중복 스크랩을 방지한다.
 
 ---
 
@@ -515,9 +524,10 @@ erDiagram
 | `/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 |
 | `/calendar` | 예약 캘린더 | 예약 CRUD + 캘린더 이벤트 + 리마인더 + 매출 자동 생성 + 픽업 완료 토글 |
-| `/insights` | 인사이트 | 랜딩 (트렌드/팔로우 섹션 소개) |
+| `/insights` | 인사이트 | 랜딩 (트렌드/팔로우/스크랩 섹션 소개) |
 | `/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
 | `/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
+| `/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
 | `/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
 | `/login` | 로그인 | 이메일/비밀번호 |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
@@ -558,6 +568,7 @@ erDiagram
 | `settings.ts` | getCardCompanySettings, updateCardCompanySetting |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendPushToUser, sendPushToAllUsers, sendTestNotification |
 | `insights.ts` | getTrendArticles, getInstagramAccounts, getInstagramPosts, markArticleRead, markPostRead, getUserPreferences, updateUserPreferences |
+| `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
 
 ## 타입 시스템
 
@@ -591,7 +602,7 @@ interface SalesFilters { category?: string; payment?: string; channel?: string; 
 |--------|------|-----------|
 | **Middleware** | Supabase Auth 쿠키 검증 + 리다이렉트 | 비인증 페이지 접근 |
 | **requireAuth()** | 읽기 포함 모든 Server Action에서 호출 | 비인증 데이터 접근/변경 |
-| **RLS** | `auth.uid() = user_id` (14개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
+| **RLS** | `auth.uid() = user_id` (15개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
 | **Internal API 인증** | `Authorization: Bearer INTERNAL_API_KEY` timing-safe 검증 (`src/lib/internal-auth.ts`), ≥32자 필수 | RemoteTrigger 외 외부 호출 차단 |
 | **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
 | **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |

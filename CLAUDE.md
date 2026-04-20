@@ -57,8 +57,9 @@ src/
 │   ├── calendar/        # 예약 캘린더
 │   ├── insights/        # 인사이트 (랜딩)
 │   │   ├── page.tsx / insights-client.tsx
-│   │   ├── trends/      # 트렌드 아티클 (카테고리 필터)
-│   │   └── follows/     # 인스타그램 피드 (계정별)
+│   │   ├── trends/      # 트렌드 아티클 (카테고리 필터 + 스크랩 토글)
+│   │   ├── follows/     # 인스타그램 피드 (계정별 + 포스트 라이트박스)
+│   │   └── scraps/      # 내 스크랩 — 트렌드/포스트 탭, 메모 표시
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/api/cron/        # Vercel Cron 라우트
@@ -77,8 +78,9 @@ src/
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
-├── components/insights/ # 인사이트 공통 (category-badge.tsx, PostDetailDialog)
-├── lib/actions/         # Server Actions (16개, 직접 import)
+├── components/insights/ # 인사이트 공통 (category-badge, scrap-button, scrap-memo-editor)
+├── lib/actions/         # Server Actions (17개, 직접 import — scraps.ts 포함)
+├── lib/instagram-url.ts # Instagram CDN URL stp 파라미터 정규화 (썸네일 흰 여백 제거)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts, service.ts (Service Role 클라이언트)
@@ -100,8 +102,8 @@ src/
 
 ## 멀티테넌시
 
-- 14개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 4개 추가)
-  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions, user_preferences
+- 15개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 스크랩 포함)
+  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions, user_preferences, insight_scraps
   - 공유 읽기 테이블 (SELECT only, writes via service role): trend_articles, instagram_accounts, instagram_posts
 - RLS 정책: `auth.uid() = user_id` (CRUD별 분리)
 - unique 제약: 기존 단일 컬럼에서 `(column, user_id)` 복합으로 변경
@@ -120,6 +122,8 @@ src/
 - 예약 리마인더: `reminder_at` 시간 설정 → Cron으로 푸시 알림 발송
 - 미수(외상): `payment_method='unpaid'` + `is_unpaid=true`, 결제 완료 시 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
+- 인사이트 스크랩: `insight_scraps(user_id, target_type, target_id, memo)` 복합 unique. 트렌드 카드/포스트 카드에 북마크 토글, 상세 다이얼로그 내 메모 편집(포커스 해제 시 자동 저장). `/insights/scraps` 전용 페이지 + 트렌드·팔로우 목록 "스크랩만" 필터(`?scraped=1`)
+- 팔로우 포스트: 썸네일 클릭 → 라이트박스(확대 뷰 + prev/next + Esc/화살표 키). Instagram 이동은 딥링크 버튼만. Instagram CDN `stp=dst-jpg_e35_p1080x1080_sh0.08_tt6` 패딩 옵션을 `normalizeInstagramImageUrl()`로 제거해 흰 여백 방지
 
 ## 컬러 시스템
 
