@@ -10,7 +10,7 @@ export function LocationSection() {
         {/* Left: address */}
         <div className="lg:col-span-7 space-y-12">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] mb-6" style={{ color: '#C85B4F' }}>
+            <p className="text-[11px] uppercase tracking-[0.3em] mb-6" style={{ color: 'var(--site-oxblood-light)' }}>
               Location
             </p>
             <h2
@@ -58,8 +58,8 @@ export function LocationSection() {
                       <span
                         className="text-[10px] uppercase tracking-[0.22em] px-2 py-0.5 border"
                         style={{
-                          color: '#E89B91',
-                          borderColor: 'rgba(232, 155, 145, 0.4)',
+                          color: 'var(--site-oxblood-soft)',
+                          borderColor: 'color-mix(in srgb, var(--site-oxblood-soft) 40%, transparent)',
                         }}
                       >
                         예약제

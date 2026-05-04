@@ -63,6 +63,9 @@
   --site-oxblood: #5A1A1A;
   --site-pewter: #9C958B;
   --site-olive: #6B6B4F;
+  /* 보조 색: 어두운 배경 위 oxblood 가독 보강 (Location 섹션 등) */
+  --site-oxblood-light: #C85B4F;
+  --site-oxblood-soft: #E89B91;
   /* 따뜻한 크림 배경 */
   --background: #FAFAF8;
   --foreground: #2D2D2A;

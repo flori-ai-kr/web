@@ -12,8 +12,8 @@ const fraunces = Fraunces({
   display: 'swap',
 });
 
-// TODO: 운영 도메인 확정 시 metadataBase 교체.
-const SITE_URL = 'https://hazel.flowershop.example';
+// 운영 도메인은 NEXT_PUBLIC_SITE_URL 환경변수로 주입 (Vercel 등). 미설정 시 임시 placeholder.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hazel.flowershop.example';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     description: HAZEL_SEO.description,
     locale: 'ko_KR',
     type: 'website',
-    images: [{url: HAZEL_SEO.ogImage, width: 1200, height: 1200, alt: 'hazel flower studio'}],
+    images: [{url: HAZEL_SEO.ogImage, width: 626, height: 758, alt: 'hazel flower studio'}],
   },
   twitter: {
     card: 'summary_large_image',

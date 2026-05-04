@@ -65,9 +65,9 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
-              `style-src 'self' 'unsafe-inline'`,
+              `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
               `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
-              `font-src 'self'`,
+              `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
               `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
