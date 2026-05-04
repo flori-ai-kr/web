@@ -27,7 +27,7 @@ export const HAZEL_LINKS = {
   naverPlace: 'https://naver.me/F6lTt2Ji',
   instagram: 'https://www.instagram.com/hazel.gilum',
   instagramHandle: '@hazel.gilum',
-  blog: 'https://blog.naver.com/po050ipin',
+  blog: 'https://blog.naver.com/poipin',
 } as const;
 
 export const HAZEL_SEO = {
