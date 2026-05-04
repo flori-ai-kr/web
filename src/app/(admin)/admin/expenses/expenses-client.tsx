@@ -1,0 +1,790 @@
+'use client';
+
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {Button} from '@/components/ui/button';
+import {Card, CardContent} from '@/components/ui/card';
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import {AmountInput} from '@/components/ui/amount-input';
+import {SuggestionInput} from '@/components/ui/suggestion-input';
+import {
+    Home,
+    Loader2,
+    Megaphone,
+    Package,
+    Pencil,
+    Plus,
+    Search,
+    Settings,
+    ShoppingCart,
+    Trash2,
+    Truck,
+    Wallet,
+    Zap
+} from 'lucide-react';
+import {ExpensesList} from './components/ExpensesList';
+import {format} from 'date-fns';
+import {ko} from '@/lib/date-locale';
+import {toast} from 'sonner';
+import {createExpense, deleteExpense, getExpenseSuggestions, updateExpense} from '@/lib/actions/expenses';
+import {
+    ExpenseCategory,
+    ExpensePaymentMethod,
+    getExpenseCategories,
+    getExpensePaymentMethods
+} from '@/lib/actions/expense-settings';
+import {ExpenseSettingsModal} from '@/components/expenses/ExpenseSettingsModal';
+import {cn, formatCurrency} from '@/lib/utils';
+import type {Expense} from '@/types/database';
+import {ExportButton} from '@/components/ui/export-button';
+import type {ExportConfig} from '@/lib/export';
+
+const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+// 카테고리별 아이콘 컴포넌트 맵
+const CATEGORY_ICON_MAP: Record<string, typeof ShoppingCart> = {
+  flower_purchase: ShoppingCart,
+  delivery: Truck,
+  advertising: Megaphone,
+  rent: Home,
+  utilities: Zap,
+  supplies: Package,
+  other: Wallet,
+};
+
+function CategoryIcon({ category }: { category: string }) {
+  const Icon = CATEGORY_ICON_MAP[category] || Wallet;
+  return <Icon className="h-4 w-4" />;
+}
+
+interface Props {
+  initialExpenses: Expense[];
+  currentYear: number;
+  currentMonth: number;
+  initialCategories: ExpenseCategory[];
+  initialPayments: ExpensePaymentMethod[];
+  initialSelectedExpense?: Expense | null;
+}
+
+export function ExpensesClient({
+  initialExpenses,
+  currentYear,
+  currentMonth,
+  initialCategories,
+  initialPayments,
+  initialSelectedExpense
+}: Props) {
+  const router = useRouter();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [noteValue, setNoteValue] = useState('');
+  const [editNoteValue, setEditNoteValue] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
+  const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.value || 'card');
+  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
+  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; notes: string[] }>({ itemNames: [], vendors: [], notes: [] });
+  const [createItemName, setCreateItemName] = useState('');
+  const [createVendor, setCreateVendor] = useState('');
+  const [editItemName, setEditItemName] = useState('');
+  const [editVendor, setEditVendor] = useState('');
+
+  // 폼/수정 다이얼로그 열릴 때 자동완성 데이터 로드
+  useEffect(() => {
+    if (isFormOpen || editingExpense) {
+      getExpenseSuggestions().then(setExpenseSuggestions).catch(() => {});
+    }
+  }, [isFormOpen, editingExpense]);
+
+  // 등록 폼 닫힐 때 controlled 값 초기화
+  useEffect(() => {
+    if (!isFormOpen) {
+      setCreateItemName('');
+      setCreateVendor('');
+      setNoteValue('');
+    }
+  }, [isFormOpen]);
+
+  // 수정 폼 열릴 때 controlled 값 초기화
+  useEffect(() => {
+    if (editingExpense) {
+      setEditItemName(editingExpense.item_name);
+      setEditVendor(editingExpense.vendor || '');
+      setEditNoteValue(editingExpense.note || '');
+    }
+  }, [editingExpense]);
+
+  // 카테고리/결제방식 라벨 및 색상 맵 생성
+  const categoryLabels = useMemo(() =>
+    Object.fromEntries(categories.map(c => [c.value, c.label])), [categories]);
+  const categoryColors = useMemo(() =>
+    Object.fromEntries(categories.map(c => [c.value, c.color])), [categories]);
+  const paymentLabels = useMemo(() =>
+    Object.fromEntries(payments.map(p => [p.value, p.label])), [payments]);
+  const paymentColors = useMemo(() =>
+    Object.fromEntries(payments.map(p => [p.value, p.color])), [payments]);
+
+  // 설정 새로고침
+  const refreshSettings = async () => {
+    const [cats, pays] = await Promise.all([getExpenseCategories(), getExpensePaymentMethods()]);
+    setCategories(cats);
+    setPayments(pays);
+  };
+
+  const filteredExpenses = useMemo(() => {
+    let result = initialExpenses;
+
+    if (paymentFilter !== 'all') {
+      result = result.filter(e => e.payment_method === paymentFilter);
+    }
+
+    if (categoryFilter !== 'all') {
+      result = result.filter(e => e.category === categoryFilter);
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(e =>
+        e.item_name.toLowerCase().includes(q) ||
+        (e.vendor?.toLowerCase().includes(q)) ||
+        (e.note?.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [initialExpenses, paymentFilter, categoryFilter, searchQuery]);
+
+  const summary = useMemo(() => {
+    const byCategory: Record<string, number> = {};
+    let total = 0;
+    filteredExpenses.forEach(e => {
+      total += e.total_amount;
+      byCategory[e.category] = (byCategory[e.category] || 0) + e.total_amount;
+    });
+    return { total, byCategory };
+  }, [filteredExpenses]);
+
+  const getExportConfig = useCallback((): ExportConfig<Expense> => ({
+    filename: `지출_${currentYear}-${String(currentMonth).padStart(2, '0')}`,
+    title: `지출 내역 (${currentYear}년 ${currentMonth}월)`,
+    columns: [
+      { header: '날짜', accessor: (e) => String(e.date || '') },
+      { header: '카테고리', accessor: (e) => categoryLabels[e.category] || e.category || '' },
+      { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
+      { header: '결제방법', accessor: (e) => paymentLabels[e.payment_method] || e.payment_method || '' },
+      { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
+      { header: '품목명', accessor: (e) => String(e.item_name || '') },
+      { header: '거래처', accessor: (e) => String(e.vendor || '') },
+      { header: '비고', accessor: (e) => String(e.note || '') },
+    ],
+    data: filteredExpenses,
+  }), [filteredExpenses, currentYear, currentMonth, categoryLabels, paymentLabels]);
+
+  const handleSelectExpense = (expense: Expense) => {
+    setSelectedExpense(expense);
+  };
+
+  const handleYearChange = (year: string) => {
+    router.push(`/admin/expenses?year=${year}&month=${currentMonth}`);
+  };
+
+  const handleMonthChange = (month: string) => {
+    router.push(`/admin/expenses?year=${currentYear}&month=${month}`);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      await createExpense(formData);
+
+      setIsFormOpen(false);
+      router.refresh();
+      toast.success('지출이 등록되었습니다');
+    } catch (error) {
+      console.error('Failed to create expense:', error);
+      toast.error('지출 등록에 실패했습니다');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingExpense) return;
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      await updateExpense(editingExpense.id, formData);
+
+      setEditingExpense(null);
+      setSelectedExpense(null);
+      router.refresh();
+      toast.success('지출이 수정되었습니다');
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      toast.error('지출 수정에 실패했습니다');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (expense: Expense) => {
+    setEditingExpense(expense);
+    setEditNoteValue(expense.note || '');
+    setEditPaymentMethod(expense.payment_method);
+    setSelectedExpense(null);
+  };
+
+  const handleDelete = (expense: Expense) => {
+    setDeleteTarget(expense);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteExpense(deleteTarget.id);
+      setDeleteTarget(null);
+      setSelectedExpense(null);
+      router.refresh();
+      toast.success('지출이 삭제되었습니다');
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      toast.error('지출 삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">지출 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">지출 내역을 등록하고 관리하세요</p>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+          <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }} className="flex-1 sm:flex-initial">
+            <Plus className="w-4 h-4 mr-2" />
+            지출 등록
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <Card className="col-span-2 sm:col-span-1">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">총 지출</p>
+                <p className="text-lg font-bold text-foreground truncate">{formatCurrency(summary.total)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {Object.entries(summary.byCategory).slice(0, 3).map(([cat, amount]) => (
+          <Card key={cat}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${categoryColors[cat]}20` }}
+                >
+                  <span style={{ color: categoryColors[cat] }}>
+                    <CategoryIcon category={cat} />
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{categoryLabels[cat]}</p>
+                  <p className="text-lg font-bold text-foreground truncate">{formatCurrency(amount)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-3 flex-wrap">
+        <Select value={currentYear.toString()} onValueChange={handleYearChange}>
+          <SelectTrigger className="w-[100px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {YEAR_OPTIONS.map(year => (
+              <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={currentMonth.toString()} onValueChange={handleMonthChange}>
+          <SelectTrigger className="w-[80px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MONTH_OPTIONS.map(month => (
+              <SelectItem key={month} value={month.toString()}>{month}월</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-auto min-w-[140px] bg-background">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground text-xs">카테고리</span>
+              {categoryFilter === 'all' ? (
+                <span>전체</span>
+              ) : (
+                <span
+                  className="px-1.5 py-0.5 text-xs font-medium rounded"
+                  style={{ backgroundColor: `${categoryColors[categoryFilter]}40`, color: categoryColors[categoryFilter] }}
+                >
+                  {categoryLabels[categoryFilter] || categoryFilter}
+                </span>
+              )}
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat.id} value={cat.value}>
+                <span
+                  className="px-1.5 py-0.5 text-xs font-medium rounded"
+                  style={{ backgroundColor: `${cat.color}40`, color: cat.color }}
+                >
+                  {cat.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+          <SelectTrigger className="w-auto min-w-[120px] bg-background">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground text-xs">결제</span>
+              {paymentFilter === 'all' ? (
+                <span>전체</span>
+              ) : (
+                <span
+                  className="px-1.5 py-0.5 text-xs font-medium rounded"
+                  style={{ backgroundColor: `${paymentColors[paymentFilter]}40`, color: paymentColors[paymentFilter] }}
+                >
+                  {paymentLabels[paymentFilter] || paymentFilter}
+                </span>
+              )}
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            {payments.map(pm => (
+              <SelectItem key={pm.id} value={pm.value}>
+                <span
+                  className="px-1.5 py-0.5 text-xs font-medium rounded"
+                  style={{ backgroundColor: `${pm.color}40`, color: pm.color }}
+                >
+                  {pm.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => setIsSettingsOpen(true)}
+          aria-label="지출 설정"
+        >
+          <Settings className="w-4 h-4 text-muted-foreground" />
+        </Button>
+        <div className="relative flex-1 min-w-[150px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-background"
+            aria-label="지출 검색"
+          />
+        </div>
+      </div>
+
+      {/* Expenses List */}
+      <ExpensesList
+        expenses={filteredExpenses}
+        categoryLabels={categoryLabels}
+        categoryColors={categoryColors}
+        paymentLabels={paymentLabels}
+        paymentColors={paymentColors}
+        hasActiveFilters={paymentFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== ''}
+        onSelectExpense={handleSelectExpense}
+        onResetFilters={() => { setPaymentFilter('all'); setCategoryFilter('all'); setSearchQuery(''); }}
+        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
+      />
+
+      {/* Create Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">지출 등록</DialogTitle>
+            <p className="text-sm text-muted-foreground">꽃 구매, 배달비 등 지출 내역을 입력해주세요. 총액은 단가 x 수량으로 자동 계산돼요.</p>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5 pt-2">
+            <div className="grid grid-cols-[3fr_2fr] gap-4">
+              <div className="space-y-2">
+                <Label>날짜 *</Label>
+                <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>카테고리 *</Label>
+                <Select name="category" defaultValue={categories[0]?.value || 'flower_purchase'}>
+                  <SelectTrigger className="bg-muted">
+                    <SelectValue placeholder="카테고리 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>물품명 *</Label>
+              <SuggestionInput
+                name="item_name"
+                value={createItemName}
+                onChange={setCreateItemName}
+                suggestions={expenseSuggestions.itemNames}
+                placeholder="예: 장미 50송이, 배달비"
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">어디서 뭘 샀는지 적어주세요</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>단가 *</Label>
+                <AmountInput name="unit_price" placeholder="0" required className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>수량</Label>
+                <Input type="number" name="quantity" defaultValue="1" min="1" className="bg-muted" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>결제방식 *</Label>
+              <input type="hidden" name="payment_method" value={selectedPaymentMethod} />
+              <div className="flex flex-wrap gap-2">
+                {payments.map(pm => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                      selectedPaymentMethod === pm.value
+                        ? "ring-2 ring-offset-1 ring-brand/50"
+                        : "border-border text-muted-foreground hover:border-foreground/30"
+                    )}
+                    style={selectedPaymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
+                    onClick={() => setSelectedPaymentMethod(pm.value)}
+                  >
+                    {pm.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>거래처</Label>
+              <SuggestionInput
+                name="vendor"
+                value={createVendor}
+                onChange={setCreateVendor}
+                suggestions={expenseSuggestions.vendors}
+                placeholder="예: 고속터미널 꽃시장"
+              />
+              <p className="text-[11px] text-muted-foreground">어디서 구매했는지 적어두면 나중에 찾기 편해요</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>비고</Label>
+                <span className={cn("text-xs", noteValue.length > 100 ? "text-destructive" : "text-muted-foreground")}>
+                  {noteValue.length}/100
+                </span>
+              </div>
+              <SuggestionInput
+                name="note"
+                value={noteValue}
+                onChange={setNoteValue}
+                suggestions={expenseSuggestions.notes}
+                placeholder="메모"
+                maxLength={100}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>취소</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isSubmitting ? '저장 중...' : '저장'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expense Detail Dialog */}
+      <Dialog open={!!selectedExpense} onOpenChange={(open) => !open && setSelectedExpense(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">지출 상세</DialogTitle>
+          </DialogHeader>
+          {selectedExpense && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">날짜</p>
+                  <p className="font-medium">{format(new Date(selectedExpense.date), 'yyyy년 M월 d일', { locale: ko })}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">총액</p>
+                  <p className="font-bold text-lg text-brand">{formatCurrency(selectedExpense.total_amount)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">물품명</p>
+                  <p className="font-medium">{selectedExpense.item_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">카테고리</p>
+                  <span
+                    className="inline-block px-2 py-1 text-xs font-medium rounded-md"
+                    style={{
+                      backgroundColor: categoryColors[selectedExpense.category] ? `${categoryColors[selectedExpense.category]}40` : '#f3f4f6',
+                      color: categoryColors[selectedExpense.category] || '#374151'
+                    }}
+                  >
+                    {categoryLabels[selectedExpense.category] || selectedExpense.category}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">결제방식</p>
+                  <span
+                    className="inline-block px-2 py-1 text-xs font-medium rounded-md"
+                    style={{
+                      backgroundColor: paymentColors[selectedExpense.payment_method] ? `${paymentColors[selectedExpense.payment_method]}40` : '#f3f4f6',
+                      color: paymentColors[selectedExpense.payment_method] || '#374151'
+                    }}
+                  >
+                    {paymentLabels[selectedExpense.payment_method] || selectedExpense.payment_method}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">단가 x 수량 = 총액</p>
+                  <p className="font-medium">{formatCurrency(selectedExpense.unit_price)} x {selectedExpense.quantity} = {formatCurrency(selectedExpense.total_amount)}</p>
+                </div>
+              </div>
+
+              {selectedExpense.vendor && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">거래처</p>
+                  <p className="font-medium">{selectedExpense.vendor}</p>
+                </div>
+              )}
+
+              {selectedExpense.note && (
+                <div className="space-y-1 pt-2 border-t">
+                  <p className="text-sm text-muted-foreground">비고</p>
+                  <p className="text-foreground">{selectedExpense.note}</p>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-4 border-t">
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleEdit(selectedExpense)}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    수정
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(selectedExpense)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    삭제
+                  </Button>
+                </div>
+                <Button variant="outline" onClick={() => setSelectedExpense(null)}>
+                  닫기
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">지출 수정</DialogTitle>
+          </DialogHeader>
+          {editingExpense && (
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdate(e); }} className="space-y-5 pt-2">
+              <div className="grid grid-cols-[3fr_2fr] gap-4">
+                <div className="space-y-2">
+                  <Label>날짜 *</Label>
+                  <Input type="date" name="date" defaultValue={editingExpense.date} required className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>카테고리 *</Label>
+                  <Select name="category" defaultValue={editingExpense.category} key={`cat-${editingExpense.id}`}>
+                    <SelectTrigger className="bg-muted">
+                      <SelectValue placeholder="카테고리 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>물품명 *</Label>
+                <SuggestionInput
+                  name="item_name"
+                  value={editItemName}
+                  onChange={setEditItemName}
+                  suggestions={expenseSuggestions.itemNames}
+                  placeholder="물품명"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>단가 *</Label>
+                  <AmountInput name="unit_price" value={editingExpense.unit_price} required className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>수량</Label>
+                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" className="bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>결제방식 *</Label>
+                <input type="hidden" name="payment_method" value={editPaymentMethod} />
+                <div className="flex flex-wrap gap-2">
+                  {payments.map(pm => (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                        editPaymentMethod === pm.value
+                          ? "ring-2 ring-offset-1 ring-brand/50"
+                          : "border-border text-muted-foreground hover:border-foreground/30"
+                      )}
+                      style={editPaymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
+                      onClick={() => setEditPaymentMethod(pm.value)}
+                    >
+                      {pm.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>거래처</Label>
+                <SuggestionInput
+                  name="vendor"
+                  value={editVendor}
+                  onChange={setEditVendor}
+                  suggestions={expenseSuggestions.vendors}
+                  placeholder="거래처명"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>비고</Label>
+                  <span className={cn("text-xs", editNoteValue.length > 100 ? "text-destructive" : "text-muted-foreground")}>
+                    {editNoteValue.length}/100
+                  </span>
+                </div>
+                <SuggestionInput
+                  name="note"
+                  value={editNoteValue}
+                  onChange={setEditNoteValue}
+                  suggestions={expenseSuggestions.notes}
+                  placeholder="메모"
+                  maxLength={100}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setEditingExpense(null)}>취소</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {isSubmitting ? '저장 중...' : '저장'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>지출 삭제</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground text-sm">
+              이 지출 기록을 삭제하시겠습니까?
+            </p>
+            {deleteTarget && (
+              <p className="text-muted-foreground text-xs mt-2">
+                {format(new Date(deleteTarget.date), 'M월 d일', { locale: ko })} · {deleteTarget.item_name} · {formatCurrency(deleteTarget.total_amount)}
+              </p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expense Settings Modal */}
+      <ExpenseSettingsModal
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        categories={categories}
+        onRefresh={refreshSettings}
+      />
+    </div>
+  );
+}

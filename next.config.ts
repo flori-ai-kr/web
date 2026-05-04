@@ -33,6 +33,12 @@ const nextConfig: NextConfig = {
         hostname: '**.fbcdn.net',
         pathname: '/**',
       },
+      // 공개 사이트 더미 이미지 (실사진 교체 전까지만)
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
     ],
   },
   serverExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
@@ -60,7 +66,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline'`,
-              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net`,
+              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self'`,
               `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname}`,
               `frame-ancestors 'none'`,

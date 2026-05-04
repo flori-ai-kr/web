@@ -135,7 +135,7 @@ export function BottomNav({ items }: BottomNavProps) {
             <div className="pt-2 border-t border-border">
               <SheetClose asChild>
                 <Link
-                  href="/settings"
+                  href="/admin/settings"
                   className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
                 >
                   <SettingsIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -144,7 +144,7 @@ export function BottomNav({ items }: BottomNavProps) {
               </SheetClose>
               <SheetClose asChild>
                 <Link
-                  href="/"
+                  href="/admin"
                   className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
                 >
                   <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden="true" />

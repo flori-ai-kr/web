@@ -1,7 +1,7 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import {redirect} from 'next/navigation'
+import {createClient} from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -22,5 +22,5 @@ export async function login(formData: FormData) {
     return { success: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
   }
 
-  redirect('/')
+  redirect('/admin')
 }
