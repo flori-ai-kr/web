@@ -338,14 +338,14 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
 };
 
 export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
-  calendar: '/calendar',
-  sales: '/sales',
-  expenses: '/expenses',
-  customers: '/customers',
-  gallery: '/gallery',
-  deposits: '/deposits',
-  insights: '/insights',
-  follows: '/insights/follows',
+  calendar: '/admin/calendar',
+  sales: '/admin/sales',
+  expenses: '/admin/expenses',
+  customers: '/admin/customers',
+  gallery: '/admin/gallery',
+  deposits: '/admin/deposits',
+  insights: '/admin/insights',
+  follows: '/admin/insights/follows',
 };
 
 export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [

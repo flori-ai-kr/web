@@ -53,3 +53,12 @@ next-env.d.ts
 
 ### IDE ####
 .idea
+
+### MoAI ###
+# 세션 텔레메트리 (로컬 디버깅용, 공유 X)
+.moai/logs/
+# 자동 생성 캐시
+.moai/cache/
+# 세션 상태 (resume용 로컬 데이터)
+.moai/state/*.json
+!.moai/state/db-detection.json

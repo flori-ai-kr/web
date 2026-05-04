@@ -10,7 +10,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 
 - **Server Actions**: `src/lib/actions/` — `'use server'`, throw 패턴 (withErrorLogging 래퍼), 직접 import 사용 (barrel import 금지)
 - **에러 처리**: `withErrorLogging()` 래퍼 → AppError(예상된 에러) / Unknown(Discord 로깅)
-- **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드 (읽기 포함 모든 액션에 적용)
+- **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드 (읽기 포함 모든 액션에 적용). `/admin/*` 경로만 인증 강제, `/`·`(public)/*` 공개 라우트는 인증 불필요
 - **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션 + ID 파라미터 UUID 검증 + 파일 크기 5MB 제한
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
@@ -40,7 +40,10 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 
 ```
 src/
-├── app/(dashboard)/     # 라우트 그룹 (사이드바 레이아웃)
+├── app/(public)/        # 공개 홈페이지 (인증 불필요, /)
+│   ├── layout.tsx       # 공개 레이아웃 (.site-public CSS 클래스)
+│   └── page.tsx         # 공개 홈페이지 — hero/about/collection/order/location/instagram/footer
+├── app/(admin)/admin/   # 어드민 라우트 그룹 (인증 필요, /admin/*)
 │   ├── page.tsx         # 대시보드
 │   ├── dashboard-client.tsx  # 대시보드 클라이언트
 │   ├── sales/           # 매출
@@ -79,7 +82,9 @@ src/
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
 ├── components/insights/ # 인사이트 공통 (category-badge, scrap-button, scrap-memo-editor)
+├── components/public/   # 공개 홈페이지 섹션 컴포넌트 (hero, about, collection, order, location, instagram, footer, header)
 ├── lib/actions/         # Server Actions (17개, 직접 import — scraps.ts 포함)
+├── lib/public-config.ts # 공개 홈페이지 비즈니스 데이터 SSOT (HAZEL_BUSINESS, HAZEL_LINKS, HAZEL_SEO)
 ├── lib/instagram-url.ts # Instagram CDN URL stp 파라미터 정규화 (썸네일 흰 여백 제거)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
 ├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
@@ -129,6 +134,10 @@ src/
 
 - **브랜드**: Warm Coral (`--brand: #E5614E`)
 - **서브**: Sage Green (`--sage: #8B9D83`)
+- **공개 홈페이지 팔레트** (`--site-*` CSS 변수, `.site-public` 클래스로 스코핑):
+  - `--site-ivory: #FAFAF7` / `--site-parchment: #F3F1EC` / `--site-charcoal: #1F1A16`
+  - `--site-oxblood: #5A1A1A` / `--site-oxblood-light: #C85B4F` / `--site-oxblood-soft: #E89B91`
+  - `--site-pewter: #9C958B` / `--site-olive: #6B6B4F`
 - **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
 - 상세 컬러는 `globals.css`의 CSS 변수 참조
 

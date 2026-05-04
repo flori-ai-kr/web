@@ -10,17 +10,17 @@
 |------|-----|----------------|-------------|
 | **Server Component** | 서버에서 실행되는 컴포넌트. DB 직접 접근 가능 | `page.tsx` 파일들 | "서버 컴포넌트에서 데이터 가져와줘" |
 | **Client Component** | 브라우저에서 실행. 클릭/입력 등 상호작용 담당 | `*-client.tsx` 파일들 (`'use client'` 선언) | "클라이언트 컴포넌트에 필터 추가해줘" |
-| **라우팅 (Routing)** | URL 경로 → 페이지 연결 | `src/app/(dashboard)/sales/` → `/sales` | "sales 라우트에 새 탭 추가해줘" |
-| **Route Group** | URL에 안 나오는 폴더 그룹 | `(dashboard)` 폴더 — 공통 레이아웃 묶음 | "대시보드 그룹에 새 페이지 만들어줘" |
+| **라우팅 (Routing)** | URL 경로 → 페이지 연결 | `src/app/(admin)/admin/sales/` → `/admin/sales` | "sales 라우트에 새 탭 추가해줘" |
+| **Route Group** | URL에 안 나오는 폴더 그룹 | `(admin)/admin` — 어드민 레이아웃, `(public)` — 공개 홈 레이아웃 | "어드민 그룹에 새 페이지 만들어줘" |
 | **Layout** | 여러 페이지가 공유하는 껍데기 | `layout.tsx` — 사이드바, 헤더 포함 | "레이아웃에 푸터 추가해줘" |
 | **미들웨어 (Middleware)** | 모든 요청 전에 실행되는 코드 | `middleware.ts` — 로그인 안 했으면 리다이렉트 | "미들웨어에서 특정 경로 제외해줘" |
 | **Search Params** | URL 뒤의 `?year=2024&month=1` 같은 것 | 매출 페이지 연/월 필터 | "검색 파라미터로 필터 상태 유지해줘" |
 
 ### 이 프로젝트의 페이지 흐름
 ```
-사용자가 /sales 접속
-  → middleware.ts: 로그인 확인
-  → sales/page.tsx (Server): DB에서 매출 데이터 가져옴
+사용자가 /admin/sales 접속
+  → middleware.ts: 로그인 확인 (/admin/* 만 인증 강제, / 는 공개)
+  → admin/sales/page.tsx (Server): DB에서 매출 데이터 가져옴
   → sales-client.tsx (Client): 필터, 정렬, 모달 등 UI 처리
 ```
 
@@ -261,9 +261,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 | 바꾸고 싶은 것 | 파일 위치 |
 |---------------|----------|
 | 페이지 레이아웃 (사이드바, 헤더) | `src/components/layout/` |
-| 특정 페이지 UI | `src/app/(dashboard)/[페이지명]/` |
-| 페이지 데이터 로딩 | `src/app/(dashboard)/[페이지명]/page.tsx` |
-| 페이지 상호작용 | `src/app/(dashboard)/[페이지명]/*-client.tsx` |
+| 특정 페이지 UI (어드민) | `src/app/(admin)/admin/[페이지명]/` |
+| 페이지 데이터 로딩 | `src/app/(admin)/admin/[페이지명]/page.tsx` |
+| 페이지 상호작용 | `src/app/(admin)/admin/[페이지명]/*-client.tsx` |
+| 공개 홈페이지 컴포넌트 | `src/components/public/` |
 | DB 저장/수정/삭제 로직 | `src/lib/actions/[기능명].ts` |
 | 공통 UI 컴포넌트 | `src/components/ui/` |
 | 기능별 컴포넌트 | `src/components/[기능명]/` |

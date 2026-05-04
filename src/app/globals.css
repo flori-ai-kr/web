@@ -39,7 +39,15 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font-serif: var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Public site palette (hazel 공개 사이트 전용 — 다크모드와 무관하게 고정) */
+  --color-site-ivory: var(--site-ivory);
+  --color-site-parchment: var(--site-parchment);
+  --color-site-charcoal: var(--site-charcoal);
+  --color-site-oxblood: var(--site-oxblood);
+  --color-site-pewter: var(--site-pewter);
+  --color-site-olive: var(--site-olive);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -48,6 +56,16 @@
 
 :root {
   --radius: 0.75rem;
+  /* hazel 공개 사이트 고정 팔레트 */
+  --site-ivory: #FAFAF7;
+  --site-parchment: #F3F1EC;
+  --site-charcoal: #1F1A16;
+  --site-oxblood: #5A1A1A;
+  --site-pewter: #9C958B;
+  --site-olive: #6B6B4F;
+  /* 보조 색: 어두운 배경 위 oxblood 가독 보강 (Location 섹션 등) */
+  --site-oxblood-light: #C85B4F;
+  --site-oxblood-soft: #E89B91;
   /* 따뜻한 크림 배경 */
   --background: #FAFAF8;
   --foreground: #2D2D2A;
@@ -161,6 +179,13 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+/* 공개 사이트 래퍼: 배경·전경을 고정 팔레트로 덮어 다크모드 영향 차단 */
+.site-public {
+  background-color: var(--site-ivory);
+  color: var(--site-charcoal);
+  color-scheme: light;
 }
 
 @media (prefers-reduced-motion: reduce) {

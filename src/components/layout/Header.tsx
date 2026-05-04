@@ -24,14 +24,14 @@ interface HeaderProps {
 }
 
 const pageTitles: Record<string, string> = {
-  '/': '대시보드',
-  '/calendar': '캘린더',
-  '/sales': '매출 관리',
-  '/expenses': '지출 관리',
-  '/customers': '고객 관리',
-  '/deposits': '입금 대조',
-  '/gallery': '사진첩',
-  '/settings': '설정',
+  '/admin': '대시보드',
+  '/admin/calendar': '캘린더',
+  '/admin/sales': '매출 관리',
+  '/admin/expenses': '지출 관리',
+  '/admin/customers': '고객 관리',
+  '/admin/deposits': '입금 대조',
+  '/admin/gallery': '사진첩',
+  '/admin/settings': '설정',
 };
 
 function getPageTitle(pathname: string): string {
@@ -39,7 +39,7 @@ function getPageTitle(pathname: string): string {
     return pageTitles[pathname];
   }
   for (const [path, title] of Object.entries(pageTitles)) {
-    if (path !== '/' && pathname.startsWith(path)) {
+    if (path !== '/admin' && pathname.startsWith(path)) {
       return title;
     }
   }
@@ -68,12 +68,12 @@ export function Header({ userEmail }: HeaderProps) {
     hasNavigatedRef.current = true;
   }, [pathname]);
 
-  const showNavButtons = pathname !== '/';
+  const showNavButtons = pathname !== '/admin';
   const handleBack = useCallback(() => {
     if (hasNavigatedRef.current) {
       router.back();
     } else {
-      router.push('/');
+      router.push('/admin');
     }
   }, [router]);
   const handleForward = useCallback(() => {
@@ -128,8 +128,8 @@ export function Header({ userEmail }: HeaderProps) {
         {/* Left side */}
         <div className="flex items-center gap-1">
           {/* 모바일: 대시보드면 로고, 아니면 뒤로가기 + 페이지 타이틀 */}
-          {pathname === '/' ? (
-            <Link href="/" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
+          {pathname === '/admin' ? (
+            <Link href="/admin" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
               <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
@@ -228,7 +228,7 @@ export function Header({ userEmail }: HeaderProps) {
               </div>
               <div className="px-4 py-2 border-t border-border">
                 <Link
-                  href="/calendar"
+                  href="/admin/calendar"
                   onClick={() => setNotifOpen(false)}
                   className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -272,7 +272,7 @@ export function Header({ userEmail }: HeaderProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/admin/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   설정
                 </Link>

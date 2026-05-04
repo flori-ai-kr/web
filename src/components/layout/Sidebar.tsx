@@ -31,31 +31,31 @@ interface NavSection {
   items: NavItem[];
 }
 
-const dashboardItem: NavItem = { href: '/', icon: LayoutDashboard, label: '대시보드' };
+const dashboardItem: NavItem = { href: '/admin', icon: LayoutDashboard, label: '대시보드' };
 
 const navSections: NavSection[] = [
   {
     title: '매장 운영',
     items: [
-      { href: '/calendar', icon: CalendarDays, label: '캘린더' },
-      { href: '/sales', icon: Receipt, label: '매출관리' },
-      { href: '/expenses', icon: Wallet, label: '지출관리' },
-      { href: '/deposits', icon: CreditCard, label: '입금대조' },
+      { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
+      { href: '/admin/sales', icon: Receipt, label: '매출관리' },
+      { href: '/admin/expenses', icon: Wallet, label: '지출관리' },
+      { href: '/admin/deposits', icon: CreditCard, label: '입금대조' },
     ],
   },
   {
     title: '고객 기록',
     items: [
-      { href: '/customers', icon: Users, label: '고객관리' },
-      { href: '/gallery', icon: Image, label: '사진첩' },
+      { href: '/admin/customers', icon: Users, label: '고객관리' },
+      { href: '/admin/gallery', icon: Image, label: '사진첩' },
     ],
   },
   {
     title: '인사이트',
     items: [
-      { href: '/insights', icon: TrendingUp, label: '인사이트' },
-      { href: '/insights/trends', icon: Sparkles, label: '트렌드' },
-      { href: '/insights/follows', icon: Heart, label: '팔로우' },
+      { href: '/admin/insights', icon: TrendingUp, label: '인사이트' },
+      { href: '/admin/insights/trends', icon: Sparkles, label: '트렌드' },
+      { href: '/admin/insights/follows', icon: Heart, label: '팔로우' },
     ],
   },
 ];
@@ -129,7 +129,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
     ...navSections.flatMap((s) => s.items.map((i) => i.href)),
   ];
   const bestMatchHref = allHrefs
-    .filter((href) => pathname === href || (href !== '/' && pathname.startsWith(href + '/')))
+    .filter((href) => pathname === href || (href !== '/admin' && pathname.startsWith(href + '/')))
     .reduce<string | null>((best, cur) => (best && best.length >= cur.length ? best : cur), null);
 
   return (
@@ -147,7 +147,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
             'h-14 flex items-center border-b border-sidebar-border shrink-0',
             isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
           )}>
-            <Link href="/" className="flex items-center gap-2.5 min-w-0">
+            <Link href="/admin" className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shrink-0">
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
