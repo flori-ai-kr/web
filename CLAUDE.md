@@ -42,7 +42,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 src/
 ├── app/(public)/        # 공개 홈페이지 (인증 불필요, /)
 │   ├── layout.tsx       # 공개 레이아웃 (.site-public CSS 클래스)
-│   └── page.tsx         # 공개 홈페이지 — hero/about/collection/order/location/instagram/footer
+│   └── page.tsx         # 공개 홈페이지 — hero/statement/instagram + floating-cta (Footer는 layout)
 ├── app/(admin)/admin/   # 어드민 라우트 그룹 (인증 필요, /admin/*)
 │   ├── page.tsx         # 대시보드
 │   ├── dashboard-client.tsx  # 대시보드 클라이언트
@@ -82,7 +82,7 @@ src/
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트
 ├── components/insights/ # 인사이트 공통 (category-badge, scrap-button, scrap-memo-editor)
-├── components/public/   # 공개 홈페이지 섹션 컴포넌트 (hero, about, collection, order, location, instagram, footer, header)
+├── components/public/   # 공개 홈페이지 섹션 (hero, statement, instagram, footer, header, floating-cta)
 ├── lib/actions/         # Server Actions (17개, 직접 import — scraps.ts 포함)
 ├── lib/public-config.ts # 공개 홈페이지 비즈니스 데이터 SSOT (HAZEL_BUSINESS, HAZEL_LINKS, HAZEL_SEO)
 ├── lib/instagram-url.ts # Instagram CDN URL stp 파라미터 정규화 (썸네일 흰 여백 제거)
@@ -132,12 +132,14 @@ src/
 
 ## 컬러 시스템
 
-- **브랜드**: Warm Coral (`--brand: #E5614E`)
-- **서브**: Sage Green (`--sage: #8B9D83`)
-- **공개 홈페이지 팔레트** (`--site-*` CSS 변수, `.site-public` 클래스로 스코핑):
-  - `--site-ivory: #FAFAF7` / `--site-parchment: #F3F1EC` / `--site-charcoal: #1F1A16`
-  - `--site-oxblood: #5A1A1A` / `--site-oxblood-light: #C85B4F` / `--site-oxblood-soft: #E89B91`
-  - `--site-pewter: #9C958B` / `--site-olive: #6B6B4F`
+- **어드민 브랜드**: Warm Coral (`--brand: #E5614E`) + Sage Green (`--sage: #8B9D83`)
+- **공개 홈페이지 v2 팔레트** (Sage & Wood, `.site-public` 스코프):
+  - `--site-paper: #FAF7EF` / `--site-paper-soft: #FFFCF5` (베이스 — 따뜻한 거의-흰)
+  - `--site-ink: #2D2418` / `--site-ink-soft: rgba(45,36,24,0.66)` (잉크 다크 브라운)
+  - `--site-accent: #6E7457` (무광 올리브 — 매장 그린월 톤, 액센트)
+  - `--site-muted: rgba(45,36,24,0.42)` / `--site-line: rgba(45,36,24,0.14)`
+  - 폰트: Cormorant Garamond (display, `--font-display`) + Noto Serif KR (`--font-serif-kr`) + Pretendard (sans)
+  - Legacy alias 유지 (`--site-ivory/parchment/charcoal/oxblood/pewter/olive` → v2 매핑)
 - **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
 - 상세 컬러는 `globals.css`의 CSS 변수 참조
 

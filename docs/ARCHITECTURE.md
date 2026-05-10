@@ -517,7 +517,7 @@ erDiagram
 
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
-| `/` | 공개 홈페이지 | 플라워 스튜디오 소개 — hero/about/collection/order/location/instagram (인증 불필요) |
+| `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
 | `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
 | `/admin/sales` | 매출 관리 | 카드형 목록 (일자별 그룹) + 서버사이드 필터 + 무한 스크롤 + 사진 연동 |
 | `/admin/expenses` | 지출 관리 | CRUD + 카테고리/결제방식 설정 |
