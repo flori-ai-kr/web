@@ -311,6 +311,7 @@ export type ScrapMap = Record<string, ScrapInfo>;
 
 // ─── 유저 설정 (하단바 커스터마이즈) ──────────────────────────
 export type NavItemKey =
+  | 'dashboard'
   | 'calendar'
   | 'sales'
   | 'expenses'
@@ -327,6 +328,7 @@ export interface UserPreferences {
 }
 
 export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
+  dashboard: '대시보드',
   calendar: '캘린더',
   sales: '매출관리',
   expenses: '지출관리',
@@ -338,6 +340,7 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
 };
 
 export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
+  dashboard: '/admin',
   calendar: '/admin/calendar',
   sales: '/admin/sales',
   expenses: '/admin/expenses',
@@ -349,7 +352,7 @@ export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
 };
 
 export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [
-  'calendar',
+  'dashboard',
   'sales',
   'expenses',
   'customers',

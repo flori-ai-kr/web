@@ -8,10 +8,10 @@ import {
     CreditCard,
     Heart,
     Image as ImageIcon,
+    LayoutDashboard,
     MoreHorizontal,
     Receipt,
     Settings as SettingsIcon,
-    Sparkles,
     TrendingUp,
     Users,
     Wallet,
@@ -21,6 +21,7 @@ import {DEFAULT_BOTTOM_NAV_ITEMS, NAV_ITEM_HREFS, NAV_ITEM_LABELS, type NavItemK
 import {Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle,} from '@/components/ui/sheet';
 
 const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> = {
+  dashboard: LayoutDashboard,
   calendar: CalendarDays,
   sales: Receipt,
   expenses: Wallet,
@@ -32,6 +33,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
 };
 
 const ALL_NAV_ITEMS: NavItemKey[] = [
+  'dashboard',
   'calendar',
   'sales',
   'expenses',
@@ -63,7 +65,7 @@ export function BottomNav({ items }: BottomNavProps) {
   const bestMatchHref = useMemo(() => {
     const candidates: string[] = displayedItems.map((k) => NAV_ITEM_HREFS[k]);
     return candidates
-      .filter((href) => pathname === href || pathname.startsWith(href + '/'))
+      .filter((href) => pathname === href || (href !== '/admin' && pathname.startsWith(href + '/')))
       .reduce<string | null>((best, cur) => (best && best.length >= cur.length ? best : cur), null);
   }, [pathname, displayedItems]);
 
@@ -140,15 +142,6 @@ export function BottomNav({ items }: BottomNavProps) {
                 >
                   <SettingsIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   <span>설정</span>
-                </Link>
-              </SheetClose>
-              <SheetClose asChild>
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
-                >
-                  <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span>대시보드</span>
                 </Link>
               </SheetClose>
             </div>

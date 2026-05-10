@@ -201,6 +201,7 @@ export const instagramAccountUpdateSchema = instagramAccountCreateSchema.partial
 
 // 하단바 커스터마이즈
 export const navItemKeySchema = z.enum([
+  'dashboard',
   'calendar',
   'sales',
   'expenses',
