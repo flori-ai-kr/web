@@ -1,19 +1,15 @@
 import {HeroSection} from '@/components/public/hero-section';
-import {AboutSection} from '@/components/public/about-section';
-import {CollectionSection} from '@/components/public/collection-section';
-import {OrderSection} from '@/components/public/order-section';
-import {LocationSection} from '@/components/public/location-section';
+import {StatementSection} from '@/components/public/statement-section';
 import {InstagramSection} from '@/components/public/instagram-section';
+import {FloatingCta} from '@/components/public/floating-cta';
 
 export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <AboutSection />
-      <CollectionSection />
-      <OrderSection />
-      <LocationSection />
+      <StatementSection />
       <InstagramSection />
+      <FloatingCta />
     </>
   );
 }

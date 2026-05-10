@@ -1,14 +1,23 @@
 import type {Metadata} from 'next';
-import {Fraunces} from 'next/font/google';
+import {Cormorant_Garamond, Noto_Serif_KR} from 'next/font/google';
 import {PublicHeader} from '@/components/public/header';
 import {PublicFooter} from '@/components/public/footer';
 import {HAZEL_BUSINESS, HAZEL_LINKS, HAZEL_SEO} from '@/lib/public-config';
 
-const fraunces = Fraunces({
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  weight: ['300', '400'],
+  variable: '--font-display',
+  weight: ['300', '400', '500'],
   style: ['normal', 'italic'],
+  display: 'swap',
+});
+
+// Noto_Serif_KR: korean glyphs are loaded implicitly by next/font/google
+// (the 'korean' subset is not a valid value — Korean is the font's primary script)
+const notoSerifKr = Noto_Serif_KR({
+  subsets: ['latin'],
+  variable: '--font-serif-kr',
+  weight: ['300', '400', '500'],
   display: 'swap',
 });
 
@@ -78,7 +87,7 @@ export default function PublicLayout({
 }) {
   const jsonLd = buildJsonLd();
   return (
-    <div className={`${fraunces.variable} site-public min-h-screen flex flex-col`}>
+    <div className={`${cormorant.variable} ${notoSerifKr.variable} site-public min-h-screen flex flex-col`}>
       <PublicHeader />
       <main className="flex-1">{children}</main>
       <PublicFooter />

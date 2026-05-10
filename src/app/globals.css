@@ -41,7 +41,16 @@
   --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   --font-serif: var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  /* Public site palette (hazel 공개 사이트 전용 — 다크모드와 무관하게 고정) */
+  /* Public site palette v2 (hazel 공개 사이트 전용 — 다크모드와 무관하게 고정) */
+  --color-site-paper: var(--site-paper);
+  --color-site-paper-soft: var(--site-paper-soft);
+  --color-site-ink: var(--site-ink);
+  --color-site-ink-soft: var(--site-ink-soft);
+  --color-site-accent: var(--site-accent);
+  --color-site-accent-soft: var(--site-accent-soft);
+  --color-site-leaf: var(--site-leaf);
+  --color-site-muted: var(--site-muted);
+  /* Legacy aliases */
   --color-site-ivory: var(--site-ivory);
   --color-site-parchment: var(--site-parchment);
   --color-site-charcoal: var(--site-charcoal);
@@ -56,16 +65,27 @@
 
 :root {
   --radius: 0.75rem;
-  /* hazel 공개 사이트 고정 팔레트 */
-  --site-ivory: #FAFAF7;
-  --site-parchment: #F3F1EC;
-  --site-charcoal: #1F1A16;
-  --site-oxblood: #5A1A1A;
-  --site-pewter: #9C958B;
-  --site-olive: #6B6B4F;
-  /* 보조 색: 어두운 배경 위 oxblood 가독 보강 (Location 섹션 등) */
-  --site-oxblood-light: #C85B4F;
-  --site-oxblood-soft: #E89B91;
+  /* hazel 공개 사이트 v2 팔레트 — Claude Design "alpha" (Sage & Wood) 기반.
+     매장 다크 그린월 + 따뜻한 크림 베이스. 액센트는 무광 올리브. */
+  --site-paper: #FAF7EF;          /* 따뜻한 거의-흰 — 페이지 베이스 */
+  --site-paper-soft: #FFFCF5;     /* 카드/footer 표면 — paper보다 살짝 밝음 */
+  --site-ink: #2D2418;            /* 잉크 (따뜻한 다크 브라운) */
+  --site-ink-soft: rgba(45, 36, 24, 0.66);  /* 본문 보조 */
+  --site-accent: #6E7457;         /* 무광 올리브 — 매장 그린월 톤 */
+  --site-accent-soft: #8C9476;    /* 페일 올리브 호버 */
+  --site-leaf: #6E7457;           /* leaf alias */
+  --site-muted: rgba(45, 36, 24, 0.42);  /* 캡션/마이크로 */
+  --site-line: rgba(45, 36, 24, 0.14);   /* 디바이더 */
+
+  /* Legacy aliases (점진 마이그레이션용 — 추후 제거 예정) */
+  --site-ivory: var(--site-paper);
+  --site-parchment: var(--site-paper-soft);
+  --site-charcoal: var(--site-ink);
+  --site-oxblood: var(--site-accent);
+  --site-pewter: var(--site-muted);
+  --site-olive: var(--site-leaf);
+  --site-oxblood-light: var(--site-accent-soft);
+  --site-oxblood-soft: var(--site-accent-soft);
   /* 따뜻한 크림 배경 */
   --background: #FAFAF8;
   --foreground: #2D2D2A;
@@ -183,9 +203,42 @@
 
 /* 공개 사이트 래퍼: 배경·전경을 고정 팔레트로 덮어 다크모드 영향 차단 */
 .site-public {
-  background-color: var(--site-ivory);
-  color: var(--site-charcoal);
+  background-color: var(--site-paper);
+  color: var(--site-ink);
   color-scheme: light;
+  font-family: var(--font-serif-kr), 'Noto Serif KR', 'Pretendard', system-ui, serif;
+  font-feature-settings: 'kern', 'liga', 'palt';
+}
+
+.site-public ::selection {
+  background: var(--site-accent);
+  color: var(--site-paper);
+}
+
+/* Display 폰트 헬퍼 */
+.site-public .font-display {
+  font-family: var(--font-display), 'Cormorant Garamond', 'Noto Serif KR', serif;
+  font-feature-settings: 'kern', 'liga', 'lnum';
+}
+
+.site-public .font-sans {
+  font-family: 'Pretendard', -apple-system, system-ui, sans-serif;
+}
+
+/* Subtle reveal on scroll */
+@keyframes site-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.site-public .animate-fade-up {
+  animation: site-fade-up 1s ease-out both;
+}
+
+/* Order CTA button hover (Claude Design spec) */
+.site-public .btn-order:hover {
+  background: var(--site-ink) !important;
+  color: var(--site-paper-soft) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
