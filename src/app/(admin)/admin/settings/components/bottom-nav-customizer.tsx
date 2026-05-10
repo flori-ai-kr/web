@@ -23,6 +23,7 @@ import {
     CreditCard,
     Heart,
     Image as ImageIcon,
+    LayoutDashboard,
     Plus,
     Receipt,
     RotateCcw,
@@ -48,6 +49,7 @@ import {getUserPreferences, updateBottomNavItems} from '@/lib/actions/insights';
 import {AppError} from '@/lib/errors';
 
 const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> = {
+  dashboard: LayoutDashboard,
   calendar: CalendarDays,
   sales: Receipt,
   expenses: Wallet,
@@ -59,6 +61,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
 };
 
 const ALL_KEYS: NavItemKey[] = [
+  'dashboard',
   'calendar',
   'sales',
   'expenses',

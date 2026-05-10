@@ -545,7 +545,7 @@ erDiagram
 | 모바일/태블릿 (<lg) | `BottomNav` | 하단 고정 탭바 (4~6개, `user_preferences.bottom_nav_items` JSONB로 사용자 지정 가능) |
 
 - `lg` 브레이크포인트(1024px) 기준으로 Sidebar는 `hidden lg:block`, BottomNav는 `lg:hidden`
-- BottomNav 가운데에 Flower2 로고를 사용한 홈(대시보드) 버튼 배치
+- 대시보드(`/admin`)는 BottomNav 정식 항목(`NavItemKey: 'dashboard'`)으로 기본 첫 번째 위치에 배치
 - iOS safe area 대응: `pb-[max(env(safe-area-inset-bottom),0.5rem)]` — 노치 없는 기기에서도 최소 0.5rem 보장
 - 메인 콘텐츠에 `pb-20` (모바일), `lg:pb-8` (데스크톱) 적용하여 BottomNav와 겹침 방지
 

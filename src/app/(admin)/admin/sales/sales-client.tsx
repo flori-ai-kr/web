@@ -6,7 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {Loader2, Plus, RotateCcw, Search, Settings} from 'lucide-react';
+import {CalendarCheck, Loader2, Plus, RotateCcw, Search, Settings} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
@@ -38,6 +38,8 @@ const SalePhotoModal = dynamic(
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 // Month options: 1 ~ 12
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+// Day options: 1 ~ 31
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 interface Props {
   initialSales: Sale[];
@@ -46,6 +48,7 @@ interface Props {
   monthParam: string | null;
   currentYear: number;
   currentMonth: number;
+  currentDay: number;
   initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
@@ -53,7 +56,7 @@ interface Props {
   initialSelectedSale?: Sale | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, initialFilters, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -142,9 +145,10 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       const cleanParams = new URLSearchParams();
       cleanParams.set('year', currentYear === 0 ? 'all' : currentYear.toString());
       cleanParams.set('month', currentMonth === 0 ? 'all' : currentMonth.toString());
+      if (currentDay !== 0) cleanParams.set('day', currentDay.toString());
       router.replace(`/admin/sales?${cleanParams.toString()}`, { scroll: false });
     }
-  }, [searchParams, router, currentYear, currentMonth]);
+  }, [searchParams, router, currentYear, currentMonth, currentDay]);
 
   // 검색어 디바운스 → 서버사이드 검색
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -196,10 +200,15 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
   const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
+  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
 
-  const getExportConfig = useCallback((): ExportConfig<Sale> => ({
-    filename: currentYear === 0 || currentMonth === 0 ? '매출_전체' : `매출_${currentYear}-${String(currentMonth).padStart(2, '0')}`,
-    title: `매출 내역 (${yearLabel} ${monthLabel})`,
+  const getExportConfig = useCallback((): ExportConfig<Sale> => {
+    const isAll = currentYear === 0 || currentMonth === 0;
+    const monthSuffix = isAll ? '' : `_${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const daySuffix = currentDay === 0 ? '' : `-${String(currentDay).padStart(2, '0')}`;
+    return ({
+    filename: isAll ? '매출_전체' : `매출${monthSuffix}${daySuffix}`,
+    title: `매출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
     columns: [
       { header: '날짜', accessor: (s) => String(s.date || '') },
       { header: '카테고리', accessor: (s) => categoryLabels[s.product_category] || s.product_category || '' },
@@ -210,7 +219,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       { header: '비고', accessor: (s) => String(s.note || '') },
     ],
     data: filteredSales,
-  }), [filteredSales, currentYear, currentMonth, yearLabel, monthLabel, categoryLabels, paymentLabels]);
+    });
+  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel, categoryLabels, paymentLabels]);
 
   // 매출 상세 선택 시 사진 + 연결 예약 로드
   const handleSelectSale = async (sale: Sale) => {
@@ -227,32 +237,50 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
+  const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
+  const isDayDisabled = yearParam === 'all' || monthParam === 'all';
 
   // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략
   const buildUrl = useCallback((overrides: Record<string, string> = {}) => {
     const p = {
       year: yearParam,
       month: monthParam,
+      day: dayParam,
       category: categoryFilter,
       payment: paymentFilter,
       channel: channelFilter,
       ...overrides,
     };
+    // 년/월이 'all'이면 일은 자동 'all'
+    if (p.year === 'all' || p.month === 'all') p.day = 'all';
     const params = new URLSearchParams();
     params.set('year', p.year);
     params.set('month', p.month);
+    if (p.day !== 'all') params.set('day', p.day);
     if (p.category !== 'all') params.set('category', p.category);
     if (p.payment !== 'all') params.set('payment', p.payment);
     if (p.channel !== 'all') params.set('channel', p.channel);
     return `/admin/sales?${params.toString()}`;
-  }, [yearParam, monthParam, categoryFilter, paymentFilter, channelFilter]);
+  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
 
   const handleYearChange = (year: string) => {
-    router.push(buildUrl({ year }));
+    router.push(buildUrl({ year, day: 'all' }));
   };
 
   const handleMonthChange = (month: string) => {
-    router.push(buildUrl({ month }));
+    router.push(buildUrl({ month, day: 'all' }));
+  };
+
+  const handleDayChange = (day: string) => {
+    router.push(buildUrl({ day }));
+  };
+
+  const handleTodayOnly = () => {
+    const now = new Date();
+    const y = now.getFullYear().toString();
+    const m = (now.getMonth() + 1).toString();
+    const d = now.getDate().toString();
+    router.push(buildUrl({ year: y, month: m, day: d }));
   };
 
   const handleCategoryChange = (category: string) => {
@@ -385,6 +413,17 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
             ))}
           </SelectContent>
         </Select>
+        <Select value={dayParam} onValueChange={handleDayChange} disabled={isDayDisabled}>
+          <SelectTrigger className="w-[80px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            {DAY_OPTIONS.map(day => (
+              <SelectItem key={day} value={day.toString()}>{day}일</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-auto min-w-[140px] bg-background">
             <div className="flex items-center gap-1.5">
@@ -478,6 +517,16 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
             aria-label="매출 검색"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 border-emerald-950 bg-emerald-950 text-white hover:bg-emerald-900 hover:text-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 dark:hover:text-emerald-200"
+          onClick={handleTodayOnly}
+          aria-label="오늘 매출만 보기"
+        >
+          <CalendarCheck className="w-3.5 h-3.5 mr-1.5" />
+          오늘만
+        </Button>
         <Button
           variant="default"
           size="sm"
