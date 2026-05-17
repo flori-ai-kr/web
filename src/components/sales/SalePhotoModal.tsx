@@ -1,31 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { PhotoCard, PhotoTag, PhotoFile } from '@/types/database';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { X, Upload, Loader2, Plus, GripVertical, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import {useCallback, useEffect, useState} from 'react';
+import {PhotoCard, PhotoFile, PhotoTag} from '@/types/database';
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {Label} from '@/components/ui/label';
+import {Badge} from '@/components/ui/badge';
+import {GripVertical, Loader2, Plus, Trash2, Upload, X} from 'lucide-react';
+import {toast} from 'sonner';
 import imageCompression from 'browser-image-compression';
 import {
-  getPhotoCardBySaleId,
-  createOrUpdatePhotoCardForSale,
-  uploadPhotos,
-  reorderPhotos,
-  deletePhotoCard,
-  deletePhotosFromStorage,
+    createOrUpdatePhotoCardForSale,
+    deletePhotoCard,
+    deletePhotosFromStorage,
+    getPhotoCardBySaleId,
+    reorderPhotos,
 } from '@/lib/actions/photo-cards';
-import { createPhotoTag, getPhotoTags } from '@/lib/actions/photo-tags';
-import { cn } from '@/lib/utils';
+import {createPhotoTag, getPhotoTags} from '@/lib/actions/photo-tags';
+import {uploadPhotoFiles} from '@/lib/photo-upload';
+import {cn} from '@/lib/utils';
 
 const MAX_FILE_SIZE_MB = 3;
 const MAX_PHOTOS = 10;
@@ -34,7 +29,8 @@ const MAX_TAGS = 3;
 const COMPRESSION_OPTIONS = {
   maxSizeMB: MAX_FILE_SIZE_MB,
   maxWidthOrHeight: 2560,
-  useWebWorker: true,
+  // CSP가 외부 CDN 스크립트를 차단하므로 워커 대신 메인스레드 압축 사용
+  useWebWorker: false,
 };
 
 type PhotoItem =
@@ -259,12 +255,10 @@ export function SalePhotoModal({
       );
 
       if (newFileItems.length > 0) {
-        const uploadFormData = new FormData();
-        newFileItems.forEach(item => {
-          uploadFormData.append('files', item.file);
-          uploadFormData.append('originalNames', item.file.name);
-        });
-        const uploadedPhotos = await uploadPhotos(card.id, uploadFormData);
+        const uploadedPhotos = await uploadPhotoFiles(
+          card.id,
+          newFileItems.map(({ file }) => file),
+        );
 
         const uploadedQueue = [...uploadedPhotos];
         const finalPhotos: PhotoFile[] = photoItems.map(item =>

@@ -139,6 +139,20 @@ export function validateImageFile(file: File): string | null {
   return null;
 }
 
+export function validateImageMeta(meta: { name: string; type: string; size: number }): string | null {
+  if (meta.size > MAX_IMAGE_FILE_SIZE) {
+    return `파일 크기는 5MB 이하여야 합니다 (현재: ${(meta.size / 1024 / 1024).toFixed(1)}MB)`;
+  }
+  const ext = meta.name.split('.').pop()?.toLowerCase();
+  if (!ext || !ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    return `허용되지 않는 파일 형식입니다: .${ext || '(없음)'}`;
+  }
+  if (!meta.type || !ALLOWED_IMAGE_MIME_TYPES.includes(meta.type)) {
+    return `허용되지 않는 MIME 타입입니다: ${meta.type || '(없음)'}`;
+  }
+  return null;
+}
+
 // 고객 등급 단독 검증
 export const customerGradeSchema = z.enum(['new', 'regular', 'vip', 'blacklist']);
 

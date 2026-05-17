@@ -1,12 +1,19 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth-guard';
-import { PhotoCard, PhotoFile } from '@/types/database';
-import { validateImageFile, photoCardSchema, uuidSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { reportError } from '@/lib/logger';
-import { uploadFile, deleteFileByUrl, deleteFilesByUrls, getSignedDownloadUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
+import {createClient} from '@/lib/supabase/server';
+import {requireAuth} from '@/lib/auth-guard';
+import {PhotoCard, PhotoFile} from '@/types/database';
+import {photoCardSchema, uuidSchema, validateImageMeta} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {
+    deleteFileByUrl,
+    deleteFilesByUrls,
+    generateFileKey,
+    getPublicUrl,
+    getSignedDownloadUrl,
+    getSignedUploadUrl,
+    StoragePrefix
+} from '@/lib/storage';
 
 const MAX_PHOTOS_PER_CARD = 10;
 
@@ -234,63 +241,46 @@ async function _deletePhotoCard(id: string): Promise<PhotoFile[]> {
 export const deletePhotoCard = withErrorLogging('deletePhotoCard', _deletePhotoCard);
 
 
-async function _uploadPhotos(cardId: string, formData: FormData): Promise<PhotoFile[]> {
-  await requireAuth();
+async function _createPhotoUploadTargets(
+  cardId: string,
+  files: { name: string; type: string; size: number }[],
+): Promise<{ uploadUrl: string; publicUrl: string; originalName: string }[]> {
+  const user = await requireAuth();
   const idParsed = uuidSchema.safeParse(cardId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const supabase = await createClient();
 
-  // Get current card to check photo count
+  // presigned URL은 admin 자격으로 서명되어 RLS 바깥에서 동작하므로,
+  // 소유권을 앱 레이어에서 명시 검증한다 (타 사용자 카드 prefix 쓰기 차단)
   const { data: card } = await supabase
     .from('photo_cards')
     .select('photos')
     .eq('id', cardId)
+    .eq('user_id', user.id)
     .single();
 
-  const currentPhotos = (card?.photos as PhotoFile[]) || [];
-  const files = formData.getAll('files') as File[];
-  const originalNames = formData.getAll('originalNames') as string[];
+  if (!card) throw new AppError(ErrorCode.NOT_FOUND, '사진 카드를 찾을 수 없습니다');
+
+  const currentPhotos = (card.photos as PhotoFile[]) || [];
 
   if (currentPhotos.length + files.length > MAX_PHOTOS_PER_CARD) {
     throw new AppError(ErrorCode.VALIDATION, `사진은 최대 ${MAX_PHOTOS_PER_CARD}장까지 등록할 수 있습니다. 현재 ${currentPhotos.length}장 등록됨.`);
   }
 
-  const uploadedPhotos: PhotoFile[] = [];
+  return Promise.all(
+    files.map(async (file) => {
+      const imageError = validateImageMeta(file);
+      if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const imageError = validateImageFile(file);
-    if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
-
-    const originalName = originalNames[i] || file.name;
-
-    try {
-      // R2 Storage: 키 생성 및 업로드
       const key = generateFileKey(StoragePrefix.PHOTO_CARDS, cardId, file.name);
-      const arrayBuffer = await file.arrayBuffer();
-      const publicUrl = await uploadFile(key, arrayBuffer, file.type || 'image/jpeg');
+      const uploadUrl = await getSignedUploadUrl(key, file.type || 'image/jpeg');
 
-      uploadedPhotos.push({ url: publicUrl, originalName });
-    } catch (uploadError) {
-      await reportError(uploadError, { action: 'uploadPhotos', extra: { file: originalName } });
-      continue;
-    }
-  }
-
-  // Update card with new photos
-  const newPhotos = [...currentPhotos, ...uploadedPhotos];
-
-  const { error: updateError } = await supabase
-    .from('photo_cards')
-    .update({ photos: newPhotos })
-    .eq('id', cardId);
-
-  if (updateError) throw updateError;
-
-  return uploadedPhotos;
+      return { uploadUrl, publicUrl: getPublicUrl(key), originalName: file.name };
+    }),
+  );
 }
 
-export const uploadPhotos = withErrorLogging('uploadPhotos', _uploadPhotos);
+export const createPhotoUploadTargets = withErrorLogging('createPhotoUploadTargets', _createPhotoUploadTargets);
 
 async function _deletePhoto(cardId: string, photoUrl: string): Promise<void> {
   await requireAuth();
