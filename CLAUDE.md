@@ -87,13 +87,14 @@ src/
 ├── lib/public-config.ts # 공개 홈페이지 비즈니스 데이터 SSOT (HAZEL_BUSINESS, HAZEL_LINKS, HAZEL_SEO)
 ├── lib/instagram-url.ts # Instagram CDN URL stp 파라미터 정규화 (썸네일 흰 여백 제거)
 ├── lib/constants.ts     # 공유 라벨 상수 (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS)
-├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환)
+├── lib/photo-upload.ts  # 클라이언트 업로드 헬퍼 — presigned URL 발급 → 브라우저→R2 직접 PUT → PhotoFile[] 반환
+├── lib/storage.ts       # Cloudflare R2 스토리지 추상화 (S3 호환) — uploadFile + getSignedUploadUrl(presigned PUT)
 ├── lib/supabase/        # client.ts, server.ts, middleware.ts, service.ts (Service Role 클라이언트)
 ├── lib/internal-auth.ts # Bearer INTERNAL_API_KEY timing-safe 검증
 ├── lib/push-broadcast.ts # 모든 활성 구독자에게 푸시 브로드캐스트
 ├── lib/errors.ts        # AppError, ErrorCode, withErrorLogging()
 ├── lib/logger.ts        # reportError() → Discord 웹훅
-├── lib/validations.ts   # Zod 스키마 + 이미지 파일 검증
+├── lib/validations.ts   # Zod 스키마 + 이미지 파일 검증 — validateImageFile(File) + validateImageMeta({name,type,size})
 ├── lib/date-locale.ts   # date-fns 로케일 추상화 (ko)
 ├── lib/auth-guard.ts    # requireAuth()
 ├── lib/env.ts           # 환경변수 Zod 검증
@@ -123,7 +124,7 @@ src/
 - 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`
 - 입금 예정일: 영업일 기준 N일
 - 지출 총액: `unit_price * quantity`
-- 사진: 3MB 초과 시 자동 압축, 카드당 최대 10장, Cloudflare R2 저장 (CDN 캐싱), 매출/캘린더 양쪽에서 등록/수정/삭제 가능
+- 사진: 3MB 초과 시 자동 압축 (`useWebWorker: false` — CSP worker-src 제약), 카드당 최대 10장, Cloudflare R2 저장 (CDN 캐싱), 매출/캘린더 양쪽에서 등록/수정/삭제 가능. 업로드 흐름: `createPhotoUploadTargets()` Server Action으로 presigned PUT URL 발급 → 브라우저가 R2 S3 API 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
 - 예약 리마인더: `reminder_at` 시간 설정 → Cron으로 푸시 알림 발송
 - 미수(외상): `payment_method='unpaid'` + `is_unpaid=true`, 결제 완료 시 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지

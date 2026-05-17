@@ -1,12 +1,12 @@
 import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-  DeleteObjectsCommand,
-  ListObjectsV2Command,
-  GetObjectCommand,
+    DeleteObjectCommand,
+    DeleteObjectsCommand,
+    GetObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    S3Client,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 
 // S3-compatible client (Cloudflare R2)
 const s3Client = new S3Client({
@@ -74,6 +74,19 @@ export async function uploadFile(
     }),
   );
   return getPublicUrl(key);
+}
+
+/** 브라우저 직접 업로드용 presigned PUT URL 생성 (기본 300초) */
+export async function getSignedUploadUrl(
+  key: string,
+  contentType: string,
+  expiresIn = 300,
+): Promise<string> {
+  return getSignedUrl(
+    s3Client,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn },
+  );
 }
 
 /** URL로 단일 파일 삭제 */

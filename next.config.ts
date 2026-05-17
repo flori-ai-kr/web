@@ -5,6 +5,9 @@ const env = validateEnv();
 
 const supabaseHostname = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 const r2Hostname = new URL(env.R2_PUBLIC_URL).hostname;
+// AWS SDK S3 클라이언트는 기본적으로 virtual-hosted-style URL을 생성한다:
+// https://<bucket>.<account>.r2.cloudflarestorage.com — presigned PUT 대상 호스트.
+const r2ApiHost = `${env.R2_BUCKET_NAME}.${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
 const nextConfig: NextConfig = {
   images: {
@@ -68,7 +71,7 @@ const nextConfig: NextConfig = {
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
               `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
-              `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname}`,
+              `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname} https://${r2ApiHost}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self'",

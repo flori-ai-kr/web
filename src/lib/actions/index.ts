@@ -131,7 +131,6 @@ export {
   createPhotoCard,
   updatePhotoCard,
   deletePhotoCard,
-  uploadPhotos,
   deletePhoto,
   deletePhotosFromStorage,
   downloadPhoto,
