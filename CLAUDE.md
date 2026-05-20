@@ -108,12 +108,12 @@ src/
 
 ## 멀티테넌시
 
-- 15개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 스크랩 포함)
-  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, push_subscriptions, user_preferences, insight_scraps
+- 17개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 스크랩 포함)
+  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, expense_categories, expense_payment_methods, push_subscriptions, user_preferences, insight_scraps
   - 공유 읽기 테이블 (SELECT only, writes via service role): trend_articles, instagram_accounts, instagram_posts
 - RLS 정책: `auth.uid() = user_id` (CRUD별 분리)
 - unique 제약: 기존 단일 컬럼에서 `(column, user_id)` 복합으로 변경
-  - `customers(phone, user_id)`, `card_company_settings(name, user_id)`, `photo_tags(name, user_id)`, `sale_categories(value, user_id)`, `payment_methods(value, user_id)`
+  - `customers(phone, user_id)`, `card_company_settings(name, user_id)`, `photo_tags(name, user_id)`, `sale_categories(value, user_id)`, `payment_methods(value, user_id)`, `expense_categories(value, user_id)`, `expense_payment_methods(value, user_id)`
 - Server Action에서 INSERT 시 `user_id: user.id` 삽입 (requireAuth()로 획득)
 - app_config: RLS는 `auth.uid() IS NOT NULL` (공유 설정)
 

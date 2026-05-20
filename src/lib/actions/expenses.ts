@@ -18,8 +18,14 @@ async function _getExpenses(month?: string) {
     .order('date', { ascending: false });
 
   if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
+    if (month.length === 4) {
+      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
+    } else if (month.length === 10) {
+      query = query.eq('date', month);
+    } else {
+      const { startDate, endDate } = getMonthDateRange(month);
+      query = query.gte('date', startDate).lte('date', endDate);
+    }
   }
 
   const { data, error } = await query;
