@@ -11,12 +11,14 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/
 import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
 import {
+    CalendarCheck,
     Home,
     Loader2,
     Megaphone,
     Package,
     Pencil,
     Plus,
+    RotateCcw,
     Search,
     Settings,
     ShoppingCart,
@@ -44,6 +46,7 @@ import type {ExportConfig} from '@/lib/export';
 
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 // 카테고리별 아이콘 컴포넌트 맵
 const CATEGORY_ICON_MAP: Record<string, typeof ShoppingCart> = {
@@ -65,6 +68,7 @@ interface Props {
   initialExpenses: Expense[];
   currentYear: number;
   currentMonth: number;
+  currentDay: number;
   initialCategories: ExpenseCategory[];
   initialPayments: ExpensePaymentMethod[];
   initialSelectedExpense?: Expense | null;
@@ -74,6 +78,7 @@ export function ExpensesClient({
   initialExpenses,
   currentYear,
   currentMonth,
+  currentDay,
   initialCategories,
   initialPayments,
   initialSelectedExpense
@@ -176,32 +181,73 @@ export function ExpensesClient({
     return { total, byCategory };
   }, [filteredExpenses]);
 
-  const getExportConfig = useCallback((): ExportConfig<Expense> => ({
-    filename: `지출_${currentYear}-${String(currentMonth).padStart(2, '0')}`,
-    title: `지출 내역 (${currentYear}년 ${currentMonth}월)`,
-    columns: [
-      { header: '날짜', accessor: (e) => String(e.date || '') },
-      { header: '카테고리', accessor: (e) => categoryLabels[e.category] || e.category || '' },
-      { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (e) => paymentLabels[e.payment_method] || e.payment_method || '' },
-      { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
-      { header: '품목명', accessor: (e) => String(e.item_name || '') },
-      { header: '거래처', accessor: (e) => String(e.vendor || '') },
-      { header: '비고', accessor: (e) => String(e.note || '') },
-    ],
-    data: filteredExpenses,
-  }), [filteredExpenses, currentYear, currentMonth, categoryLabels, paymentLabels]);
+  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
+  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
+  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
+
+  const getExportConfig = useCallback((): ExportConfig<Expense> => {
+    const isAll = currentYear === 0 || currentMonth === 0;
+    const monthSuffix = isAll ? '' : `_${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const daySuffix = currentDay === 0 ? '' : `-${String(currentDay).padStart(2, '0')}`;
+    return ({
+      filename: isAll ? '지출_전체' : `지출${monthSuffix}${daySuffix}`,
+      title: `지출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
+      columns: [
+        { header: '날짜', accessor: (e) => String(e.date || '') },
+        { header: '카테고리', accessor: (e) => categoryLabels[e.category] || e.category || '' },
+        { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
+        { header: '결제방법', accessor: (e) => paymentLabels[e.payment_method] || e.payment_method || '' },
+        { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
+        { header: '품목명', accessor: (e) => String(e.item_name || '') },
+        { header: '거래처', accessor: (e) => String(e.vendor || '') },
+        { header: '비고', accessor: (e) => String(e.note || '') },
+      ],
+      data: filteredExpenses,
+    });
+  }, [filteredExpenses, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel, categoryLabels, paymentLabels]);
 
   const handleSelectExpense = (expense: Expense) => {
     setSelectedExpense(expense);
   };
 
+  const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
+  const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
+  const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
+  const isDayDisabled = yearParam === 'all' || monthParam === 'all';
+
+  const buildUrl = useCallback((overrides: Record<string, string> = {}) => {
+    const p = {
+      year: yearParam,
+      month: monthParam,
+      day: dayParam,
+      ...overrides,
+    };
+    if (p.year === 'all' || p.month === 'all') p.day = 'all';
+    const params = new URLSearchParams();
+    params.set('year', p.year);
+    params.set('month', p.month);
+    if (p.day !== 'all') params.set('day', p.day);
+    return `/admin/expenses?${params.toString()}`;
+  }, [yearParam, monthParam, dayParam]);
+
   const handleYearChange = (year: string) => {
-    router.push(`/admin/expenses?year=${year}&month=${currentMonth}`);
+    router.push(buildUrl({ year, day: 'all' }));
   };
 
   const handleMonthChange = (month: string) => {
-    router.push(`/admin/expenses?year=${currentYear}&month=${month}`);
+    router.push(buildUrl({ month, day: 'all' }));
+  };
+
+  const handleDayChange = (day: string) => {
+    router.push(buildUrl({ day }));
+  };
+
+  const handleTodayOnly = () => {
+    const now = new Date();
+    const y = now.getFullYear().toString();
+    const m = (now.getMonth() + 1).toString();
+    const d = now.getDate().toString();
+    router.push(buildUrl({ year: y, month: m, day: d }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -326,23 +372,36 @@ export function ExpensesClient({
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <Select value={currentYear.toString()} onValueChange={handleYearChange}>
+        <Select value={yearParam} onValueChange={handleYearChange}>
           <SelectTrigger className="w-[100px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
             {YEAR_OPTIONS.map(year => (
               <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={currentMonth.toString()} onValueChange={handleMonthChange}>
+        <Select value={monthParam} onValueChange={handleMonthChange}>
           <SelectTrigger className="w-[80px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
             {MONTH_OPTIONS.map(month => (
               <SelectItem key={month} value={month.toString()}>{month}월</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={dayParam} onValueChange={handleDayChange} disabled={isDayDisabled}>
+          <SelectTrigger className="w-[80px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            {DAY_OPTIONS.map(day => (
+              <SelectItem key={day} value={day.toString()}>{day}일</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -425,6 +484,30 @@ export function ExpensesClient({
             aria-label="지출 검색"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 border-emerald-950 bg-emerald-950 text-white hover:bg-emerald-900 hover:text-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 dark:hover:text-emerald-200"
+          onClick={handleTodayOnly}
+          aria-label="오늘 지출만 보기"
+        >
+          <CalendarCheck className="w-3.5 h-3.5 mr-1.5" />
+          오늘만
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-9 shrink-0"
+          onClick={() => {
+            setSearchQuery('');
+            setPaymentFilter('all');
+            setCategoryFilter('all');
+            router.push('/admin/expenses');
+          }}
+        >
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+          초기화
+        </Button>
       </div>
 
       {/* Expenses List */}
