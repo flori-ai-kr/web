@@ -28,7 +28,7 @@ graph TB
     end
 
     subgraph Supabase
-        PG["PostgreSQL<br/>16개 테이블 + RLS"]
+        PG["PostgreSQL<br/>18개 테이블 + RLS"]
         AU["Auth<br/>이메일/비밀번호 + 쿠키 세션"]
     end
 
@@ -435,6 +435,24 @@ erDiagram
         int sort_order
     }
 
+    expense_categories {
+        uuid id PK
+        uuid user_id FK
+        string value "UK(value,user_id)"
+        string label
+        string color
+        int sort_order
+    }
+
+    expense_payment_methods {
+        uuid id PK
+        uuid user_id FK
+        string value "UK(value,user_id)"
+        string label
+        string color
+        int sort_order
+    }
+
     push_subscriptions {
         uuid id PK
         uuid user_id FK
@@ -606,7 +624,7 @@ interface SalesFilters { category?: string; payment?: string; channel?: string; 
 |--------|------|-----------|
 | **Middleware** | Supabase Auth 쿠키 검증 + 리다이렉트 | 비인증 페이지 접근 |
 | **requireAuth()** | 읽기 포함 모든 Server Action에서 호출 | 비인증 데이터 접근/변경 |
-| **RLS** | `auth.uid() = user_id` (15개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
+| **RLS** | `auth.uid() = user_id` (17개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
 | **Internal API 인증** | `Authorization: Bearer INTERNAL_API_KEY` timing-safe 검증 (`src/lib/internal-auth.ts`), ≥32자 필수 | RemoteTrigger 외 외부 호출 차단 |
 | **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
 | **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |

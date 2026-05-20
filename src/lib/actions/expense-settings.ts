@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { uuidSchema } from '@/lib/validations';
+import { uuidSchema, categorySettingSchema } from '@/lib/validations';
 
 export interface ExpenseCategory {
   id: string;
@@ -60,20 +60,24 @@ async function _getExpenseCategories(): Promise<ExpenseCategory[]> {
   }
 
   if (!data || data.length === 0) {
-    // 최초 접근 시 기본 카테고리 자동 시드
+    // 최초 접근 시 기본 카테고리 자동 시드 (동시 요청 대비 upsert + 재조회)
     const seedRows = DEFAULT_CATEGORIES.map(cat => ({ ...cat, user_id: user.id }));
-    const { data: seeded, error: seedError } = await supabase
+    await supabase
       .from('expense_categories')
-      .insert(seedRows)
-      .select();
-    if (seedError || !seeded) {
+      .upsert(seedRows, { onConflict: 'value,user_id', ignoreDuplicates: true });
+    const { data: seeded } = await supabase
+      .from('expense_categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true });
+    if (!seeded || seeded.length === 0) {
       return DEFAULT_CATEGORIES.map((cat, idx) => ({
         ...cat,
         id: `default-${idx}`,
         created_at: new Date().toISOString(),
       }));
     }
-    return seeded.sort((a, b) => a.sort_order - b.sort_order);
+    return seeded;
   }
 
   return data;
@@ -100,18 +104,22 @@ async function _getExpensePaymentMethods(): Promise<ExpensePaymentMethod[]> {
 
   if (!data || data.length === 0) {
     const seedRows = DEFAULT_PAYMENTS.map(pm => ({ ...pm, user_id: user.id }));
-    const { data: seeded, error: seedError } = await supabase
+    await supabase
       .from('expense_payment_methods')
-      .insert(seedRows)
-      .select();
-    if (seedError || !seeded) {
+      .upsert(seedRows, { onConflict: 'value,user_id', ignoreDuplicates: true });
+    const { data: seeded } = await supabase
+      .from('expense_payment_methods')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true });
+    if (!seeded || seeded.length === 0) {
       return DEFAULT_PAYMENTS.map((pm, idx) => ({
         ...pm,
         id: `default-${idx}`,
         created_at: new Date().toISOString(),
       }));
     }
-    return seeded.sort((a, b) => a.sort_order - b.sort_order);
+    return seeded;
   }
   return data;
 }
@@ -121,9 +129,11 @@ export const getExpensePaymentMethods = withErrorLogging('getExpensePaymentMetho
 
 async function _createExpenseCategory(label: string, color: string): Promise<ExpenseCategory> {
   const user = await requireAuth();
+  const parsed = categorySettingSchema.safeParse({ label, color });
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   const supabase = await createClient();
 
-  const value = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_가-힣]/g, '') || `cat_${Date.now()}`;
+  const value = parsed.data.label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_가-힣]/g, '') || `cat_${Date.now()}`;
 
   const { data: existing } = await supabase
     .from('expense_categories')
@@ -136,7 +146,7 @@ async function _createExpenseCategory(label: string, color: string): Promise<Exp
 
   const { data, error } = await supabase
     .from('expense_categories')
-    .insert({ user_id: user.id, value, label, color, sort_order: nextOrder })
+    .insert({ user_id: user.id, value, label: parsed.data.label, color: parsed.data.color ?? color, sort_order: nextOrder })
     .select()
     .single();
 
@@ -150,13 +160,15 @@ export const createExpenseCategory = withErrorLogging('createExpenseCategory', _
 
 async function _updateExpenseCategory(id: string, label: string, color: string): Promise<void> {
   const user = await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  const idParsed = uuidSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  const parsed = categorySettingSchema.safeParse({ label, color });
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   const supabase = await createClient();
 
   const { error } = await supabase
     .from('expense_categories')
-    .update({ label, color })
+    .update({ label: parsed.data.label, color: parsed.data.color ?? color })
     .eq('id', id)
     .eq('user_id', user.id);
 
