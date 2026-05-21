@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { AmountInput } from '@/components/ui/amount-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Plus, Power, PowerOff, RotateCcw, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createRecurringExpense,
@@ -251,10 +251,23 @@ export function RecurringExpensesSection() {
                       {nextDates[r.id] && <span>다음: {nextDates[r.id]}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" onClick={() => handleToggleActive(r)} aria-label={r.is_active ? '일시정지' : '재개'}>
-                      {r.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                    </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={r.is_active}
+                      aria-label={r.is_active ? '활성 (클릭해서 일시정지)' : '일시정지 (클릭해서 재개)'}
+                      onClick={() => handleToggleActive(r)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                        r.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          r.is_active ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
                     <Button size="sm" variant="ghost" onClick={() => openEdit(r)} aria-label="수정">
                       <Pencil className="w-4 h-4" />
                     </Button>
