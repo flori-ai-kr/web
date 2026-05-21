@@ -28,6 +28,7 @@ import {
     Zap
 } from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
+import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
@@ -88,7 +89,7 @@ export function ExpensesClient({
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [paymentFilter, setPaymentFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteValue, setNoteValue] = useState('');
@@ -155,8 +156,8 @@ export function ExpensesClient({
       result = result.filter(e => e.payment_method === paymentFilter);
     }
 
-    if (categoryFilter !== 'all') {
-      result = result.filter(e => e.category === categoryFilter);
+    if (categoryFilter.length > 0) {
+      result = result.filter(e => categoryFilter.includes(e.category));
     }
 
     if (searchQuery) {
@@ -405,36 +406,12 @@ export function ExpensesClient({
             ))}
           </SelectContent>
         </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-auto min-w-[140px] bg-background">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground text-xs">카테고리</span>
-              {categoryFilter === 'all' ? (
-                <span>전체</span>
-              ) : (
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${categoryColors[categoryFilter]}40`, color: categoryColors[categoryFilter] }}
-                >
-                  {categoryLabels[categoryFilter] || categoryFilter}
-                </span>
-              )}
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {categories.map(cat => (
-              <SelectItem key={cat.id} value={cat.value}>
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${cat.color}40`, color: cat.color }}
-                >
-                  {cat.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CategoryMultiSelect
+          options={categories.map(c => ({ value: c.value, label: c.label, color: c.color }))}
+          selected={categoryFilter}
+          onChange={setCategoryFilter}
+          placeholder="카테고리"
+        />
         <Select value={paymentFilter} onValueChange={setPaymentFilter}>
           <SelectTrigger className="w-auto min-w-[120px] bg-background">
             <div className="flex items-center gap-1.5">
@@ -501,7 +478,7 @@ export function ExpensesClient({
           onClick={() => {
             setSearchQuery('');
             setPaymentFilter('all');
-            setCategoryFilter('all');
+            setCategoryFilter([]);
             router.push('/admin/expenses');
           }}
         >
@@ -517,9 +494,9 @@ export function ExpensesClient({
         categoryColors={categoryColors}
         paymentLabels={paymentLabels}
         paymentColors={paymentColors}
-        hasActiveFilters={paymentFilter !== 'all' || categoryFilter !== 'all' || searchQuery !== ''}
+        hasActiveFilters={paymentFilter !== 'all' || categoryFilter.length > 0 || searchQuery !== ''}
         onSelectExpense={handleSelectExpense}
-        onResetFilters={() => { setPaymentFilter('all'); setCategoryFilter('all'); setSearchQuery(''); }}
+        onResetFilters={() => { setPaymentFilter('all'); setCategoryFilter([]); setSearchQuery(''); }}
         onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
       />
 
