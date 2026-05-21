@@ -1,6 +1,6 @@
 # Hazel Admin - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-05-17
+> 최종 업데이트: 2026-05-21 | 고정비 시스템 + 다중선택 필터
 
 이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -19,7 +19,7 @@ graph TB
         MW["Middleware<br/>세션 갱신 + 인증 리다이렉트"]
         SC["Server Components<br/>(page.tsx)<br/>초기 데이터 fetch → props 전달"]
         SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + UUID검증 + withErrorLogging()"]
-        CR["Cron Routes<br/>(api/cron/)<br/>예약 리마인더 푸시"]
+        CR["Cron Routes<br/>(api/cron/)<br/>예약 리마인더 푸시 + 고정비 자동생성"]
     end
 
     subgraph External
@@ -28,7 +28,7 @@ graph TB
     end
 
     subgraph Supabase
-        PG["PostgreSQL<br/>18개 테이블 + RLS"]
+        PG["PostgreSQL<br/>20개 테이블 + RLS"]
         AU["Auth<br/>이메일/비밀번호 + 쿠키 세션"]
     end
 
@@ -180,7 +180,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 
 Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Components, Server Actions, Middleware, ISR)이 zero-config로 동작한다.
 
-1. **Cron Jobs**: `/api/cron/daily-reminder`(매일 08:00 KST 예약 요약), `/api/cron/scheduled-reminders`(개별 리마인더)를 Vercel Cron으로 실행한다. `CRON_SECRET` 헤더로 외부 호출을 차단한다. 별도의 스케줄러 인프라가 필요 없다.
+1. **Cron Jobs**: `/api/cron/daily-reminder`(매일 08:00 KST 예약 요약), `/api/cron/scheduled-reminders`(개별 리마인더), `/api/cron/generate-recurring-expenses`(매일 KST 00:30 고정비 자동생성)를 Vercel Cron으로 실행한다. `CRON_SECRET` 헤더로 외부 호출을 차단한다. 별도의 스케줄러 인프라가 필요 없다.
 2. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
 3. **Edge Middleware**: `src/lib/supabase/middleware.ts`가 모든 요청에서 세션을 갱신한다. `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트, 로그인 상태에서 `/login` 접근 시 `/admin`으로 리다이렉트. `/`·`(public)/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
 
@@ -364,6 +364,31 @@ erDiagram
         int total_amount
         string payment_method
         string vendor
+        uuid recurring_id FK "nullable, recurring_expenses.id"
+        bool is_recurring_modified "고정비 단건 수정 여부"
+    }
+
+    recurring_expenses {
+        uuid id PK
+        uuid user_id FK
+        string item_name
+        string category
+        int unit_price
+        int quantity
+        string payment_method
+        string vendor
+        string frequency "weekly|monthly|yearly"
+        int[] days "반복 일자 배열"
+        date start_date
+        date end_date "nullable"
+        bool is_active
+    }
+
+    recurring_skips {
+        uuid id PK
+        uuid user_id FK
+        uuid recurring_id FK
+        date skip_date "이 날짜 생성 건너뜀"
     }
 
     customers {
@@ -554,6 +579,7 @@ erDiagram
 | `/login` | 로그인 | 이메일/비밀번호 |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
 | `/api/cron/scheduled-reminders` | Cron | 개별 예약 리마인더 푸시 |
+| `/api/cron/generate-recurring-expenses` | Cron | 매일 KST 00:30 고정비 자동 생성 (recurring_expenses → expenses INSERT) |
 | `/api/internal/trends` | Internal API | POST — 트렌드 아티클 수집 (Bearer auth, Service Role) |
 | `/api/internal/instagram` | Internal API | POST — 인스타그램 포스트 수집 (Bearer auth, Service Role) |
 | `/api/internal/instagram-accounts` | Internal API | GET — 팔로우 계정 목록 (Bearer auth) |
@@ -578,6 +604,7 @@ erDiagram
 | `sales.ts` | createSale, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
 | `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성) |
+| `recurring-expenses.ts` | getRecurringExpenses, createRecurringExpense, updateRecurringExpense (mode: 'this'|'future'), deleteRecurringExpense (mode: 'this'|'future'|'all'), quickAddRecurringExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
 | `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
 | `calendar-events.ts` | getCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent |
@@ -611,7 +638,8 @@ interface CalendarEvent {
     description: string | null
 }
 
-interface SalesFilters { category?: string; payment?: string; channel?: string; search?: string } // 서버사이드 필터
+interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분, Supabase .in())
+// expenses 필터도 동일한 다중선택 패턴 적용 (category[], payment[])
 ```
 
 ---
