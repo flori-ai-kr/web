@@ -51,6 +51,38 @@ export const expenseSchema = z.object({
   note: z.string().max(1000).nullable().optional(),
 });
 
+// 고정비(반복 지출) 템플릿
+export const recurringExpenseSchema = z.object({
+  item_name: z.string().min(1, '품명을 입력해주세요').max(200),
+  category: z.string().min(1).max(30),
+  unit_price: z.number().int().min(0).max(100_000_000),
+  quantity: z.number().int().min(1).max(10_000),
+  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  vendor: z.string().max(100).nullable().optional(),
+  note: z.string().max(1000).nullable().optional(),
+  frequency: z.enum(['weekly', 'monthly', 'yearly']),
+  interval_count: z.number().int().min(1).max(99).default(1),
+  day_of_week: z.number().int().min(0).max(6).nullable().optional(),
+  day_of_month: z.number().int().min(1).max(31).nullable().optional(),
+  month_of_year: z.number().int().min(1).max(12).nullable().optional(),
+  start_date: dateSchema,
+  end_date: dateSchema.nullable().optional(),
+  auto_generate: z.boolean().default(true),
+  is_active: z.boolean().default(true),
+}).refine(
+  (d) => d.frequency !== 'weekly' || d.day_of_week !== null,
+  { message: '매주 반복은 요일을 선택해야 합니다', path: ['day_of_week'] },
+).refine(
+  (d) => d.frequency === 'weekly' || d.day_of_month !== null,
+  { message: '날짜를 선택해야 합니다', path: ['day_of_month'] },
+).refine(
+  (d) => d.frequency !== 'yearly' || d.month_of_year !== null,
+  { message: '매년 반복은 월을 선택해야 합니다', path: ['month_of_year'] },
+).refine(
+  (d) => !d.end_date || d.end_date >= d.start_date,
+  { message: '종료일은 시작일 이후여야 합니다', path: ['end_date'] },
+);
+
 // 예약 생성
 export const reservationSchema = z.object({
   date: dateSchema,

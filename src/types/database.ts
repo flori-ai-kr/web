@@ -78,6 +78,33 @@ export interface Expense {
   card_company?: string;
   vendor?: string;
   note?: string;
+  recurring_id?: string | null;
+  is_recurring_modified?: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RecurringFrequency = 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurringExpense {
+  id: string;
+  user_id: string;
+  item_name: string;
+  category: string;
+  unit_price: number;
+  quantity: number;
+  payment_method: string;
+  vendor?: string | null;
+  note?: string | null;
+  frequency: RecurringFrequency;
+  interval_count: number;
+  day_of_week?: number | null;
+  day_of_month?: number | null;
+  month_of_year?: number | null;
+  start_date: string;
+  end_date?: string | null;
+  auto_generate: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
