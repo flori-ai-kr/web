@@ -97,7 +97,7 @@ export function ExpensesClient({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,8 +165,8 @@ export function ExpensesClient({
   const filteredExpenses = useMemo(() => {
     let result = initialExpenses;
 
-    if (paymentFilter !== 'all') {
-      result = result.filter(e => e.payment_method === paymentFilter);
+    if (paymentFilter.length > 0) {
+      result = result.filter(e => paymentFilter.includes(e.payment_method));
     }
 
     if (categoryFilter.length > 0) {
@@ -485,36 +485,12 @@ export function ExpensesClient({
           onChange={setCategoryFilter}
           placeholder="카테고리"
         />
-        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-          <SelectTrigger className="w-auto min-w-[120px] bg-background">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground text-xs">결제</span>
-              {paymentFilter === 'all' ? (
-                <span>전체</span>
-              ) : (
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${paymentColors[paymentFilter]}40`, color: paymentColors[paymentFilter] }}
-                >
-                  {paymentLabels[paymentFilter] || paymentFilter}
-                </span>
-              )}
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {payments.map(pm => (
-              <SelectItem key={pm.id} value={pm.value}>
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${pm.color}40`, color: pm.color }}
-                >
-                  {pm.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CategoryMultiSelect
+          options={payments.map(pm => ({ value: pm.value, label: pm.label, color: pm.color }))}
+          selected={paymentFilter}
+          onChange={setPaymentFilter}
+          placeholder="결제방식"
+        />
         <Button
           variant="outline"
           size="icon"
@@ -550,7 +526,7 @@ export function ExpensesClient({
           className="h-9 shrink-0"
           onClick={() => {
             setSearchQuery('');
-            setPaymentFilter('all');
+            setPaymentFilter([]);
             setCategoryFilter([]);
             router.push('/admin/expenses');
           }}
@@ -567,9 +543,9 @@ export function ExpensesClient({
         categoryColors={categoryColors}
         paymentLabels={paymentLabels}
         paymentColors={paymentColors}
-        hasActiveFilters={paymentFilter !== 'all' || categoryFilter.length > 0 || searchQuery !== ''}
+        hasActiveFilters={paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== ''}
         onSelectExpense={handleSelectExpense}
-        onResetFilters={() => { setPaymentFilter('all'); setCategoryFilter([]); setSearchQuery(''); }}
+        onResetFilters={() => { setPaymentFilter([]); setCategoryFilter([]); setSearchQuery(''); }}
         onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
       />
         </TabsContent>

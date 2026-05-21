@@ -64,9 +64,9 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [selectedSale, setSelectedSale] = useState<Sale | null>(initialSelectedSale || null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   // 필터는 URL 파라미터 기반 (서버 쿼리에 적용됨)
-  const paymentFilter = initialFilters.payment || 'all';
+  const paymentFilter: string[] = initialFilters.payment ?? [];
   const categoryFilter: string[] = initialFilters.category ?? [];
-  const channelFilter = initialFilters.channel || 'all';
+  const channelFilter: string[] = initialFilters.channel ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
@@ -163,7 +163,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${initialFilters.payment ?? ''}-${initialFilters.channel ?? ''}`;
+  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${(initialFilters.payment ?? []).join(',')}-${(initialFilters.channel ?? []).join(',')}`;
 
   useEffect(() => {
     if (debouncedSearch === '') {
@@ -197,7 +197,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   // 서버에서 필터 적용된 요약 (페이지네이션 무관)
   const summary = initialSummary;
 
-  const hasActiveFilters = paymentFilter !== 'all' || categoryFilter.length > 0 || channelFilter !== 'all' || searchQuery !== '';
+  const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || channelFilter.length > 0 || searchQuery !== '';
 
   const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
   const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
@@ -241,10 +241,10 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
   const isDayDisabled = yearParam === 'all' || monthParam === 'all';
 
-  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category는 쉼표 구분 다중값
+  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
   const buildUrl = useCallback((overrides: {
     year?: string; month?: string; day?: string;
-    category?: string[]; payment?: string; channel?: string;
+    category?: string[]; payment?: string[]; channel?: string[];
   } = {}) => {
     const p = {
       year: yearParam,
@@ -262,8 +262,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     params.set('month', p.month);
     if (p.day !== 'all') params.set('day', p.day);
     if (p.category.length > 0) params.set('category', p.category.join(','));
-    if (p.payment !== 'all') params.set('payment', p.payment);
-    if (p.channel !== 'all') params.set('channel', p.channel);
+    if (p.payment.length > 0) params.set('payment', p.payment.join(','));
+    if (p.channel.length > 0) params.set('channel', p.channel.join(','));
     return `/admin/sales?${params.toString()}`;
   }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
 
@@ -291,11 +291,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     router.push(buildUrl({ category }));
   };
 
-  const handlePaymentChange = (payment: string) => {
+  const handlePaymentChange = (payment: string[]) => {
     router.push(buildUrl({ payment }));
   };
 
-  const handleChannelChange = (channel: string) => {
+  const handleChannelChange = (channel: string[]) => {
     router.push(buildUrl({ channel }));
   };
 
@@ -365,7 +365,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const handleResetFilters = () => {
     setSearchQuery('');
-    router.push(buildUrl({ category: [], payment: 'all', channel: 'all' }));
+    router.push(buildUrl({ category: [], payment: [], channel: [] }));
   };
 
   const handleOpenForm = () => {
@@ -434,50 +434,18 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
           onChange={handleCategoryChange}
           placeholder="카테고리"
         />
-        <Select value={paymentFilter} onValueChange={handlePaymentChange}>
-          <SelectTrigger className="w-auto min-w-[130px] bg-background">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground text-xs">결제방식</span>
-              {paymentFilter === 'all' ? (
-                <span>전체</span>
-              ) : (
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${paymentColors[paymentFilter]}40`, color: paymentColors[paymentFilter] }}
-                >
-                  {paymentLabels[paymentFilter] || paymentFilter}
-                </span>
-              )}
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {payments.map(pm => (
-              <SelectItem key={pm.id} value={pm.value}>
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${pm.color}40`, color: pm.color }}
-                >
-                  {pm.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={channelFilter} onValueChange={handleChannelChange}>
-          <SelectTrigger className="w-auto min-w-[130px] bg-background">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground text-xs">예약방식</span>
-              <span>{channelFilter === 'all' ? '전체' : (CHANNEL_LABELS[channelFilter] || channelFilter)}</span>
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {Object.entries(CHANNEL_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CategoryMultiSelect
+          options={payments.map(pm => ({ value: pm.value, label: pm.label, color: pm.color }))}
+          selected={paymentFilter}
+          onChange={handlePaymentChange}
+          placeholder="결제방식"
+        />
+        <CategoryMultiSelect
+          options={Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label, color: '#6b7280' }))}
+          selected={channelFilter}
+          onChange={handleChannelChange}
+          placeholder="예약방식"
+        />
         <Button
           variant="outline"
           size="icon"

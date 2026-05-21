@@ -46,14 +46,16 @@ export default async function SalesPage({
     monthParam = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
   }
 
-  // 서버사이드 필터 (category는 쉼표 구분 다중값)
-  const categoryParam = params.category
-    ? params.category.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  // 서버사이드 필터 (category/payment/channel 모두 쉼표 구분 다중값)
+  const parseMulti = (raw?: string) =>
+    raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const categoryParam = parseMulti(params.category);
+  const paymentParam = parseMulti(params.payment);
+  const channelParam = parseMulti(params.channel);
   const filters: SalesFilters = {
     category: categoryParam.length > 0 ? categoryParam : undefined,
-    payment: params.payment || undefined,
-    channel: params.channel || undefined,
+    payment: paymentParam.length > 0 ? paymentParam : undefined,
+    channel: channelParam.length > 0 ? channelParam : undefined,
   };
 
   const [salesResult, summary, categories, payments, cardCompanies, initialSelectedSale] = await Promise.all([

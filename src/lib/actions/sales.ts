@@ -41,8 +41,8 @@ const SALES_PAGE_SIZE = 100;
 
 export interface SalesFilters {
   category?: string[];
-  payment?: string;
-  channel?: string;
+  payment?: string[];
+  channel?: string[];
   search?: string;
 }
 
@@ -74,8 +74,12 @@ async function _getSales(month?: string, offset: number = 0, limit: number = SAL
   if (filters?.category && filters.category.length > 0) {
     query = query.in('product_category', filters.category);
   }
-  if (filters?.payment) query = query.eq('payment_method', filters.payment);
-  if (filters?.channel) query = query.eq('reservation_channel', filters.channel);
+  if (filters?.payment && filters.payment.length > 0) {
+    query = query.in('payment_method', filters.payment);
+  }
+  if (filters?.channel && filters.channel.length > 0) {
+    query = query.in('reservation_channel', filters.channel);
+  }
   if (filters?.search) {
     // PostgREST DSL 특수문자 이스케이핑 (%, _, 쉼표, 점, 괄호)
     const searchTerm = filters.search
@@ -131,8 +135,8 @@ async function _getSalesSummary(month?: string, filters?: SalesFilters) {
     p_start_date: startDate,
     p_end_date: endDate,
     p_category: filters?.category && filters.category.length > 0 ? filters.category : null,
-    p_payment: filters?.payment || null,
-    p_channel: filters?.channel || null,
+    p_payment: filters?.payment && filters.payment.length > 0 ? filters.payment : null,
+    p_channel: filters?.channel && filters.channel.length > 0 ? filters.channel : null,
   });
   if (error) throw error;
 
