@@ -445,6 +445,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
           selected={channelFilter}
           onChange={handleChannelChange}
           placeholder="예약방식"
+          plain
         />
         <Button
           variant="outline"

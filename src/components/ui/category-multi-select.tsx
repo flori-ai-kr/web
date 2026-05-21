@@ -18,6 +18,7 @@ interface CategoryMultiSelectProps {
   className?: string;
   triggerClassName?: string;
   align?: 'start' | 'center' | 'end';
+  plain?: boolean;  // true = 컬러 칩 없이 텍스트만
 }
 
 export function CategoryMultiSelect({
@@ -28,6 +29,7 @@ export function CategoryMultiSelect({
   className,
   triggerClassName,
   align = 'start',
+  plain = false,
 }: CategoryMultiSelectProps) {
   const allSelected = selected.length === 0;
 
@@ -58,6 +60,11 @@ export function CategoryMultiSelect({
         <span className="text-muted-foreground text-xs">{placeholder}</span>
         {allSelected ? (
           <span>전체</span>
+        ) : plain ? (
+          <span className="text-sm">
+            {visibleChips.map(o => o.label).join(', ')}
+            {overflowCount > 0 && <span className="text-muted-foreground"> +{overflowCount}</span>}
+          </span>
         ) : (
           <span className="flex items-center gap-1">
             {visibleChips.map(opt => (
@@ -104,12 +111,16 @@ export function CategoryMultiSelect({
                 <span className="w-4 h-4 flex items-center justify-center">
                   {checked && <Check className="w-3.5 h-3.5" />}
                 </span>
-                <span
-                  className="px-1.5 py-0.5 text-xs font-medium rounded"
-                  style={{ backgroundColor: `${opt.color}40`, color: opt.color }}
-                >
-                  {opt.label}
-                </span>
+                {plain ? (
+                  <span className="text-sm">{opt.label}</span>
+                ) : (
+                  <span
+                    className="px-1.5 py-0.5 text-xs font-medium rounded"
+                    style={{ backgroundColor: `${opt.color}40`, color: opt.color }}
+                  >
+                    {opt.label}
+                  </span>
+                )}
               </button>
             );
           })}
