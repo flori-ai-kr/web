@@ -12,7 +12,6 @@ function verifyCronAuth(request: Request): boolean {
   if (authHeader && authHeader.length === expected.length) {
     if (timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) return true;
   }
-  if (process.env.NODE_ENV === 'development') return true;
   return false;
 }
 

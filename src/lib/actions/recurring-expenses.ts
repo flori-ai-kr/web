@@ -260,6 +260,7 @@ async function _updateExpenseInstanceOnly(expenseId: string, fields: Partial<Rec
     category: fields.category,
     unit_price: fields.unit_price,
     quantity: fields.quantity,
+    total_amount: (fields.unit_price ?? 0) * (fields.quantity ?? 1),
     payment_method: fields.payment_method,
     vendor: fields.vendor ?? null,
     note: fields.note ?? null,
@@ -311,6 +312,12 @@ async function _updateRecurringFromInstance(expenseId: string, fields: Partial<R
   }
 
   const instPatch: Record<string, unknown> = { ...tplPatch, is_recurring_modified: false };
+  // instance만은 total_amount도 재계산 (DB가 generated column 아님)
+  if (fields.unit_price !== undefined || fields.quantity !== undefined) {
+    const up = fields.unit_price ?? 0;
+    const qty = fields.quantity ?? 1;
+    instPatch.total_amount = up * qty;
+  }
   const { error: updErr } = await supabase
     .from('expenses')
     .update(instPatch)
@@ -339,9 +346,10 @@ async function _deleteExpenseInstanceOnly(expenseId: string): Promise<void> {
 
   // skip 마커 추가 (cron 재생성 방지) — instance가 recurring 출처일 때만
   if (instance?.recurring_id) {
-    await supabase
+    const { error: skipErr } = await supabase
       .from('recurring_skips')
       .insert({ user_id: user.id, recurring_id: instance.recurring_id, skip_date: instance.date });
+    if (skipErr) throw skipErr;
   }
 
   const { error } = await supabase
