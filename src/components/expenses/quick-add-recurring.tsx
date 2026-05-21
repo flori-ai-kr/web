@@ -1,10 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Zap, Settings as SettingsIcon } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { getRecurringExpenses, quickAddFromRecurring } from '@/lib/actions/recurring-expenses';
 import type { RecurringExpense } from '@/types/database';
 
@@ -41,12 +40,6 @@ export function QuickAddRecurring() {
       <div className="flex items-center gap-2 mb-2">
         <Zap className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-muted-foreground">고정비 빠른 추가</span>
-        <Link
-          href="/admin/settings"
-          className="ml-auto text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-        >
-          <SettingsIcon className="w-3 h-3" />관리
-        </Link>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {items.map(r => (
