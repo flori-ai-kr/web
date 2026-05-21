@@ -12,6 +12,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 - **에러 처리**: `withErrorLogging()` 래퍼 → AppError(예상된 에러) / Unknown(Discord 로깅)
 - **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드 (읽기 포함 모든 액션에 적용). `/admin/*` 경로만 인증 강제, `/`·`(public)/*` 공개 라우트는 인증 불필요
 - **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
+- **다중선택 필터**: 매출/지출 카테고리·결제방식 등 — URL 파라미터 쉼표 구분 (`?category=a,b`), Supabase `.in()` 쿼리, `category-multi-select.tsx` Popover+체크박스 공용 컴포넌트
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션 + ID 파라미터 UUID 검증 + 파일 크기 5MB 제한
 - **상태**: useState/useMemo만 사용. 글로벌 상태 없음. 변경 후 `router.refresh()`
 - **검색**: 서버사이드 (Supabase ilike + `SalesFilters.search`) + 클라이언트 디바운스(300ms). 검색 시 페이지네이션 리셋
@@ -67,7 +68,8 @@ src/
 │   └── error.tsx        # 에러 바운더리
 ├── app/api/cron/        # Vercel Cron 라우트
 │   ├── daily-reminder/  # 매일 08:00 KST 예약 요약 푸시
-│   └── scheduled-reminders/ # 개별 예약 리마인더 푸시
+│   ├── scheduled-reminders/ # 개별 예약 리마인더 푸시
+│   └── generate-recurring-expenses/ # 매일 KST 00:30 고정비 자동 생성
 ├── app/api/internal/    # 내부 API (Bearer INTERNAL_API_KEY, Service Role)
 │   ├── trends/          # POST — 트렌드 아티클 수집 + 푸시 브로드캐스트
 │   ├── instagram/       # POST — 인스타그램 포스트 수집 + 푸시 브로드캐스트
@@ -75,12 +77,12 @@ src/
 ├── app/login/           # 로그인
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
-├── components/ui/       # shadcn/ui (22개, sheet.tsx 추가)
+├── components/ui/       # shadcn/ui (22개, sheet.tsx 추가) — category-multi-select.tsx (Popover+체크박스 다중선택) 포함
 ├── components/layout/   # AppLayout, Header, Sidebar, BottomNav
 ├── components/theme-provider.tsx  # next-themes 프로바이더
 ├── components/sales/    # 매출 공통 (SalePhotoModal, SalesSettingsModal, CustomerAutocomplete)
 ├── components/gallery/  # 갤러리 관련 컴포넌트
-├── components/expenses/ # 지출 관련 컴포넌트
+├── components/expenses/ # 지출 관련 컴포넌트 — quick-add-recurring.tsx, recurring-expenses-section.tsx 포함
 ├── components/insights/ # 인사이트 공통 (category-badge, scrap-button, scrap-memo-editor)
 ├── components/public/   # 공개 홈페이지 섹션 (hero, statement, instagram, footer, header, floating-cta)
 ├── lib/actions/         # Server Actions (17개, 직접 import — scraps.ts 포함)
@@ -108,8 +110,8 @@ src/
 
 ## 멀티테넌시
 
-- 17개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 스크랩 포함)
-  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, expense_categories, expense_payment_methods, push_subscriptions, user_preferences, insight_scraps
+- 19개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` 추가 (인사이트 스크랩, 고정비 포함)
+  - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, expense_categories, expense_payment_methods, push_subscriptions, user_preferences, insight_scraps, recurring_expenses, recurring_skips
   - 공유 읽기 테이블 (SELECT only, writes via service role): trend_articles, instagram_accounts, instagram_posts
 - RLS 정책: `auth.uid() = user_id` (CRUD별 분리)
 - unique 제약: 기존 단일 컬럼에서 `(column, user_id)` 복합으로 변경
@@ -130,6 +132,8 @@ src/
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
 - 인사이트 스크랩: `insight_scraps(user_id, target_type, target_id, memo)` 복합 unique. 트렌드 카드/포스트 카드에 북마크 토글, 상세 다이얼로그 내 메모 편집(포커스 해제 시 자동 저장). `/insights/scraps` 전용 페이지 + 트렌드·팔로우 목록 "스크랩만" 필터(`?scraped=1`)
 - 팔로우 포스트: 썸네일 클릭 → 라이트박스(확대 뷰 + prev/next + Esc/화살표 키). Instagram 이동은 딥링크 버튼만. Instagram CDN `stp=dst-jpg_e35_p1080x1080_sh0.08_tt6` 패딩 옵션을 `normalizeInstagramImageUrl()`로 제거해 흰 여백 방지
+- 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips` 테이블. `expenses`에 `recurring_id` FK + `(recurring_id, date) UNIQUE` 제약. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭 + 빠른추가 칩. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
+- 매출/지출 다중선택 필터: `SalesFilters.category`/`payment`/`channel`이 `string[]` 타입으로 확장됨. RPC `get_sales_summary` 인자도 `text[]`로 전환
 
 ## 컬러 시스템
 
