@@ -12,6 +12,7 @@ import type {PushSubscriptionData} from '@/lib/actions/push';
 import {sendTestNotification, subscribeToPush, unsubscribeFromPush} from '@/lib/actions/push';
 import type {CardCompanySetting} from '@/types/database';
 import {BottomNavCustomizer} from './components/bottom-nav-customizer';
+import {RecurringExpensesSection} from './components/recurring-expenses-section';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -245,6 +246,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 고정비 관리 */}
+      <RecurringExpensesSection />
 
       {/* 푸시 알림 설정 */}
       <Card>

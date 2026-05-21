@@ -29,6 +29,13 @@ import {
 } from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
+import {QuickAddRecurring} from '@/components/expenses/quick-add-recurring';
+import {
+  deleteExpenseInstanceOnly,
+  deleteRecurringFromInstance,
+  updateExpenseInstanceOnly,
+  updateRecurringFromInstance,
+} from '@/lib/actions/recurring-expenses';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
@@ -101,6 +108,10 @@ export function ExpensesClient({
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
+  const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
+  const [scopeBusy, setScopeBusy] = useState(false);
   const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; notes: string[] }>({ itemNames: [], vendors: [], notes: [] });
   const [createItemName, setCreateItemName] = useState('');
   const [createVendor, setCreateVendor] = useState('');
@@ -272,11 +283,31 @@ export function ExpensesClient({
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingExpense) return;
+
+    const formData = new FormData(e.currentTarget);
+    const isRecurringInstance = !!editingExpense.recurring_id;
+
+    if (isRecurringInstance) {
+      // 분기 다이얼로그를 위해 필드를 stash
+      const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
+      const quantity = parseInt(formData.get('quantity') as string) || 1;
+      const fields = {
+        date: String(formData.get('date') ?? editingExpense.date),
+        item_name: String(formData.get('item_name') ?? ''),
+        category: String(formData.get('category') ?? ''),
+        unit_price: unitPrice,
+        quantity,
+        payment_method: String(formData.get('payment_method') ?? '') as 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay',
+        vendor: (formData.get('vendor') as string) || null,
+        note: (formData.get('note') as string) || null,
+      };
+      setPendingScopeEdit({ expenseId: editingExpense.id, fields });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const formData = new FormData(e.currentTarget);
       await updateExpense(editingExpense.id, formData);
-
       setEditingExpense(null);
       setSelectedExpense(null);
       router.refresh();
@@ -286,6 +317,28 @@ export function ExpensesClient({
       toast.error('지출 수정에 실패했습니다');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleScopeEditConfirm = async (scope: 'instance' | 'future') => {
+    if (!pendingScopeEdit) return;
+    setScopeBusy(true);
+    try {
+      if (scope === 'instance') {
+        await updateExpenseInstanceOnly(pendingScopeEdit.expenseId, pendingScopeEdit.fields);
+        toast.success('이 항목만 수정되었습니다');
+      } else {
+        await updateRecurringFromInstance(pendingScopeEdit.expenseId, pendingScopeEdit.fields);
+        toast.success('이후 모든 항목에 반영되었습니다');
+      }
+      setPendingScopeEdit(null);
+      setEditingExpense(null);
+      setSelectedExpense(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '수정에 실패했습니다');
+    } finally {
+      setScopeBusy(false);
     }
   };
 
@@ -300,15 +353,23 @@ export function ExpensesClient({
     setDeleteTarget(expense);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (scope?: 'instance' | 'future') => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await deleteExpense(deleteTarget.id);
+      if (deleteTarget.recurring_id && scope === 'instance') {
+        await deleteExpenseInstanceOnly(deleteTarget.id);
+        toast.success('이 항목만 삭제되었습니다');
+      } else if (deleteTarget.recurring_id && scope === 'future') {
+        await deleteRecurringFromInstance(deleteTarget.id);
+        toast.success('이후 모든 반복이 종료되었습니다');
+      } else {
+        await deleteExpense(deleteTarget.id);
+        toast.success('지출이 삭제되었습니다');
+      }
       setDeleteTarget(null);
       setSelectedExpense(null);
       router.refresh();
-      toast.success('지출이 삭제되었습니다');
     } catch (error) {
       console.error('Failed to delete expense:', error);
       toast.error('지출 삭제에 실패했습니다');
@@ -333,6 +394,9 @@ export function ExpensesClient({
           </Button>
         </div>
       </div>
+
+      {/* Quick Add (고정비) */}
+      <QuickAddRecurring />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -810,29 +874,66 @@ export function ExpensesClient({
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>지출 삭제</DialogTitle>
+            <DialogTitle>{deleteTarget?.recurring_id ? '반복되는 지출입니다' : '지출 삭제'}</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">
-              이 지출 기록을 삭제하시겠습니까?
-            </p>
+          <div className="py-2">
             {deleteTarget && (
-              <p className="text-muted-foreground text-xs mt-2">
+              <p className="text-muted-foreground text-xs mb-3">
                 {format(new Date(deleteTarget.date), 'M월 d일', { locale: ko })} · {deleteTarget.item_name} · {formatCurrency(deleteTarget.total_amount)}
               </p>
             )}
+            <p className="text-muted-foreground text-sm">
+              {deleteTarget?.recurring_id
+                ? '고정비 자동생성으로 등록된 지출이에요. 어떻게 삭제할까요?'
+                : '이 지출 기록을 삭제하시겠습니까?'}
+            </p>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
-              취소
+          {deleteTarget?.recurring_id ? (
+            <div className="flex flex-col gap-2">
+              <Button variant="destructive" onClick={() => confirmDelete('instance')} disabled={isDeleting}>
+                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                이 항목만 삭제
+              </Button>
+              <Button variant="destructive" onClick={() => confirmDelete('future')} disabled={isDeleting}>
+                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                이후 모두 삭제
+              </Button>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+                취소
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>취소</Button>
+              <Button variant="destructive" onClick={() => confirmDelete()} disabled={isDeleting}>
+                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 자동생성된 지출 수정 — 이것만 / 이후 모두 분기 */}
+      <Dialog open={!!pendingScopeEdit} onOpenChange={(open) => !open && setPendingScopeEdit(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>반복되는 지출입니다</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            고정비 자동생성으로 등록된 지출이에요. 어떻게 저장할까요?
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => handleScopeEditConfirm('instance')} disabled={scopeBusy}>
+              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              이 항목만 저장
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isDeleting ? '삭제 중...' : '삭제'}
+            <Button onClick={() => handleScopeEditConfirm('future')} disabled={scopeBusy}>
+              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              이후 모두 저장 (고정비 템플릿 변경)
+            </Button>
+            <Button variant="outline" onClick={() => setPendingScopeEdit(null)} disabled={scopeBusy}>
+              취소
             </Button>
           </div>
         </DialogContent>
