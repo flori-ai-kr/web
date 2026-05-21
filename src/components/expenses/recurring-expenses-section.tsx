@@ -248,8 +248,12 @@ export function RecurringExpensesSection() {
                       <span>{ruleSummary(r)}</span>
                       <span>₩{(r.unit_price * r.quantity).toLocaleString()}</span>
                       <span>{paymentLabel(r.payment_method)}</span>
+                      {r.vendor && <span>· {r.vendor}</span>}
                       {nextDates[r.id] && <span>다음: {nextDates[r.id]}</span>}
                     </div>
+                    {r.note && (
+                      <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2">{r.note}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
