@@ -85,6 +85,7 @@ export interface Expense {
 }
 
 export type RecurringFrequency = 'weekly' | 'monthly' | 'yearly';
+export interface YearlyDate { m: number; d: number; }
 
 export interface RecurringExpense {
   id: string;
@@ -98,12 +99,11 @@ export interface RecurringExpense {
   note?: string | null;
   frequency: RecurringFrequency;
   interval_count: number;
-  day_of_week?: number | null;
-  day_of_month?: number | null;
-  month_of_year?: number | null;
+  days_of_week: number[];       // weekly: 0(일)~6(토) 배열
+  days_of_month: number[];      // monthly: 1~31 배열
+  yearly_dates: YearlyDate[];   // yearly: [{m,d}] 배열
   start_date: string;
   end_date?: string | null;
-  auto_generate: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;

@@ -34,35 +34,38 @@ function lastDayOfMonth(year: number, monthZero: number): number {
 }
 
 function isDueToday(r: RecurringExpense, today: Date): boolean {
-  const startMs = Date.UTC(...(r.start_date.split('-').map(Number) as [number, number, number]));
-  const start = new Date(startMs);
-  start.setUTCMonth(start.getUTCMonth() - 1 + 1); // no-op normalize
   const startDate = new Date(r.start_date + 'T00:00:00Z');
   if (today < startDate) return false;
   if (r.end_date && today > new Date(r.end_date + 'T00:00:00Z')) return false;
 
   if (r.frequency === 'weekly') {
-    if (today.getUTCDay() !== (r.day_of_week ?? -1)) return false;
+    const dows = r.days_of_week ?? [];
+    if (!dows.includes(today.getUTCDay())) return false;
     const weeks = Math.floor((today.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
     return weeks % (r.interval_count || 1) === 0;
   }
 
   if (r.frequency === 'monthly') {
-    const dom = r.day_of_month ?? 0;
+    const doms = r.days_of_month ?? [];
     const last = lastDayOfMonth(today.getUTCFullYear(), today.getUTCMonth());
-    const actualDay = Math.min(dom, last);
-    if (today.getUTCDate() !== actualDay) return false;
+    // 사용자가 설정한 날짜 중 today와 매칭되는지 (clamping 고려)
+    const todayDate = today.getUTCDate();
+    const matches = doms.some(d => Math.min(d, last) === todayDate);
+    if (!matches) return false;
     const months = (today.getUTCFullYear() - startDate.getUTCFullYear()) * 12
                  + (today.getUTCMonth() - startDate.getUTCMonth());
     return months >= 0 && months % (r.interval_count || 1) === 0;
   }
 
   if (r.frequency === 'yearly') {
-    const monthZero = (r.month_of_year ?? 1) - 1;
-    if (today.getUTCMonth() !== monthZero) return false;
-    const last = lastDayOfMonth(today.getUTCFullYear(), monthZero);
-    const actualDay = Math.min(r.day_of_month ?? 0, last);
-    if (today.getUTCDate() !== actualDay) return false;
+    const dates = r.yearly_dates ?? [];
+    const matches = dates.some(yd => {
+      const monthZero = yd.m - 1;
+      if (today.getUTCMonth() !== monthZero) return false;
+      const last = lastDayOfMonth(today.getUTCFullYear(), monthZero);
+      return today.getUTCDate() === Math.min(yd.d, last);
+    });
+    if (!matches) return false;
     const years = today.getUTCFullYear() - startDate.getUTCFullYear();
     return years >= 0 && years % (r.interval_count || 1) === 0;
   }
@@ -85,12 +88,11 @@ export async function GET(request: Request) {
   const today = todayKST();
   const todayISO = fmtISO(today);
 
-  // 활성 + 자동생성 활성인 모든 템플릿
+  // 활성 템플릿 전체
   const { data: rules, error } = await supabase
     .from('recurring_expenses')
     .select('*')
-    .eq('is_active', true)
-    .eq('auto_generate', true);
+    .eq('is_active', true);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

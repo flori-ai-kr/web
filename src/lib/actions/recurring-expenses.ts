@@ -5,20 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { recurringExpenseSchema, uuidSchema } from '@/lib/validations';
-import type { RecurringExpense, RecurringFrequency } from '@/types/database';
+import type { RecurringExpense, RecurringFrequency, YearlyDate } from '@/types/database';
 
-// 다음 발생일 계산 (from 기준 이후 첫 매칭)
-export async function _nextOccurrence(
-  rule: Pick<RecurringExpense, 'frequency' | 'interval_count' | 'day_of_week' | 'day_of_month' | 'month_of_year' | 'start_date' | 'end_date'>,
-  from: Date,
-): Promise<Date | null> {
-  return nextOccurrenceSync(rule, from);
-}
+type RuleShape = Pick<
+  RecurringExpense,
+  'frequency' | 'interval_count' | 'days_of_week' | 'days_of_month' | 'yearly_dates' | 'start_date' | 'end_date'
+>;
 
-function nextOccurrenceSync(
-  rule: Pick<RecurringExpense, 'frequency' | 'interval_count' | 'day_of_week' | 'day_of_month' | 'month_of_year' | 'start_date' | 'end_date'>,
-  from: Date,
-): Date | null {
+function nextOccurrenceSync(rule: RuleShape, from: Date): Date | null {
   const start = new Date(rule.start_date + 'T00:00:00');
   const end = rule.end_date ? new Date(rule.end_date + 'T00:00:00') : null;
   const search = from < start ? new Date(start) : new Date(from);
@@ -27,18 +21,24 @@ function nextOccurrenceSync(
   const inRange = (d: Date) => (!end || d <= end);
 
   if (rule.frequency === 'weekly') {
-    const dow = rule.day_of_week ?? 0;
+    const dows = (rule.days_of_week ?? []).slice().sort((a, b) => a - b);
+    if (dows.length === 0) return null;
     const interval = rule.interval_count || 1;
-    const cur = new Date(search);
-    while (cur.getDay() !== dow) cur.setDate(cur.getDate() + 1);
-    const weeksFromStart = Math.floor((cur.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const remainder = ((weeksFromStart % interval) + interval) % interval;
-    if (remainder !== 0) cur.setDate(cur.getDate() + (interval - remainder) * 7);
-    return inRange(cur) ? cur : null;
+    // 최대 7*interval일 내에 반드시 매칭
+    for (let i = 0; i < 7 * interval + 7; i++) {
+      const cur = new Date(search);
+      cur.setDate(cur.getDate() + i);
+      if (!dows.includes(cur.getDay())) continue;
+      const weeksFromStart = Math.floor((cur.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      if (((weeksFromStart % interval) + interval) % interval !== 0) continue;
+      if (inRange(cur)) return cur;
+    }
+    return null;
   }
 
   if (rule.frequency === 'monthly') {
-    const dom = rule.day_of_month ?? 1;
+    const doms = (rule.days_of_month ?? []).slice().sort((a, b) => a - b);
+    if (doms.length === 0) return null;
     const interval = rule.interval_count || 1;
     let year = search.getFullYear();
     let month = search.getMonth();
@@ -46,9 +46,11 @@ function nextOccurrenceSync(
       const monthsFromStart = (year - start.getFullYear()) * 12 + (month - start.getMonth());
       if (monthsFromStart >= 0 && monthsFromStart % interval === 0) {
         const lastDay = new Date(year, month + 1, 0).getDate();
-        const actualDay = Math.min(dom, lastDay);
-        const candidate = new Date(year, month, actualDay);
-        if (candidate >= search && inRange(candidate)) return candidate;
+        for (const dom of doms) {
+          const actualDay = Math.min(dom, lastDay);
+          const candidate = new Date(year, month, actualDay);
+          if (candidate >= search && inRange(candidate)) return candidate;
+        }
       }
       month += 1;
       if (month > 11) { month = 0; year += 1; }
@@ -58,17 +60,21 @@ function nextOccurrenceSync(
   }
 
   if (rule.frequency === 'yearly') {
-    const mo = (rule.month_of_year ?? 1) - 1;
-    const dom = rule.day_of_month ?? 1;
+    const dates = rule.yearly_dates ?? [];
+    if (dates.length === 0) return null;
     const interval = rule.interval_count || 1;
+    const sorted = dates.slice().sort((a, b) => (a.m - b.m) || (a.d - b.d));
     let year = search.getFullYear();
     for (let i = 0; i < 50; i++) {
       const yearsFromStart = year - start.getFullYear();
       if (yearsFromStart >= 0 && yearsFromStart % interval === 0) {
-        const lastDay = new Date(year, mo + 1, 0).getDate();
-        const actualDay = Math.min(dom, lastDay);
-        const candidate = new Date(year, mo, actualDay);
-        if (candidate >= search && inRange(candidate)) return candidate;
+        for (const yd of sorted) {
+          const mo = yd.m - 1;
+          const lastDay = new Date(year, mo + 1, 0).getDate();
+          const actualDay = Math.min(yd.d, lastDay);
+          const candidate = new Date(year, mo, actualDay);
+          if (candidate >= search && inRange(candidate)) return candidate;
+        }
       }
       year += 1;
       if (end && new Date(year, 0, 1) > end) return null;
@@ -115,12 +121,11 @@ type RecurringInput = {
   note?: string | null;
   frequency: RecurringFrequency;
   interval_count: number;
-  day_of_week?: number | null;
-  day_of_month?: number | null;
-  month_of_year?: number | null;
+  days_of_week: number[];
+  days_of_month: number[];
+  yearly_dates: YearlyDate[];
   start_date: string;
   end_date?: string | null;
-  auto_generate: boolean;
   is_active: boolean;
 };
 

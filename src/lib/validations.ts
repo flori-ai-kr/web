@@ -51,7 +51,12 @@ export const expenseSchema = z.object({
   note: z.string().max(1000).nullable().optional(),
 });
 
-// 고정비(반복 지출) 템플릿
+// 고정비(반복 지출) 템플릿 — 다중값 지원
+export const yearlyDateSchema = z.object({
+  m: z.number().int().min(1).max(12),
+  d: z.number().int().min(1).max(31),
+});
+
 export const recurringExpenseSchema = z.object({
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
   category: z.string().min(1).max(30),
@@ -62,22 +67,21 @@ export const recurringExpenseSchema = z.object({
   note: z.string().max(1000).nullable().optional(),
   frequency: z.enum(['weekly', 'monthly', 'yearly']),
   interval_count: z.number().int().min(1).max(99).default(1),
-  day_of_week: z.number().int().min(0).max(6).nullable().optional(),
-  day_of_month: z.number().int().min(1).max(31).nullable().optional(),
-  month_of_year: z.number().int().min(1).max(12).nullable().optional(),
+  days_of_week: z.array(z.number().int().min(0).max(6)).default([]),
+  days_of_month: z.array(z.number().int().min(1).max(31)).default([]),
+  yearly_dates: z.array(yearlyDateSchema).default([]),
   start_date: dateSchema,
   end_date: dateSchema.nullable().optional(),
-  auto_generate: z.boolean().default(true),
   is_active: z.boolean().default(true),
 }).refine(
-  (d) => d.frequency !== 'weekly' || d.day_of_week !== null,
-  { message: '매주 반복은 요일을 선택해야 합니다', path: ['day_of_week'] },
+  (d) => d.frequency !== 'weekly' || d.days_of_week.length > 0,
+  { message: '매주 반복은 요일을 1개 이상 선택해야 합니다', path: ['days_of_week'] },
 ).refine(
-  (d) => d.frequency === 'weekly' || d.day_of_month !== null,
-  { message: '날짜를 선택해야 합니다', path: ['day_of_month'] },
+  (d) => d.frequency !== 'monthly' || d.days_of_month.length > 0,
+  { message: '매월 반복은 날짜를 1개 이상 선택해야 합니다', path: ['days_of_month'] },
 ).refine(
-  (d) => d.frequency !== 'yearly' || d.month_of_year !== null,
-  { message: '매년 반복은 월을 선택해야 합니다', path: ['month_of_year'] },
+  (d) => d.frequency !== 'yearly' || d.yearly_dates.length > 0,
+  { message: '매년 반복은 일자를 1개 이상 선택해야 합니다', path: ['yearly_dates'] },
 ).refine(
   (d) => !d.end_date || d.end_date >= d.start_date,
   { message: '종료일은 시작일 이후여야 합니다', path: ['end_date'] },

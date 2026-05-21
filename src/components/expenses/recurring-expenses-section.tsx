@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { AmountInput } from '@/components/ui/amount-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pencil, Plus, Power, PowerOff, RotateCcw, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Power, PowerOff, RotateCcw, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   createRecurringExpense,
@@ -20,10 +20,9 @@ import {
   updateRecurringExpense,
 } from '@/lib/actions/recurring-expenses';
 import { getExpenseCategories, getExpensePaymentMethods, type ExpenseCategory, type ExpensePaymentMethod } from '@/lib/actions/expense-settings';
-import type { RecurringExpense, RecurringFrequency } from '@/types/database';
+import type { RecurringExpense, RecurringFrequency, YearlyDate } from '@/types/database';
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
-const FREQ_LABELS: Record<RecurringFrequency, string> = { weekly: '매주', monthly: '매월', yearly: '매년' };
 
 interface FormState {
   id?: string;
@@ -36,12 +35,11 @@ interface FormState {
   note: string;
   frequency: RecurringFrequency;
   interval_count: number;
-  day_of_week: number | null;
-  day_of_month: number | null;
-  month_of_year: number | null;
+  days_of_week: number[];
+  days_of_month: number[];
+  yearly_dates: YearlyDate[];
   start_date: string;
   end_date: string;
-  auto_generate: boolean;
   is_active: boolean;
 }
 
@@ -62,24 +60,30 @@ function emptyForm(defaultCategory: string, defaultPayment: 'cash' | 'card' | 't
     note: '',
     frequency: 'monthly',
     interval_count: 1,
-    day_of_week: null,
-    day_of_month: t.getDate(),
-    month_of_year: null,
+    days_of_week: [],
+    days_of_month: [t.getDate()],
+    yearly_dates: [],
     start_date: todayISO(),
     end_date: '',
-    auto_generate: true,
     is_active: true,
   };
 }
 
 function ruleSummary(r: RecurringExpense): string {
+  const prefix = r.interval_count > 1
+    ? `${r.interval_count}${r.frequency === 'weekly' ? '주' : r.frequency === 'monthly' ? '개월' : '년'}마다`
+    : r.frequency === 'weekly' ? '매주' : r.frequency === 'monthly' ? '매월' : '매년';
+
   if (r.frequency === 'weekly') {
-    return `${r.interval_count > 1 ? `${r.interval_count}주마다` : '매주'} ${WEEKDAY_LABELS[r.day_of_week ?? 0]}요일`;
+    const sorted = (r.days_of_week ?? []).slice().sort((a, b) => a - b);
+    return `${prefix} ${sorted.map(d => WEEKDAY_LABELS[d]).join('·')}요일`;
   }
   if (r.frequency === 'monthly') {
-    return `${r.interval_count > 1 ? `${r.interval_count}개월마다` : '매월'} ${r.day_of_month}일`;
+    const sorted = (r.days_of_month ?? []).slice().sort((a, b) => a - b);
+    return `${prefix} ${sorted.join('·')}일`;
   }
-  return `${r.interval_count > 1 ? `${r.interval_count}년마다` : '매년'} ${r.month_of_year}월 ${r.day_of_month}일`;
+  const dates = (r.yearly_dates ?? []).slice().sort((a, b) => (a.m - b.m) || (a.d - b.d));
+  return `${prefix} ${dates.map(d => `${d.m}/${d.d}`).join(', ')}`;
 }
 
 export function RecurringExpensesSection() {
@@ -136,12 +140,11 @@ export function RecurringExpensesSection() {
       note: r.note ?? '',
       frequency: r.frequency,
       interval_count: r.interval_count,
-      day_of_week: r.day_of_week ?? null,
-      day_of_month: r.day_of_month ?? null,
-      month_of_year: r.month_of_year ?? null,
+      days_of_week: r.days_of_week ?? [],
+      days_of_month: r.days_of_month ?? [],
+      yearly_dates: r.yearly_dates ?? [],
       start_date: r.start_date,
       end_date: r.end_date ?? '',
-      auto_generate: r.auto_generate,
       is_active: r.is_active,
     });
     setDialogOpen(true);
@@ -151,6 +154,9 @@ export function RecurringExpensesSection() {
     if (!form) return;
     if (!form.item_name.trim()) { toast.error('품명을 입력해주세요'); return; }
     if (form.unit_price <= 0) { toast.error('단가를 입력해주세요'); return; }
+    if (form.frequency === 'weekly' && form.days_of_week.length === 0) { toast.error('반복할 요일을 선택해주세요'); return; }
+    if (form.frequency === 'monthly' && form.days_of_month.length === 0) { toast.error('반복할 날짜를 선택해주세요'); return; }
+    if (form.frequency === 'yearly' && form.yearly_dates.length === 0) { toast.error('반복할 일자를 추가해주세요'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -163,12 +169,11 @@ export function RecurringExpensesSection() {
         note: form.note.trim() || null,
         frequency: form.frequency,
         interval_count: form.interval_count,
-        day_of_week: form.frequency === 'weekly' ? form.day_of_week : null,
-        day_of_month: form.frequency !== 'weekly' ? form.day_of_month : null,
-        month_of_year: form.frequency === 'yearly' ? form.month_of_year : null,
+        days_of_week: form.frequency === 'weekly' ? form.days_of_week : [],
+        days_of_month: form.frequency === 'monthly' ? form.days_of_month : [],
+        yearly_dates: form.frequency === 'yearly' ? form.yearly_dates : [],
         start_date: form.start_date,
         end_date: form.end_date || null,
-        auto_generate: form.auto_generate,
         is_active: form.is_active,
       };
       if (form.id) {
@@ -238,7 +243,6 @@ export function RecurringExpensesSection() {
                       <span className="font-medium text-sm truncate">{r.item_name}</span>
                       <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ backgroundColor: `${categoryColor(r.category)}40`, color: categoryColor(r.category) }}>{categoryLabel(r.category)}</span>
                       {!r.is_active && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">일시정지</span>}
-                      {!r.auto_generate && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">수동</span>}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                       <span>{ruleSummary(r)}</span>
@@ -273,27 +277,34 @@ export function RecurringExpensesSection() {
             {form && (
               <form
                 onSubmit={(e) => { e.preventDefault(); handleSave(); }}
-                className="space-y-4"
+                className="space-y-5 pt-2"
               >
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="re-name">품명 *</Label>
-                  <Input id="re-name" value={form.item_name} onChange={e => setForm(f => f && { ...f, item_name: e.target.value })} placeholder="예: 월세, 인터넷, 넷플릭스" />
+                  <Input
+                    id="re-name"
+                    value={form.item_name}
+                    onChange={e => setForm(f => f && { ...f, item_name: e.target.value })}
+                    placeholder="예: 월세, 인터넷, 넷플릭스"
+                    className="bg-muted"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label>카테고리 *</Label>
                     <Select value={form.category} onValueChange={(v) => setForm(f => f && { ...f, category: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {categories.map(c => <SelectItem key={c.id} value={c.value}>{c.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>결제방식 *</Label>
                     <Select value={form.payment_method} onValueChange={(v) => setForm(f => f && { ...f, payment_method: v as FormState['payment_method'] })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {payments.map(p => <SelectItem key={p.id} value={p.value}>{p.label}</SelectItem>)}
                       </SelectContent>
@@ -301,109 +312,215 @@ export function RecurringExpensesSection() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label>단가 *</Label>
-                    <AmountInput name="unit_price" value={form.unit_price} onChange={(v) => setForm(f => f && { ...f, unit_price: v })} />
+                    <AmountInput
+                      name="unit_price"
+                      value={form.unit_price}
+                      onChange={(v) => setForm(f => f && { ...f, unit_price: v })}
+                      placeholder="0"
+                      className="bg-muted"
+                    />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>수량</Label>
-                    <Input type="number" inputMode="numeric" value={form.quantity} min={1} onChange={e => setForm(f => f && { ...f, quantity: Math.max(1, parseInt(e.target.value) || 1) })} />
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={form.quantity}
+                      min={1}
+                      onChange={e => setForm(f => f && { ...f, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="bg-muted"
+                    />
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>거래처</Label>
-                  <Input value={form.vendor} onChange={e => setForm(f => f && { ...f, vendor: e.target.value })} placeholder="선택 입력" />
+                  <Input
+                    value={form.vendor}
+                    onChange={e => setForm(f => f && { ...f, vendor: e.target.value })}
+                    placeholder="예: 강남구청 관리실"
+                    className="bg-muted"
+                  />
                 </div>
 
                 {/* 반복 규칙 */}
-                <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
+                <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
                   <div className="flex items-center gap-2">
                     <RotateCcw className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm font-medium">반복 규칙</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">주기</Label>
                     <Select value={form.frequency} onValueChange={(v) => setForm(f => f && { ...f, frequency: v as RecurringFrequency })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="weekly">매주</SelectItem>
                         <SelectItem value="monthly">매월</SelectItem>
                         <SelectItem value="yearly">매년</SelectItem>
                       </SelectContent>
                     </Select>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">매</span>
-                      <Input type="number" inputMode="numeric" min={1} max={99} value={form.interval_count} onChange={e => setForm(f => f && { ...f, interval_count: Math.max(1, parseInt(e.target.value) || 1) })} className="text-center" />
-                      <span className="text-xs text-muted-foreground">{form.frequency === 'weekly' ? '주' : form.frequency === 'monthly' ? '개월' : '년'}</span>
-                    </div>
                   </div>
 
                   {form.frequency === 'weekly' && (
-                    <div>
-                      <Label className="text-xs">요일 *</Label>
-                      <div className="flex gap-1 mt-1">
-                        {WEEKDAY_LABELS.map((d, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setForm(f => f && { ...f, day_of_week: i })}
-                            className={`flex-1 h-9 text-xs rounded-md border transition-colors ${form.day_of_week === i ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent'}`}
-                          >
-                            {d}
-                          </button>
-                        ))}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">요일 * <span className="text-muted-foreground/70">(여러개 선택 가능)</span></Label>
+                      <div className="flex gap-1.5">
+                        {WEEKDAY_LABELS.map((d, i) => {
+                          const selected = form.days_of_week.includes(i);
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setForm(f => f && {
+                                ...f,
+                                days_of_week: selected ? f.days_of_week.filter(x => x !== i) : [...f.days_of_week, i],
+                              })}
+                              className={`flex-1 h-10 text-sm rounded-md border transition-colors ${selected ? 'bg-brand text-white border-brand' : 'bg-background hover:bg-accent'}`}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
 
                   {form.frequency === 'monthly' && (
-                    <div>
-                      <Label className="text-xs">매월 며칠 *</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Input type="number" inputMode="numeric" min={1} max={31} value={form.day_of_month ?? ''} onChange={e => setForm(f => f && { ...f, day_of_month: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })} className="w-20" />
-                        <span className="text-xs text-muted-foreground">일 (해당 월에 그 날짜가 없으면 마지막날 적용)</span>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">매월 * <span className="text-muted-foreground/70">(여러개 선택 가능)</span></Label>
+                      <div className="grid grid-cols-7 gap-1">
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                          const selected = form.days_of_month.includes(day);
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => setForm(f => f && {
+                                ...f,
+                                days_of_month: selected ? f.days_of_month.filter(x => x !== day) : [...f.days_of_month, day],
+                              })}
+                              className={`h-8 text-xs rounded-md border transition-colors ${selected ? 'bg-brand text-white border-brand' : 'bg-background hover:bg-accent'}`}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
                       </div>
+                      <p className="text-[11px] text-muted-foreground">그 달에 해당 날짜가 없으면 마지막 날에 등록돼요</p>
                     </div>
                   )}
 
                   {form.frequency === 'yearly' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">월 *</Label>
-                        <Input type="number" inputMode="numeric" min={1} max={12} value={form.month_of_year ?? ''} onChange={e => setForm(f => f && { ...f, month_of_year: Math.min(12, Math.max(1, parseInt(e.target.value) || 1)) })} />
-                      </div>
-                      <div>
-                        <Label className="text-xs">일 *</Label>
-                        <Input type="number" inputMode="numeric" min={1} max={31} value={form.day_of_month ?? ''} onChange={e => setForm(f => f && { ...f, day_of_month: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) })} />
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">매년 일자 * <span className="text-muted-foreground/70">(여러개 추가 가능)</span></Label>
+                      <div className="space-y-1.5">
+                        {form.yearly_dates.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-2 border border-dashed rounded-md">아래 [+ 일자 추가] 버튼으로 일자를 추가해주세요</p>
+                        )}
+                        {form.yearly_dates.map((yd, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={12}
+                              value={yd.m}
+                              onChange={e => {
+                                const m = Math.min(12, Math.max(1, parseInt(e.target.value) || 1));
+                                setForm(f => f && {
+                                  ...f,
+                                  yearly_dates: f.yearly_dates.map((x, i) => i === idx ? { ...x, m } : x),
+                                });
+                              }}
+                              className="w-16 text-center bg-background"
+                            />
+                            <span className="text-sm">월</span>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={31}
+                              value={yd.d}
+                              onChange={e => {
+                                const d = Math.min(31, Math.max(1, parseInt(e.target.value) || 1));
+                                setForm(f => f && {
+                                  ...f,
+                                  yearly_dates: f.yearly_dates.map((x, i) => i === idx ? { ...x, d } : x),
+                                });
+                              }}
+                              className="w-16 text-center bg-background"
+                            />
+                            <span className="text-sm">일</span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setForm(f => f && {
+                                ...f,
+                                yearly_dates: f.yearly_dates.filter((_, i) => i !== idx),
+                              })}
+                              aria-label="일자 삭제"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setForm(f => f && {
+                            ...f,
+                            yearly_dates: [...f.yearly_dates, { m: new Date().getMonth() + 1, d: new Date().getDate() }],
+                          })}
+                          className="w-full"
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1" />일자 추가
+                        </Button>
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">시작일</Label>
-                      <Input type="date" value={form.start_date} onChange={e => setForm(f => f && { ...f, start_date: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">시작일</Label>
+                      <Input
+                        type="date"
+                        value={form.start_date}
+                        onChange={e => setForm(f => f && { ...f, start_date: e.target.value })}
+                        className="bg-background"
+                      />
                     </div>
-                    <div>
-                      <Label className="text-xs">종료일 (선택)</Label>
-                      <Input type="date" value={form.end_date} onChange={e => setForm(f => f && { ...f, end_date: e.target.value })} />
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">종료일 (선택)</Label>
+                      <Input
+                        type="date"
+                        value={form.end_date}
+                        onChange={e => setForm(f => f && { ...f, end_date: e.target.value })}
+                        className="bg-background"
+                      />
                     </div>
                   </div>
 
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form.auto_generate} onChange={e => setForm(f => f && { ...f, auto_generate: e.target.checked })} />
-                    <span>자동 생성 (매 주기마다 자동으로 지출 등록)</span>
-                  </label>
+                  <p className="text-[11px] text-muted-foreground">매 주기마다 자동으로 지출 내역에 추가돼요. 일시정지하려면 카드 우측의 토글을 사용하세요.</p>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>비고</Label>
-                  <Input value={form.note} onChange={e => setForm(f => f && { ...f, note: e.target.value })} placeholder="메모" maxLength={100} />
+                  <Input
+                    value={form.note}
+                    onChange={e => setForm(f => f && { ...f, note: e.target.value })}
+                    placeholder="메모"
+                    maxLength={100}
+                    className="bg-muted"
+                  />
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>취소</Button>
                   <Button type="submit" disabled={saving}>{saving ? '저장중...' : '저장'}</Button>
                 </DialogFooter>
