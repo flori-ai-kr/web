@@ -121,6 +121,7 @@ export async function GET(request: Request) {
       category: r.category,
       unit_price: r.unit_price,
       quantity: r.quantity,
+      total_amount: r.unit_price * r.quantity,
       payment_method: r.payment_method,
       vendor: r.vendor,
       note: r.note,

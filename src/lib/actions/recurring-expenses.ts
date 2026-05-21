@@ -231,6 +231,7 @@ async function _quickAddFromRecurring(recurringId: string): Promise<void> {
       category: rule.category,
       unit_price: rule.unit_price,
       quantity: rule.quantity,
+      total_amount: rule.unit_price * rule.quantity,
       payment_method: rule.payment_method,
       vendor: rule.vendor,
       note: rule.note,
