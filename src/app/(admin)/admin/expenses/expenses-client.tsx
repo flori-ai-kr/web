@@ -30,6 +30,8 @@ import {
 import {ExpensesList} from './components/ExpensesList';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import {QuickAddRecurring} from '@/components/expenses/quick-add-recurring';
+import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
+import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {
   deleteExpenseInstanceOnly,
   deleteRecurringFromInstance,
@@ -395,10 +397,17 @@ export function ExpensesClient({
         </div>
       </div>
 
-      {/* Quick Add (고정비) */}
-      <QuickAddRecurring />
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList>
+          <TabsTrigger value="list">내역</TabsTrigger>
+          <TabsTrigger value="recurring">고정비</TabsTrigger>
+        </TabsList>
 
-      {/* Summary Cards */}
+        <TabsContent value="list" className="space-y-6 mt-4">
+          {/* Quick Add (고정비) */}
+          <QuickAddRecurring />
+
+          {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <Card className="col-span-2 sm:col-span-1">
           <CardContent className="p-4">
@@ -563,6 +572,12 @@ export function ExpensesClient({
         onResetFilters={() => { setPaymentFilter('all'); setCategoryFilter([]); setSearchQuery(''); }}
         onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
       />
+        </TabsContent>
+
+        <TabsContent value="recurring" className="mt-4">
+          <RecurringExpensesSection />
+        </TabsContent>
+      </Tabs>
 
       {/* Create Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
