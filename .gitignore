@@ -50,6 +50,8 @@ next-env.d.ts
 ### Claude ###
 .serena
 .superpowers
+# 예약 작업 런타임 락 (세션별 일회성)
+.claude/scheduled_tasks.lock
 
 ### IDE ####
 .idea
