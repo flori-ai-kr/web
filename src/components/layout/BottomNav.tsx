@@ -92,7 +92,8 @@ export function BottomNav({ items }: BottomNavProps) {
             onClick={() => setMoreOpen(true)}
             aria-label="더보기 메뉴"
             className={cn(
-              'relative flex flex-col items-center justify-center gap-1 min-w-0 py-2 transition-colors',
+              'relative flex flex-col items-center justify-center gap-1 min-w-0 min-h-[44px] py-2 transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               'text-muted-foreground active:text-foreground',
             )}
           >
@@ -165,7 +166,8 @@ function NavTab({
       href={href}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'relative flex flex-col items-center justify-center gap-1 min-w-0 py-2 transition-colors',
+        'relative flex flex-col items-center justify-center gap-1 min-w-0 min-h-[44px] py-2 transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
         isActive ? 'text-brand' : 'text-muted-foreground active:text-foreground',
       )}
     >

@@ -81,7 +81,8 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'relative flex items-center gap-3 rounded-lg text-[13px] font-medium transition-colors',
+        'relative flex items-center gap-3 min-h-[44px] rounded-lg text-[13px] font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-sidebar',
         isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
         isActive
           ? 'bg-accent text-foreground font-semibold'
