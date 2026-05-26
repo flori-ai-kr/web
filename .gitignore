@@ -66,6 +66,9 @@ next-env.d.ts
 .moai/design/*.md
 # 세션 상태 (resume용 로컬 데이터)
 .moai/state/*.json
+.moai/state/*.md
 !.moai/state/db-detection.json
 # 디자인 리서치 raw 데이터 (스크래핑 원본, 9MB+)
 .moai/design/research/
+# 에이전트 작업 메모 (로컬 스크래치)
+.claude/agent-memory/
