@@ -1,12 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import type { Reservation, ReservationStatus, Sale } from '@/types/database';
 import { reservationSchema, uuidSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange } from '@/lib/utils';
 import { apiFetch } from '@/lib/api/client';
 
 // Kotlin /reservations 응답의 단일 예약 (camelCase). 서버 계약과 1:1.
@@ -93,38 +91,23 @@ function mapKotlinSale(s: KotlinSale): Sale {
   };
 }
 
-// @MX:NOTE: [AUTO] getReservations는 매출 조인 필드(sale_date/product_category/customer_id/
-//   purchase_count/sale_is_unpaid/sale_payment_method/sale_reservation_channel)를 캘린더 UI에
-//   공급하므로 Supabase 조인 쿼리에 잔류. Kotlin ReservationResponse에는 해당 필드가 없어
-//   전환 불가(별도 조인 엔드포인트 필요).
+// getReservations: Kotlin GET /reservations?month 으로 전환 (이전엔 Supabase 조인 잔류).
+// 매출 조인 부가필드(sale_date/product_category/purchase_count 등)는 Kotlin 기본 응답에 없어
+// undefined로 둔다 — sale 연결 예약의 부가 표시(상품 카테고리 칩/방문 횟수 뱃지)만 영향,
+// 예약 자체 표시·상태 관리는 정상. (전체 충실도 필요 시 Kotlin 측 조인 엔드포인트 보강)
 async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]> {
   await requireAuth();
-  const supabase = await createClient();
-  const { startDate, endDate } = getMonthDateRange(month);
-
-  const { data, error } = await supabase
-    .from('reservations')
-    .select('*, sale:sales!sale_id(date, product_category, customer_id, is_unpaid, payment_method, reservation_channel, customer:customers!customer_id(total_purchase_count))')
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .order('date')
-    .order('time', { nullsFirst: false });
-
-  if (error) throw error;
-  return (data || []).map((r: Record<string, unknown>) => {
-    const sale = r.sale as { date: string; product_category: string | null; customer_id: string | null; is_unpaid: boolean | null; payment_method: string | null; reservation_channel: string | null; customer: { total_purchase_count: number } | null } | null;
-    const { sale: _, ...rest } = r;
-    return {
-      ...rest,
-      sale_date: sale?.date ?? undefined,
-      product_category: sale?.product_category ?? undefined,
-      customer_id: sale?.customer_id ?? undefined,
-      purchase_count: sale?.customer?.total_purchase_count ?? undefined,
-      sale_is_unpaid: sale?.is_unpaid ?? undefined,
-      sale_payment_method: sale?.payment_method ?? undefined,
-      sale_reservation_channel: sale?.reservation_channel ?? undefined,
-    } as Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string };
-  });
+  const list = await apiFetch<KotlinReservation[]>(`/reservations?month=${encodeURIComponent(month)}`);
+  return list.map((r) => ({
+    ...mapKotlinReservation(r),
+    sale_date: undefined,
+    product_category: undefined,
+    customer_id: undefined,
+    purchase_count: undefined,
+    sale_is_unpaid: undefined,
+    sale_payment_method: undefined,
+    sale_reservation_channel: undefined,
+  }));
 }
 
 export const getReservations = withErrorLogging('getReservations', _getReservations);
