@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
     CalendarDays,
-    CreditCard,
     Heart,
     Image as ImageIcon,
     LayoutDashboard,
@@ -27,7 +26,6 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   expenses: Wallet,
   customers: Users,
   gallery: ImageIcon,
-  deposits: CreditCard,
   insights: TrendingUp,
   follows: Heart,
 };
@@ -39,7 +37,6 @@ const ALL_NAV_ITEMS: NavItemKey[] = [
   'expenses',
   'customers',
   'gallery',
-  'deposits',
   'insights',
   'follows',
 ];

@@ -6,7 +6,6 @@ import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {
-    AlertCircle,
     ArrowUpRight,
     CalendarDays,
     ChevronLeft,
@@ -260,33 +259,6 @@ export function DashboardClient() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {/* Pending Deposits Alert */}
-      {todaySummary && todaySummary.pendingCount > 0 && (
-        <Card className="border-brand/20 bg-brand-muted/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-4 w-4 text-brand" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  미입금 {todaySummary.pendingCount}건 · {formatCurrency(todaySummary.pendingAmount)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  확인이 필요한 입금 내역이 있습니다
-                </p>
-              </div>
-              <Link
-                href="/admin/deposits"
-                className="text-sm text-brand hover:text-brand/80 font-medium flex items-center gap-1 shrink-0 transition-colors"
-              >
-                확인 <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Two Column: Reservations + Recent Sales */}

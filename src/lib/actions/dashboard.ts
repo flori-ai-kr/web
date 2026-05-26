@@ -1,18 +1,12 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth-guard';
-import type { Sale, Reservation, PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
-import type {
-  CategoryStat,
-  PaymentMethodStat,
-  ChannelStat,
-  CustomerStat,
-  ExpenseCategoryStat,
-} from './statistics';
-import { withErrorLogging } from '@/lib/errors';
-import { getMonthDateRange, getTodayKST } from '@/lib/utils';
-import { PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS } from '@/lib/constants';
+import {createClient} from '@/lib/supabase/server';
+import {requireAuth} from '@/lib/auth-guard';
+import type {ExpenseCategory, PaymentMethod, Reservation, ReservationChannel, Sale} from '@/types/database';
+import type {CategoryStat, ChannelStat, CustomerStat, ExpenseCategoryStat, PaymentMethodStat,} from './statistics';
+import {withErrorLogging} from '@/lib/errors';
+import {getMonthDateRange, getTodayKST} from '@/lib/utils';
+import {CHANNEL_LABELS, EXPENSE_LABELS, PAYMENT_LABELS} from '@/lib/constants';
 
 export interface DashboardSummary {
   totalAmount: number;
@@ -21,8 +15,6 @@ export interface DashboardSummary {
   transferAmount: number;
   naverpayAmount: number;
   kakaopayAmount: number;
-  pendingCount: number;
-  pendingAmount: number;
 }
 
 async function _getTodaySummary(): Promise<DashboardSummary> {
@@ -32,7 +24,7 @@ async function _getTodaySummary(): Promise<DashboardSummary> {
 
   const { data: sales, error } = await supabase
     .from('sales')
-    .select('amount, payment_method, deposit_status')
+    .select('amount, payment_method')
     .eq('date', today);
 
   if (error) throw error;
@@ -44,8 +36,6 @@ async function _getTodaySummary(): Promise<DashboardSummary> {
     transferAmount: 0,
     naverpayAmount: 0,
     kakaopayAmount: 0,
-    pendingCount: 0,
-    pendingAmount: 0,
   };
 
   (sales || []).forEach((sale) => {
@@ -69,11 +59,6 @@ async function _getTodaySummary(): Promise<DashboardSummary> {
       case 'kakaopay':
         summary.kakaopayAmount += sale.amount;
         break;
-    }
-
-    if (sale.deposit_status === 'pending') {
-      summary.pendingCount += 1;
-      summary.pendingAmount += sale.amount;
     }
   });
 
@@ -119,7 +104,7 @@ async function _getMonthSummary(month?: string): Promise<DashboardSummary> {
 
   const { data: sales, error } = await supabase
     .from('sales')
-    .select('amount, payment_method, deposit_status')
+    .select('amount, payment_method')
     .gte('date', startDate)
     .lte('date', endDate);
 
@@ -132,11 +117,10 @@ export const getMonthSummary = withErrorLogging('getMonthSummary', _getMonthSumm
 
 // --- 통합 액션 (대시보드 성능 최적화) ---
 
-function buildSummary(sales: { amount: number; payment_method: string; deposit_status: string }[]): DashboardSummary {
+function buildSummary(sales: { amount: number; payment_method: string }[]): DashboardSummary {
   const summary: DashboardSummary = {
     totalAmount: 0, cardAmount: 0, cashAmount: 0,
     transferAmount: 0, naverpayAmount: 0, kakaopayAmount: 0,
-    pendingCount: 0, pendingAmount: 0,
   };
 
   sales.forEach((sale) => {
@@ -148,10 +132,6 @@ function buildSummary(sales: { amount: number; payment_method: string; deposit_s
       case 'transfer': summary.transferAmount += sale.amount; break;
       case 'naverpay': summary.naverpayAmount += sale.amount; break;
       case 'kakaopay': summary.kakaopayAmount += sale.amount; break;
-    }
-    if (sale.deposit_status === 'pending') {
-      summary.pendingCount += 1;
-      summary.pendingAmount += sale.amount;
     }
   });
 
@@ -174,7 +154,7 @@ async function _getDashboardTodayData(): Promise<DashboardTodayData> {
   const today = getTodayKST();
 
   const [salesRes, reservationsRes, recentRes, categoriesRes] = await Promise.all([
-    supabase.from('sales').select('amount, payment_method, deposit_status').eq('date', today),
+    supabase.from('sales').select('amount, payment_method').eq('date', today),
     supabase.from('reservations').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }).order('time', { ascending: true, nullsFirst: false }),
     supabase.from('sales').select('*').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
     supabase.from('sale_categories').select('value, label').order('sort_order', { ascending: true }),
@@ -215,7 +195,7 @@ async function _getDashboardMonthData(month?: string): Promise<DashboardMonthDat
 
   const [salesRes, expensesRes] = await Promise.all([
     supabase.from('sales')
-      .select('amount, payment_method, deposit_status, product_category, reservation_channel, customer_phone')
+      .select('amount, payment_method, product_category, reservation_channel, customer_phone')
       .gte('date', startDate).lte('date', endDate),
     supabase.from('expenses')
       .select('category, total_amount')

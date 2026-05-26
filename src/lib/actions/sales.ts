@@ -1,15 +1,15 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import { findOrCreateCustomer } from './customers';
-import type { Sale } from '@/types/database';
-import { z } from 'zod';
-import { saleSchema, uuidSchema, validateImageFile } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
-import { uploadFile, deleteFileByUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
+import {createClient} from '@/lib/supabase/server';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {findOrCreateCustomer} from './customers';
+import type {Sale} from '@/types/database';
+import {z} from 'zod';
+import {saleSchema, uuidSchema, validateImageFile} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {getMonthDateRange, sortByFrequency} from '@/lib/utils';
+import {deleteFileByUrl, generateFileKey, StoragePrefix, uploadFile} from '@/lib/storage';
 
 /**
  * 매출 폼 데이터에서 고객 ID를 결정한다.
@@ -167,11 +167,6 @@ async function _createSale(formData: FormData) {
     product_category: productCategory,
     amount: parseInt(formData.get('amount') as string) || 0,
     payment_method: formData.get('payment_method'),
-    card_company: formData.get('card_company') || null,
-    fee: formData.get('fee') ? parseInt(formData.get('fee') as string) : null,
-    expected_deposit: formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null,
-    expected_deposit_date: formData.get('expected_deposit_date') || null,
-    deposit_status: formData.get('deposit_status') || 'not_applicable',
     reservation_channel: formData.get('reservation_channel') || 'other',
     customer_name: customerName,
     customer_phone: customerPhone,
@@ -192,11 +187,6 @@ async function _createSale(formData: FormData) {
     product_category: productCategory,
     amount: parsed.data.amount,
     payment_method: parsed.data.payment_method,
-    card_company: parsed.data.card_company || null,
-    fee: parsed.data.fee || null,
-    expected_deposit: parsed.data.expected_deposit || null,
-    expected_deposit_date: parsed.data.expected_deposit_date || null,
-    deposit_status: parsed.data.deposit_status || 'not_applicable',
     reservation_channel: parsed.data.reservation_channel || 'other',
     customer_name: customerName,
     customer_phone: customerPhone,
@@ -232,11 +222,6 @@ async function _updateSale(id: string, formData: FormData) {
     product_category: formData.get('product_category') || undefined,
     amount: formData.get('amount') ? parseInt(formData.get('amount') as string) : undefined,
     payment_method: formData.get('payment_method') || undefined,
-    card_company: formData.has('card_company') ? (formData.get('card_company') as string || null) : undefined,
-    fee: formData.has('fee') ? (formData.get('fee') ? parseInt(formData.get('fee') as string) : null) : undefined,
-    expected_deposit: formData.has('expected_deposit') ? (formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null) : undefined,
-    expected_deposit_date: formData.has('expected_deposit_date') ? (formData.get('expected_deposit_date') as string || null) : undefined,
-    deposit_status: formData.get('deposit_status') || undefined,
     reservation_channel: formData.get('reservation_channel') || undefined,
     customer_name: customerName,
     customer_phone: customerPhone,

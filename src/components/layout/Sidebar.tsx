@@ -6,7 +6,6 @@ import {
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
-    CreditCard,
     Flower2,
     Heart,
     Image,
@@ -40,7 +39,6 @@ const navSections: NavSection[] = [
       { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
       { href: '/admin/sales', icon: Receipt, label: '매출관리' },
       { href: '/admin/expenses', icon: Wallet, label: '지출관리' },
-      { href: '/admin/deposits', icon: CreditCard, label: '입금대조' },
     ],
   },
   {

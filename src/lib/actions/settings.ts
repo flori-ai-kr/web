@@ -1,93 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import type { CardCompanySetting } from '@/types/database';
-import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { uuidSchema } from '@/lib/validations';
-
-// ============ Card Company Settings ============
-
-async function _getCardCompanySettings(): Promise<CardCompanySetting[]> {
-  await requireAuth();
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('card_company_settings')
-    .select('*')
-    .eq('is_active', true)
-    .order('name');
-
-  if (error) throw error;
-  return data as CardCompanySetting[];
-}
-
-export const getCardCompanySettings = withErrorLogging('getCardCompanySettings', _getCardCompanySettings);
-
-async function _updateCardCompanySetting(
-  id: string,
-  updates: { fee_rate?: number; deposit_days?: number }
-): Promise<void> {
-  await requireAuth();
-
-  const parsed = uuidSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('card_company_settings')
-    .update(updates)
-    .eq('id', id);
-
-  if (error) throw error;
-  revalidatePath('/settings');
-}
-
-export const updateCardCompanySetting = withErrorLogging('updateCardCompanySetting', _updateCardCompanySetting);
-
-async function _createCardCompanySetting(
-  name: string,
-  feeRate: number = 2.0,
-  depositDays: number = 3
-): Promise<CardCompanySetting> {
-  const user = await requireAuth();
-
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('card_company_settings')
-    .insert({ user_id: user.id, name, fee_rate: feeRate, deposit_days: depositDays })
-    .select()
-    .single();
-
-  if (error) throw error;
-  revalidatePath('/settings');
-  return data as CardCompanySetting;
-}
-
-export const createCardCompanySetting = withErrorLogging('createCardCompanySetting', _createCardCompanySetting);
-
-async function _deleteCardCompanySetting(id: string): Promise<void> {
-  await requireAuth();
-
-  const parsed = uuidSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('card_company_settings')
-    .update({ is_active: false })
-    .eq('id', id);
-
-  if (error) throw error;
-  revalidatePath('/settings');
-}
-
-export const deleteCardCompanySetting = withErrorLogging('deleteCardCompanySetting', _deleteCardCompanySetting);
-
+import {createClient} from '@/lib/supabase/server';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {uuidSchema} from '@/lib/validations';
 
 // ============ Product Categories ============
 
@@ -184,27 +101,11 @@ export const deleteProductCategory = withErrorLogging('deleteProductCategory', _
 // ============ Bulk Update ============
 
 async function _saveAllSettings(
-  cardSettings: Array<{ id: string; fee_rate: number; deposit_days: number }>,
   categories: string[]
 ): Promise<void> {
   await requireAuth();
 
-  // 카드 설정 ID 검증
-  for (const setting of cardSettings) {
-    const parsed = uuidSchema.safeParse(setting.id);
-    if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-  }
-
   const supabase = await createClient();
-
-  // 카드 설정 업데이트
-  for (const setting of cardSettings) {
-    const { error } = await supabase
-      .from('card_company_settings')
-      .update({ fee_rate: setting.fee_rate, deposit_days: setting.deposit_days })
-      .eq('id', setting.id);
-    if (error) throw error;
-  }
 
   // 기존 카테고리 비활성화
   await supabase

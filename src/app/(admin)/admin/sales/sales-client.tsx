@@ -18,9 +18,8 @@ import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {formatCurrency} from '@/lib/utils';
-import type {CardCompanySetting, PhotoCard, Reservation, Sale} from '@/types/database';
+import type {PhotoCard, Reservation, Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
-import {getCardCompanySettings} from '@/lib/actions/settings';
 import {ExportButton} from '@/components/ui/export-button';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import type {ExportConfig} from '@/lib/export';
@@ -53,11 +52,10 @@ interface Props {
   initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
-  initialCardCompanies: CardCompanySetting[];
   initialSelectedSale?: Sale | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -75,7 +73,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
-  const [cardCompanies, setCardCompanies] = useState<CardCompanySetting[]>(initialCardCompanies);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
@@ -119,10 +116,9 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   // 설정 새로고침
   const refreshSettings = async () => {
-    const [cats, pays, cards] = await Promise.all([getSaleCategories(), getPaymentMethods(), getCardCompanySettings()]);
+    const [cats, pays] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
     setCategories(cats);
     setPayments(pays);
-    setCardCompanies(cards);
   };
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
@@ -518,7 +514,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={editingSale}
         categories={categories}
         payments={payments}
-        cardCompanies={cardCompanies}
         initialCustomer={initialCustomer}
         onSuccess={handleFormSuccess}
       />

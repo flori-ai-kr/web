@@ -29,7 +29,6 @@ const pageTitles: Record<string, string> = {
   '/admin/sales': '매출 관리',
   '/admin/expenses': '지출 관리',
   '/admin/customers': '고객 관리',
-  '/admin/deposits': '입금 대조',
   '/admin/gallery': '사진첩',
   '/admin/settings': '설정',
 };

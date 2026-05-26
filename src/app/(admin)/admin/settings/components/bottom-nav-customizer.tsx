@@ -20,7 +20,6 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {
     CalendarDays,
-    CreditCard,
     Heart,
     Image as ImageIcon,
     LayoutDashboard,
@@ -55,7 +54,6 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   expenses: Wallet,
   customers: Users,
   gallery: ImageIcon,
-  deposits: CreditCard,
   insights: TrendingUp,
   follows: Heart,
 };
@@ -67,7 +65,6 @@ const ALL_KEYS: NavItemKey[] = [
   'expenses',
   'customers',
   'gallery',
-  'deposits',
   'insights',
   'follows',
 ];

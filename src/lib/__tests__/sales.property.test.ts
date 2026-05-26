@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import {describe, it} from 'vitest'
 import * as fc from 'fast-check'
 import {
-  formatAmountInput,
-  parseAmountInput,
-  filterNumericInput,
-  filterSalesByYearMonth,
-  filterSalesByCategory,
-  calculateSalesSummary,
+    calculateSalesSummary,
+    filterNumericInput,
+    filterSalesByCategory,
+    filterSalesByYearMonth,
+    formatAmountInput,
+    parseAmountInput,
 } from '../utils'
-import type { Sale, ProductCategory, PaymentMethod } from '@/types/database'
-import { PRODUCT_CATEGORIES, PAYMENT_METHODS } from '@/types/database'
+import type {PaymentMethod, ProductCategory, Sale} from '@/types/database'
+import {PRODUCT_CATEGORIES} from '@/types/database'
 
 // Helper to generate arbitrary Sale objects
 const arbitrarySale = (): fc.Arbitrary<Sale> => {
@@ -33,7 +33,6 @@ const arbitrarySale = (): fc.Arbitrary<Sale> => {
     product_category: fc.constantFrom(...categories),
     amount: fc.integer({ min: 1, max: 10000000 }),
     payment_method: fc.constantFrom(...paymentMethods),
-    deposit_status: fc.constantFrom('pending', 'completed', 'not_applicable') as fc.Arbitrary<'pending' | 'completed' | 'not_applicable'>,
     reservation_channel: fc.constantFrom('phone', 'kakaotalk', 'naver_booking', 'road', 'other') as fc.Arbitrary<'phone' | 'kakaotalk' | 'naver_booking' | 'road' | 'other'>,
     is_unpaid: fc.boolean(),
     has_review: fc.boolean(),
