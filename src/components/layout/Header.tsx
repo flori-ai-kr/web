@@ -132,7 +132,7 @@ export function Header({ userEmail }: HeaderProps) {
               <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
-              <span className="font-serif text-lg font-semibold text-foreground tracking-tight">Flori</span>
+              <span className="text-lg font-semibold text-foreground tracking-tight">Flori</span>
             </Link>
           ) : (
             <div className="lg:hidden flex items-center gap-2 min-w-0">
