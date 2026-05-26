@@ -314,7 +314,7 @@ export function PhotoUploadModal({
               <Label htmlFor="description">설명</Label>
               <span className={cn(
                 "text-xs",
-                description.length > 200 ? "text-destructive" : "text-muted-foreground"
+                description.length > 200 ? "text-danger" : "text-muted-foreground"
               )}>
                 {description.length}/200
               </span>
@@ -444,14 +444,14 @@ export function PhotoUploadModal({
                       </div>
                       <div className={cn(
                         'absolute bottom-1 left-1 text-white text-xs px-1 rounded',
-                        item.type === 'new' ? 'bg-blue-500' : 'bg-black/50'
+                        item.type === 'new' ? 'bg-info' : 'bg-black/50'
                       )}>
                         {item.type === 'new' ? 'NEW' : index + 1}
                       </div>
                       <button
                         type="button"
                         onClick={() => removePhoto(index)}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/90"
+                        className="absolute -top-2 -right-2 bg-danger text-danger-foreground rounded-full p-1 hover:bg-danger/90"
                       >
                         <X className="w-3 h-3" />
                       </button>

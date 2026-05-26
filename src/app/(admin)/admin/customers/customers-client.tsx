@@ -24,7 +24,7 @@ const gradeSections = [
   { key: 'vip', label: 'VIP', icon: Crown, iconColor: 'text-purple-600 dark:text-purple-400' },
   { key: 'regular', label: '단골', icon: Star, iconColor: 'text-yellow-600 dark:text-yellow-400' },
   { key: 'new', label: '신규', icon: UserPlus, iconColor: 'text-muted-foreground' },
-  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-red-600 dark:text-red-400' },
+  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-danger' },
 ] as const;
 
 type SortBy = 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';

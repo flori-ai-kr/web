@@ -878,7 +878,7 @@ export function CalendarClient() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">캘린더</h1>
+          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">캘린더</h1>
           <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
         </div>
       </div>
@@ -889,7 +889,7 @@ export function CalendarClient() {
           <CardContent className="p-4">
             {/* Navigation + View toggle */}
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-              <h2 className="text-sm min-[450px]:text-base font-semibold text-foreground whitespace-nowrap">
+              <h2 className="font-serif text-base min-[450px]:text-lg font-semibold text-foreground whitespace-nowrap">
                 {viewMode === 'month'
                   ? format(currentMonth, 'yyyy년 M월', { locale: ko })
                   : `${format(fiveDayDays[0], 'M.d', { locale: ko })} - ${format(fiveDayDays[4], 'M.d', { locale: ko })}`
@@ -974,7 +974,7 @@ export function CalendarClient() {
                   {weekDays.map((day, i) => (
                     <div key={day} className={cn(
                       'text-center text-xs font-medium py-1.5',
-                      i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-muted-foreground'
+                      i === 0 ? 'text-danger' : i === 6 ? 'text-info' : 'text-muted-foreground'
                     )}>
                       {day}
                     </div>
@@ -1006,8 +1006,8 @@ export function CalendarClient() {
                         <span className={cn(
                           'inline-flex items-center justify-center w-6 h-6 text-xs rounded-full mb-0.5 shrink-0',
                           isTodayDate && 'bg-brand text-brand-foreground font-semibold',
-                          !isTodayDate && dayOfWeek === 0 && 'text-red-400',
-                          !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
+                          !isTodayDate && dayOfWeek === 0 && 'text-danger',
+                          !isTodayDate && dayOfWeek === 6 && 'text-info',
                           !isTodayDate && isSelected && 'font-semibold text-foreground',
                         )}>
                           {format(day, 'd')}
@@ -1063,7 +1063,7 @@ export function CalendarClient() {
                                   r.status === 'completed'
                                     ? 'bg-sage-muted text-sage'
                                     : r.status === 'confirmed'
-                                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                      ? 'bg-info-soft text-info'
                                       : 'bg-brand/15 text-brand'
                                 )}
                               >
@@ -1099,7 +1099,7 @@ export function CalendarClient() {
                     return (
                       <div key={format(day, 'yyyy-MM-dd')} className={cn(
                         'text-center text-xs font-medium py-1.5',
-                        dayOfWeek === 0 ? 'text-red-400' : dayOfWeek === 6 ? 'text-blue-400' : 'text-muted-foreground'
+                        dayOfWeek === 0 ? 'text-danger' : dayOfWeek === 6 ? 'text-info' : 'text-muted-foreground'
                       )}>
                         {weekDays[dayOfWeek]}
                       </div>
@@ -1131,8 +1131,8 @@ export function CalendarClient() {
                         <span className={cn(
                           'inline-flex items-center justify-center w-6 h-6 min-[450px]:w-7 min-[450px]:h-7 text-xs min-[450px]:text-sm rounded-full mb-0.5 min-[450px]:mb-1 shrink-0',
                           isTodayDate && 'bg-brand text-brand-foreground font-semibold',
-                          !isTodayDate && dayOfWeek === 0 && 'text-red-400',
-                          !isTodayDate && dayOfWeek === 6 && 'text-blue-400',
+                          !isTodayDate && dayOfWeek === 0 && 'text-danger',
+                          !isTodayDate && dayOfWeek === 6 && 'text-info',
                           !isTodayDate && isSelected && 'font-semibold text-foreground',
                         )}>
                           {format(day, 'd')}
@@ -1183,7 +1183,7 @@ export function CalendarClient() {
                                   r.status === 'completed'
                                     ? 'bg-sage-muted text-sage'
                                     : r.status === 'confirmed'
-                                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                      ? 'bg-info-soft text-info'
                                       : 'bg-brand/15 text-brand'
                                 )}
                               >
@@ -1591,7 +1591,7 @@ export function CalendarClient() {
                             <button
                               type="button"
                               onClick={() => removePickup(idx)}
-                              className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+                              className="text-[10px] text-muted-foreground hover:text-danger transition-colors"
                               aria-label={`픽업 ${idx + 1} 삭제`}
                             >
                               <X className="w-3 h-3" />
@@ -1848,7 +1848,7 @@ export function CalendarClient() {
                             className={cn(
                               'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
                               r.status === 'completed'
-                                ? 'bg-blue-500 text-white'
+                                ? 'bg-success text-success-foreground'
                                 : r.status === 'pending'
                                   ? 'border border-input text-muted-foreground opacity-40 cursor-not-allowed'
                                   : 'border border-input text-muted-foreground hover:bg-muted'
@@ -1881,7 +1881,7 @@ export function CalendarClient() {
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(r)} aria-label="삭제">
+                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteTarget(r)} aria-label="삭제">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>

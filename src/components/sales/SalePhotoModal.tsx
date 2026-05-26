@@ -328,7 +328,7 @@ export function SalePhotoModal({
                 <Label htmlFor="description">설명</Label>
                 <span className={cn(
                   "text-xs",
-                  description.length > 200 ? "text-destructive" : "text-muted-foreground"
+                  description.length > 200 ? "text-danger" : "text-muted-foreground"
                 )}>
                   {description.length}/200
                 </span>
@@ -457,14 +457,14 @@ export function SalePhotoModal({
                         </div>
                         <div className={cn(
                           'absolute bottom-1 left-1 text-white text-xs px-1 rounded',
-                          item.type === 'new' ? 'bg-blue-500' : 'bg-black/50'
+                          item.type === 'new' ? 'bg-info' : 'bg-black/50'
                         )}>
                           {item.type === 'new' ? 'NEW' : index + 1}
                         </div>
                         <button
                           type="button"
                           onClick={() => removePhoto(index)}
-                          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1.5 hover:bg-destructive/90 transition-colors"
+                          className="absolute -top-2 -right-2 bg-danger text-danger-foreground rounded-full p-1.5 hover:bg-danger/90 transition-colors"
                           aria-label="사진 삭제"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -480,7 +480,7 @@ export function SalePhotoModal({
               {existingCard ? (
                 showDeleteConfirm ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-destructive">삭제하시겠습니까?</span>
+                    <span className="text-sm text-danger">삭제하시겠습니까?</span>
                     <Button
                       type="button"
                       variant="destructive"
@@ -506,7 +506,7 @@ export function SalePhotoModal({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-danger hover:text-danger hover:bg-danger/10"
                     onClick={() => setShowDeleteConfirm(true)}
                     disabled={isCompressing || isSubmitting}
                   >

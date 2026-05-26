@@ -31,6 +31,8 @@ import type {
     PaymentMethodStat,
 } from '@/lib/actions/statistics';
 import {formatCurrency, getTodayKST} from '@/lib/utils';
+import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
+import {GrowthRecordWidget} from '@/components/dashboard/growth-record-widget';
 
 const PAGE_SIZE = 5;
 
@@ -186,7 +188,7 @@ export function DashboardClient() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">대시보드</h1>
+          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">대시보드</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(now, 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
           </p>
@@ -251,7 +253,7 @@ export function DashboardClient() {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">순이익</p>
               <p
-                className={`text-lg font-bold mt-1 tabular-nums ${netProfit >= 0 ? 'text-foreground' : 'text-destructive'}`}
+                className={`text-lg font-bold mt-1 tabular-nums ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
               >
                 {formatCurrency(netProfit)}
               </p>
@@ -260,6 +262,12 @@ export function DashboardClient() {
           </Card>
         </div>
       )}
+
+      {/* Flori AI 브리핑 + 성장 기록 (mock data) */}
+      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-4">
+        <AiBriefingCard />
+        <GrowthRecordWidget />
+      </div>
 
       {/* Two Column: Reservations + Recent Sales */}
       <div className="grid lg:grid-cols-2 gap-4">
@@ -594,7 +602,7 @@ export function DashboardClient() {
                     percentage: e.percentage,
                   }))}
                   emptyMessage="지출 데이터가 없습니다"
-                  barColor="bg-destructive/30"
+                  barColor="bg-danger/30"
                 />
               </CardContent>
             </Card>

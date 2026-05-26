@@ -263,7 +263,7 @@ export function RecurringExpensesSection() {
                       aria-label={r.is_active ? '활성 (클릭해서 일시정지)' : '일시정지 (클릭해서 재개)'}
                       onClick={() => handleToggleActive(r)}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
-                        r.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                        r.is_active ? 'bg-success' : 'bg-muted-foreground/30'
                       }`}
                     >
                       <span
@@ -276,7 +276,7 @@ export function RecurringExpensesSection() {
                       <Pencil className="w-4 h-4" />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(r)} aria-label="삭제">
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <Trash2 className="w-4 h-4 text-danger" />
                     </Button>
                   </div>
                 </div>

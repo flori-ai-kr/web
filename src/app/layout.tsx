@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import { Cormorant_Garamond } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "헤이즐 어드민 | 꽃집 관리 시스템",
@@ -24,9 +33,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning className={cormorant.variable}>
       <head>
-        <meta name="theme-color" content="#E5614E" />
+        <meta name="theme-color" content="#A85475" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <link
           rel="stylesheet"

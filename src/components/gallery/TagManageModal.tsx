@@ -122,6 +122,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
               onClick={handleAdd}
               size="icon"
               disabled={isAdding}
+              aria-label="태그 추가"
             >
               {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </Button>
@@ -157,21 +158,23 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
                         className="h-8 w-8"
                         onClick={handleSaveEdit}
                         disabled={isSaving}
+                        aria-label="저장"
                       >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-green-600" />}
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-success" />}
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8"
                         onClick={() => setEditingId(null)}
+                        aria-label="취소"
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </>
                   ) : deletingId === tag.id ? (
                     <div className="flex items-center gap-2 w-full">
-                      <span className="flex-1 text-sm text-destructive">삭제하시겠습니까?</span>
+                      <span className="flex-1 text-sm text-danger">삭제하시겠습니까?</span>
                       <Button
                         size="sm"
                         variant="destructive"
@@ -202,6 +205,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
                         variant="ghost"
                         className="h-8 w-8"
                         onClick={() => handleStartEdit(tag)}
+                        aria-label="태그 수정"
                       >
                         <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
@@ -210,8 +214,9 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
                         variant="ghost"
                         className="h-8 w-8"
                         onClick={() => setDeletingId(tag.id)}
+                        aria-label="태그 삭제"
                       >
-                        <X className="w-4 h-4 text-destructive" />
+                        <X className="w-4 h-4 text-danger" />
                       </Button>
                     </>
                   )}

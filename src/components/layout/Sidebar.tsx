@@ -150,7 +150,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
               {!isCollapsed && (
-                <span className="text-base font-bold text-foreground truncate">Hazel</span>
+                <span className="font-serif text-lg font-semibold text-foreground truncate tracking-tight">Flori</span>
               )}
             </Link>
           </div>

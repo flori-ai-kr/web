@@ -23,7 +23,7 @@ import {getPaymentMethods, getSaleCategories, PaymentMethod, SaleCategory} from 
 import {ExportButton} from '@/components/ui/export-button';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import type {ExportConfig} from '@/lib/export';
-import {CHANNEL_LABELS} from '@/lib/constants';
+import {CHANNEL_LABELS, TODAY_FILTER_ACTIVE_CLASS} from '@/lib/constants';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
@@ -465,7 +465,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         <Button
           variant="outline"
           size="sm"
-          className="h-9 shrink-0 border-emerald-950 bg-emerald-950 text-white hover:bg-emerald-900 hover:text-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 dark:hover:text-emerald-200"
+          className={TODAY_FILTER_ACTIVE_CLASS}
           onClick={handleTodayOnly}
           aria-label="오늘 매출만 보기"
         >

@@ -228,7 +228,7 @@ export function CustomerDetailDialog({
                 </Button>
                 <Button
                   variant="outline"
-                  className="text-destructive hover:text-destructive hover:bg-red-50"
+                  className="text-danger hover:text-danger hover:bg-danger-soft"
                   onClick={() => onDelete(customer)}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />

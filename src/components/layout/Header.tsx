@@ -132,7 +132,7 @@ export function Header({ userEmail }: HeaderProps) {
               <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
-              <span className="text-base font-bold text-foreground">Hazel</span>
+              <span className="font-serif text-lg font-semibold text-foreground tracking-tight">Flori</span>
             </Link>
           ) : (
             <div className="lg:hidden flex items-center gap-2 min-w-0">
@@ -199,10 +199,10 @@ export function Header({ userEmail }: HeaderProps) {
                       <div key={r.id} className={`px-4 py-2.5 border-b border-border last:border-b-0 hover:bg-muted/50 ${isCompleted ? 'opacity-50' : ''}`}>
                         <div className="flex items-center justify-between gap-2">
                           <span className={`text-sm font-medium truncate ${isCompleted ? 'line-through' : ''}`}>{r.title}</span>
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
-                            isCompleted ? 'bg-green-600 text-white dark:bg-green-700 dark:text-white' :
-                            r.status === 'confirmed' ? 'bg-blue-600 text-white dark:bg-blue-700 dark:text-white' :
-                            'bg-amber-500 text-white dark:bg-amber-600 dark:text-white'
+                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
+                            isCompleted ? 'bg-success text-success-foreground' :
+                            r.status === 'confirmed' ? 'bg-info text-info-foreground' :
+                            'bg-warning text-warning-foreground'
                           }`}>
                             {isCompleted ? '픽업 완료' : r.status === 'confirmed' ? '픽업 필요' : '제작 필요'}
                           </span>

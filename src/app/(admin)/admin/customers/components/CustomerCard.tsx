@@ -9,9 +9,9 @@ import type {Customer} from '@/types/database';
 
 export const gradeLabels: Record<string, { label: string; icon: string; color: string; bg: string }> = {
   new: { label: '신규', icon: '', color: 'text-muted-foreground', bg: 'bg-muted' },
-  regular: { label: '단골', icon: '🌟', color: 'text-yellow-600', bg: 'bg-muted' },
-  vip: { label: 'VIP', icon: '👑', color: 'text-purple-600', bg: 'bg-purple-50' },
-  blacklist: { label: '블랙', icon: '⚠️', color: 'text-red-600', bg: 'bg-red-50' },
+  regular: { label: '단골', icon: '🌟', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-muted' },
+  vip: { label: 'VIP', icon: '👑', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/15' },
+  blacklist: { label: '블랙', icon: '⚠️', color: 'text-danger', bg: 'bg-danger-soft' },
 };
 
 export const genderLabels: Record<string, string> = { male: '남', female: '여' };
@@ -20,10 +20,10 @@ export function GenderBadge({ gender, size = 'sm' }: { gender: string | null | u
   if (!gender) return null;
   const base = size === 'md' ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-0.5 text-[10px]';
   if (gender === 'male') {
-    return <span className={`${base} font-medium rounded bg-blue-500/10 text-blue-600 shrink-0`} aria-label="남성">{genderLabels.male}</span>;
+    return <span className={`${base} font-medium rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0`} aria-label="남성">{genderLabels.male}</span>;
   }
   if (gender === 'female') {
-    return <span className={`${base} font-medium rounded bg-pink-500/10 text-pink-600 shrink-0`} aria-label="여성">{genderLabels.female}</span>;
+    return <span className={`${base} font-medium rounded bg-pink-500/10 text-pink-600 dark:text-pink-400 shrink-0`} aria-label="여성">{genderLabels.female}</span>;
   }
   return null;
 }
@@ -40,8 +40,12 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      aria-label={`${customer.name} 상세 보기`}
       className="group cursor-pointer hover:bg-muted/30 active:bg-muted active:scale-[0.99] transition-colors touch-manipulation"
       onClick={() => onSelect(customer)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(customer); } }}
     >
       <CardContent className="p-4">
         {/* Top: name + grade + gender + actions */}
@@ -76,7 +80,7 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              className="h-7 w-7 text-muted-foreground hover:text-danger"
               onClick={(e) => { e.stopPropagation(); onDelete(customer); }}
               aria-label={`${customer.name} 삭제`}
             >
