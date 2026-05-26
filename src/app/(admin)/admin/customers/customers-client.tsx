@@ -233,7 +233,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">고객 관리</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">고객 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">고객 정보와 구매 이력을 관리하세요</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">

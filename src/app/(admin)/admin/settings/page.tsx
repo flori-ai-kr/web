@@ -141,7 +141,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground tracking-tight">설정</h1>
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight">설정</h1>
         <p className="text-sm text-muted-foreground mt-1">알림과 하단바 구성을 관리할 수 있어요</p>
       </div>
 

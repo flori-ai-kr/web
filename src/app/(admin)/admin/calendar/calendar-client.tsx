@@ -878,7 +878,7 @@ export function CalendarClient() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">캘린더</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">캘린더</h1>
           <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
         </div>
       </div>
@@ -889,7 +889,7 @@ export function CalendarClient() {
           <CardContent className="p-4">
             {/* Navigation + View toggle */}
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-              <h2 className="font-serif text-base min-[450px]:text-lg font-semibold text-foreground whitespace-nowrap">
+              <h2 className="font-sans text-base min-[450px]:text-lg font-semibold text-foreground whitespace-nowrap">
                 {viewMode === 'month'
                   ? format(currentMonth, 'yyyy년 M월', { locale: ko })
                   : `${format(fiveDayDays[0], 'M.d', { locale: ko })} - ${format(fiveDayDays[4], 'M.d', { locale: ko })}`

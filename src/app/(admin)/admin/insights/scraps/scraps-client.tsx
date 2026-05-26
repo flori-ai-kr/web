@@ -69,7 +69,7 @@ export function ScrapsClient({
           <ArrowLeft className="w-4 h-4" />
           인사이트
         </Link>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight flex items-center gap-2">
           <Bookmark className="w-6 h-6 text-brand fill-current" />
           내 스크랩
         </h1>

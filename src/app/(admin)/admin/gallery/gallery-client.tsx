@@ -183,7 +183,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">사진첩</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">사진첩</h1>
           <p className="text-sm text-muted-foreground mt-1">완성한 꽃 작업물 사진을 저장하고 태그로 분류할 수 있어요</p>
         </div>
         <Button

@@ -121,7 +121,7 @@ export function FollowsClient({
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">팔로우</h1>
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">팔로우</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {counts.total}개 계정 · 최근 2주 신규 포스트 {initialPosts.length}건
             </p>
