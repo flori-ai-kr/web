@@ -4,12 +4,13 @@ import {createClient} from '@/lib/supabase/server';
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {findOrCreateCustomer} from './customers';
-import type {Sale} from '@/types/database';
+import type {PaymentMethod, ReservationChannel, Sale} from '@/types/database';
 import {z} from 'zod';
 import {saleSchema, uuidSchema, validateImageFile} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {getMonthDateRange, sortByFrequency} from '@/lib/utils';
 import {deleteFileByUrl, generateFileKey, StoragePrefix, uploadFile} from '@/lib/storage';
+import {apiFetch} from '@/lib/api/client';
 
 /**
  * 매출 폼 데이터에서 고객 ID를 결정한다.
@@ -46,59 +47,81 @@ export interface SalesFilters {
   search?: string;
 }
 
+// Kotlin /sales 응답의 단일 매출 (camelCase). 서버 계약과 1:1.
+interface KotlinSale {
+  id: string;
+  date: string;
+  productName: string;
+  productCategory: string | null;
+  amount: number;
+  paymentMethod: string;
+  cardCompany: string | null;
+  fee: number | null;
+  expectedDeposit: number | null;
+  expectedDepositDate: string | null;
+  depositStatus: string;
+  depositedAt: string | null;
+  reservationChannel: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerId: string | null;
+  note: string | null;
+  isUnpaid: boolean;
+  hasReview: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface KotlinSalesPage {
+  sales: KotlinSale[];
+  hasMore: boolean;
+}
+
+// camelCase(Kotlin) → snake_case(웹 Sale 타입) 매핑.
+// 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
+// photos는 Kotlin /sales가 반환하지 않으므로 undefined.
+function mapKotlinSale(s: KotlinSale): Sale {
+  return {
+    id: s.id,
+    user_id: '',
+    date: s.date,
+    product_name: s.productName,
+    product_category: s.productCategory ?? s.productName,
+    amount: s.amount,
+    payment_method: s.paymentMethod as PaymentMethod,
+    reservation_channel: s.reservationChannel as ReservationChannel,
+    customer_name: s.customerName ?? undefined,
+    customer_phone: s.customerPhone ?? undefined,
+    customer_id: s.customerId ?? undefined,
+    note: s.note ?? undefined,
+    is_unpaid: s.isUnpaid,
+    has_review: s.hasReview,
+    photos: undefined,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt,
+  };
+}
+
 async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
   await requireAuth();
-  const supabase = await createClient();
 
-  let query = supabase
-    .from('sales')
-    .select(`
-      *,
-      customer:customers(id, name, phone)
-    `)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+  // 쿼리 파라미터 구성. 다중값(category/payment/channel)은 반복 파라미터로
+  // 보내 Spring List<String> 바인딩과 일치시킨다.
+  const params = new URLSearchParams();
+  params.set('offset', String(offset));
+  params.set('limit', String(limit));
+  if (month) params.set('month', month);
+  for (const c of filters?.category ?? []) params.append('category', c);
+  for (const p of filters?.payment ?? []) params.append('payment', p);
+  for (const ch of filters?.channel ?? []) params.append('channel', ch);
+  if (filters?.search) params.set('search', filters.search);
 
-  if (month) {
-    if (month.length === 4) {
-      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
-    } else if (month.length === 10) {
-      query = query.eq('date', month);
-    } else {
-      const { startDate, endDate } = getMonthDateRange(month);
-      query = query.gte('date', startDate).lte('date', endDate);
-    }
-  }
+  const page = await apiFetch<KotlinSalesPage>(`/sales?${params.toString()}`);
 
-  if (filters?.category && filters.category.length > 0) {
-    query = query.in('product_category', filters.category);
-  }
-  if (filters?.payment && filters.payment.length > 0) {
-    query = query.in('payment_method', filters.payment);
-  }
-  if (filters?.channel && filters.channel.length > 0) {
-    query = query.in('reservation_channel', filters.channel);
-  }
-  if (filters?.search) {
-    // PostgREST DSL 특수문자 이스케이핑 (%, _, 쉼표, 점, 괄호)
-    const searchTerm = filters.search
-      .replace(/[%_]/g, '\\$&')
-      .replace(/[,.()"']/g, '');
-    const q = `%${searchTerm}%`;
-    query = query.or(`product_category.ilike.${q},product_name.ilike.${q},customer_name.ilike.${q}`);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const sales = (data || []).map(sale => ({
-    ...sale,
-    customer_name: sale.customer?.name || sale.customer_name,
-    customer_phone: sale.customer?.phone || sale.customer_phone,
-  })) as Sale[];
-
-  return { sales, hasMore: (data || []).length === limit };
+  return {
+    sales: page.sales.map(mapKotlinSale),
+    hasMore: page.hasMore,
+  };
 }
 
 export const getSales = withErrorLogging('getSales', _getSales);
