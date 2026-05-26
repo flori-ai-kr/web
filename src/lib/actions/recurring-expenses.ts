@@ -1,11 +1,11 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { recurringExpenseSchema, uuidSchema } from '@/lib/validations';
 import type { RecurringExpense, RecurringFrequency, YearlyDate } from '@/types/database';
+import { apiFetch } from '@/lib/api/client';
 
 type RuleShape = Pick<
   RecurringExpense,
@@ -93,20 +93,60 @@ export async function nextOccurrenceISO(rule: RecurringExpense, fromISO?: string
 }
 
 // ─────────────────────────────────────────────────────────────
-// CRUD
+// CRUD (Kotlin /recurring-expenses)
 // ─────────────────────────────────────────────────────────────
 
+// Kotlin /recurring-expenses 응답 (camelCase). RecurringExpenseResponse와 1:1.
+interface KotlinRecurringExpense {
+  id: string;
+  itemName: string;
+  category: string;
+  unitPrice: number;
+  quantity: number;
+  paymentMethod: string;
+  vendor: string | null;
+  note: string | null;
+  frequency: string;
+  intervalCount: number;
+  daysOfWeek: number[];
+  daysOfMonth: number[];
+  yearlyDates: YearlyDate[];
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// camelCase(Kotlin) → snake_case(웹 RecurringExpense). 멀티테넌시는 서버가 처리하므로 user_id는 비운다.
+function mapKotlinRecurring(r: KotlinRecurringExpense): RecurringExpense {
+  return {
+    id: r.id,
+    user_id: '',
+    item_name: r.itemName,
+    category: r.category,
+    unit_price: r.unitPrice,
+    quantity: r.quantity,
+    payment_method: r.paymentMethod,
+    vendor: r.vendor,
+    note: r.note,
+    frequency: r.frequency as RecurringFrequency,
+    interval_count: r.intervalCount,
+    days_of_week: r.daysOfWeek,
+    days_of_month: r.daysOfMonth,
+    yearly_dates: r.yearlyDates,
+    start_date: r.startDate,
+    end_date: r.endDate,
+    is_active: r.isActive,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt,
+  };
+}
+
 async function _getRecurringExpenses(): Promise<RecurringExpense[]> {
-  const user = await requireAuth();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('recurring_expenses')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('is_active', { ascending: false })
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  await requireAuth();
+  const rows = await apiFetch<KotlinRecurringExpense[]>('/recurring-expenses');
+  return rows.map(mapKotlinRecurring);
 }
 
 export const getRecurringExpenses = withErrorLogging('getRecurringExpenses', _getRecurringExpenses);
@@ -129,41 +169,56 @@ type RecurringInput = {
   is_active: boolean;
 };
 
+// snake_case(웹 입력) → camelCase(Kotlin RecurringExpenseRequest, 전체 교체).
+function toRecurringRequest(input: RecurringInput) {
+  return {
+    itemName: input.item_name,
+    category: input.category,
+    unitPrice: input.unit_price,
+    quantity: input.quantity,
+    paymentMethod: input.payment_method,
+    vendor: input.vendor ?? null,
+    note: input.note ?? null,
+    frequency: input.frequency,
+    intervalCount: input.interval_count,
+    daysOfWeek: input.days_of_week,
+    daysOfMonth: input.days_of_month,
+    yearlyDates: input.yearly_dates,
+    startDate: input.start_date,
+    endDate: input.end_date ?? null,
+    isActive: input.is_active,
+  };
+}
+
 async function _createRecurringExpense(input: RecurringInput): Promise<RecurringExpense> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = recurringExpenseSchema.safeParse(input);
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, parsed.error.issues[0]?.message ?? '입력값이 올바르지 않습니다');
   }
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('recurring_expenses')
-    .insert({ ...parsed.data, user_id: user.id })
-    .select()
-    .single();
-  if (error) throw error;
+  const row = await apiFetch<KotlinRecurringExpense>('/recurring-expenses', {
+    method: 'POST',
+    body: JSON.stringify(toRecurringRequest(parsed.data as RecurringInput)),
+  });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
-  return data;
+  return mapKotlinRecurring(row);
 }
 
 export const createRecurringExpense = withErrorLogging('createRecurringExpense', _createRecurringExpense);
 
 async function _updateRecurringExpense(id: string, input: RecurringInput): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const idParsed = uuidSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   const parsed = recurringExpenseSchema.safeParse(input);
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, parsed.error.issues[0]?.message ?? '입력값이 올바르지 않습니다');
   }
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('recurring_expenses')
-    .update(parsed.data)
-    .eq('id', id)
-    .eq('user_id', user.id);
-  if (error) throw error;
+  await apiFetch<KotlinRecurringExpense>(`/recurring-expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(toRecurringRequest(parsed.data as RecurringInput)),
+  });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
 }
@@ -171,16 +226,10 @@ async function _updateRecurringExpense(id: string, input: RecurringInput): Promi
 export const updateRecurringExpense = withErrorLogging('updateRecurringExpense', _updateRecurringExpense);
 
 async function _deleteRecurringExpense(id: string): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('recurring_expenses')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-  if (error) throw error;
+  await apiFetch<void>(`/recurring-expenses/${id}`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
 }
@@ -188,143 +237,69 @@ async function _deleteRecurringExpense(id: string): Promise<void> {
 export const deleteRecurringExpense = withErrorLogging('deleteRecurringExpense', _deleteRecurringExpense);
 
 async function _toggleRecurringExpenseActive(id: string, isActive: boolean): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('recurring_expenses')
-    .update({ is_active: isActive })
-    .eq('id', id)
-    .eq('user_id', user.id);
-  if (error) throw error;
+  await apiFetch<KotlinRecurringExpense>(`/recurring-expenses/${id}/toggle`, {
+    method: 'POST',
+    body: JSON.stringify({ isActive }),
+  });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
 }
 
 export const toggleRecurringExpenseActive = withErrorLogging('toggleRecurringExpenseActive', _toggleRecurringExpenseActive);
 
-// 빠른 추가: 오늘 날짜로 expense 즉시 생성 (recurring_id 연결)
+// 빠른 추가: 오늘 날짜로 expense 즉시 생성 (서버가 템플릿에서 복제)
 async function _quickAddFromRecurring(recurringId: string): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(recurringId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-
-  const { data: rule, error: ruleErr } = await supabase
-    .from('recurring_expenses')
-    .select('*')
-    .eq('id', recurringId)
-    .eq('user_id', user.id)
-    .single();
-  if (ruleErr || !rule) throw new AppError(ErrorCode.NOT_FOUND, '고정비를 찾을 수 없습니다');
-
-  const today = new Date();
-  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  const { error: insErr } = await supabase
-    .from('expenses')
-    .insert({
-      user_id: user.id,
-      date: todayISO,
-      item_name: rule.item_name,
-      category: rule.category,
-      unit_price: rule.unit_price,
-      quantity: rule.quantity,
-      total_amount: rule.unit_price * rule.quantity,
-      payment_method: rule.payment_method,
-      vendor: rule.vendor,
-      note: rule.note,
-      recurring_id: null,             // 수동 추가는 템플릿과 분리 (자동생성 idempotency 충돌 회피)
-      is_recurring_modified: false,
-    });
-  if (insErr) throw insErr;
+  await apiFetch<unknown>(`/recurring-expenses/${recurringId}/quick-add`, { method: 'POST' });
   revalidatePath('/admin/expenses');
 }
 
 export const quickAddFromRecurring = withErrorLogging('quickAddFromRecurring', _quickAddFromRecurring);
 
 // ─────────────────────────────────────────────────────────────
-// iOS 스타일 "이것만 / 이후 모두" 분기 (P4)
+// iOS 스타일 "이것만 / 이후 모두" 분기 (scope=this|all)
 // ─────────────────────────────────────────────────────────────
 
+// 인스턴스 부분 수정 입력(snake_case) → camelCase(RecurringInstanceUpdateRequest).
+function toInstanceRequest(fields: Partial<RecurringInput> & { date?: string }) {
+  const body: Record<string, unknown> = {};
+  if (fields.date !== undefined) body.date = fields.date;
+  if (fields.item_name !== undefined) body.itemName = fields.item_name;
+  if (fields.category !== undefined) body.category = fields.category;
+  if (fields.unit_price !== undefined) body.unitPrice = fields.unit_price;
+  if (fields.quantity !== undefined) body.quantity = fields.quantity;
+  if (fields.payment_method !== undefined) body.paymentMethod = fields.payment_method;
+  if (fields.vendor !== undefined) body.vendor = fields.vendor;
+  if (fields.note !== undefined) body.note = fields.note;
+  return body;
+}
+
 async function _updateExpenseInstanceOnly(expenseId: string, fields: Partial<RecurringInput> & { date: string }): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-
-  const updateFields: Record<string, unknown> = {
-    date: fields.date,
-    item_name: fields.item_name,
-    category: fields.category,
-    unit_price: fields.unit_price,
-    quantity: fields.quantity,
-    total_amount: (fields.unit_price ?? 0) * (fields.quantity ?? 1),
-    payment_method: fields.payment_method,
-    vendor: fields.vendor ?? null,
-    note: fields.note ?? null,
-    is_recurring_modified: true,
-  };
-  const { error } = await supabase
-    .from('expenses')
-    .update(updateFields)
-    .eq('id', expenseId)
-    .eq('user_id', user.id);
-  if (error) throw error;
+  await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=this`, {
+    method: 'PATCH',
+    body: JSON.stringify(toInstanceRequest(fields)),
+  });
   revalidatePath('/admin/expenses');
 }
 
 export const updateExpenseInstanceOnly = withErrorLogging('updateExpenseInstanceOnly', _updateExpenseInstanceOnly);
 
 async function _updateRecurringFromInstance(expenseId: string, fields: Partial<RecurringInput>): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-
-  const { data: instance, error: instErr } = await supabase
-    .from('expenses')
-    .select('id, recurring_id, date')
-    .eq('id', expenseId)
-    .eq('user_id', user.id)
-    .single();
-  if (instErr || !instance?.recurring_id) {
-    throw new AppError(ErrorCode.NOT_FOUND, '반복 지출 정보를 찾을 수 없습니다');
-  }
-
-  const tplPatch: Record<string, unknown> = {};
-  if (fields.item_name !== undefined) tplPatch.item_name = fields.item_name;
-  if (fields.category !== undefined) tplPatch.category = fields.category;
-  if (fields.unit_price !== undefined) tplPatch.unit_price = fields.unit_price;
-  if (fields.quantity !== undefined) tplPatch.quantity = fields.quantity;
-  if (fields.payment_method !== undefined) tplPatch.payment_method = fields.payment_method;
-  if (fields.vendor !== undefined) tplPatch.vendor = fields.vendor;
-  if (fields.note !== undefined) tplPatch.note = fields.note;
-
-  if (Object.keys(tplPatch).length > 0) {
-    const { error: tplErr } = await supabase
-      .from('recurring_expenses')
-      .update(tplPatch)
-      .eq('id', instance.recurring_id)
-      .eq('user_id', user.id);
-    if (tplErr) throw tplErr;
-  }
-
-  const instPatch: Record<string, unknown> = { ...tplPatch, is_recurring_modified: false };
-  // instance만은 total_amount도 재계산 (DB가 generated column 아님)
-  if (fields.unit_price !== undefined || fields.quantity !== undefined) {
-    const up = fields.unit_price ?? 0;
-    const qty = fields.quantity ?? 1;
-    instPatch.total_amount = up * qty;
-  }
-  const { error: updErr } = await supabase
-    .from('expenses')
-    .update(instPatch)
-    .eq('id', expenseId)
-    .eq('user_id', user.id);
-  if (updErr) throw updErr;
-
+  await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=all`, {
+    method: 'PATCH',
+    body: JSON.stringify(toInstanceRequest(fields)),
+  });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
 }
@@ -332,70 +307,20 @@ async function _updateRecurringFromInstance(expenseId: string, fields: Partial<R
 export const updateRecurringFromInstance = withErrorLogging('updateRecurringFromInstance', _updateRecurringFromInstance);
 
 async function _deleteExpenseInstanceOnly(expenseId: string): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-
-  const { data: instance } = await supabase
-    .from('expenses')
-    .select('id, recurring_id, date')
-    .eq('id', expenseId)
-    .eq('user_id', user.id)
-    .single();
-
-  // skip 마커 추가 (cron 재생성 방지) — instance가 recurring 출처일 때만
-  if (instance?.recurring_id) {
-    const { error: skipErr } = await supabase
-      .from('recurring_skips')
-      .insert({ user_id: user.id, recurring_id: instance.recurring_id, skip_date: instance.date });
-    if (skipErr) throw skipErr;
-  }
-
-  const { error } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('id', expenseId)
-    .eq('user_id', user.id);
-  if (error) throw error;
+  await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=this`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');
 }
 
 export const deleteExpenseInstanceOnly = withErrorLogging('deleteExpenseInstanceOnly', _deleteExpenseInstanceOnly);
 
 async function _deleteRecurringFromInstance(expenseId: string): Promise<void> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = uuidSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  const supabase = await createClient();
-
-  const { data: instance } = await supabase
-    .from('expenses')
-    .select('id, recurring_id, date')
-    .eq('id', expenseId)
-    .eq('user_id', user.id)
-    .single();
-  if (!instance?.recurring_id) throw new AppError(ErrorCode.NOT_FOUND, '반복 지출 정보를 찾을 수 없습니다');
-
-  // 템플릿 end_date를 이번 발생일 전날로 (현재 이후 자동생성 차단)
-  const dateObj = new Date(instance.date + 'T00:00:00');
-  dateObj.setDate(dateObj.getDate() - 1);
-  const newEnd = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-
-  const { error: tplErr } = await supabase
-    .from('recurring_expenses')
-    .update({ end_date: newEnd })
-    .eq('id', instance.recurring_id)
-    .eq('user_id', user.id);
-  if (tplErr) throw tplErr;
-
-  const { error: delErr } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('id', expenseId)
-    .eq('user_id', user.id);
-  if (delErr) throw delErr;
-
+  await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=all`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/settings');
 }

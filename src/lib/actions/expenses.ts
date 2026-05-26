@@ -1,58 +1,84 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
-import type { Expense } from '@/types/database';
+import type { Expense, ExpenseCategory, PaymentMethod } from '@/types/database';
 import { expenseSchema } from '@/lib/validations';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
+import { apiFetch } from '@/lib/api/client';
 
-async function _getExpenses(month?: string) {
+// Kotlin /expenses 응답의 단일 지출 (camelCase). 서버 계약(ExpenseResponse)과 1:1.
+interface KotlinExpense {
+  id: string;
+  date: string;
+  itemName: string;
+  category: string;
+  unitPrice: number;
+  quantity: number;
+  totalAmount: number;
+  paymentMethod: string;
+  cardCompany: string | null;
+  vendor: string | null;
+  note: string | null;
+  recurringId: string | null;
+  isRecurringModified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// camelCase(Kotlin) → snake_case(웹 Expense 타입) 매핑.
+// 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
+function mapKotlinExpense(e: KotlinExpense): Expense {
+  return {
+    id: e.id,
+    user_id: '',
+    date: e.date,
+    item_name: e.itemName,
+    category: e.category as ExpenseCategory,
+    unit_price: e.unitPrice,
+    quantity: e.quantity,
+    total_amount: e.totalAmount,
+    payment_method: e.paymentMethod as PaymentMethod,
+    card_company: e.cardCompany ?? undefined,
+    vendor: e.vendor ?? undefined,
+    note: e.note ?? undefined,
+    recurring_id: e.recurringId,
+    is_recurring_modified: e.isRecurringModified,
+    created_at: e.createdAt,
+    updated_at: e.updatedAt,
+  };
+}
+
+async function _getExpenses(month?: string): Promise<Expense[]> {
   await requireAuth();
-  const supabase = await createClient();
 
-  let query = supabase
-    .from('expenses')
-    .select('*')
-    .order('date', { ascending: false });
+  // Kotlin monthRange가 "YYYY" / "YYYY-MM-DD" / "YYYY-MM" 세 형식을 모두 해석한다.
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const qs = params.toString();
 
-  if (month) {
-    if (month.length === 4) {
-      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
-    } else if (month.length === 10) {
-      query = query.eq('date', month);
-    } else {
-      const { startDate, endDate } = getMonthDateRange(month);
-      query = query.gte('date', startDate).lte('date', endDate);
-    }
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as Expense[];
+  const rows = await apiFetch<KotlinExpense[]>(`/expenses${qs ? `?${qs}` : ''}`);
+  return rows.map(mapKotlinExpense);
 }
 
 export const getExpenses = withErrorLogging('getExpenses', _getExpenses);
 
 async function _getExpenseById(id: string): Promise<Expense | null> {
   await requireAuth();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) return null;
-  return data as Expense;
+  try {
+    const row = await apiFetch<KotlinExpense>(`/expenses/${id}`);
+    return mapKotlinExpense(row);
+  } catch (err) {
+    // 존재하지 않으면 null (기존 Supabase .single() 실패와 동일 시맨틱)
+    if (err instanceof AppError && err.code === ErrorCode.NOT_FOUND) return null;
+    throw err;
+  }
 }
 
 export const getExpenseById = withErrorLogging('getExpenseById', _getExpenseById);
 
 async function _createExpense(formData: FormData) {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
   const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
   const quantity = parseInt(formData.get('quantity') as string) || 1;
@@ -72,32 +98,30 @@ async function _createExpense(formData: FormData) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const expense = {
-    user_id: user.id,
-    date: parsed.data.date,
-    item_name: parsed.data.item_name,
-    category: parsed.data.category,
-    unit_price: parsed.data.unit_price,
-    quantity: parsed.data.quantity,
-    total_amount: parsed.data.unit_price * parsed.data.quantity,
-    payment_method: parsed.data.payment_method,
-    card_company: parsed.data.card_company || null,
-    vendor: parsed.data.vendor || null,
-    note: parsed.data.note || null,
-  };
-
-  const { data, error } = await supabase.from('expenses').insert(expense).select().single();
-  if (error) throw error;
+  // total_amount는 서버(SSOT)가 unit_price*quantity로 계산한다.
+  const row = await apiFetch<KotlinExpense>('/expenses', {
+    method: 'POST',
+    body: JSON.stringify({
+      date: parsed.data.date,
+      itemName: parsed.data.item_name,
+      category: parsed.data.category,
+      unitPrice: parsed.data.unit_price,
+      quantity: parsed.data.quantity,
+      paymentMethod: parsed.data.payment_method,
+      cardCompany: parsed.data.card_company || null,
+      vendor: parsed.data.vendor || null,
+      note: parsed.data.note || null,
+    }),
+  });
 
   revalidatePath('/expenses');
-  return data;
+  return mapKotlinExpense(row);
 }
 
 export const createExpense = withErrorLogging('createExpense', _createExpense);
 
 async function _updateExpense(id: string, formData: FormData) {
   await requireAuth();
-  const supabase = await createClient();
 
   const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
   const quantity = parseInt(formData.get('quantity') as string) || 1;
@@ -117,21 +141,21 @@ async function _updateExpense(id: string, formData: FormData) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const updates = {
-    date: parsed.data.date,
-    item_name: parsed.data.item_name,
-    category: parsed.data.category,
-    unit_price: parsed.data.unit_price,
-    quantity: parsed.data.quantity,
-    total_amount: parsed.data.unit_price * parsed.data.quantity,
-    payment_method: parsed.data.payment_method,
-    card_company: parsed.data.card_company || null,
-    vendor: parsed.data.vendor || null,
-    note: parsed.data.note || null,
-  };
-
-  const { error } = await supabase.from('expenses').update(updates).eq('id', id);
-  if (error) throw error;
+  // total_amount는 서버(SSOT)가 재계산한다.
+  await apiFetch<KotlinExpense>(`/expenses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      date: parsed.data.date,
+      itemName: parsed.data.item_name,
+      category: parsed.data.category,
+      unitPrice: parsed.data.unit_price,
+      quantity: parsed.data.quantity,
+      paymentMethod: parsed.data.payment_method,
+      cardCompany: parsed.data.card_company || null,
+      vendor: parsed.data.vendor || null,
+      note: parsed.data.note || null,
+    }),
+  });
 
   revalidatePath('/expenses');
 }
@@ -140,9 +164,7 @@ export const updateExpense = withErrorLogging('updateExpense', _updateExpense);
 
 async function _deleteExpense(id: string) {
   await requireAuth();
-  const supabase = await createClient();
-  const { error } = await supabase.from('expenses').delete().eq('id', id);
-  if (error) throw error;
+  await apiFetch<void>(`/expenses/${id}`, { method: 'DELETE' });
 
   revalidatePath('/expenses');
 }
@@ -150,23 +172,12 @@ async function _deleteExpense(id: string) {
 export const deleteExpense = withErrorLogging('deleteExpense', _deleteExpense);
 
 /**
- * 지출 물품명/거래처/비고 자동완성용 과거 값 조회
+ * 지출 물품명/거래처/비고 자동완성용 과거 값 조회.
+ * Kotlin /expenses/suggestions가 빈도순으로 정렬해 반환하므로 그대로 사용한다.
  */
 async function _getExpenseSuggestions(): Promise<{ itemNames: string[]; vendors: string[]; notes: string[] }> {
-  const user = await requireAuth();
-  const supabase = await createClient();
-
-  const [itemsRes, vendorsRes, notesRes] = await Promise.all([
-    supabase.from('expenses').select('item_name').eq('user_id', user.id).neq('item_name', '').order('item_name'),
-    supabase.from('expenses').select('vendor').eq('user_id', user.id).not('vendor', 'is', null).neq('vendor', '').order('vendor'),
-    supabase.from('expenses').select('note').eq('user_id', user.id).not('note', 'is', null).neq('note', '').order('note'),
-  ]);
-
-  const itemNames = sortByFrequency(itemsRes.data?.map(r => r.item_name) || []);
-  const vendors = sortByFrequency(vendorsRes.data?.map(r => r.vendor as string) || []);
-  const notes = sortByFrequency(notesRes.data?.map(r => r.note as string) || []);
-
-  return { itemNames, vendors, notes };
+  await requireAuth();
+  return apiFetch<{ itemNames: string[]; vendors: string[]; notes: string[] }>('/expenses/suggestions');
 }
 
 export const getExpenseSuggestions = withErrorLogging('getExpenseSuggestions', _getExpenseSuggestions);
