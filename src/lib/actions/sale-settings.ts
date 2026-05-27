@@ -1,10 +1,10 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
 import { uuidSchema } from '@/lib/validations';
+import { apiFetch } from '@/lib/api/client';
 
 export interface SaleCategory {
   id: string;
@@ -24,53 +24,60 @@ export interface PaymentMethod {
   created_at: string;
 }
 
+// ─── Kotlin DTO 미러 (camelCase) ───────────────────────────────
+// LabelSettingResponse는 created_at을 제공하지 않는다(서버 도메인 외 필드).
+// 웹 타입은 created_at을 요구하지만 모든 소비자가 무시하므로 안전한 기본값('')을 채운다.
+
+interface LabelSettingDto {
+  id: string;
+  value: string;
+  label: string;
+  color: string;
+  sortOrder: number;
+}
+
+function toSaleCategory(dto: LabelSettingDto): SaleCategory {
+  return {
+    id: dto.id,
+    value: dto.value,
+    label: dto.label,
+    color: dto.color,
+    sort_order: dto.sortOrder,
+    created_at: '',
+  };
+}
+
+function toPaymentMethod(dto: LabelSettingDto): PaymentMethod {
+  return {
+    id: dto.id,
+    value: dto.value,
+    label: dto.label,
+    color: dto.color,
+    sort_order: dto.sortOrder,
+    created_at: '',
+  };
+}
+
 // 카테고리 조회
 async function _getSaleCategories(): Promise<SaleCategory[]> {
   await requireAuth();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('sale_categories')
-    .select('*')
-    .order('sort_order', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  const dtos = await apiFetch<LabelSettingDto[]>('/settings/sale-categories');
+  return (dtos || []).map(toSaleCategory);
 }
 
 export const getSaleCategories = withErrorLogging('getSaleCategories', _getSaleCategories);
 
-// 카테고리 생성
+// 카테고리 생성 (value 슬러그 생성 · sort_order 계산 · 중복 검사는 서버가 처리)
 async function _createSaleCategory(label: string, color?: string): Promise<SaleCategory> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  // value 생성 (영문 스네이크케이스)
-  const value = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') || `cat_${Date.now()}`;
-
-  // 최대 sort_order 조회
-  const { data: maxData } = await supabase
-    .from('sale_categories')
-    .select('sort_order')
-    .order('sort_order', { ascending: false })
-    .limit(1);
-
-  const nextOrder = (maxData?.[0]?.sort_order || 0) + 1;
-
-  const { data, error } = await supabase
-    .from('sale_categories')
-    .insert({ user_id: user.id, value, label, color: color || '#f43f5e', sort_order: nextOrder })
-    .select()
-    .single();
-
-  if (error) {
-    if (error.code === '23505') {
-      throw new AppError(ErrorCode.DUPLICATE, '이미 존재하는 카테고리입니다');
-    }
-    throw error;
-  }
+  const dto = await apiFetch<LabelSettingDto>('/settings/sale-categories', {
+    method: 'POST',
+    body: JSON.stringify({ label, color: color ?? null }),
+  });
 
   revalidatePath('/sales');
-  return data;
+  return toSaleCategory(dto);
 }
 
 export const createSaleCategory = withErrorLogging('createSaleCategory', _createSaleCategory);
@@ -80,18 +87,11 @@ async function _updateSaleCategory(id: string, label: string, color: string): Pr
   await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('sale_categories')
-    .update({ label, color })
-    .eq('id', id);
 
-  if (error) {
-    if (error.code === '23505') {
-      throw new AppError(ErrorCode.DUPLICATE, '이미 존재하는 카테고리입니다');
-    }
-    throw error;
-  }
+  await apiFetch<LabelSettingDto>(`/settings/sale-categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ label, color }),
+  });
 
   revalidatePath('/sales');
 }
@@ -103,13 +103,8 @@ async function _deleteSaleCategory(id: string): Promise<void> {
   await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('sale_categories')
-    .delete()
-    .eq('id', id);
 
-  if (error) throw error;
+  await apiFetch<void>(`/settings/sale-categories/${id}`, { method: 'DELETE' });
 
   revalidatePath('/sales');
 }
@@ -119,51 +114,23 @@ export const deleteSaleCategory = withErrorLogging('deleteSaleCategory', _delete
 // 결제방식 조회
 async function _getPaymentMethods(): Promise<PaymentMethod[]> {
   await requireAuth();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('payment_methods')
-    .select('*')
-    .order('sort_order', { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  const dtos = await apiFetch<LabelSettingDto[]>('/settings/payment-methods');
+  return (dtos || []).map(toPaymentMethod);
 }
 
 export const getPaymentMethods = withErrorLogging('getPaymentMethods', _getPaymentMethods);
 
-// 결제방식 생성 (주의: value는 sales 테이블 CHECK 제약조건에 맞아야 함)
-// 기본 결제방식: cash, card, transfer, naverpay, kakaopay
+// 결제방식 생성 (value 슬러그 생성 · sort_order 계산 · 중복 검사는 서버가 처리)
 async function _createPaymentMethod(label: string, color?: string, value?: string): Promise<PaymentMethod> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  // value가 없으면 생성 (영문 스네이크케이스)
-  const finalValue = value || label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') || `pay_${Date.now()}`;
-
-  // 최대 sort_order 조회
-  const { data: maxData } = await supabase
-    .from('payment_methods')
-    .select('sort_order')
-    .order('sort_order', { ascending: false })
-    .limit(1);
-
-  const nextOrder = (maxData?.[0]?.sort_order || 0) + 1;
-
-  const { data, error } = await supabase
-    .from('payment_methods')
-    .insert({ user_id: user.id, value: finalValue, label, color: color || '#3b82f6', sort_order: nextOrder })
-    .select()
-    .single();
-
-  if (error) {
-    if (error.code === '23505') {
-      throw new AppError(ErrorCode.DUPLICATE, '이미 존재하는 결제방식입니다');
-    }
-    throw error;
-  }
+  const dto = await apiFetch<LabelSettingDto>('/settings/payment-methods', {
+    method: 'POST',
+    body: JSON.stringify({ label, color: color ?? null, value: value ?? null }),
+  });
 
   revalidatePath('/sales');
-  return data;
+  return toPaymentMethod(dto);
 }
 
 export const createPaymentMethod = withErrorLogging('createPaymentMethod', _createPaymentMethod);
@@ -173,18 +140,11 @@ async function _updatePaymentMethod(id: string, label: string, color: string): P
   await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('payment_methods')
-    .update({ label, color })
-    .eq('id', id);
 
-  if (error) {
-    if (error.code === '23505') {
-      throw new AppError(ErrorCode.DUPLICATE, '이미 존재하는 결제방식입니다');
-    }
-    throw error;
-  }
+  await apiFetch<LabelSettingDto>(`/settings/payment-methods/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ label, color }),
+  });
 
   revalidatePath('/sales');
 }
@@ -196,13 +156,8 @@ async function _deletePaymentMethod(id: string): Promise<void> {
   await requireAuth();
   const parsed = uuidSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('payment_methods')
-    .delete()
-    .eq('id', id);
 
-  if (error) throw error;
+  await apiFetch<void>(`/settings/payment-methods/${id}`, { method: 'DELETE' });
 
   revalidatePath('/sales');
 }

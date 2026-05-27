@@ -23,6 +23,10 @@ const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Service Role 키 필수'),
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
+  // ─── 필수: Kotlin 백엔드 API (BFF 서버↔서버) ────────────────
+  // NEXT_PUBLIC_ 접두사 없음 — 서버 전용. 브라우저에 노출 금지.
+  KOTLIN_API_URL: z.string().url('유효한 Kotlin API URL이어야 합니다').default('http://localhost:8080'),
+
   // ─── 선택: 기능별 ─────────────────────────────────────────
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().optional(),

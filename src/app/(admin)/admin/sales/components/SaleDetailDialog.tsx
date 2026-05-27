@@ -181,7 +181,7 @@ export function SaleDetailDialog({
                           </span>
                         )}
                         {r.pickup_completed && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white inline-flex items-center gap-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-success text-success-foreground inline-flex items-center gap-0.5">
                             <PackageCheck className="w-2.5 h-2.5" />
                             픽업
                           </span>
@@ -212,7 +212,7 @@ export function SaleDetailDialog({
                 </Button>
                 <Button
                   variant="outline"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="text-danger hover:text-danger hover:bg-danger/10"
                   onClick={() => onDelete(sale)}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />

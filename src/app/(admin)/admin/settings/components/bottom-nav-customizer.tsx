@@ -20,7 +20,6 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {
     CalendarDays,
-    CreditCard,
     Heart,
     Image as ImageIcon,
     LayoutDashboard,
@@ -55,7 +54,6 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   expenses: Wallet,
   customers: Users,
   gallery: ImageIcon,
-  deposits: CreditCard,
   insights: TrendingUp,
   follows: Heart,
 };
@@ -67,7 +65,6 @@ const ALL_KEYS: NavItemKey[] = [
   'expenses',
   'customers',
   'gallery',
-  'deposits',
   'insights',
   'follows',
 ];
@@ -319,7 +316,7 @@ function SlotItem({
           }}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label={`${NAV_ITEM_LABELS[itemKey]} 제거`}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center z-10"
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-danger hover:bg-danger/90 text-danger-foreground flex items-center justify-center z-10"
         >
           <X className="h-3 w-3" aria-hidden />
         </button>

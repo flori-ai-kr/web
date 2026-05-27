@@ -5,7 +5,7 @@ import { requireAuth } from '@/lib/auth-guard';
 import type { PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
 import { withErrorLogging } from '@/lib/errors';
 import { getMonthDateRange } from '@/lib/utils';
-import { PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS } from '@/lib/constants';
+import { apiFetch } from '@/lib/api/client';
 
 export interface CategoryStat {
   name: string;
@@ -43,86 +43,85 @@ export interface ExpenseCategoryStat {
   percentage: number;
 }
 
-// 라벨 상수는 @/lib/constants에서 가져옴
+// ─── Kotlin /dashboard/month DTO 미러 (camelCase) ──────────
+// 개별 통계 함수는 Kotlin /dashboard/month 의 집계 결과에서 해당 차원만 추출한다.
+// NOTE: month 미지정 시 기존 Supabase 구현은 전체 기간을 집계했으나
+//   Kotlin /dashboard/month는 month 미지정 시 "이번 달"을 집계한다(서버 기본값).
+//   현재 이 개별 함수들은 런타임 호출처가 없고 dashboard-client는 getDashboardMonthData만 사용한다.
 
+interface KotlinCategoryStat {
+  name: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinPaymentMethodStat {
+  method: string;
+  label: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinChannelStat {
+  channel: string;
+  label: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinExpenseCategoryStat {
+  category: string;
+  label: string;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinCustomerStat {
+  totalCustomers: number;
+  returningCustomers: number;
+  newCustomers: number;
+}
+
+interface KotlinMonthDashboard {
+  categoryStats: KotlinCategoryStat[];
+  paymentStats: KotlinPaymentMethodStat[];
+  channelStats: KotlinChannelStat[];
+  customerStats: KotlinCustomerStat;
+  expenseStats: KotlinExpenseCategoryStat[];
+}
+
+async function fetchMonthDashboard(month?: string): Promise<KotlinMonthDashboard> {
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  return apiFetch<KotlinMonthDashboard>(`/dashboard/month?${params.toString()}`);
+}
 
 async function _getCategoryStats(month?: string): Promise<CategoryStat[]> {
   await requireAuth();
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('product_category, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const categoryMap = new Map<string, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const category = sale.product_category || '기타';
-    const existing = categoryMap.get(category) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    categoryMap.set(category, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(categoryMap.entries())
-    .map(([name, stats]) => ({
-      name,
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
+  const data = await fetchMonthDashboard(month);
+  return data.categoryStats.map((st) => ({
+    name: st.name,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
 }
 
 export const getCategoryStats = withErrorLogging('getCategoryStats', _getCategoryStats);
 
 async function _getPaymentMethodStats(month?: string): Promise<PaymentMethodStat[]> {
   await requireAuth();
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('payment_method, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const methodMap = new Map<PaymentMethod, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const method = sale.payment_method as PaymentMethod;
-    const existing = methodMap.get(method) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    methodMap.set(method, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(methodMap.entries())
-    .map(([method, stats]) => ({
-      method,
-      label: PAYMENT_LABELS[method] || method,
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
+  const data = await fetchMonthDashboard(month);
+  return data.paymentStats.map((st) => ({
+    method: st.method as PaymentMethod,
+    label: st.label,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
 }
 
 export const getPaymentMethodStats = withErrorLogging('getPaymentMethodStats', _getPaymentMethodStats);
@@ -130,92 +129,25 @@ export const getPaymentMethodStats = withErrorLogging('getPaymentMethodStats', _
 
 async function _getChannelStats(month?: string): Promise<ChannelStat[]> {
   await requireAuth();
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('reservation_channel, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const channelMap = new Map<ReservationChannel, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const channel = (sale.reservation_channel || 'other') as ReservationChannel;
-    const existing = channelMap.get(channel) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    channelMap.set(channel, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(channelMap.entries())
-    .map(([channel, stats]) => ({
-      channel,
-      label: CHANNEL_LABELS[channel],
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
+  const data = await fetchMonthDashboard(month);
+  return data.channelStats.map((st) => ({
+    channel: st.channel as ReservationChannel,
+    label: st.label,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
 }
 
 export const getChannelStats = withErrorLogging('getChannelStats', _getChannelStats);
 
 async function _getCustomerStats(month?: string): Promise<CustomerStat> {
   await requireAuth();
-  const supabase = await createClient();
-  const { startDate, endDate } = getMonthDateRange(month);
-
-  // 해당 월에 구매한 고객들의 연락처 가져오기
-  const { data: monthSales, error: salesError } = await supabase
-    .from('sales')
-    .select('customer_phone, customer_id')
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .not('customer_phone', 'is', null);
-
-  if (salesError) throw salesError;
-
-  // 고유 고객 연락처 추출
-  const uniquePhones = new Set<string>();
-  (monthSales || []).forEach((sale) => {
-    if (sale.customer_phone) {
-      uniquePhones.add(sale.customer_phone);
-    }
-  });
-
-  const totalCustomers = uniquePhones.size;
-
-  if (totalCustomers === 0) {
-    return { newCustomers: 0, returningCustomers: 0, totalCustomers: 0 };
-  }
-
-  // 단일 쿼리로 이전 구매 이력 확인 (N+1 제거)
-  const { data: previousSales, error: prevError } = await supabase
-    .from('sales')
-    .select('customer_phone')
-    .in('customer_phone', Array.from(uniquePhones))
-    .lt('date', startDate);
-
-  if (prevError) throw prevError;
-
-  const returningPhones = new Set(
-    (previousSales || []).map((s) => s.customer_phone)
-  );
-  const returningCustomers = returningPhones.size;
-
+  const data = await fetchMonthDashboard(month);
   return {
-    newCustomers: totalCustomers - returningCustomers,
-    returningCustomers,
-    totalCustomers,
+    newCustomers: data.customerStats.newCustomers,
+    returningCustomers: data.customerStats.returningCustomers,
+    totalCustomers: data.customerStats.totalCustomers,
   };
 }
 
@@ -224,38 +156,13 @@ export const getCustomerStats = withErrorLogging('getCustomerStats', _getCustome
 
 async function _getExpenseCategoryStats(month?: string): Promise<ExpenseCategoryStat[]> {
   await requireAuth();
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('expenses')
-    .select('category, total_amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const categoryMap = new Map<ExpenseCategory, number>();
-  let totalAmount = 0;
-
-  (data || []).forEach((expense) => {
-    const category = expense.category as ExpenseCategory;
-    const existing = categoryMap.get(category) || 0;
-    categoryMap.set(category, existing + expense.total_amount);
-    totalAmount += expense.total_amount;
-  });
-
-  return Array.from(categoryMap.entries())
-    .map(([category, amount]) => ({
-      category,
-      label: EXPENSE_LABELS[category] || category,
-      amount,
-      percentage: totalAmount > 0 ? Math.round((amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
+  const data = await fetchMonthDashboard(month);
+  return data.expenseStats.map((st) => ({
+    category: st.category as ExpenseCategory,
+    label: st.label,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
 }
 
 export const getExpenseCategoryStats = withErrorLogging('getExpenseCategoryStats', _getExpenseCategoryStats);
@@ -268,6 +175,7 @@ export interface MonthlySalesTrend {
 }
 
 async function _getMonthlySalesTrend(months: number = 6): Promise<MonthlySalesTrend[]> {
+  // NOTE: Kotlin BFF에 다개월 매출 추이 엔드포인트가 없어 Supabase 유지.
   await requireAuth();
   const supabase = await createClient();
   const now = new Date();
@@ -318,6 +226,7 @@ export interface DailySalesTrend {
 }
 
 async function _getDailySalesTrend(month?: string): Promise<DailySalesTrend[]> {
+  // NOTE: Kotlin BFF에 일별 매출 추이 엔드포인트가 없어 Supabase 유지.
   await requireAuth();
   const supabase = await createClient();
   const { startDate, endDate } = getMonthDateRange(month);

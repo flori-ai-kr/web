@@ -24,7 +24,7 @@ const gradeSections = [
   { key: 'vip', label: 'VIP', icon: Crown, iconColor: 'text-purple-600 dark:text-purple-400' },
   { key: 'regular', label: '단골', icon: Star, iconColor: 'text-yellow-600 dark:text-yellow-400' },
   { key: 'new', label: '신규', icon: UserPlus, iconColor: 'text-muted-foreground' },
-  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-red-600 dark:text-red-400' },
+  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-danger' },
 ] as const;
 
 type SortBy = 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
@@ -233,7 +233,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">고객 관리</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">고객 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">고객 정보와 구매 이력을 관리하세요</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">

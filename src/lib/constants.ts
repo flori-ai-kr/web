@@ -19,6 +19,10 @@ export const CHANNEL_LABELS: Record<string, string> = {
   other: '기타',
 } satisfies Record<ReservationChannel, string>;
 
+// ─── "오늘만" 활성 필터 칩 스타일 (매출/지출 공용, 다크 세이프) ──────
+export const TODAY_FILTER_ACTIVE_CLASS =
+  'h-9 shrink-0 bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background';
+
 // ─── 지출 카테고리 라벨 ────────────────────────────────────────
 export const EXPENSE_LABELS: Record<string, string> = {
   flower_purchase: '꽃 사입',

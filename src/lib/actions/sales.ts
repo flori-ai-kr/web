@@ -1,15 +1,16 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import { findOrCreateCustomer } from './customers';
-import type { Sale } from '@/types/database';
-import { z } from 'zod';
-import { saleSchema, uuidSchema, validateImageFile } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { getMonthDateRange, sortByFrequency } from '@/lib/utils';
-import { uploadFile, deleteFileByUrl, generateFileKey, StoragePrefix } from '@/lib/storage';
+import {createClient} from '@/lib/supabase/server';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {findOrCreateCustomer} from './customers';
+import type {PaymentMethod, ReservationChannel, Sale} from '@/types/database';
+import {z} from 'zod';
+import {saleSchema, uuidSchema, validateImageFile} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {getMonthDateRange} from '@/lib/utils';
+import {deleteFileByUrl, generateFileKey, StoragePrefix, uploadFile} from '@/lib/storage';
+import {apiFetch} from '@/lib/api/client';
 
 /**
  * 매출 폼 데이터에서 고객 ID를 결정한다.
@@ -46,59 +47,81 @@ export interface SalesFilters {
   search?: string;
 }
 
+// Kotlin /sales 응답의 단일 매출 (camelCase). 서버 계약과 1:1.
+interface KotlinSale {
+  id: string;
+  date: string;
+  productName: string;
+  productCategory: string | null;
+  amount: number;
+  paymentMethod: string;
+  cardCompany: string | null;
+  fee: number | null;
+  expectedDeposit: number | null;
+  expectedDepositDate: string | null;
+  depositStatus: string;
+  depositedAt: string | null;
+  reservationChannel: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerId: string | null;
+  note: string | null;
+  isUnpaid: boolean;
+  hasReview: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface KotlinSalesPage {
+  sales: KotlinSale[];
+  hasMore: boolean;
+}
+
+// camelCase(Kotlin) → snake_case(웹 Sale 타입) 매핑.
+// 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
+// photos는 Kotlin /sales가 반환하지 않으므로 undefined.
+function mapKotlinSale(s: KotlinSale): Sale {
+  return {
+    id: s.id,
+    user_id: '',
+    date: s.date,
+    product_name: s.productName,
+    product_category: s.productCategory ?? s.productName,
+    amount: s.amount,
+    payment_method: s.paymentMethod as PaymentMethod,
+    reservation_channel: s.reservationChannel as ReservationChannel,
+    customer_name: s.customerName ?? undefined,
+    customer_phone: s.customerPhone ?? undefined,
+    customer_id: s.customerId ?? undefined,
+    note: s.note ?? undefined,
+    is_unpaid: s.isUnpaid,
+    has_review: s.hasReview,
+    photos: undefined,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt,
+  };
+}
+
 async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
   await requireAuth();
-  const supabase = await createClient();
 
-  let query = supabase
-    .from('sales')
-    .select(`
-      *,
-      customer:customers(id, name, phone)
-    `)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+  // 쿼리 파라미터 구성. 다중값(category/payment/channel)은 반복 파라미터로
+  // 보내 Spring List<String> 바인딩과 일치시킨다.
+  const params = new URLSearchParams();
+  params.set('offset', String(offset));
+  params.set('limit', String(limit));
+  if (month) params.set('month', month);
+  for (const c of filters?.category ?? []) params.append('category', c);
+  for (const p of filters?.payment ?? []) params.append('payment', p);
+  for (const ch of filters?.channel ?? []) params.append('channel', ch);
+  if (filters?.search) params.set('search', filters.search);
 
-  if (month) {
-    if (month.length === 4) {
-      query = query.gte('date', `${month}-01-01`).lte('date', `${month}-12-31`);
-    } else if (month.length === 10) {
-      query = query.eq('date', month);
-    } else {
-      const { startDate, endDate } = getMonthDateRange(month);
-      query = query.gte('date', startDate).lte('date', endDate);
-    }
-  }
+  const page = await apiFetch<KotlinSalesPage>(`/sales?${params.toString()}`);
 
-  if (filters?.category && filters.category.length > 0) {
-    query = query.in('product_category', filters.category);
-  }
-  if (filters?.payment && filters.payment.length > 0) {
-    query = query.in('payment_method', filters.payment);
-  }
-  if (filters?.channel && filters.channel.length > 0) {
-    query = query.in('reservation_channel', filters.channel);
-  }
-  if (filters?.search) {
-    // PostgREST DSL 특수문자 이스케이핑 (%, _, 쉼표, 점, 괄호)
-    const searchTerm = filters.search
-      .replace(/[%_]/g, '\\$&')
-      .replace(/[,.()"']/g, '');
-    const q = `%${searchTerm}%`;
-    query = query.or(`product_category.ilike.${q},product_name.ilike.${q},customer_name.ilike.${q}`);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const sales = (data || []).map(sale => ({
-    ...sale,
-    customer_name: sale.customer?.name || sale.customer_name,
-    customer_phone: sale.customer?.phone || sale.customer_phone,
-  })) as Sale[];
-
-  return { sales, hasMore: (data || []).length === limit };
+  return {
+    sales: page.sales.map(mapKotlinSale),
+    hasMore: page.hasMore,
+  };
 }
 
 export const getSales = withErrorLogging('getSales', _getSales);
@@ -153,13 +176,13 @@ async function _getSalesSummary(month?: string, filters?: SalesFilters) {
 export const getSalesSummary = withErrorLogging('getSalesSummary', _getSalesSummary);
 
 async function _createSale(formData: FormData) {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
   const productCategory = formData.get('product_category') as string;
   const customerName = formData.get('customer_name') as string || null;
   const customerPhone = formData.get('customer_phone') as string || null;
   const customerId = formData.get('customer_id') as string || null;
+  const cardCompany = formData.get('card_company') as string || null;
 
   // 입력 검증
   const parsed = saleSchema.safeParse({
@@ -167,11 +190,6 @@ async function _createSale(formData: FormData) {
     product_category: productCategory,
     amount: parseInt(formData.get('amount') as string) || 0,
     payment_method: formData.get('payment_method'),
-    card_company: formData.get('card_company') || null,
-    fee: formData.get('fee') ? parseInt(formData.get('fee') as string) : null,
-    expected_deposit: formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null,
-    expected_deposit_date: formData.get('expected_deposit_date') || null,
-    deposit_status: formData.get('deposit_status') || 'not_applicable',
     reservation_channel: formData.get('reservation_channel') || 'other',
     customer_name: customerName,
     customer_phone: customerPhone,
@@ -183,35 +201,27 @@ async function _createSale(formData: FormData) {
 
   const finalCustomerId = await resolveCustomerId(customerId, customerName, customerPhone);
 
-  const isUnpaid = parsed.data.payment_method === 'unpaid';
-
-  const sale = {
-    user_id: user.id,
-    date: parsed.data.date,
-    product_name: productCategory,
-    product_category: productCategory,
-    amount: parsed.data.amount,
-    payment_method: parsed.data.payment_method,
-    card_company: parsed.data.card_company || null,
-    fee: parsed.data.fee || null,
-    expected_deposit: parsed.data.expected_deposit || null,
-    expected_deposit_date: parsed.data.expected_deposit_date || null,
-    deposit_status: parsed.data.deposit_status || 'not_applicable',
-    reservation_channel: parsed.data.reservation_channel || 'other',
-    customer_name: customerName,
-    customer_phone: customerPhone,
-    customer_id: finalCustomerId,
-    note: parsed.data.note || null,
-    is_unpaid: isUnpaid,
-  };
-
-  const { data, error } = await supabase.from('sales').insert(sale).select().single();
-  if (error) throw error;
+  // fee/expected_deposit/deposit_status/is_unpaid는 서버가 계산한다.
+  const created = await apiFetch<KotlinSale>('/sales', {
+    method: 'POST',
+    body: JSON.stringify({
+      date: parsed.data.date,
+      productCategory,
+      amount: parsed.data.amount,
+      paymentMethod: parsed.data.payment_method,
+      cardCompany,
+      reservationChannel: parsed.data.reservation_channel || 'other',
+      customerName,
+      customerPhone,
+      customerId: finalCustomerId,
+      note: parsed.data.note || null,
+    }),
+  });
 
   revalidatePath('/sales');
   revalidatePath('/customers');
   revalidatePath('/');
-  return data;
+  return mapKotlinSale(created);
 }
 
 export const createSale = withErrorLogging('createSale', _createSale);
@@ -232,11 +242,6 @@ async function _updateSale(id: string, formData: FormData) {
     product_category: formData.get('product_category') || undefined,
     amount: formData.get('amount') ? parseInt(formData.get('amount') as string) : undefined,
     payment_method: formData.get('payment_method') || undefined,
-    card_company: formData.has('card_company') ? (formData.get('card_company') as string || null) : undefined,
-    fee: formData.has('fee') ? (formData.get('fee') ? parseInt(formData.get('fee') as string) : null) : undefined,
-    expected_deposit: formData.has('expected_deposit') ? (formData.get('expected_deposit') ? parseInt(formData.get('expected_deposit') as string) : null) : undefined,
-    expected_deposit_date: formData.has('expected_deposit_date') ? (formData.get('expected_deposit_date') as string || null) : undefined,
-    deposit_status: formData.get('deposit_status') || undefined,
     reservation_channel: formData.get('reservation_channel') || undefined,
     customer_name: customerName,
     customer_phone: customerPhone,
@@ -246,32 +251,32 @@ async function _updateSale(id: string, formData: FormData) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const supabase = await createClient();
   const shouldResolveCustomer = formData.has('customer_name') || formData.has('customer_id');
   const finalCustomerId = shouldResolveCustomer
     ? await resolveCustomerId(customerId, customerName ?? null, customerPhone ?? null)
     : undefined;
 
-  const updates: Record<string, string | number | boolean | null | undefined> = {
-    ...parsed.data,
-    product_name: parsed.data.product_category,
-  };
-  if (shouldResolveCustomer) {
-    updates.customer_id = finalCustomerId;
-  }
+  // 제공된 필드만 PATCH 본문에 포함 (서버가 non-null 필드만 반영)
+  const body: Record<string, string | number | boolean | null> = {};
+  if (parsed.data.date !== undefined) body.date = parsed.data.date;
+  if (parsed.data.product_category !== undefined) body.productCategory = parsed.data.product_category;
+  if (parsed.data.amount !== undefined) body.amount = parsed.data.amount;
+  if (parsed.data.payment_method !== undefined) body.paymentMethod = parsed.data.payment_method;
+  if (parsed.data.reservation_channel !== undefined) body.reservationChannel = parsed.data.reservation_channel;
+  if (parsed.data.customer_name !== undefined) body.customerName = parsed.data.customer_name;
+  if (parsed.data.customer_phone !== undefined) body.customerPhone = parsed.data.customer_phone;
+  if (parsed.data.note !== undefined) body.note = parsed.data.note;
+  if (shouldResolveCustomer) body.customerId = finalCustomerId ?? null;
 
   const hasReview = formData.get('has_review');
   if (hasReview !== null) {
-    updates.has_review = hasReview === 'true';
+    body.hasReview = hasReview === 'true';
   }
 
-  // undefined 값 제거하여 미전송 필드가 DB에 null로 덮어쓰이는 것을 방지
-  const cleanUpdates = Object.fromEntries(
-    Object.entries(updates).filter(([, v]) => v !== undefined)
-  );
-
-  const { error } = await supabase.from('sales').update(cleanUpdates).eq('id', id);
-  if (error) throw error;
+  await apiFetch<KotlinSale>(`/sales/${idParsed.data}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
 
   revalidatePath('/sales');
   revalidatePath('/customers');
@@ -292,13 +297,10 @@ async function _completeUnpaidSale(saleId: string, paymentMethod: string) {
   const pmParsed = z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']).safeParse(paymentMethod);
   if (!pmParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 결제방식입니다');
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('sales')
-    .update({ payment_method: pmParsed.data, updated_at: new Date().toISOString() })
-    .eq('id', idParsed.data)
-    .eq('is_unpaid', true);
-  if (error) throw error;
+  await apiFetch<KotlinSale>(`/sales/${idParsed.data}/complete-unpaid`, {
+    method: 'POST',
+    body: JSON.stringify({ paymentMethod: pmParsed.data }),
+  });
 
   revalidatePath('/sales');
   revalidatePath('/calendar');
@@ -316,13 +318,9 @@ async function _revertUnpaidSale(saleId: string) {
   const idParsed = uuidSchema.safeParse(saleId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('sales')
-    .update({ payment_method: 'unpaid', updated_at: new Date().toISOString() })
-    .eq('id', idParsed.data)
-    .eq('is_unpaid', true);
-  if (error) throw error;
+  await apiFetch<KotlinSale>(`/sales/${idParsed.data}/revert-unpaid`, {
+    method: 'POST',
+  });
 
   revalidatePath('/sales');
   revalidatePath('/calendar');
@@ -335,9 +333,8 @@ async function _deleteSale(id: string) {
   await requireAuth();
   const idParsed = uuidSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
-  const supabase = await createClient();
-  const { error } = await supabase.from('sales').delete().eq('id', idParsed.data);
-  if (error) throw error;
+
+  await apiFetch<void>(`/sales/${idParsed.data}`, { method: 'DELETE' });
 
   revalidatePath('/sales');
   revalidatePath('/customers');
@@ -423,24 +420,15 @@ export const deleteSalePhoto = withErrorLogging('deleteSalePhoto', _deleteSalePh
 
 async function _getSaleById(id: string): Promise<Sale | null> {
   await requireAuth();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('sales')
-    .select(`
-      *,
-      customer:customers(id, name, phone)
-    `)
-    .eq('id', id)
-    .single();
-
-  if (error) return null;
-
-  // 고객 정보 병합
-  return {
-    ...data,
-    customer_name: data.customer?.name || data.customer_name,
-    customer_phone: data.customer?.phone || data.customer_phone,
-  } as Sale;
+  // 서버 SaleResponse는 customerName/customerPhone을 이미 포함한다(별도 조인 불필요).
+  // 미존재 시 apiFetch가 NOT_FOUND를 throw → null 반환으로 기존 계약 유지.
+  try {
+    const sale = await apiFetch<KotlinSale>(`/sales/${id}`);
+    return mapKotlinSale(sale);
+  } catch (e) {
+    if (e instanceof AppError && e.code === ErrorCode.NOT_FOUND) return null;
+    throw e;
+  }
 }
 
 export const getSaleById = withErrorLogging('getSaleById', _getSaleById);
@@ -449,18 +437,9 @@ export const getSaleById = withErrorLogging('getSaleById', _getSaleById);
  * 매출 비고 자동완성용 과거 값 조회
  */
 async function _getSaleSuggestions(): Promise<{ notes: string[] }> {
-  const user = await requireAuth();
-  const supabase = await createClient();
-
-  const { data } = await supabase
-    .from('sales')
-    .select('note')
-    .eq('user_id', user.id)
-    .not('note', 'is', null)
-    .neq('note', '')
-    .order('note');
-
-  const notes = sortByFrequency(data?.map(r => r.note as string) || []);
+  await requireAuth();
+  // 서버가 빈도순 정렬된 note 목록을 반환한다.
+  const { notes } = await apiFetch<{ notes: string[] }>('/sales/suggestions');
   return { notes };
 }
 

@@ -1,0 +1,102 @@
+# ==============================================================================
+# flori web (Next.js 16 admin) CI/CD — DEV
+# ==============================================================================
+# 배치: flori-ai-kr/web 리포 .github/workflows/deploy-web-dev.yml (별도 레포, 코드 루트)
+# 흐름: ARM64 네이티브 standalone 빌드 → ECR(flori-dev/web) → SSH deploy.web.sh
+# 패턴: aws-infra/.github/workflows/api/deploy-optigen-dev.yml 과 동일 (ubuntu-24.04-arm, QEMU 불필요)
+#
+# [HARD] next.config.ts 가 validateEnv() 를 모듈 로드 시 실행 → `next build`(Docker) 시점에
+#   Supabase/R2/VAPID_PUBLIC/INTERNAL_API_KEY 가 build-args 로 필요. 값은 모두 기존 Supabase cloud.
+#   (build job 에 environment: dev 를 둬서 environment-scoped secrets 를 빌드 시 사용)
+# next.config.ts 에 `output: 'standalone'` 필수. Dockerfile 은 ci/web.Dockerfile.template 참고.
+#
+# GitHub Environment `dev` secrets:
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (flori-gha-ecr)
+#   SSH_HOST (= flori-dev-app EIP 3.35.191.16) / SSH_USER (ec2-user) / SSH_PRIVATE_KEY (flori-key.pem)
+#   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
+#   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME / R2_PUBLIC_URL
+#   NEXT_PUBLIC_VAPID_PUBLIC_KEY / INTERNAL_API_KEY
+# ==============================================================================
+
+name: 🚀 Deploy web (DEV)
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: flori-dev/web
+
+jobs:
+  build-and-push:
+    name: 빌드 및 ECR Push
+    runs-on: ubuntu-latest # flori-ai-kr org 는 ARM 러너 미가용 → x64 + QEMU 로 arm64 크로스빌드
+    environment: dev # environment-scoped secrets 를 build-args 로 사용
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+      - name: AWS 인증 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: 이미지 태그 생성
+        id: meta
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(TZ='Asia/Seoul' date +'%Y%m%d%H%M%S')
+          echo "tags=${TIMESTAMP}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+      - name: QEMU 설정 (arm64 에뮬레이션)
+        uses: docker/setup-qemu-action@v3
+      - name: Docker Buildx 설정
+        uses: docker/setup-buildx-action@v3
+      - name: Docker 이미지 빌드 및 Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.meta.outputs.tags }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          platforms: linux/arm64
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
+            R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+            R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }}
+            R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }}
+            NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+            INTERNAL_API_KEY=${{ secrets.INTERNAL_API_KEY }}
+
+  deploy:
+    name: EC2 배포
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: SSH 배포
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            /home/ec2-user/scripts/deploy.web.sh ${{ needs.build-and-push.outputs.image_tag }}

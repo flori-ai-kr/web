@@ -119,7 +119,7 @@ export function TrendsClient({
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">트렌드</h1>
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">트렌드</h1>
             <p className="text-sm text-muted-foreground mt-1">
               주 2회 자동 수집 · 월·금 08:00 KST
             </p>

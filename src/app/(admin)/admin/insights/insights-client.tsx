@@ -51,7 +51,7 @@ export function InsightsClient({
             <Sparkles className="w-3.5 h-3.5" />
             <span className="tracking-wider">INSIGHTS</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">이번 주 인사이트</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">이번 주 인사이트</h1>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             {updateLabel}

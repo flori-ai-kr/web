@@ -21,6 +21,96 @@ import {
     uuidSchema,
 } from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
+
+// ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
+// 서버 계약과 1:1. created_at/updated_at처럼 Kotlin이 반환하지 않는 필드는
+// 뷰에서 미사용이므로 안전 기본값으로 채운다.
+
+interface KotlinTrendArticle {
+  id: string;
+  category: TrendCategory;
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  sourceUrl: string;
+  sourceName: string | null;
+  publishedAt: string | null;
+  collectedAt: string;
+  createdAt: string;
+}
+
+interface KotlinInstagramAccount {
+  id: string;
+  username: string;
+  displayName: string | null;
+  profileUrl: string;
+  region: InstagramRegion;
+  sortOrder: number;
+  active: boolean;
+  notes: string | null;
+}
+
+interface KotlinInstagramPost {
+  id: string;
+  accountId: string;
+  shortcode: string;
+  permalink: string;
+  imageUrls: string[];
+  caption: string | null;
+  likeCount: number;
+  postedAt: string;
+  account: KotlinInstagramAccount | null;
+}
+
+interface KotlinUserPreferences {
+  bottomNavItems: string[];
+}
+
+function mapTrendArticle(a: KotlinTrendArticle): TrendArticle {
+  return {
+    id: a.id,
+    category: a.category,
+    title: a.title,
+    summary: a.summary,
+    key_points: a.keyPoints ?? [],
+    source_url: a.sourceUrl,
+    source_name: a.sourceName ?? null,
+    published_at: a.publishedAt ?? null,
+    collected_at: a.collectedAt,
+    created_at: a.createdAt,
+  };
+}
+
+function mapAccount(a: KotlinInstagramAccount): InstagramAccount {
+  return {
+    id: a.id,
+    username: a.username,
+    display_name: a.displayName ?? null,
+    profile_url: a.profileUrl,
+    region: a.region,
+    sort_order: a.sortOrder,
+    active: a.active,
+    notes: a.notes ?? null,
+    created_at: '',
+    updated_at: '',
+  };
+}
+
+function mapPost(p: KotlinInstagramPost): InstagramPostWithAccount {
+  return {
+    id: p.id,
+    account_id: p.accountId,
+    shortcode: p.shortcode,
+    permalink: p.permalink,
+    image_urls: p.imageUrls ?? [],
+    caption: p.caption ?? null,
+    like_count: p.likeCount,
+    posted_at: p.postedAt,
+    scraped_at: '',
+    account: p.account ? mapAccount(p.account) : ({} as InstagramAccount),
+  };
+}
 
 // ─── 트렌드 조회 ──────────────────────────────────────────
 
@@ -30,22 +120,16 @@ async function _getTrendArticles(options: {
   offset?: number;
 } = {}): Promise<TrendArticle[]> {
   await requireAuth();
-  const supabase = await createClient();
 
-  let query = supabase
-    .from('trend_articles')
-    .select('*')
-    .order('collected_at', { ascending: false })
-    .order('created_at', { ascending: false });
+  const params = new URLSearchParams();
+  if (options.category) params.set('category', options.category);
+  params.set('limit', String(options.limit ?? 50));
+  params.set('offset', String(options.offset ?? 0));
 
-  if (options.category) query = query.eq('category', options.category);
-  const limit = options.limit ?? 50;
-  const offset = options.offset ?? 0;
-  query = query.range(offset, offset + limit - 1);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []) as TrendArticle[];
+  const data = await apiFetch<KotlinTrendArticle[]>(
+    `/insights/trends?${params.toString()}`,
+  );
+  return (data ?? []).map(mapTrendArticle);
 }
 
 export const getTrendArticles = withErrorLogging('getTrendArticles', _getTrendArticles);
@@ -57,20 +141,12 @@ async function _getRecentTrendsByCategory(
   limitPerCategory: number = 3,
 ): Promise<Record<TrendCategory, TrendArticle[]>> {
   await requireAuth();
-  const supabase = await createClient();
 
-  const categories: TrendCategory[] = ['flower', 'inspiration', 'business', 'industry'];
+  const params = new URLSearchParams();
+  params.set('perCategory', String(limitPerCategory));
 
-  const results = await Promise.all(
-    categories.map((category) =>
-      supabase
-        .from('trend_articles')
-        .select('*')
-        .eq('category', category)
-        .order('collected_at', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(limitPerCategory),
-    ),
+  const data = await apiFetch<Record<string, KotlinTrendArticle[]>>(
+    `/insights/trends/recent?${params.toString()}`,
   );
 
   const output: Record<TrendCategory, TrendArticle[]> = {
@@ -79,14 +155,9 @@ async function _getRecentTrendsByCategory(
     business: [],
     industry: [],
   };
-
-  for (let i = 0; i < categories.length; i++) {
-    const category = categories[i]!;
-    const { data, error } = results[i]!;
-    if (error) throw error;
-    output[category] = (data || []) as TrendArticle[];
+  for (const category of Object.keys(output) as TrendCategory[]) {
+    output[category] = (data[category] ?? []).map(mapTrendArticle);
   }
-
   return output;
 }
 
@@ -98,6 +169,7 @@ export const getRecentTrendsByCategory = withErrorLogging(
 async function _getTrendCountsByCategory(
   sinceIsoDate?: string,
 ): Promise<Record<TrendCategory, number>> {
+  // NOTE: Kotlin BFF에 카테고리별 트렌드 카운트 엔드포인트가 없어 Supabase 유지.
   await requireAuth();
   const supabase = await createClient();
 
@@ -130,19 +202,14 @@ async function _getInstagramAccounts(options: {
   activeOnly?: boolean;
 } = {}): Promise<InstagramAccount[]> {
   await requireAuth();
-  const supabase = await createClient();
 
-  let query = supabase
-    .from('instagram_accounts')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('username', { ascending: true });
+  const params = new URLSearchParams();
+  if (options.activeOnly) params.set('activeOnly', 'true');
 
-  if (options.activeOnly) query = query.eq('active', true);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []) as InstagramAccount[];
+  const data = await apiFetch<KotlinInstagramAccount[]>(
+    `/insights/accounts?${params.toString()}`,
+  );
+  return (data ?? []).map(mapAccount);
 }
 
 export const getInstagramAccounts = withErrorLogging(
@@ -151,6 +218,7 @@ export const getInstagramAccounts = withErrorLogging(
 );
 
 async function _createInstagramAccount(input: unknown): Promise<InstagramAccount> {
+  // NOTE: 계정 생성은 Kotlin /internal/** (서버↔서버 ingest) 에만 있어 웹에서 호출 불가 → Supabase service role 유지.
   await requireAuth();
   const parsed = instagramAccountCreateSchema.parse(input);
   // RLS에서 instagram_accounts 쓰기 차단 → service role 사용
@@ -192,6 +260,7 @@ async function _updateInstagramAccount(
   id: string,
   input: unknown,
 ): Promise<InstagramAccount> {
+  // NOTE: 계정 수정은 Kotlin /internal/** 전용 → Supabase service role 유지.
   await requireAuth();
   const parsedId = uuidSchema.parse(id);
   const parsed = instagramAccountUpdateSchema.parse(input);
@@ -229,6 +298,7 @@ export const updateInstagramAccount = withErrorLogging(
 );
 
 async function _deleteInstagramAccount(id: string): Promise<void> {
+  // NOTE: 계정 삭제는 Kotlin /internal/** 전용 → Supabase service role 유지.
   await requireAuth();
   const parsedId = uuidSchema.parse(id);
   // RLS에서 instagram_accounts 쓰기 차단 → service role 사용
@@ -258,45 +328,24 @@ async function _getInstagramPosts(options: {
   daysAgo?: number;
 } = {}): Promise<InstagramPostWithAccount[]> {
   await requireAuth();
-  const supabase = await createClient();
 
-  const limit = options.limit ?? 50;
-  const sortBy = options.sortBy ?? 'latest';
-  // region 필터가 있으면 JS에서 걸러야 하므로 버퍼로 더 가져온다.
-  const fetchLimit = options.region ? limit * 3 : limit;
+  const params = new URLSearchParams();
+  if (options.accountId) params.set('accountId', options.accountId);
+  if (options.region) params.set('region', options.region);
+  if (options.sortBy) params.set('sortBy', options.sortBy);
+  if (options.daysAgo) params.set('daysAgo', String(options.daysAgo));
+  params.set('limit', String(options.limit ?? 50));
 
-  let query = supabase
-    .from('instagram_posts')
-    .select('*, account:instagram_accounts!inner(*)');
-
-  if (options.accountId) query = query.eq('account_id', options.accountId);
-  if (options.daysAgo) {
-    const since = new Date(Date.now() - options.daysAgo * 24 * 60 * 60 * 1000);
-    query = query.gte('posted_at', since.toISOString());
-  }
-
-  query =
-    sortBy === 'likes'
-      ? query.order('like_count', { ascending: false })
-      : query.order('posted_at', { ascending: false });
-
-  query = query.limit(fetchLimit);
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  // region은 PostgREST embedded filter가 버전/스키마에 따라 동작이 달라질 수 있어
-  // fetch 후 JS에서 안전하게 필터링.
-  let posts = (data || []) as unknown as InstagramPostWithAccount[];
-  if (options.region) {
-    posts = posts.filter((p) => p.account?.region === options.region);
-  }
-  return posts.slice(0, limit);
+  const data = await apiFetch<KotlinInstagramPost[]>(
+    `/insights/posts?${params.toString()}`,
+  );
+  return (data ?? []).map(mapPost);
 }
 
 export const getInstagramPosts = withErrorLogging('getInstagramPosts', _getInstagramPosts);
 
 async function _getLatestInstagramTimestamp(): Promise<string | null> {
+  // NOTE: Kotlin BFF에 최신 수집 타임스탬프 엔드포인트가 없어 Supabase 유지.
   await requireAuth();
   const supabase = await createClient();
 
@@ -318,59 +367,33 @@ export const getLatestInstagramTimestamp = withErrorLogging(
 // ─── 유저 설정 (하단바 커스터마이즈) ─────────────────────
 
 async function _getUserPreferences(): Promise<UserPreferences> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) {
-    return {
-      user_id: user.id,
-      bottom_nav_items: [...DEFAULT_BOTTOM_NAV_ITEMS],
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  const items = (data.bottom_nav_items as NavItemKey[]) || [...DEFAULT_BOTTOM_NAV_ITEMS];
+  const data = await apiFetch<KotlinUserPreferences>('/settings/preferences');
+  const items = (data.bottomNavItems as NavItemKey[]) || [...DEFAULT_BOTTOM_NAV_ITEMS];
   return {
-    user_id: data.user_id as string,
+    user_id: '',
     bottom_nav_items: items,
-    updated_at: data.updated_at as string,
+    updated_at: new Date().toISOString(),
   };
 }
 
 export const getUserPreferences = withErrorLogging('getUserPreferences', _getUserPreferences);
 
 async function _updateBottomNavItems(items: unknown): Promise<UserPreferences> {
-  const user = await requireAuth();
+  await requireAuth();
   const parsed = bottomNavItemsSchema.parse(items);
-  const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .upsert(
-      {
-        user_id: user.id,
-        bottom_nav_items: parsed,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    )
-    .select()
-    .single();
-
-  if (error) throw error;
+  const data = await apiFetch<KotlinUserPreferences>('/settings/preferences/bottom-nav', {
+    method: 'PUT',
+    body: JSON.stringify({ items: parsed }),
+  });
 
   revalidatePath('/', 'layout');
   return {
-    user_id: data.user_id as string,
-    bottom_nav_items: (data.bottom_nav_items as NavItemKey[]) ?? parsed,
-    updated_at: data.updated_at as string,
+    user_id: '',
+    bottom_nav_items: (data.bottomNavItems as NavItemKey[]) ?? parsed,
+    updated_at: new Date().toISOString(),
   };
 }
 

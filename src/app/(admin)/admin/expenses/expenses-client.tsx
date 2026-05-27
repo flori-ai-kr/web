@@ -50,6 +50,7 @@ import {
 } from '@/lib/actions/expense-settings';
 import {ExpenseSettingsModal} from '@/components/expenses/ExpenseSettingsModal';
 import {cn, formatCurrency} from '@/lib/utils';
+import {TODAY_FILTER_ACTIVE_CLASS} from '@/lib/constants';
 import type {Expense} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
@@ -385,7 +386,7 @@ export function ExpensesClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">지출 관리</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">지출 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">지출 내역을 등록하고 관리하세요</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -513,7 +514,7 @@ export function ExpensesClient({
         <Button
           variant="outline"
           size="sm"
-          className="h-9 shrink-0 border-emerald-950 bg-emerald-950 text-white hover:bg-emerald-900 hover:text-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 dark:hover:text-emerald-200"
+          className={TODAY_FILTER_ACTIVE_CLASS}
           onClick={handleTodayOnly}
           aria-label="오늘 지출만 보기"
         >
@@ -640,7 +641,7 @@ export function ExpensesClient({
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>비고</Label>
-                <span className={cn("text-xs", noteValue.length > 100 ? "text-destructive" : "text-muted-foreground")}>
+                <span className={cn("text-xs", noteValue.length > 100 ? "text-danger" : "text-muted-foreground")}>
                   {noteValue.length}/100
                 </span>
               </div>
@@ -737,7 +738,7 @@ export function ExpensesClient({
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-danger hover:text-danger hover:bg-danger/10"
                     onClick={() => handleDelete(selectedExpense)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
@@ -836,7 +837,7 @@ export function ExpensesClient({
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>비고</Label>
-                  <span className={cn("text-xs", editNoteValue.length > 100 ? "text-destructive" : "text-muted-foreground")}>
+                  <span className={cn("text-xs", editNoteValue.length > 100 ? "text-danger" : "text-muted-foreground")}>
                     {editNoteValue.length}/100
                   </span>
                 </div>

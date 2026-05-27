@@ -118,10 +118,10 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
               required
               inputMode="tel"
               autoComplete="tel"
-              className={cn("bg-muted", phoneDuplicate && "border-red-500 focus-visible:ring-red-500")}
+              className={cn("bg-muted", phoneDuplicate && "border-danger focus-visible:ring-danger")}
             />
             {phoneDuplicate && (
-              <p className="text-xs text-destructive">
+              <p className="text-xs text-danger">
                 이미 등록된 연락처입니다 ({phoneDuplicate.name})
               </p>
             )}
@@ -161,7 +161,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label>메모</Label>
-              <span className={cn("text-xs", noteValue.length > 200 ? "text-destructive" : "text-muted-foreground")}>
+              <span className={cn("text-xs", noteValue.length > 200 ? "text-danger" : "text-muted-foreground")}>
                 {noteValue.length}/200
               </span>
             </div>

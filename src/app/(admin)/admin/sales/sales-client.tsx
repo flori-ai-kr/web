@@ -18,13 +18,12 @@ import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {formatCurrency} from '@/lib/utils';
-import type {CardCompanySetting, PhotoCard, Reservation, Sale} from '@/types/database';
+import type {PhotoCard, Reservation, Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
-import {getCardCompanySettings} from '@/lib/actions/settings';
 import {ExportButton} from '@/components/ui/export-button';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import type {ExportConfig} from '@/lib/export';
-import {CHANNEL_LABELS} from '@/lib/constants';
+import {CHANNEL_LABELS, TODAY_FILTER_ACTIVE_CLASS} from '@/lib/constants';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
@@ -53,11 +52,10 @@ interface Props {
   initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
-  initialCardCompanies: CardCompanySetting[];
   initialSelectedSale?: Sale | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialCardCompanies, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -75,7 +73,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
-  const [cardCompanies, setCardCompanies] = useState<CardCompanySetting[]>(initialCardCompanies);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
@@ -119,10 +116,9 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   // 설정 새로고침
   const refreshSettings = async () => {
-    const [cats, pays, cards] = await Promise.all([getSaleCategories(), getPaymentMethods(), getCardCompanySettings()]);
+    const [cats, pays] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
     setCategories(cats);
     setPayments(pays);
-    setCardCompanies(cards);
   };
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
@@ -378,7 +374,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">매출 관리</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">매출 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">매출 내역을 등록하고 관리하세요</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -469,7 +465,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         <Button
           variant="outline"
           size="sm"
-          className="h-9 shrink-0 border-emerald-950 bg-emerald-950 text-white hover:bg-emerald-900 hover:text-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 dark:hover:text-emerald-200"
+          className={TODAY_FILTER_ACTIVE_CLASS}
           onClick={handleTodayOnly}
           aria-label="오늘 매출만 보기"
         >
@@ -518,7 +514,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={editingSale}
         categories={categories}
         payments={payments}
-        cardCompanies={cardCompanies}
         initialCustomer={initialCustomer}
         onSuccess={handleFormSuccess}
       />

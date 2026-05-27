@@ -1,5 +1,4 @@
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay' | 'unpaid';
-export type DepositStatus = 'pending' | 'completed' | 'not_applicable';
 export type ExpenseCategory = 'flower_purchase' | 'delivery' | 'advertising' | 'rent' | 'utilities' | 'supplies' | 'other';
 export type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist';
 export type CustomerGender = 'male' | 'female';
@@ -47,12 +46,6 @@ export interface Sale {
   product_category: string;
   amount: number;
   payment_method: PaymentMethod;
-  card_company?: string;
-  fee?: number;
-  expected_deposit?: number;
-  expected_deposit_date?: string;
-  deposit_status: DepositStatus;
-  deposited_at?: string;
   reservation_channel: ReservationChannel;
   customer_name?: string;
   customer_phone?: string;
@@ -123,14 +116,6 @@ export interface Customer {
   note?: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface CardCompanySetting {
-  id: string;
-  name: string;
-  fee_rate: number;
-  deposit_days: number;
-  is_active: boolean;
 }
 
 // Sale Settings Types
@@ -344,7 +329,6 @@ export type NavItemKey =
   | 'expenses'
   | 'customers'
   | 'gallery'
-  | 'deposits'
   | 'insights'
   | 'follows';
 
@@ -361,7 +345,6 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
   expenses: '지출관리',
   customers: '고객관리',
   gallery: '사진첩',
-  deposits: '입금대조',
   insights: '인사이트',
   follows: '팔로우',
 };
@@ -373,7 +356,6 @@ export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
   expenses: '/admin/expenses',
   customers: '/admin/customers',
   gallery: '/admin/gallery',
-  deposits: '/admin/deposits',
   insights: '/admin/insights',
   follows: '/admin/insights/follows',
 };

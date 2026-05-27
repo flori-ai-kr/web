@@ -38,8 +38,23 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  /* Tier 2 semantic status tokens — enables bg-success / text-success-foreground / bg-success-soft etc.
+     (danger reuses the existing --destructive; --danger below is an AA-legible alias on cream) */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
   --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-  --font-serif: var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  /* admin 디스플레이: Cormorant Garamond 우선, 공개사이트 Fraunces 폴백 유지 */
+  --font-serif: var(--font-cormorant), var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   /* Public site palette v2 (hazel 공개 사이트 전용 — 다크모드와 무관하게 고정) */
   --color-site-paper: var(--site-paper);
@@ -65,6 +80,97 @@
 
 :root {
   --radius: 0.75rem;
+
+  /* ============================================================
+     DESIGN TOKEN FOUNDATION (3-tier) — ADDITIVE, 2026-05-27
+     Tier 1 = primitives (raw scales) → Tier 2 = semantic tokens
+     (the shadcn vars below: --background/--foreground/--brand/…)
+     → Tier 3 = components consume semantic tokens only.
+     RULE: components never reference Tier-1 primitives or hardcode
+     hex; they use semantic tokens. Dark mode overrides the SAME
+     semantic token names in `.dark` (never re-derives primitives).
+     This file is the single source of truth; Pencil mirrors it.
+     ============================================================ */
+
+  /* --- Tier 1: Rose primitive scale ---------------------------
+     Brand hue (dusty deep rose). Anchored on existing semantics:
+       --rose-600 == --brand        (#A85475)
+       --rose-50  == --brand-muted   (#FBEFF3)
+     Perceptually graded light→dark; 600 = white-text AA (5.01:1). */
+  --rose-50:  #FBEFF3;
+  --rose-100: #F6DCE5;
+  --rose-200: #ECBACD;
+  --rose-300: #DD93AF;
+  --rose-400: #C9728F;
+  --rose-500: #B85F7F;
+  --rose-600: #A85475; /* = --brand */
+  --rose-700: #8A4361;
+  --rose-800: #6B344C;
+  --rose-900: #4C2536;
+
+  /* --- Tier 1: Neutral (warm stone) primitive scale -----------
+     Warm taupe-stone ramp. Anchored on existing semantics:
+       --neutral-50  ≈ --background     (#FBF8F3 paper)
+       --neutral-200 == --border         (#ECE3DD)
+       --neutral-500 == --muted-foreground (#9E8F89)
+       --neutral-900 == --foreground      (#241F22 ink) */
+  --neutral-50:  #FBF8F3;
+  --neutral-100: #F3ECE6;
+  --neutral-200: #ECE3DD;
+  --neutral-300: #D9CCC3;
+  --neutral-400: #BCAAA0;
+  --neutral-500: #9E8F89;
+  --neutral-600: #7C6F6A;
+  --neutral-700: #5C524F;
+  --neutral-800: #3D3539;
+  --neutral-900: #241F22; /* = --foreground */
+
+  /* --- Tier 1 + Tier 2: Status hues ---------------------------
+     Each base verified AA on cream (#FBF8F3) for text AND
+     white-on-base for fills; base also AA on its own *-soft bg.
+       success  #3B7A57  cream 4.83:1 · white-on 5.11:1 · on-soft 4.55:1
+       warning  #B45309  cream 4.74:1 · white-on 5.02:1 · on-soft 4.50:1
+       info     #2B6CB0  cream 5.12:1 · white-on 5.42:1 · on-soft 4.80:1
+       danger   #C42B30  cream 5.31:1 · white-on 5.62:1 · on-soft 4.91:1
+     (existing --destructive #E5484D is kept untouched for fills;
+      --danger is the AA-legible text variant.) */
+  --success: #3B7A57;
+  --success-foreground: #FFFFFF;
+  --success-soft: #EAF4EE;
+  --warning: #B45309;
+  --warning-foreground: #FFFFFF;
+  --warning-soft: #FCF1E3;
+  --info: #2B6CB0;
+  --info-foreground: #FFFFFF;
+  --info-soft: #EAF2FA;
+  --danger: #C42B30;
+  --danger-foreground: #FFFFFF;
+  --danger-soft: #FCECEC;
+
+  /* --- Typography scale (role → size / line-height) -----------
+     Family mapping: display + h1/h2/h3 = Cormorant (--font-serif)
+     where the design uses serif headings; body/label/caption =
+     Pretendard (--font-sans). Pair size with line-height var. */
+  --text-display: 2.25rem;   /* 36px */
+  --leading-display: 1.05;
+  --text-h1: 1.75rem;        /* 28px */
+  --leading-h1: 1.1;
+  --text-h2: 1.375rem;       /* 22px */
+  --leading-h2: 1.15;
+  --text-h3: 1.125rem;       /* 18px */
+  --leading-h3: 1.25;
+  --text-body: 0.9375rem;    /* 15px */
+  --leading-body: 1.55;
+  --text-label: 0.8125rem;   /* 13px */
+  --leading-label: 1.4;
+  --text-caption: 0.71875rem;/* 11.5px */
+  --leading-caption: 1.4;
+
+  /* --- Spacing -------------------------------------------------
+     Use Tailwind v4's built-in 4pt spacing scale (p-1 = 4px,
+     p-2 = 8px, gap-4 = 16px, …). Do NOT add redundant spacing
+     vars and do NOT use arbitrary values like p-[13px]. */
+
   /* hazel 공개 사이트 v2 팔레트 — Claude Design "alpha" (Sage & Wood) 기반.
      매장 다크 그린월 + 따뜻한 크림 베이스. 액센트는 무광 올리브. */
   --site-paper: #FAF7EF;          /* 따뜻한 거의-흰 — 페이지 베이스 */
@@ -86,89 +192,116 @@
   --site-olive: var(--site-leaf);
   --site-oxblood-light: var(--site-accent-soft);
   --site-oxblood-soft: var(--site-accent-soft);
-  /* 따뜻한 크림 배경 */
-  --background: #FAFAF8;
-  --foreground: #2D2D2A;
+  /* 어드민 로즈 테마 — Rose reskin 2026-05-26
+     --brand        : #A85475  (dusty deep rose — white text contrast ~5.01:1 ✅ WCAG AA)
+     --brand-muted  : #FBEFF3  (soft rose tint bg)
+     --sage         : #A09080  (warm taupe neutral, replaces sage green — no green hue)
+     --sage-muted   : #F2EDE8  (warm light hairline)
+     --chart-1      : #A85475  (rose peak)
+     --chart-2..5   : ink opacity ladder (monochrome)
+  */
+  /* 밝은 크림 배경 */
+  --background: #FBF8F3;
+  --foreground: #241F22;
   /* 카드: 순백 */
   --card: #FFFFFF;
-  --card-foreground: #2D2D2A;
+  --card-foreground: #241F22;
   --popover: #FFFFFF;
-  --popover-foreground: #2D2D2A;
-  /* 프라이머리: 차콜 */
-  --primary: #2D2D2A;
-  --primary-foreground: #FAFAF8;
-  --secondary: #F3F3F0;
-  --secondary-foreground: #2D2D2A;
-  /* 뮤트: 따뜻한 회색 */
-  --muted: #F3F3F0;
-  --muted-foreground: #9B9B93;
-  --accent: #F3F3F0;
-  --accent-foreground: #2D2D2A;
+  --popover-foreground: #241F22;
+  /* 프라이머리: 웜 near-black */
+  --primary: #241F22;
+  --primary-foreground: #FBF8F3;
+  --secondary: #F3ECE6;
+  --secondary-foreground: #241F22;
+  /* 뮤트: 따뜻한 크림 회색 */
+  --muted: #F3ECE6;
+  --muted-foreground: #9E8F89;
+  --accent: #F3ECE6;
+  --accent-foreground: #241F22;
   --destructive: #E5484D;
-  --border: #EBEBEA;
-  --input: #EBEBEA;
-  --ring: #2D2D2A;
-  /* 브랜드: Warm Coral */
-  --brand: #E5614E;
+  --border: #ECE3DD;
+  --input: #ECE3DD;
+  --ring: #A85475;
+  /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1, brand-on-cream ~4.83:1 */
+  --brand: #A85475;
   --brand-foreground: #FFFFFF;
-  --brand-muted: #FEF0EE;
-  /* 서브: Sage Green */
-  --sage: #8B9D83;
-  --sage-muted: #F0F4EE;
-  /* 차트 */
-  --chart-1: #E5614E;
-  --chart-2: #8B9D83;
-  --chart-3: #F5A623;
-  --chart-4: #5B8DEF;
-  --chart-5: #C084CF;
+  --brand-muted: #FBEFF3;
+  /* 서브: Warm Taupe (올리브 대체 — 그린 색조 제거, 크림 위 조용한 중립) */
+  --sage: #A09080;
+  --sage-muted: #F2EDE8;
+  /* 차트: 로즈 피크 + 잉크 불투명도 사다리 */
+  --chart-1: #A85475;
+  --chart-2: rgba(36, 31, 34, 0.55);
+  --chart-3: rgba(36, 31, 34, 0.38);
+  --chart-4: rgba(36, 31, 34, 0.22);
+  --chart-5: rgba(36, 31, 34, 0.12);
   /* 사이드바 */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #6B6B65;
-  --sidebar-primary: #2D2D2A;
-  --sidebar-primary-foreground: #FAFAF8;
-  --sidebar-accent: #F3F3F0;
-  --sidebar-accent-foreground: #2D2D2A;
-  --sidebar-border: #EBEBEA;
-  --sidebar-ring: #2D2D2A;
+  --sidebar-foreground: #6B5F5C;
+  --sidebar-primary: #241F22;
+  --sidebar-primary-foreground: #FBF8F3;
+  --sidebar-accent: #F3ECE6;
+  --sidebar-accent-foreground: #241F22;
+  --sidebar-border: #ECE3DD;
+  --sidebar-ring: #A85475;
 }
 
 .dark {
-  --background: #1A1A19;
-  --foreground: #EDEDEC;
-  --card: #242422;
-  --card-foreground: #EDEDEC;
-  --popover: #242422;
-  --popover-foreground: #EDEDEC;
-  --primary: #EDEDEC;
-  --primary-foreground: #1A1A19;
-  --secondary: #2D2D2A;
-  --secondary-foreground: #EDEDEC;
-  --muted: #2D2D2A;
-  --muted-foreground: #9B9B95;
-  --accent: #2D2D2A;
-  --accent-foreground: #EDEDEC;
+  --background: #1C1819;
+  --foreground: #EDE8E6;
+  --card: #262022;
+  --card-foreground: #EDE8E6;
+  --popover: #262022;
+  --popover-foreground: #EDE8E6;
+  --primary: #EDE8E6;
+  --primary-foreground: #1C1819;
+  --secondary: #332B2E;
+  --secondary-foreground: #EDE8E6;
+  --muted: #332B2E;
+  --muted-foreground: #9E8F89;
+  --accent: #332B2E;
+  --accent-foreground: #EDE8E6;
   --destructive: #E5484D;
-  --border: #333330;
-  --input: #333330;
-  --ring: #EDEDEC;
-  --brand: #E87461;
-  --brand-foreground: #FFFFFF;
-  --brand-muted: #3D2420;
-  --sage: #8B9D83;
-  --sage-muted: #1E2A1C;
-  --chart-1: #E87461;
-  --chart-2: #8B9D83;
-  --chart-3: #F5A623;
-  --chart-4: #5B8DEF;
-  --chart-5: #C084CF;
-  --sidebar: #1F1F1E;
-  --sidebar-foreground: #8B8B85;
-  --sidebar-primary: #EDEDEC;
-  --sidebar-primary-foreground: #1A1A19;
-  --sidebar-accent: #2D2D2A;
-  --sidebar-accent-foreground: #EDEDEC;
-  --sidebar-border: #333330;
-  --sidebar-ring: #EDEDEC;
+  /* Tier 2 status — dark overrides: brighter base for AA on dark
+     surfaces (#1C1819), soft = low-alpha tint of the base. */
+  --success: #5FB088;
+  --success-foreground: #0F2418;
+  --success-soft: rgba(95, 176, 136, 0.16);
+  --warning: #E0973B;
+  --warning-foreground: #2A1A05;
+  --warning-soft: rgba(224, 151, 59, 0.16);
+  --info: #5C9FE0;
+  --info-foreground: #0A1A2A;
+  --info-soft: rgba(92, 159, 224, 0.16);
+  --danger: #F0686C;
+  --danger-foreground: #2A0A0B;
+  --danger-soft: rgba(240, 104, 108, 0.16);
+  --border: #3D3336;
+  --input: #3D3336;
+  --ring: #DB8FA9;
+  /* 다크 브랜드: 라이트 더스티 로즈 (어두운 배경 위 — white-on-brand 불필요, 버튼 bg-brand 대비 확인:
+     #DB8FA9 on #1C1819: bg가 어두움→ 텍스트는 dark bg 위 light rose, 버튼은 rose bg 위 dark text 권장.
+     dark 모드 bg-brand 버튼은 dark text(--foreground) 사용 권장. brand-foreground = dark ink) */
+  --brand: #DB8FA9;
+  --brand-foreground: #1C1819;
+  --brand-muted: #3A2430;
+  /* 다크 서브: 워밍 뉴트럴 */
+  --sage: #9B8E84;
+  --sage-muted: #2C2626;
+  /* 다크 차트 */
+  --chart-1: #DB8FA9;
+  --chart-2: rgba(237, 232, 230, 0.50);
+  --chart-3: rgba(237, 232, 230, 0.35);
+  --chart-4: rgba(237, 232, 230, 0.20);
+  --chart-5: rgba(237, 232, 230, 0.10);
+  --sidebar: #1F1B1D;
+  --sidebar-foreground: #9B8B85;
+  --sidebar-primary: #EDE8E6;
+  --sidebar-primary-foreground: #1C1819;
+  --sidebar-accent: #332B2E;
+  --sidebar-accent-foreground: #EDE8E6;
+  --sidebar-border: #3D3336;
+  --sidebar-ring: #DB8FA9;
 }
 
 @layer base {

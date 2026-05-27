@@ -157,13 +157,14 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                 <button
                   key={photo.url}
                   onClick={() => setCurrentIndex(index)}
+                  aria-label={`${index + 1}번째 사진 보기`}
                   className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${
                     index === currentIndex ? 'border-brand' : 'border-transparent'
                   }`}
                 >
                   <Image
                     src={photo.url}
-                    alt=""
+                    alt={`사진 ${index + 1}`}
                     fill
                     sizes="64px"
                     className="object-cover"

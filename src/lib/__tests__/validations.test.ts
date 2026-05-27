@@ -1,19 +1,19 @@
-import { describe, it, expect } from 'vitest'
+import {describe, expect, it} from 'vitest'
 import * as fc from 'fast-check'
 import {
-  saleSchema,
-  customerSchema,
-  expenseSchema,
-  reservationSchema,
-  uuidSchema,
-  dateSchema,
-  phoneSchema,
-  colorSchema,
-  idsSchema,
-  searchQuerySchema,
-  monthSchema,
-  photoTagSchema,
-  cardCompanySettingSchema,
+    cardCompanySettingSchema,
+    colorSchema,
+    customerSchema,
+    dateSchema,
+    expenseSchema,
+    idsSchema,
+    monthSchema,
+    phoneSchema,
+    photoTagSchema,
+    reservationSchema,
+    saleSchema,
+    searchQuerySchema,
+    uuidSchema,
 } from '../validations'
 
 // =============================================
@@ -146,7 +146,6 @@ describe('Sale Schema (매출)', () => {
     product_category: '미니 꽃다발',
     amount: 50000,
     payment_method: 'card' as const,
-    card_company: '신한카드',
     note: '테스트',
   }
 

@@ -113,6 +113,7 @@ export function SalesSettingsModal({
               onClick={handleAddCategory}
               size="icon"
               disabled={isAddingCat}
+              aria-label="카테고리 추가"
             >
               {isAddingCat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </Button>
@@ -147,21 +148,23 @@ export function SalesSettingsModal({
                         className="h-8 w-8"
                         onClick={handleSaveCatEdit}
                         disabled={isSavingCat}
+                        aria-label="저장"
                       >
-                        {isSavingCat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-green-600" />}
+                        {isSavingCat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-success" />}
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8"
                         onClick={() => setEditingCatId(null)}
+                        aria-label="취소"
                       >
                         <X className="w-4 h-4" />
                       </Button>
                     </>
                   ) : deletingCatId === cat.id ? (
                     <div className="flex items-center gap-2 w-full">
-                      <span className="flex-1 text-sm text-destructive">삭제하시겠습니까?</span>
+                      <span className="flex-1 text-sm text-danger">삭제하시겠습니까?</span>
                       <Button
                         size="sm"
                         variant="destructive"
@@ -196,6 +199,7 @@ export function SalesSettingsModal({
                           setEditCatName(cat.label);
                           setEditCatColor(cat.color);
                         }}
+                        aria-label="카테고리 수정"
                       >
                         <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
@@ -204,8 +208,9 @@ export function SalesSettingsModal({
                         variant="ghost"
                         className="h-8 w-8"
                         onClick={() => setDeletingCatId(cat.id)}
+                        aria-label="카테고리 삭제"
                       >
-                        <X className="w-4 h-4 text-destructive" />
+                        <X className="w-4 h-4 text-danger" />
                       </Button>
                     </>
                   )}

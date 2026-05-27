@@ -1,20 +1,31 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth-guard';
-import type { Sale, Reservation, PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
+import {requireAuth} from '@/lib/auth-guard';
 import type {
-  CategoryStat,
-  PaymentMethodStat,
-  ChannelStat,
-  CustomerStat,
-  ExpenseCategoryStat,
-} from './statistics';
-import { withErrorLogging } from '@/lib/errors';
-import { getMonthDateRange, getTodayKST } from '@/lib/utils';
-import { PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS } from '@/lib/constants';
+    ExpenseCategory,
+    PaymentMethod,
+    Reservation,
+    ReservationChannel,
+    ReservationStatus,
+    Sale,
+} from '@/types/database';
+import type {CategoryStat, ChannelStat, CustomerStat, ExpenseCategoryStat, PaymentMethodStat,} from './statistics';
+import {withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 export interface DashboardSummary {
+  totalAmount: number;
+  cardAmount: number;
+  cashAmount: number;
+  transferAmount: number;
+  naverpayAmount: number;
+  kakaopayAmount: number;
+}
+
+// ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
+// 서버 계약과 1:1. 멀티테넌시는 서버 JWT(TenantContext)가 처리.
+
+interface KotlinDashboardSummary {
   totalAmount: number;
   cardAmount: number;
   cashAmount: number;
@@ -25,59 +36,212 @@ export interface DashboardSummary {
   pendingAmount: number;
 }
 
+interface KotlinSale {
+  id: string;
+  date: string;
+  productName: string;
+  productCategory: string | null;
+  amount: number;
+  paymentMethod: string;
+  cardCompany: string | null;
+  fee: number | null;
+  expectedDeposit: number | null;
+  expectedDepositDate: string | null;
+  depositStatus: string;
+  depositedAt: string | null;
+  reservationChannel: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerId: string | null;
+  note: string | null;
+  isUnpaid: boolean;
+  hasReview: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface KotlinReservation {
+  id: string;
+  date: string;
+  time: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  title: string;
+  description: string | null;
+  status: string;
+  saleId: string | null;
+  amount: number;
+  reminderAt: string | null;
+  reminderSent: boolean;
+  pickupCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface KotlinCategoryOption {
+  value: string;
+  label: string;
+}
+
+interface KotlinCategoryStat {
+  name: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinPaymentMethodStat {
+  method: string;
+  label: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinChannelStat {
+  channel: string;
+  label: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinExpenseCategoryStat {
+  category: string;
+  label: string;
+  amount: number;
+  percentage: number;
+}
+
+interface KotlinCustomerStat {
+  totalCustomers: number;
+  returningCustomers: number;
+  newCustomers: number;
+}
+
+interface KotlinTodayDashboard {
+  summary: KotlinDashboardSummary;
+  upcomingReservations: KotlinReservation[];
+  triggeredReminders: KotlinReservation[];
+  recentSales: KotlinSale[];
+  saleCategories: KotlinCategoryOption[];
+}
+
+interface KotlinMonthDashboard {
+  summary: KotlinDashboardSummary;
+  expenseTotal: number;
+  categoryStats: KotlinCategoryStat[];
+  paymentStats: KotlinPaymentMethodStat[];
+  channelStats: KotlinChannelStat[];
+  customerStats: KotlinCustomerStat;
+  expenseStats: KotlinExpenseCategoryStat[];
+}
+
+function mapSummary(s: KotlinDashboardSummary): DashboardSummary {
+  return {
+    totalAmount: s.totalAmount,
+    cardAmount: s.cardAmount,
+    cashAmount: s.cashAmount,
+    transferAmount: s.transferAmount,
+    naverpayAmount: s.naverpayAmount,
+    kakaopayAmount: s.kakaopayAmount,
+  };
+}
+
+// photos는 Kotlin /dashboard가 반환하지 않으므로 undefined.
+function mapSale(s: KotlinSale): Sale {
+  return {
+    id: s.id,
+    user_id: '',
+    date: s.date,
+    product_name: s.productName,
+    product_category: s.productCategory ?? s.productName,
+    amount: s.amount,
+    payment_method: s.paymentMethod as PaymentMethod,
+    reservation_channel: s.reservationChannel as ReservationChannel,
+    customer_name: s.customerName ?? undefined,
+    customer_phone: s.customerPhone ?? undefined,
+    customer_id: s.customerId ?? undefined,
+    note: s.note ?? undefined,
+    is_unpaid: s.isUnpaid,
+    has_review: s.hasReview,
+    photos: undefined,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt,
+  };
+}
+
+function mapReservation(r: KotlinReservation): Reservation {
+  return {
+    id: r.id,
+    user_id: '',
+    date: r.date,
+    time: r.time ?? null,
+    customer_name: r.customerName,
+    customer_phone: r.customerPhone ?? null,
+    title: r.title,
+    description: r.description ?? null,
+    status: r.status as ReservationStatus,
+    sale_id: r.saleId ?? null,
+    amount: r.amount,
+    reminder_at: r.reminderAt ?? null,
+    reminder_sent: r.reminderSent,
+    pickup_completed: r.pickupCompleted,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt,
+  };
+}
+
+function mapCategoryStats(stats: KotlinCategoryStat[]): CategoryStat[] {
+  return stats.map((st) => ({
+    name: st.name,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
+}
+
+function mapPaymentStats(stats: KotlinPaymentMethodStat[]): PaymentMethodStat[] {
+  return stats.map((st) => ({
+    method: st.method as PaymentMethod,
+    label: st.label,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
+}
+
+function mapChannelStats(stats: KotlinChannelStat[]): ChannelStat[] {
+  return stats.map((st) => ({
+    channel: st.channel as ReservationChannel,
+    label: st.label,
+    count: st.count,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
+}
+
+function mapExpenseStats(stats: KotlinExpenseCategoryStat[]): ExpenseCategoryStat[] {
+  return stats.map((st) => ({
+    category: st.category as ExpenseCategory,
+    label: st.label,
+    amount: st.amount,
+    percentage: st.percentage,
+  }));
+}
+
+function mapCustomerStats(s: KotlinCustomerStat): CustomerStat {
+  return {
+    newCustomers: s.newCustomers,
+    returningCustomers: s.returningCustomers,
+    totalCustomers: s.totalCustomers,
+  };
+}
+
 async function _getTodaySummary(): Promise<DashboardSummary> {
   await requireAuth();
-  const supabase = await createClient();
-  const today = getTodayKST();
-
-  const { data: sales, error } = await supabase
-    .from('sales')
-    .select('amount, payment_method, deposit_status')
-    .eq('date', today);
-
-  if (error) throw error;
-
-  const summary: DashboardSummary = {
-    totalAmount: 0,
-    cardAmount: 0,
-    cashAmount: 0,
-    transferAmount: 0,
-    naverpayAmount: 0,
-    kakaopayAmount: 0,
-    pendingCount: 0,
-    pendingAmount: 0,
-  };
-
-  (sales || []).forEach((sale) => {
-    if (sale.payment_method === 'unpaid') return; // 미수건은 총 매출에서 제외
-
-    summary.totalAmount += sale.amount;
-
-    switch (sale.payment_method) {
-      case 'card':
-        summary.cardAmount += sale.amount;
-        break;
-      case 'cash':
-        summary.cashAmount += sale.amount;
-        break;
-      case 'transfer':
-        summary.transferAmount += sale.amount;
-        break;
-      case 'naverpay':
-        summary.naverpayAmount += sale.amount;
-        break;
-      case 'kakaopay':
-        summary.kakaopayAmount += sale.amount;
-        break;
-    }
-
-    if (sale.deposit_status === 'pending') {
-      summary.pendingCount += 1;
-      summary.pendingAmount += sale.amount;
-    }
-  });
-
-  return summary;
+  const data = await apiFetch<KotlinTodayDashboard>('/dashboard/today');
+  return mapSummary(data.summary);
 }
 
 export const getTodaySummary = withErrorLogging('getTodaySummary', _getTodaySummary);
@@ -85,80 +249,24 @@ export const getTodaySummary = withErrorLogging('getTodaySummary', _getTodaySumm
 
 async function _getRecentSales(limit: number = 10): Promise<Sale[]> {
   await requireAuth();
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('sales')
-    .select('*')
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return data as Sale[];
+  // /dashboard/today는 최근 매출 5건을 반환한다. limit이 5를 초과해도 서버가 5건만 제공.
+  const data = await apiFetch<KotlinTodayDashboard>('/dashboard/today');
+  return data.recentSales.slice(0, limit).map(mapSale);
 }
 
 export const getRecentSales = withErrorLogging('getRecentSales', _getRecentSales);
 
 async function _getMonthSummary(month?: string): Promise<DashboardSummary> {
   await requireAuth();
-  const supabase = await createClient();
-
-  let startDate: string;
-  let endDate: string;
-
-  if (month) {
-    const [year, m] = month.split('-').map(Number);
-    startDate = new Date(year, m - 1, 1).toISOString().split('T')[0];
-    endDate = new Date(year, m, 0).toISOString().split('T')[0];
-  } else {
-    const now = new Date();
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-  }
-
-  const { data: sales, error } = await supabase
-    .from('sales')
-    .select('amount, payment_method, deposit_status')
-    .gte('date', startDate)
-    .lte('date', endDate);
-
-  if (error) throw error;
-
-  return buildSummary(sales || []);
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const data = await apiFetch<KotlinMonthDashboard>(`/dashboard/month?${params.toString()}`);
+  return mapSummary(data.summary);
 }
 
 export const getMonthSummary = withErrorLogging('getMonthSummary', _getMonthSummary);
 
 // --- 통합 액션 (대시보드 성능 최적화) ---
-
-function buildSummary(sales: { amount: number; payment_method: string; deposit_status: string }[]): DashboardSummary {
-  const summary: DashboardSummary = {
-    totalAmount: 0, cardAmount: 0, cashAmount: 0,
-    transferAmount: 0, naverpayAmount: 0, kakaopayAmount: 0,
-    pendingCount: 0, pendingAmount: 0,
-  };
-
-  sales.forEach((sale) => {
-    if (sale.payment_method === 'unpaid') return; // 미수건은 총 매출에서 제외
-    summary.totalAmount += sale.amount;
-    switch (sale.payment_method) {
-      case 'card': summary.cardAmount += sale.amount; break;
-      case 'cash': summary.cashAmount += sale.amount; break;
-      case 'transfer': summary.transferAmount += sale.amount; break;
-      case 'naverpay': summary.naverpayAmount += sale.amount; break;
-      case 'kakaopay': summary.kakaopayAmount += sale.amount; break;
-    }
-    if (sale.deposit_status === 'pending') {
-      summary.pendingCount += 1;
-      summary.pendingAmount += sale.amount;
-    }
-  });
-
-  return summary;
-}
-
-// getMonthDateRange를 @/lib/utils에서 가져옴
 
 export interface DashboardTodayData {
   summary: DashboardSummary;
@@ -167,35 +275,31 @@ export interface DashboardTodayData {
   saleCategories: { value: string; label: string }[];
 }
 
-/** 오늘 대시보드 데이터를 단일 Server Action으로 조회 (4개 병렬 DB 쿼리) */
+/** 오늘 대시보드 데이터를 단일 Server Action으로 조회 (Kotlin /dashboard/today) */
 async function _getDashboardTodayData(): Promise<DashboardTodayData> {
   await requireAuth();
-  const supabase = await createClient();
-  const today = getTodayKST();
+  const data = await apiFetch<KotlinTodayDashboard>('/dashboard/today');
 
-  const [salesRes, reservationsRes, recentRes, categoriesRes] = await Promise.all([
-    supabase.from('sales').select('amount, payment_method, deposit_status').eq('date', today),
-    supabase.from('reservations').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }).order('time', { ascending: true, nullsFirst: false }),
-    supabase.from('sales').select('*').order('date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
-    supabase.from('sale_categories').select('value, label').order('sort_order', { ascending: true }),
-  ]);
-
-  if (salesRes.error) throw salesRes.error;
-  if (reservationsRes.error) throw reservationsRes.error;
-  if (recentRes.error) throw recentRes.error;
-  if (categoriesRes.error) throw categoriesRes.error;
+  // 기존 동작: 오늘 이후 비취소 예약 전체를 클라이언트에서 재필터.
+  // 서버의 upcomingReservations + triggeredReminders를 id 기준 dedup해 합친다.
+  const reservationMap = new Map<string, Reservation>();
+  for (const r of [...data.upcomingReservations, ...data.triggeredReminders]) {
+    reservationMap.set(r.id, mapReservation(r));
+  }
+  const reservations = Array.from(reservationMap.values()).sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.time ?? '').localeCompare(b.time ?? '');
+  });
 
   return {
-    summary: buildSummary(salesRes.data || []),
-    reservations: (reservationsRes.data || []) as Reservation[],
-    recentSales: (recentRes.data || []) as Sale[],
-    saleCategories: categoriesRes.data || [],
+    summary: mapSummary(data.summary),
+    reservations,
+    recentSales: data.recentSales.map(mapSale),
+    saleCategories: data.saleCategories.map((c) => ({ value: c.value, label: c.label })),
   };
 }
 
 export const getDashboardTodayData = withErrorLogging('getDashboardTodayData', _getDashboardTodayData);
-
-// 라벨 상수는 @/lib/constants에서 가져옴
 
 export interface DashboardMonthData {
   summary: DashboardSummary;
@@ -207,106 +311,21 @@ export interface DashboardMonthData {
   expenseStats: ExpenseCategoryStat[];
 }
 
-/** 월별 대시보드 데이터를 단일 Server Action으로 조회 (2~3개 DB 쿼리) */
+/** 월별 대시보드 데이터를 단일 Server Action으로 조회 (Kotlin /dashboard/month) */
 async function _getDashboardMonthData(month?: string): Promise<DashboardMonthData> {
   await requireAuth();
-  const supabase = await createClient();
-  const { startDate, endDate } = getMonthDateRange(month);
-
-  const [salesRes, expensesRes] = await Promise.all([
-    supabase.from('sales')
-      .select('amount, payment_method, deposit_status, product_category, reservation_channel, customer_phone')
-      .gte('date', startDate).lte('date', endDate),
-    supabase.from('expenses')
-      .select('category, total_amount')
-      .gte('date', startDate).lte('date', endDate),
-  ]);
-
-  if (salesRes.error) throw salesRes.error;
-  if (expensesRes.error) throw expensesRes.error;
-
-  const sales = salesRes.data || [];
-  const expenses = expensesRes.data || [];
-
-  const summary = buildSummary(sales);
-  const expenseTotal = expenses.reduce((sum, e) => sum + e.total_amount, 0);
-
-  // 미수건 제외한 매출만 통계에 사용
-  const paidSales = sales.filter((s) => s.payment_method !== 'unpaid');
-
-  // 카테고리별 매출
-  const catMap = new Map<string, { count: number; amount: number }>();
-  let catTotal = 0;
-  paidSales.forEach((s) => {
-    const cat = s.product_category || '기타';
-    const ex = catMap.get(cat) || { count: 0, amount: 0 };
-    ex.count += 1; ex.amount += s.amount;
-    catMap.set(cat, ex); catTotal += s.amount;
-  });
-  const categoryStats: CategoryStat[] = Array.from(catMap.entries())
-    .map(([name, st]) => ({ name, count: st.count, amount: st.amount, percentage: catTotal > 0 ? Math.round((st.amount / catTotal) * 100) : 0 }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // 결제방식별 매출
-  const payMap = new Map<string, { count: number; amount: number }>();
-  let payTotal = 0;
-  paidSales.forEach((s) => {
-    const pm = s.payment_method;
-    const ex = payMap.get(pm) || { count: 0, amount: 0 };
-    ex.count += 1; ex.amount += s.amount;
-    payMap.set(pm, ex); payTotal += s.amount;
-  });
-  const paymentStats: PaymentMethodStat[] = Array.from(payMap.entries())
-    .map(([method, st]) => ({ method: method as PaymentMethod, label: PAYMENT_LABELS[method] || method, count: st.count, amount: st.amount, percentage: payTotal > 0 ? Math.round((st.amount / payTotal) * 100) : 0 }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // 채널별 매출
-  const chanMap = new Map<string, { count: number; amount: number }>();
-  let chanTotal = 0;
-  paidSales.forEach((s) => {
-    const ch = s.reservation_channel || 'other';
-    const ex = chanMap.get(ch) || { count: 0, amount: 0 };
-    ex.count += 1; ex.amount += s.amount;
-    chanMap.set(ch, ex); chanTotal += s.amount;
-  });
-  const channelStats: ChannelStat[] = Array.from(chanMap.entries())
-    .map(([channel, st]) => ({ channel: channel as ReservationChannel, label: CHANNEL_LABELS[channel] || channel, count: st.count, amount: st.amount, percentage: chanTotal > 0 ? Math.round((st.amount / chanTotal) * 100) : 0 }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // 지출 카테고리별
-  const expCatMap = new Map<string, number>();
-  let expCatTotal = 0;
-  expenses.forEach((e) => {
-    expCatMap.set(e.category, (expCatMap.get(e.category) || 0) + e.total_amount);
-    expCatTotal += e.total_amount;
-  });
-  const expenseStats: ExpenseCategoryStat[] = Array.from(expCatMap.entries())
-    .map(([category, amount]) => ({ category: category as ExpenseCategory, label: EXPENSE_LABELS[category] || category, amount, percentage: expCatTotal > 0 ? Math.round((amount / expCatTotal) * 100) : 0 }))
-    .sort((a, b) => b.amount - a.amount);
-
-  // 고객 통계 (N+1 제거: 단일 쿼리)
-  const uniquePhones = [...new Set(
-    sales.filter((s) => s.customer_phone).map((s) => s.customer_phone as string)
-  )];
-  const totalCustomers = uniquePhones.length;
-  let returningCustomers = 0;
-
-  if (totalCustomers > 0) {
-    const { data: previousSales } = await supabase
-      .from('sales')
-      .select('customer_phone')
-      .in('customer_phone', uniquePhones)
-      .lt('date', startDate);
-
-    returningCustomers = new Set(
-      (previousSales || []).map((s) => s.customer_phone)
-    ).size;
-  }
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  const data = await apiFetch<KotlinMonthDashboard>(`/dashboard/month?${params.toString()}`);
 
   return {
-    summary, expenseTotal, categoryStats, paymentStats, channelStats,
-    customerStats: { totalCustomers, returningCustomers, newCustomers: totalCustomers - returningCustomers },
-    expenseStats,
+    summary: mapSummary(data.summary),
+    expenseTotal: data.expenseTotal,
+    categoryStats: mapCategoryStats(data.categoryStats),
+    paymentStats: mapPaymentStats(data.paymentStats),
+    channelStats: mapChannelStats(data.channelStats),
+    customerStats: mapCustomerStats(data.customerStats),
+    expenseStats: mapExpenseStats(data.expenseStats),
   };
 }
 

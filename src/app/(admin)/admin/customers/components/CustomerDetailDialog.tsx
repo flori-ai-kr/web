@@ -86,8 +86,12 @@ export function CustomerDetailDialog({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-lg text-foreground">{customer.name}</span>
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded ${gradeLabels[customer.grade].bg} ${gradeLabels[customer.grade].color}`}>
-                    {gradeLabels[customer.grade].icon} {gradeLabels[customer.grade].label}
+                  <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded ${gradeLabels[customer.grade].bg} ${gradeLabels[customer.grade].color}`}>
+                    {(() => {
+                      const GradeIcon = gradeLabels[customer.grade].icon;
+                      return GradeIcon ? <GradeIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null;
+                    })()}
+                    {gradeLabels[customer.grade].label}
                   </span>
                   <GenderBadge gender={customer.gender} size="md" />
                 </div>
@@ -228,7 +232,7 @@ export function CustomerDetailDialog({
                 </Button>
                 <Button
                   variant="outline"
-                  className="text-destructive hover:text-destructive hover:bg-red-50"
+                  className="text-danger hover:text-danger hover:bg-danger-soft"
                   onClick={() => onDelete(customer)}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />

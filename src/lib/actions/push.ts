@@ -3,8 +3,9 @@
 import webpush from 'web-push';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging } from '@/lib/errors';
+import { AppError, withErrorLogging } from '@/lib/errors';
 import { reportError } from '@/lib/logger';
+import { apiFetch } from '@/lib/api/client';
 
 // VAPID 설정 (lazy 초기화 - 빌드 시 환경변수 없을 수 있음)
 let vapidConfigured = false;
@@ -125,23 +126,23 @@ async function processPushResults(
 async function _subscribeToPush(
   subscription: PushSubscriptionData,
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: user.id,
-      endpoint: subscription.endpoint,
-      p256dh: subscription.keys.p256dh,
-      auth: subscription.keys.auth,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'endpoint' },
-  );
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  try {
+    // 서버가 endpoint 기준 upsert + is_active=true 처리한다 (204 No Content)
+    await apiFetch<void>('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      }),
+    });
+    return { success: true };
+  } catch (error) {
+    if (error instanceof AppError) return { success: false, error: error.message };
+    throw error;
+  }
 }
 
 export const subscribeToPush = withErrorLogging('subscribeToPush', _subscribeToPush);
@@ -151,38 +152,36 @@ export const subscribeToPush = withErrorLogging('subscribeToPush', _subscribeToP
 async function _unsubscribeFromPush(
   endpoint: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  const { error } = await supabase
-    .from('push_subscriptions')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq('user_id', user.id)
-    .eq('endpoint', endpoint);
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  try {
+    // 서버가 endpoint 구독을 is_active=false 처리한다 (204 No Content)
+    await apiFetch<void>(`/push/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+      method: 'POST',
+    });
+    return { success: true };
+  } catch (error) {
+    if (error instanceof AppError) return { success: false, error: error.message };
+    throw error;
+  }
 }
 
 export const unsubscribeFromPush = withErrorLogging('unsubscribeFromPush', _unsubscribeFromPush);
 
 // ─── 구독 상태 확인 ────────────────────────────────────────────
 
+interface PushStatusDto {
+  subscribed: boolean;
+}
+
 async function _getPushSubscriptionStatus(): Promise<{
   success: boolean;
   isSubscribed: boolean;
 }> {
-  const user = await requireAuth();
-  const supabase = await createClient();
+  await requireAuth();
 
-  const { data } = await supabase
-    .from('push_subscriptions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .limit(1);
-
-  return { success: true, isSubscribed: (data?.length || 0) > 0 };
+  const dto = await apiFetch<PushStatusDto>('/push/status');
+  return { success: true, isSubscribed: dto.subscribed };
 }
 
 export const getPushSubscriptionStatus = withErrorLogging(

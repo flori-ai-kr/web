@@ -47,24 +47,8 @@ export {
 } from './dashboard';
 export type { DashboardSummary, DashboardTodayData, DashboardMonthData } from './dashboard';
 
-// Deposits
-export {
-  getDeposits,
-  getPendingDeposits,
-  getCompletedDeposits,
-  confirmDeposit,
-  confirmMultipleDeposits,
-  revertDeposit,
-  getDepositsSummary,
-} from './deposits';
-export type { DepositsFilter, DepositsSummary } from './deposits';
-
 // Settings
 export {
-  getCardCompanySettings,
-  updateCardCompanySetting,
-  createCardCompanySetting,
-  deleteCardCompanySetting,
   getProductCategories,
   createProductCategory,
   updateProductCategory,

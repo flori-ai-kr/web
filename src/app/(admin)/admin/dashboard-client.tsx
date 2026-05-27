@@ -6,7 +6,6 @@ import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {
-    AlertCircle,
     ArrowUpRight,
     CalendarDays,
     ChevronLeft,
@@ -32,6 +31,10 @@ import type {
     PaymentMethodStat,
 } from '@/lib/actions/statistics';
 import {formatCurrency, getTodayKST} from '@/lib/utils';
+import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
+import {GrowthRecordWidget} from '@/components/dashboard/growth-record-widget';
+import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
+import {SectionHeader} from '@/components/dashboard/section-header';
 
 const PAGE_SIZE = 5;
 
@@ -187,7 +190,7 @@ export function DashboardClient() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">대시보드</h1>
+          <h1 className="font-sans text-2xl font-semibold text-foreground tracking-tight">대시보드</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(now, 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
           </p>
@@ -208,107 +211,67 @@ export function DashboardClient() {
 
       {/* Summary Cards */}
       {isTodayLoading || isMonthLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 overflow-hidden rounded-xl border border-border bg-card">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4 space-y-2">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-6 w-24" />
-              </CardContent>
-            </Card>
+            <div
+              key={i}
+              className="p-5 space-y-3 border-border [&:not(:last-child)]:border-r [&:nth-child(-n+2)]:border-b md:[&:nth-child(-n+2)]:border-b-0"
+            >
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-8 w-24" />
+            </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">오늘 매출</p>
-              <p className="text-lg font-bold text-foreground mt-1 tabular-nums">
-                {formatCurrency(todaySummary?.totalAmount || 0)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">
-                {monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 매출
-              </p>
-              <p className="text-lg font-bold text-foreground mt-1 tabular-nums">
-                {formatCurrency(totalSales)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">
-                {monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 지출
-              </p>
-              <p className="text-lg font-bold text-foreground mt-1 tabular-nums">
-                {formatCurrency(monthExpenseTotal)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">순이익</p>
-              <p
-                className={`text-lg font-bold mt-1 tabular-nums ${netProfit >= 0 ? 'text-foreground' : 'text-destructive'}`}
-              >
-                {formatCurrency(netProfit)}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">매출 - 지출</p>
-            </CardContent>
-          </Card>
-        </div>
+        <KpiGroup>
+          <KpiCard label="오늘 매출" value={formatCurrency(todaySummary?.totalAmount || 0)} />
+          <KpiCard
+            label={`${monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 매출`}
+            value={formatCurrency(totalSales)}
+          />
+          <KpiCard
+            label={`${monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 지출`}
+            value={formatCurrency(monthExpenseTotal)}
+          />
+          <KpiCard
+            label="순이익"
+            value={formatCurrency(netProfit)}
+            valueClassName={netProfit >= 0 ? '' : 'text-danger'}
+            sub="매출 − 지출"
+          />
+        </KpiGroup>
       )}
 
-      {/* Pending Deposits Alert */}
-      {todaySummary && todaySummary.pendingCount > 0 && (
-        <Card className="border-brand/20 bg-brand-muted/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-4 w-4 text-brand" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  미입금 {todaySummary.pendingCount}건 · {formatCurrency(todaySummary.pendingAmount)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  확인이 필요한 입금 내역이 있습니다
-                </p>
-              </div>
-              <Link
-                href="/admin/deposits"
-                className="text-sm text-brand hover:text-brand/80 font-medium flex items-center gap-1 shrink-0 transition-colors"
-              >
-                확인 <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Flori AI 브리핑 + 성장 기록 (mock data) */}
+      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-4">
+        <AiBriefingCard />
+        <GrowthRecordWidget />
+      </div>
 
       {/* Two Column: Reservations + Recent Sales */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Upcoming Reservations */}
         <Card className="overflow-hidden">
-          <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-brand" />
-              다가오는 예약
-              {upcomingReservations.length > 0 && (
-                <span className="text-muted-foreground">({upcomingReservations.length}건)</span>
-              )}
-            </h2>
-            <Link
-              href="/admin/calendar"
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              캘린더 <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <CardContent className="p-4">
+          <CardContent className="p-5 pb-3">
+            <SectionHeader
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-brand" aria-hidden="true" />
+                  다가오는 예약
+                </span>
+              }
+              meta={upcomingReservations.length > 0 ? `${upcomingReservations.length}건` : undefined}
+              action={
+                <Link
+                  href="/admin/calendar"
+                  className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
+                >
+                  캘린더 <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              }
+            />
+          </CardContent>
+          <CardContent className="p-5 pt-4">
             {isTodayLoading ? (
               <div className="space-y-2 py-1">
                 {[...Array(5)].map((_, i) => (
@@ -403,19 +366,25 @@ export function DashboardClient() {
 
         {/* Recent Sales */}
         <Card className="overflow-hidden">
-          <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
-              <ArrowUpRight className="h-4 w-4 text-brand" />
-              최근 매출
-            </h2>
-            <Link
-              href="/admin/sales"
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              더보기 <ArrowUpRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <CardContent className="p-4">
+          <CardContent className="p-5 pb-3">
+            <SectionHeader
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <ArrowUpRight className="h-4 w-4 text-brand" aria-hidden="true" />
+                  최근 매출
+                </span>
+              }
+              action={
+                <Link
+                  href="/admin/sales"
+                  className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
+                >
+                  더보기 <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              }
+            />
+          </CardContent>
+          <CardContent className="p-5 pt-4">
             {isTodayLoading ? (
               <div className="space-y-1 py-1">
                 {[...Array(5)].map((_, i) => (
@@ -476,13 +445,16 @@ export function DashboardClient() {
       {/* Monthly Analysis Section */}
       <div>
         <div className="mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">
-              {monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 분석
-            </h2>
-            {isMonthLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="로딩 중" />}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">어떤 상품이 잘 팔렸는지, 어떤 결제방식이 많았는지 한눈에 볼 수 있어요</p>
+          <SectionHeader
+            title={`${monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 분석`}
+            meta="월간 인사이트"
+            action={
+              isMonthLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="로딩 중" />
+              ) : undefined
+            }
+          />
+          <p className="text-xs text-muted-foreground mt-2">어떤 상품이 잘 팔렸는지, 어떤 결제방식이 많았는지 한눈에 볼 수 있어요</p>
         </div>
 
         {/* Customer + Summary row */}
@@ -622,7 +594,7 @@ export function DashboardClient() {
                     percentage: e.percentage,
                   }))}
                   emptyMessage="지출 데이터가 없습니다"
-                  barColor="bg-destructive/30"
+                  barColor="bg-danger/30"
                 />
               </CardContent>
             </Card>

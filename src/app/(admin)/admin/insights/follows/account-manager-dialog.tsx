@@ -208,7 +208,7 @@ function AccountRow({
           className={cn(
             'text-[11px] px-2 py-1 rounded-md shrink-0',
             account.active
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              ? 'bg-success-soft text-success'
               : 'bg-muted text-muted-foreground',
           )}
           aria-label={account.active ? '비활성화' : '활성화'}
@@ -233,7 +233,7 @@ function AccountRow({
         </button>
         <button
           onClick={onDelete}
-          className="p-1.5 text-muted-foreground hover:text-red-500"
+          className="p-1.5 text-muted-foreground hover:text-danger"
           aria-label="삭제"
         >
           <Trash2 className="w-4 h-4" />

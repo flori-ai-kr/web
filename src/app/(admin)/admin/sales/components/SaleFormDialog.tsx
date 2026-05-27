@@ -14,7 +14,7 @@ import {format} from 'date-fns';
 import {toast} from 'sonner';
 import {cn, formatPhoneNumber} from '@/lib/utils';
 import {createSale, getSaleSuggestions, updateSale} from '@/lib/actions/sales';
-import type {CardCompanySetting, Sale} from '@/types/database';
+import type {Sale} from '@/types/database';
 import type {PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
 
 interface SaleFormDialogProps {
@@ -23,7 +23,6 @@ interface SaleFormDialogProps {
   sale?: Sale | null;
   categories: SaleCategory[];
   payments: PaymentMethod[];
-  cardCompanies: CardCompanySetting[];
   initialCustomer?: { name: string; id: string | null; phone: string | null };
   onSuccess: (newSale?: Sale) => void;
 }
@@ -34,7 +33,6 @@ export function SaleFormDialog({
   sale,
   categories,
   payments,
-  cardCompanies,
   initialCustomer,
   onSuccess,
 }: SaleFormDialogProps) {
@@ -198,23 +196,6 @@ export function SaleFormDialog({
               ))}
             </div>
           </div>
-          {/* 카드사 - 카드 결제일 때만 */}
-          {paymentMethod === 'card' && (
-            <div className="space-y-2">
-              <Label>카드사 *</Label>
-              <Select name="card_company" defaultValue={sale?.card_company || ''} key={sale?.id ? `cc-${sale.id}` : 'cc-create'} required>
-                <SelectTrigger className="bg-muted">
-                  <SelectValue placeholder="카드사 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cardCompanies.map(cc => (
-                    <SelectItem key={cc.id} value={cc.name}>{cc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">카드사별 수수료가 자동 계산돼요</p>
-            </div>
-          )}
           {/* 예약방식 - 로드 구입이면 road 고정, 아니면 선택 */}
           {isRoadPurchase ? (
             <input type="hidden" name="reservation_channel" value="road" />

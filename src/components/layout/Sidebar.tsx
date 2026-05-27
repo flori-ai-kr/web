@@ -6,7 +6,6 @@ import {
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
-    CreditCard,
     Flower2,
     Heart,
     Image,
@@ -40,7 +39,6 @@ const navSections: NavSection[] = [
       { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
       { href: '/admin/sales', icon: Receipt, label: '매출관리' },
       { href: '/admin/expenses', icon: Wallet, label: '지출관리' },
-      { href: '/admin/deposits', icon: CreditCard, label: '입금대조' },
     ],
   },
   {
@@ -83,7 +81,8 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        'relative flex items-center gap-3 rounded-lg text-[13px] font-medium transition-colors',
+        'relative flex items-center gap-3 min-h-[44px] rounded-lg text-[13px] font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-sidebar',
         isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
         isActive
           ? 'bg-accent text-foreground font-semibold'
@@ -152,7 +151,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
                 <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
               </div>
               {!isCollapsed && (
-                <span className="text-base font-bold text-foreground truncate">Hazel</span>
+                <span className="text-lg font-semibold text-foreground truncate tracking-tight">Flori</span>
               )}
             </Link>
           </div>
