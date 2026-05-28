@@ -1,7 +1,8 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
-import {Bell, CalendarDays, ChevronLeft, ChevronRight, Flower2, LogOut, Moon, Settings, Sun} from 'lucide-react';
+import Image from 'next/image';
+import {Bell, CalendarDays, ChevronLeft, ChevronRight, LogOut, Moon, Settings, Sun} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -42,7 +43,7 @@ function getPageTitle(pathname: string): string {
       return title;
     }
   }
-  return '헤이즐 어드민';
+  return 'flori';
 }
 
 function getInitial(email: string): string {
@@ -129,10 +130,10 @@ export function Header({ userEmail }: HeaderProps) {
           {/* 모바일: 대시보드면 로고, 아니면 뒤로가기 + 페이지 타이틀 */}
           {pathname === '/admin' ? (
             <Link href="/admin" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
-              <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
-                <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
+              <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center">
+                <Image src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
               </div>
-              <span className="text-lg font-semibold text-foreground tracking-tight">Flori</span>
+              <span className="text-lg font-semibold text-foreground tracking-tight">flori</span>
             </Link>
           ) : (
             <div className="lg:hidden flex items-center gap-2 min-w-0">

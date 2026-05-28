@@ -1,6 +1,6 @@
-# Hazel Admin - 꽃집 관리 시스템
+# flori - 꽃집 관리 시스템
 
-꽃집(헤이즐) 매출/지출/고객/사진첩/예약/인사이트를 관리하는 PWA 어드민 웹앱.
+꽃집 매출/지출/고객/사진첩/예약/인사이트를 관리하는 PWA 어드민 웹앱.
 
 ## 핵심 패턴
 
@@ -10,7 +10,7 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 
 - **Server Actions**: `src/lib/actions/` — `'use server'`, throw 패턴 (withErrorLogging 래퍼), 직접 import 사용 (barrel import 금지)
 - **에러 처리**: `withErrorLogging()` 래퍼 → AppError(예상된 에러) / Unknown(Discord 로깅)
-- **인증**: middleware.ts → Supabase Auth 쿠키 → `requireAuth()` 가드 (읽기 포함 모든 액션에 적용). `/admin/*` 경로만 인증 강제, `/`·`(public)/*` 공개 라우트는 인증 불필요
+- **인증**: middleware.ts → Kotlin BFF JWT 쿠키(`flori_access`/`flori_refresh`) → `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`). `/admin/*` 경로만 인증 강제, `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 공개 라우트는 인증 불필요. 소셜 OAuth 플로우: `/auth/login/[provider]` → 공급자 redirect → `/auth/callback/[provider]` → Kotlin BFF `POST /auth/oauth/{provider}` → registered=true이면 `/admin`, false이면 `registerToken` 쿠키(`flori_register`) 저장 → `/onboarding`
 - **멀티테넌시**: 10개 테이블에 `user_id` 컬럼, RLS `auth.uid() = user_id`, Server Action에서 `user.id` 삽입
 - **다중선택 필터**: 매출/지출 카테고리·결제방식 등 — URL 파라미터 쉼표 구분 (`?category=a,b`), Supabase `.in()` 쿼리, `category-multi-select.tsx` Popover+체크박스 공용 컴포넌트
 - **검증**: Zod 스키마 (`src/lib/validations.ts`) — 모든 CUD 액션 + ID 파라미터 UUID 검증 + 파일 크기 5MB 제한
@@ -74,7 +74,20 @@ src/
 │   ├── trends/          # POST — 트렌드 아티클 수집 + 푸시 브로드캐스트
 │   ├── instagram/       # POST — 인스타그램 포스트 수집 + 푸시 브로드캐스트
 │   └── instagram-accounts/ # GET — 팔로우 계정 목록
-├── app/login/           # 로그인
+├── app/auth/            # 소셜 OAuth Route Handlers (인증 불필요)
+│   ├── oauth-providers.ts           # 공급자 화이트리스트 (kakao·google·naver)
+│   ├── login/[provider]/route.ts    # OAuth 개시 — state 쿠키 발급 → 공급자 redirect
+│   └── callback/[provider]/route.ts # OAuth 콜백 — CSRF 검증 → BFF 토큰 교환 → 분기
+├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드)
+│   ├── page.tsx
+│   ├── onboarding-form.tsx  # 2단계 폼 (가게명·닉네임·이메일·지역 필수 + 선택)
+│   └── actions.ts           # checkNickname, completeRegistration (API_URL BFF 호출)
+├── app/policy/          # 정책 문서 (인증 불필요)
+│   ├── layout.tsx           # 정책 전용 레이아웃 (로고 + 돌아가기)
+│   ├── policy-ui.tsx        # 공용 프레젠테이션 컴포넌트
+│   ├── privacy/page.tsx     # 개인정보 처리방침
+│   └── terms/page.tsx       # 서비스 이용약관
+├── app/login/           # 로그인 (소셜 전용 — 이메일/비밀번호 제거됨)
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/       # shadcn/ui (22개, sheet.tsx 추가) — category-multi-select.tsx (Popover+체크박스 다중선택) 포함
@@ -84,6 +97,7 @@ src/
 ├── components/gallery/  # 갤러리 관련 컴포넌트
 ├── components/expenses/ # 지출 관련 컴포넌트 — quick-add-recurring.tsx, recurring-expenses-section.tsx 포함
 ├── components/insights/ # 인사이트 공통 (category-badge, scrap-button, scrap-memo-editor)
+├── components/auth/     # 인증 공용 컴포넌트 — auth-header.tsx (로고+워드마크+부제)
 ├── components/public/   # 공개 홈페이지 섹션 (hero, statement, instagram, footer, header, floating-cta)
 ├── lib/actions/         # Server Actions (17개, 직접 import — scraps.ts 포함)
 ├── lib/public-config.ts # 공개 홈페이지 비즈니스 데이터 SSOT (HAZEL_BUSINESS, HAZEL_LINKS, HAZEL_SEO)
@@ -98,8 +112,10 @@ src/
 ├── lib/logger.ts        # reportError() → Discord 웹훅
 ├── lib/validations.ts   # Zod 스키마 + 이미지 파일 검증 — validateImageFile(File) + validateImageMeta({name,type,size})
 ├── lib/date-locale.ts   # date-fns 로케일 추상화 (ko)
-├── lib/auth-guard.ts    # requireAuth()
-├── lib/env.ts           # 환경변수 Zod 검증
+├── lib/auth-guard.ts    # requireAuth() — /me 조회 + 온보딩 게이트 (onboarded===false → /onboarding)
+├── lib/legal-config.ts  # FLORI_LEGAL / FLORI_LEGAL_JURISDICTION — 정책 페이지 SSOT
+├── lib/onboarding-options.ts  # SIDO, AGE_RANGES, INTERESTS, SPECIALTIES 상수
+├── lib/env.ts           # 환경변수 Zod 검증 (API_URL, OAUTH_KAKAO_REST_API_KEY 등 포함)
 ├── lib/utils.ts         # cn(), formatPhoneNumber(), getMonthDateRange() 등
 ├── lib/export.ts        # ExportConfig<T> 제네릭, CSV/Excel/PDF 내보내기
 ├── types/database.ts    # 전체 타입 정의

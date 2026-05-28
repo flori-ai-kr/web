@@ -9,7 +9,7 @@ async function _signOut() {
 
   // 서버측 refresh 토큰 무효화 (실패해도 로컬 쿠키는 비운다)
   if (refresh) {
-    const base = process.env.KOTLIN_API_URL ?? 'http://localhost:8080'
+    const base = process.env.API_URL ?? 'http://localhost:8080'
     try {
       await fetch(`${base}/auth/logout`, {
         method: 'POST',

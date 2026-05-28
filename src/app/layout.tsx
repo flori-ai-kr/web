@@ -15,12 +15,12 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "헤이즐 어드민 | 꽃집 관리 시스템",
+  title: "flori | 꽃에만 집중하세요",
   description: "꽃집 매출, 지출, 고객을 쉽게 관리하세요",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "헤이즐",
+    title: "flori",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -36,7 +36,6 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning className={cormorant.variable}>
       <head>
         <meta name="theme-color" content="#A85475" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <link
           rel="stylesheet"
           as="style"

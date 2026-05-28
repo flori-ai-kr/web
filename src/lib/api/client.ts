@@ -22,7 +22,7 @@ interface TokenResponse {
 }
 
 function apiUrl(path: string): string {
-  const base = process.env.KOTLIN_API_URL ?? 'http://localhost:8080';
+  const base = process.env.API_URL ?? 'http://localhost:8080';
   return `${base}${path}`;
 }
 

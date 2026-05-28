@@ -1,8 +1,8 @@
-# Hazel Admin - 아키텍처 & 기술 선정 이유
+# flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-05-21 | 고정비 시스템 + 다중선택 필터
+> 최종 업데이트: 2026-05-28 | 소셜 OAuth 인증 + 온보딩 플로우 + 정책 페이지
 
-이 문서는 Hazel Admin의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
+이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
 ---
 
@@ -29,7 +29,11 @@ graph TB
 
     subgraph Supabase
         PG["PostgreSQL<br/>20개 테이블 + RLS"]
-        AU["Auth<br/>이메일/비밀번호 + 쿠키 세션"]
+    end
+
+    subgraph KotlinBFF["Kotlin BFF (flori-ai/server)"]
+        KA["Auth API<br/>소셜 OAuth + JWT 발급<br/>POST /auth/oauth/{provider}<br/>POST /auth/register/complete<br/>GET /auth/nickname/check"]
+        KM["Me API<br/>GET /me<br/>PATCH /me/email"]
     end
 
     subgraph Cloudflare
@@ -41,8 +45,8 @@ graph TB
     CC -->|"R2 직접 PUT (presigned URL)"| R2
     CC -->|"router.refresh()"| SC
     SC -->|"props 전달"| CC
-    MW -->|"세션 검증"| AU
-    SA -->|"requireAuth()"| AU
+    MW -->|"JWT 쿠키 검증"| KM
+    SA -->|"requireAuth() → /me"| KM
     SA -->|"CRUD"| PG
     SA -->|"미지 에러"| DC
     SA -->|"Web Push"| SW
@@ -93,12 +97,13 @@ graph TB
 
 Supabase를 선택한 구체적 이유:
 
-1. **Auth 내장**: 이메일/비밀번호 인증이 기본 제공된다. `@supabase/ssr`로 Next.js App Router의 쿠키 기반 세션을 공식 지원한다. 인증 시스템을 직접 구현할 필요가 없다.
-2. **RLS (Row Level Security)**: `auth.uid() = user_id` 정책으로 DB 레벨에서 접근 제어가 된다. Server Action에서 실수로 인증 체크를 빠뜨려도 RLS가 2차 방어선 역할을 한다. 멀티 테넌시도 RLS만으로 해결된다.
-3. **무료 플랜**: 소규모 꽃집 운영에 충분한 500MB DB, 5GB 대역폭, 50,000 MAU를 무료로 제공한다.
-4. **PostgreSQL 그 자체**: JSON 컬럼(사진 메타데이터), 배열 타입(태그), UUID PK, timestamptz 등 PostgreSQL의 풍부한 타입 시스템을 그대로 활용한다.
+1. **RLS (Row Level Security)**: `user_id` 컬럼 기반 정책으로 DB 레벨에서 접근 제어가 된다. 인증은 Kotlin BFF가 담당하고, RLS는 최종 방어선으로 멀티 테넌시 데이터 격리를 보장한다.
+2. **무료 플랜**: 소규모 꽃집 운영에 충분한 500MB DB, 5GB 대역폭, 50,000 MAU를 무료로 제공한다.
+3. **PostgreSQL 그 자체**: JSON 컬럼(사진 메타데이터), 배열 타입(태그), UUID PK, timestamptz 등 PostgreSQL의 풍부한 타입 시스템을 그대로 활용한다.
 
-**멀티 테넌시 구현**: 모든 테이블에 `user_id` 컬럼을 추가하고, RLS 정책에서 `auth.uid() = user_id`를 적용했다. 이렇게 하면 한 Supabase 프로젝트로 여러 사용자(꽃집)를 지원할 수 있고, 데이터 격리가 DB 레벨에서 보장된다. 별도의 테넌트 인프라가 필요 없다. UNIQUE 제약도 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 설정을 지원한다.
+> **참고**: 인증(소셜 OAuth, JWT 발급)은 Kotlin BFF(flori-ai/server)가 담당한다. Supabase Auth는 사용하지 않으며, `@supabase/ssr` 패키지도 DB 전용으로만 사용한다.
+
+**멀티 테넌시 구현**: 모든 테이블에 `user_id` 컬럼을 추가하고 RLS 정책을 적용했다. 이렇게 하면 한 Supabase 프로젝트로 여러 사용자(꽃집)를 지원할 수 있고, 데이터 격리가 DB 레벨에서 보장된다. 별도의 테넌트 인프라가 필요 없다. UNIQUE 제약도 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 설정을 지원한다.
 
 | 탈락 후보 | 이유 |
 |-----------|------|
@@ -182,7 +187,7 @@ Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Com
 
 1. **Cron Jobs**: `/api/cron/daily-reminder`(매일 08:00 KST 예약 요약), `/api/cron/scheduled-reminders`(개별 리마인더), `/api/cron/generate-recurring-expenses`(매일 KST 00:30 고정비 자동생성)를 Vercel Cron으로 실행한다. `CRON_SECRET` 헤더로 외부 호출을 차단한다. 별도의 스케줄러 인프라가 필요 없다.
 2. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
-3. **Edge Middleware**: `src/lib/supabase/middleware.ts`가 모든 요청에서 세션을 갱신한다. `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트, 로그인 상태에서 `/login` 접근 시 `/admin`으로 리다이렉트. `/`·`(public)/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
+3. **Edge Middleware**: `src/middleware.ts`가 모든 요청에서 JWT 쿠키(`flori_access`) 존재 여부를 검사한다. `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트, 로그인 상태에서 `/login` 접근 시 `/admin`으로 리다이렉트. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
 
 ---
 
@@ -264,17 +269,51 @@ CUD(Create/Update/Delete) 후 `router.refresh()`를 호출하면 Server Componen
 
 ## 인증 흐름
 
+### 소셜 OAuth 플로우 (신규 가입)
+
+```mermaid
+sequenceDiagram
+    actor U as 사용자
+    participant LG as /auth/login/[provider]
+    participant CB as /auth/callback/[provider]
+    participant BFF as Kotlin BFF
+    participant OB as /onboarding
+
+    U->>LG: 소셜 로그인 버튼 클릭
+    LG->>LG: randomBytes state 생성 → flori_oauth_state 쿠키
+    LG-->>U: 공급자 authorize URL로 302 redirect
+
+    U->>CB: 공급자 → code·state 전달
+    CB->>CB: flori_oauth_state 쿠키 검증 (CSRF)
+    CB->>BFF: POST /auth/oauth/{provider} {code, redirectUri}
+    alt registered=true
+        BFF-->>CB: {token: {accessToken, refreshToken, ...}}
+        CB->>CB: flori_access·flori_refresh 쿠키 저장
+        CB-->>U: /admin redirect
+    else registered=false
+        BFF-->>CB: {registerToken, socialEmail, socialNickname}
+        CB->>CB: flori_register 쿠키 저장
+        CB-->>U: /onboarding?email=...&nickname=... redirect
+        U->>OB: 가게명·닉네임·이메일·지역 입력
+        OB->>BFF: POST /auth/register/complete {registerToken, ...}
+        BFF-->>OB: {accessToken, refreshToken, ...}
+        OB->>OB: flori_access·flori_refresh 저장, flori_register 삭제
+        OB-->>U: /admin redirect
+    end
+```
+
+### 페이지 요청 및 Server Action 흐름
+
 ```mermaid
 sequenceDiagram
     actor U as 사용자
     participant MW as Middleware
-    participant AU as Supabase Auth
+    participant BFF as Kotlin BFF (GET /me)
     participant SA as Server Action
     participant PG as PostgreSQL
     participant DC as Discord
 
     U->>MW: 페이지 요청
-    MW->>AU: updateSession() 쿠키 갱신
     alt 비인증 && /admin/*
         MW-->>U: /login 리다이렉트
     else 인증 && /login
@@ -285,9 +324,11 @@ sequenceDiagram
 
     U->>SA: CUD 액션 호출
     SA->>SA: withErrorLogging() 래퍼
-    SA->>AU: requireAuth()
+    SA->>BFF: requireAuth() → GET /me (JWT 쿠키)
     alt 인증 실패
         SA-->>U: /login 리다이렉트
+    else onboarded===false
+        SA-->>U: /onboarding 리다이렉트
     else 인증 성공
         SA->>SA: Zod 입력 검증
         SA->>PG: DB 쿼리 (RLS 적용)
@@ -299,10 +340,10 @@ sequenceDiagram
     end
 ```
 
-인증은 3중 방어로 구성된다. `/`·`(public)/*`는 인증 불필요(공개 홈페이지), `/admin/*`만 인증 강제:
+인증은 3중 방어로 구성된다. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*`는 인증 불필요, `/admin/*`만 인증 강제:
 1. **Middleware**: `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트 (페이지 접근 차단)
-2. **requireAuth()**: **읽기 포함 모든** Server Action에서 인증 확인 (액션 실행 차단)
-3. **RLS**: `auth.uid() = user_id` 정책으로 DB 레벨에서 데이터 격리 (최종 방어선)
+2. **requireAuth()**: **읽기 포함 모든** Server Action에서 인증 확인 + 온보딩 게이트 (`onboarded === false` → `/onboarding`)
+3. **RLS**: `user_id` 컬럼 기반 정책으로 DB 레벨에서 데이터 격리 (최종 방어선)
 
 ---
 
@@ -576,7 +617,12 @@ erDiagram
 | `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
 | `/admin/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
-| `/login` | 로그인 | 이메일/비밀번호 |
+| `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
+| `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
+| `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드) |
+| `/policy/privacy` | 개인정보 처리방침 | flori 개인정보 처리방침 (인증 불필요) |
+| `/policy/terms` | 서비스 이용약관 | flori 서비스 이용약관 (인증 불필요) |
+| `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
 | `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
 | `/api/cron/scheduled-reminders` | Cron | 개별 예약 리마인더 푸시 |
 | `/api/cron/generate-recurring-expenses` | Cron | 매일 KST 00:30 고정비 자동 생성 (recurring_expenses → expenses INSERT) |
@@ -650,9 +696,10 @@ interface SalesFilters { category?: string[]; payment?: string[]; channel?: stri
 
 | 레이어 | 구현 | 방어 대상 |
 |--------|------|-----------|
-| **Middleware** | Supabase Auth 쿠키 검증 + 리다이렉트 | 비인증 페이지 접근 |
-| **requireAuth()** | 읽기 포함 모든 Server Action에서 호출 | 비인증 데이터 접근/변경 |
-| **RLS** | `auth.uid() = user_id` (17개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
+| **Middleware** | Kotlin BFF JWT 쿠키(`flori_access`) 존재 여부 + 리다이렉트 | 비인증 페이지 접근 |
+| **requireAuth()** | 읽기 포함 모든 Server Action에서 호출, 온보딩 게이트 포함 | 비인증/미온보딩 데이터 접근/변경 |
+| **OAuth CSRF 방어** | `flori_oauth_state` httpOnly 쿠키로 state 검증 (콜백 1회 소비 후 삭제) | OAuth CSRF 공격 |
+| **RLS** | `user_id` 컬럼 기반 (17개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
 | **Internal API 인증** | `Authorization: Bearer INTERNAL_API_KEY` timing-safe 검증 (`src/lib/internal-auth.ts`), ≥32자 필수 | RemoteTrigger 외 외부 호출 차단 |
 | **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
 | **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |
@@ -755,6 +802,10 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 | `CRON_SECRET` | Cron 라우트 인증 (프로덕션 16자+) |
 | `INTERNAL_API_KEY` | Internal API Bearer 인증 (**필수**, ≥32자) |
 | `DISCORD_WEBHOOK_URL` | 에러 로깅 웹훅 |
+| `API_URL` | Kotlin BFF 서버 URL (구 `KOTLIN_API_URL`, 기본 `http://localhost:8080`) |
+| `OAUTH_KAKAO_REST_API_KEY` | 카카오 REST API 키 — 없으면 카카오 로그인 비활성 |
+| `OAUTH_GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID — 없으면 구글 로그인 비활성 |
+| `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
 | `R2_ACCOUNT_ID` | Cloudflare 계정 ID |
 | `R2_ACCESS_KEY_ID` | R2 API 토큰 Access Key |
 | `R2_SECRET_ACCESS_KEY` | R2 API 토큰 Secret Key |
