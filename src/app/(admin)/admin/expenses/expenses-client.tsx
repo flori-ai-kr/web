@@ -382,11 +382,11 @@ export function ExpensesClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">지출 관리</h1>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">지출 관리</h1>
           <p className="text-sm text-muted-foreground mt-1">지출 내역을 등록하고 관리하세요</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">

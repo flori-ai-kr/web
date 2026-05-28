@@ -6,7 +6,7 @@
 page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 ```
 
-- `page.tsx` 는 서버 컴포넌트로 Server Action을 호출해 데이터를 fetch (Supabase/BFF를 직접 import하지 않음)
+- `page.tsx` 는 서버 컴포넌트로 Server Action을 호출해 데이터를 fetch (BFF 클라이언트를 직접 import하지 않음)
 - `*-client.tsx` 는 `'use client'` 로 상태 관리 + 렌더링
 
 ## 2. 상태 관리

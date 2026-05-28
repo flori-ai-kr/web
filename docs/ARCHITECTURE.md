@@ -16,24 +16,22 @@ graph TB
     end
 
     subgraph NextServer["Next.js Server"]
-        MW["Middleware<br/>세션 갱신 + 인증 리다이렉트"]
+        MW["Middleware<br/>refresh 쿠키 검사 + 인증 리다이렉트"]
         SC["Server Components<br/>(page.tsx)<br/>초기 데이터 fetch → props 전달"]
         SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + UUID검증 + withErrorLogging()"]
-        CR["Cron Routes<br/>(api/cron/)<br/>예약 리마인더 푸시 + 고정비 자동생성"]
+        AC["api/client<br/>apiFetch(JWT) · apiFetchInternal(Bearer)"]
     end
 
     subgraph External
         DC["Discord Webhook<br/>에러 로깅"]
-        RT["RemoteTrigger<br/>(claude.ai 루틴)<br/>Mon/Fri 08:00 KST"]
-    end
-
-    subgraph Supabase
-        PG["PostgreSQL<br/>20개 테이블 + RLS"]
+        RT["인제스트 루틴<br/>(트렌드·인스타 수집)"]
     end
 
     subgraph KotlinBFF["Kotlin BFF (flori-ai/server)"]
-        KA["Auth API<br/>소셜 OAuth + JWT 발급<br/>POST /auth/oauth/{provider}<br/>POST /auth/register/complete<br/>GET /auth/nickname/check"]
-        KM["Me API<br/>GET /me<br/>PATCH /me/email"]
+        KAPI["REST API<br/>인증·OAuth·도메인 CRUD<br/>requireAuth(/me) + 전체 데이터"]
+        KINT["/internal/*<br/>Bearer INTERNAL_API_KEY<br/>수집 + 계정관리"]
+        KSCHED["@Scheduled<br/>예약 리마인더 · 고정비 생성 · 웹푸시"]
+        PG[("PostgreSQL<br/>BFF 소유")]
     end
 
     subgraph Cloudflare
@@ -45,21 +43,19 @@ graph TB
     CC -->|"R2 직접 PUT (presigned URL)"| R2
     CC -->|"router.refresh()"| SC
     SC -->|"props 전달"| CC
-    MW -->|"JWT 쿠키 검증"| KM
-    SA -->|"requireAuth() → /me"| KM
-    SA -->|"CRUD"| PG
+    SC -->|"데이터 조회"| SA
+    SA -->|"apiFetch / apiFetchInternal"| AC
+    AC -->|"JWT 쿠키 · 서버↔서버"| KAPI
+    AC -->|"Bearer 키"| KINT
     SA -->|"미지 에러"| DC
-    SA -->|"Web Push"| SW
-    SC -->|"데이터 조회"| PG
-    CR -->|"예약 조회"| PG
-    CR -->|"푸시 발송"| SW
-    CR -->|"에러 보고"| DC
-    RT -->|"Bearer INTERNAL_API_KEY"| IA["Internal API<br/>(api/internal/)<br/>Service Role, 푸시 브로드캐스트"]
-    IA -->|"Service Role (RLS 우회)"| PG
-    IA -->|"Web Push"| SW
+    KAPI --> PG
+    KINT --> PG
+    KSCHED --> PG
+    KSCHED -->|"Web Push"| SW
+    RT -->|"Bearer INTERNAL_API_KEY"| KINT
 ```
 
-핵심 원칙: **Server Components가 데이터를 fetch하고, Client Components는 UI만 담당한다.** 데이터 변경은 Server Actions를 통해서만 일어나며, 변경 후 `router.refresh()`로 서버 데이터를 다시 가져온다. 이 패턴 덕분에 클라이언트 캐시나 글로벌 상태 관리 라이브러리가 필요 없다.
+핵심 원칙: **Server Components가 데이터를 fetch하고, Client Components는 UI만 담당한다.** 데이터 변경은 Server Actions를 통해서만 일어나며, 모든 데이터 접근은 `apiFetch`로 Kotlin BFF REST를 호출한다(web은 DB에 직접 연결하지 않는다). 변경 후 `router.refresh()`로 서버 데이터를 다시 가져온다. 이 패턴 덕분에 클라이언트 캐시나 글로벌 상태 관리 라이브러리가 필요 없다.
 
 ---
 
@@ -71,46 +67,41 @@ graph TB
 
 이 프로젝트의 핵심 요구사항은 CRUD 어드민이다. 매출 목록을 불러오고, 폼으로 등록하고, 수정하고, 삭제한다. SEO는 필요 없지만, Next.js App Router의 **Server Components + Server Actions 조합**이 이 패턴에 정확히 맞는다.
 
-- **Server Components**: `page.tsx`에서 Supabase를 직접 호출해서 데이터를 fetch한 뒤 props로 Client Component에 내린다. 별도의 API 엔드포인트를 만들 필요가 없다. 초기 페이지 로딩 시 JavaScript 번들에 데이터 fetching 로직이 포함되지 않아 클라이언트 번들이 작아진다.
-- **Server Actions**: `'use server'` 함수 하나로 DB 접근이 가능하다. Express나 API Routes 같은 별도 API 레이어 없이 `createSale()`, `updateCustomer()` 같은 함수를 직접 호출한다. FormData를 받아서 Zod로 검증하고, Supabase에 쿼리하고, 결과를 반환하는 것이 한 파일 안에서 끝난다.
+- **Server Components**: `page.tsx`에서 Server Action(`apiFetch`)으로 BFF에서 데이터를 fetch한 뒤 props로 Client Component에 내린다. 브라우저용 별도 API 엔드포인트를 만들 필요가 없다. 초기 페이지 로딩 시 JavaScript 번들에 데이터 fetching 로직이 포함되지 않아 클라이언트 번들이 작아진다.
+- **Server Actions**: `'use server'` 함수 하나로 BFF 호출이 가능하다. 브라우저용 API Routes 없이 `createSale()`, `updateCustomer()` 같은 함수를 직접 호출한다. FormData를 받아서 Zod로 검증하고, `apiFetch`로 BFF에 요청하고, 결과를 반환하는 것이 한 파일 안에서 끝난다.
 - **Route Group**: `(admin)/admin` 그룹으로 사이드바 레이아웃 + 인증 경계를 적용하고, `(public)` 그룹으로 공개 홈페이지 레이아웃을 분리한다. `/login`은 별도 레이아웃을 쓴다. App Router의 중첩 레이아웃 시스템이 이걸 자연스럽게 지원한다.
 
-**왜 Vite + React SPA가 아닌가:** SPA로 만들면 클라이언트에서 Supabase를 직접 호출하거나, 별도 API 서버를 두어야 한다. Server Components/Actions 패턴이 API 레이어를 완전히 대체하기 때문에 개발 속도와 유지보수 모두에서 유리하다.
+**왜 Vite + React SPA가 아닌가:** SPA로 만들면 클라이언트에서 BFF를 직접 호출하며 JWT를 브라우저에 노출하거나 별도 BFF 레이어를 또 두어야 한다. Server Components/Actions 패턴이 서버↔서버 호출 레이어를 자연스럽게 제공해 토큰을 httpOnly 쿠키에 가둘 수 있다.
 
-**왜 Remix가 아닌가:** Remix의 loader/action 패턴은 비슷한 장점을 제공하지만, `@supabase/ssr` 공식 가이드가 Next.js 중심이고 shadcn/ui 생태계와의 호환성이 검증되어 있다.
+**왜 Remix가 아닌가:** Remix의 loader/action 패턴은 비슷한 장점을 제공하지만, Next.js App Router가 shadcn/ui 생태계와의 호환성이 검증되어 있고 Vercel 배포가 매끄럽다.
 
 **왜 React 19인가:** Server Components와 Server Actions가 React 19에서 안정 API로 확정되었다. `use()` 훅, 폼 관련 개선 등 최신 기능을 활용한다.
 
 | 탈락 후보 | 이유 |
 |-----------|------|
-| Vite + React SPA | 별도 API 서버 필요. 클라이언트 직접 DB 호출은 보안 위험 |
-| Remix | Supabase SSR 공식 가이드 부재, 커뮤니티 규모 차이 |
+| Vite + React SPA | 별도 BFF 호출 레이어 필요. 클라이언트 직접 토큰 보관은 보안 위험 |
+| Remix | Next.js App Router 대비 Vercel/shadcn 생태계 호환 검증 부족 |
 | Nuxt (Vue) | React 생태계(shadcn/ui, Radix)를 사용하기 위해 React가 필요 |
 
 ---
 
-### Supabase (PostgreSQL)
+### Kotlin BFF (데이터 · 인증의 단일 출처)
 
-**왜 Supabase인가:**
+**왜 BFF인가:**
 
-꽃집 데이터는 본질적으로 관계형이다. 매출은 고객과 연결되고, 사진첩은 매출과 연결되고, 예약은 매출로 전환된다. 매출 집계 쿼리(SUM, GROUP BY, 윈도우 함수)가 통계 페이지의 핵심이다. 이런 요구사항에는 PostgreSQL이 가장 적합하다.
+비즈니스 데이터와 인증은 전부 Kotlin BFF(`flori-ai/server`) REST API를 통해 접근한다. web은 DB에 직접 연결하지 않으며(데이터 클라이언트 없음), Server Action이 `apiFetch`로 서버↔서버 호출만 수행한다.
 
-Supabase를 선택한 구체적 이유:
+이렇게 한 이유:
 
-1. **RLS (Row Level Security)**: `user_id` 컬럼 기반 정책으로 DB 레벨에서 접근 제어가 된다. 인증은 Kotlin BFF가 담당하고, RLS는 최종 방어선으로 멀티 테넌시 데이터 격리를 보장한다.
-2. **무료 플랜**: 소규모 꽃집 운영에 충분한 500MB DB, 5GB 대역폭, 50,000 MAU를 무료로 제공한다.
-3. **PostgreSQL 그 자체**: JSON 컬럼(사진 메타데이터), 배열 타입(태그), UUID PK, timestamptz 등 PostgreSQL의 풍부한 타입 시스템을 그대로 활용한다.
+1. **단일 비즈니스 로직 출처**: 카드 수수료·입금 예정일·테넌트 격리 등 핵심 계산을 BFF가 JWT 기준으로 일괄 수행한다. web/모바일이 동일한 규칙을 공유하며, web은 입력값만 전달한다.
+2. **멀티 플랫폼**: 동일 API를 Flutter 모바일 앱과 web이 함께 사용한다. 데이터 모델·검증·집계를 한 곳에서 관리한다.
+3. **토큰 격리**: 인증 JWT는 httpOnly 쿠키(`flori_access`/`flori_refresh`)에 보관되고 서버 레이어에서만 Authorization 헤더로 부착된다. 브라우저에 노출되지 않는다.
 
-> **참고**: 인증(소셜 OAuth, JWT 발급)은 Kotlin BFF(flori-ai/server)가 담당한다. Supabase Auth는 사용하지 않으며, `@supabase/ssr` 패키지도 DB 전용으로만 사용한다.
+**데이터 접근**: `src/lib/api/client.ts` 의 `apiFetch`(사용자 JWT)가 유일한 데이터 경로다. 서버에 사용자용 엔드포인트가 없는 관리 작업(인스타 계정 CRUD)만 `apiFetchInternal`(Bearer `INTERNAL_API_KEY`)로 BFF `/internal/*` 를 호출한다.
 
-**멀티 테넌시 구현**: 모든 테이블에 `user_id` 컬럼을 추가하고 RLS 정책을 적용했다. 이렇게 하면 한 Supabase 프로젝트로 여러 사용자(꽃집)를 지원할 수 있고, 데이터 격리가 DB 레벨에서 보장된다. 별도의 테넌트 인프라가 필요 없다. UNIQUE 제약도 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 설정을 지원한다.
+**멀티 테넌시**: 테넌트 격리는 BFF가 JWT 기준으로 수행한다. DB 스키마(아래 'DB 스키마')의 `user_id` 컬럼·복합 UNIQUE 제약은 BFF가 소유·적용하며, web 코드에는 더 이상 `user_id` 삽입이 없다.
 
-| 탈락 후보 | 이유 |
-|-----------|------|
-| Firebase (Firestore) | NoSQL이라 매출 집계 쿼리(SUM, GROUP BY)에 부적합. 관계형 데이터 모델에 안 맞음 |
-| PlanetScale (MySQL) | FK 미지원(Vitess 제약). 무료 플랜 종료(2024) |
-| 직접 PostgreSQL + Prisma | Auth, RLS를 전부 직접 구현해야 함. 인프라 관리 부담 |
-| MongoDB Atlas | NoSQL. 이 프로젝트의 데이터 모델(매출-고객-사진 관계)에 안 맞음 |
+> **참고**: DB(PostgreSQL)는 BFF가 소유한다. 데이터 모델은 본질적으로 관계형이며(매출-고객-사진-예약), 집계 쿼리(SUM/GROUP BY)는 BFF의 대시보드·요약 엔드포인트가 담당한다.
 
 ---
 
@@ -185,9 +176,8 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 
 Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Components, Server Actions, Middleware, ISR)이 zero-config로 동작한다.
 
-1. **Cron Jobs**: `/api/cron/daily-reminder`(매일 08:00 KST 예약 요약), `/api/cron/scheduled-reminders`(개별 리마인더), `/api/cron/generate-recurring-expenses`(매일 KST 00:30 고정비 자동생성)를 Vercel Cron으로 실행한다. `CRON_SECRET` 헤더로 외부 호출을 차단한다. 별도의 스케줄러 인프라가 필요 없다.
-2. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
-3. **Edge Middleware**: `src/middleware.ts`가 모든 요청에서 JWT 쿠키(`flori_access`) 존재 여부를 검사한다. `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트, 로그인 상태에서 `/login` 접근 시 `/admin`으로 리다이렉트. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
+1. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
+2. **Edge Middleware**: `middleware.ts`가 `/admin/*` 요청에서 refresh 쿠키(`flori_refresh`) 존재 여부를 검사한다. 없으면 `/login`으로 리다이렉트. 토큰 갱신은 미들웨어에서 하지 않고 API 클라이언트가 처리한다. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
 
 ---
 
@@ -207,7 +197,7 @@ CSS 변수 기반 테마 시스템과 결합하면, `.dark` 클래스 토글 하
 
 **왜 상태 관리 라이브러리를 안 쓰는가:**
 
-이 프로젝트에는 페이지 간 공유 상태가 없다. 모든 데이터의 원천(source of truth)은 서버(Supabase)이고, 흐름은 다음과 같다:
+이 프로젝트에는 페이지 간 공유 상태가 없다. 모든 데이터의 원천(source of truth)은 Kotlin BFF(서버)이고, 흐름은 다음과 같다:
 
 ```
 page.tsx(Server) -> fetch -> props -> *-client.tsx(Client) -> Server Action -> router.refresh()
@@ -331,8 +321,8 @@ sequenceDiagram
         SA-->>U: /onboarding 리다이렉트
     else 인증 성공
         SA->>SA: Zod 입력 검증
-        SA->>PG: DB 쿼리 (RLS 적용)
-        PG-->>SA: 결과
+        SA->>BFF: apiFetch (도메인 CRUD, JWT)
+        BFF-->>SA: 결과
         alt 미지 에러 발생
             SA->>DC: reportError() -> Discord 웹훅
         end
@@ -343,7 +333,7 @@ sequenceDiagram
 인증은 3중 방어로 구성된다. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*`는 인증 불필요, `/admin/*`만 인증 강제:
 1. **Middleware**: `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트 (페이지 접근 차단)
 2. **requireAuth()**: **읽기 포함 모든** Server Action에서 인증 확인 + 온보딩 게이트 (`onboarded === false` → `/onboarding`)
-3. **RLS**: `user_id` 컬럼 기반 정책으로 DB 레벨에서 데이터 격리 (최종 방어선)
+3. **BFF 테넌트 격리**: Kotlin 서버가 JWT 기준으로 사용자별 데이터를 격리 (DB 접근은 BFF만 수행)
 
 ---
 
@@ -352,8 +342,8 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     subgraph 조회
-        P["page.tsx<br/>(Server)"] -->|fetch| DB[(PostgreSQL)]
-        DB -->|data| P
+        P["page.tsx<br/>(Server)"] -->|"Server Action → apiFetch"| BFF["Kotlin BFF"]
+        BFF -->|data| P
         P -->|props| C["*-client.tsx<br/>(Client)"]
     end
 
@@ -594,9 +584,11 @@ erDiagram
     }
 ```
 
-모든 주요 테이블에 `user_id` 컬럼이 있다. RLS 정책이 `auth.uid() = user_id`를 검사하므로, 한 Supabase 인스턴스에서 여러 사용자의 데이터가 완전히 격리된다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
+> 아래 스키마는 BFF가 소유한 DB의 구조다. web은 이 테이블에 직접 접근하지 않고 BFF REST를 통해서만 다룬다.
 
-인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 SELECT only RLS가 적용되며, 쓰기는 Service Role(내부 API)만 허용된다. `user_preferences`와 `insight_scraps`는 `user_id` 기준 per-user RLS. `insight_scraps.target_id`는 `trend_articles.id` 또는 `instagram_posts.id`를 가리키는 polymorphic 참조로, FK 없이 2단계 조회로 처리한다. UNIQUE 제약 `(user_id, target_type, target_id)`로 중복 스크랩을 방지한다.
+모든 주요 테이블에 `user_id` 컬럼이 있고, BFF가 JWT 기준으로 사용자별 데이터를 격리한다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
+
+인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 전체 공유(읽기)이며, 쓰기는 BFF 내부 API(`/internal/*`)만 허용된다. `user_preferences`와 `insight_scraps`는 `user_id` 기준 per-user. `insight_scraps.target_id`는 `trend_articles.id` 또는 `instagram_posts.id`를 가리키는 polymorphic 참조로, FK 없이 2단계 조회로 처리한다. UNIQUE 제약 `(user_id, target_type, target_id)`로 중복 스크랩을 방지한다.
 
 ---
 
@@ -616,6 +608,7 @@ erDiagram
 | `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
 | `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
 | `/admin/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
+| `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글·좋아요·비밀글/댓글·Tiptap. ⚠️ 서버 BFF 미구현(목업 fixture) |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
 | `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
 | `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
@@ -623,12 +616,8 @@ erDiagram
 | `/policy/privacy` | 개인정보 처리방침 | flori 개인정보 처리방침 (인증 불필요) |
 | `/policy/terms` | 서비스 이용약관 | flori 서비스 이용약관 (인증 불필요) |
 | `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
-| `/api/cron/daily-reminder` | Cron | 매일 08:00 KST 예약 요약 푸시 |
-| `/api/cron/scheduled-reminders` | Cron | 개별 예약 리마인더 푸시 |
-| `/api/cron/generate-recurring-expenses` | Cron | 매일 KST 00:30 고정비 자동 생성 (recurring_expenses → expenses INSERT) |
-| `/api/internal/trends` | Internal API | POST — 트렌드 아티클 수집 (Bearer auth, Service Role) |
-| `/api/internal/instagram` | Internal API | POST — 인스타그램 포스트 수집 (Bearer auth, Service Role) |
-| `/api/internal/instagram-accounts` | Internal API | GET — 팔로우 계정 목록 (Bearer auth) |
+
+> 예약 리마인더·고정비 생성(구 `/api/cron/*`)과 트렌드·인스타 수집(구 `/api/internal/*`)은 web에서 제거되어 Kotlin BFF가 담당한다(`@Scheduled` + `/internal/*`).
 
 ## 네비게이션 구조
 
@@ -660,9 +649,8 @@ erDiagram
 | `photo-tags.ts` | CRUD |
 | `sale-settings.ts` | getSaleCategories, getPaymentMethods |
 | `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods |
-| `settings.ts` | getCardCompanySettings, updateCardCompanySetting |
-| `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendPushToUser, sendPushToAllUsers, sendTestNotification |
-| `insights.ts` | getTrendArticles, getInstagramAccounts, getInstagramPosts, markArticleRead, markPostRead, getUserPreferences, updateUserPreferences |
+| `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
+| `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
 
 ## 타입 시스템
@@ -684,7 +672,7 @@ interface CalendarEvent {
     description: string | null
 }
 
-interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분, Supabase .in())
+interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분 → BFF 반복 쿼리 파라미터)
 // expenses 필터도 동일한 다중선택 패턴 적용 (category[], payment[])
 ```
 
@@ -699,17 +687,16 @@ interface SalesFilters { category?: string[]; payment?: string[]; channel?: stri
 | **Middleware** | Kotlin BFF JWT 쿠키(`flori_access`) 존재 여부 + 리다이렉트 | 비인증 페이지 접근 |
 | **requireAuth()** | 읽기 포함 모든 Server Action에서 호출, 온보딩 게이트 포함 | 비인증/미온보딩 데이터 접근/변경 |
 | **OAuth CSRF 방어** | `flori_oauth_state` httpOnly 쿠키로 state 검증 (콜백 1회 소비 후 삭제) | OAuth CSRF 공격 |
-| **RLS** | `user_id` 컬럼 기반 (17개 테이블, CRUD별 분리), 공유 테이블 SELECT only | DB 레벨 데이터 격리 (멀티테넌시) |
-| **Internal API 인증** | `Authorization: Bearer INTERNAL_API_KEY` timing-safe 검증 (`src/lib/internal-auth.ts`), ≥32자 필수 | RemoteTrigger 외 외부 호출 차단 |
+| **테넌트 격리** | BFF가 JWT 기준으로 사용자별 데이터 격리 (web은 DB 직접 접근 없음) | 멀티테넌시 데이터 격리 |
+| **Internal API 호출** | BFF `/internal/*` 호출 시 `Authorization: Bearer INTERNAL_API_KEY` 부착 (`apiFetchInternal`, 서버 전용 ≥32자) | 관리 작업 인증 |
 | **Zod 검증** | `src/lib/validations.ts` 스키마 + ID 파라미터 UUID 검증 | 잘못된 입력 데이터 |
 | **환경변수 검증** | `src/lib/env.ts` Zod 스키마, 빌드 시 필수 값 누락 감지 | 환경설정 오류 |
 | **파일 검증** | 서버 사이드 5MB 제한 + 확장자/MIME 타입 검증 | 악성 파일 업로드 |
 | **R2 Presigned URL 업로드** | S3 API 키 서버 전용, presigned URL 300초 만료, 소유권 검증 후 발급 | 무단 파일 업로드 |
-| **SQL 인젝션 방지** | `.eq()` 분리 사용, `.or()` 문자열 보간 금지, ilike 이스케이프 | SQL 인젝션 |
+| **DB 접근 격리** | web은 DB에 직접 연결하지 않음. 쿼리는 BFF가 수행(파라미터 바인딩) | SQL 인젝션 |
 | **보안 헤더** | X-Frame-Options, X-Content-Type-Options, HSTS, CSP 등 6종 | XSS, 클릭재킹 |
-| **CSP** | Supabase + R2 CDN(img-src) + R2 S3 API 엔드포인트(connect-src) 허용 | 외부 리소스 로드 |
+| **CSP** | R2 CDN(img-src) + R2 S3 API 엔드포인트(connect-src) 허용 | 외부 리소스 로드 |
 | **Server Actions** | bodySizeLimit 10MB | 대용량 공격 |
-| **Cron 인증** | `CRON_SECRET` 헤더 검증 (프로덕션: 16자 이상 필수), 에러 응답 정보 최소화 | Cron 엔드포인트 외부 호출 |
 | **에러 로깅** | Discord 웹훅 (민감 정보 제거, 5분 중복 제거) | 에러 모니터링 |
 
 ---
@@ -775,34 +762,26 @@ export const createSale = withErrorLogging('createSale', async (data) => {
 ### 구조
 
 ```
-public/sw.js                           -- Service Worker (푸시 수신/클릭)
-src/app/manifest.ts                    -- PWA 매니페스트
-public/icons/                          -- PWA 아이콘 (192/512, maskable)
-src/lib/actions/push.ts                -- 푸시 구독/발송 Server Actions
-src/app/api/cron/daily-reminder/       -- 매일 08:00 KST 예약 요약
-src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
+public/sw.js                  -- Service Worker (푸시 수신/클릭)
+src/app/manifest.ts           -- PWA 매니페스트
+public/icons/                 -- PWA 아이콘 (192/512, maskable)
+src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubscribe/status/test)
 ```
 
 ### 푸시 발송 흐름
 
 1. 클라이언트에서 Service Worker 등록 + PushManager.subscribe()
-2. 구독 정보(endpoint, keys)를 `push_subscriptions` 테이블에 저장
-3. Vercel Cron 또는 수동으로 `web-push` 라이브러리를 통해 발송
-4. 영구 실패(404/410)만 `is_active = false` 처리, 일시 에러는 유지
+2. 구독 정보(endpoint, keys)를 BFF `POST /push/subscribe`로 저장
+3. **발송은 전적으로 Kotlin BFF가 담당** — 예약 리마인더·일일 요약은 BFF `@Scheduled`, 테스트 푸시는 `POST /push/test`. web은 더 이상 직접 발송하지 않는다(VAPID 비밀키·`web-push` 의존 제거)
 
 ### 환경 변수
 
 | 변수 | 용도 |
 |------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 공개 키 |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push 공개키 (클라이언트) |
-| `VAPID_PRIVATE_KEY` | Web Push 비밀키 (서버) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Cron + Internal API에서 RLS 우회 (**필수**, 이전에는 선택) |
-| `CRON_SECRET` | Cron 라우트 인증 (프로덕션 16자+) |
-| `INTERNAL_API_KEY` | Internal API Bearer 인증 (**필수**, ≥32자) |
+| `API_URL` | Kotlin BFF 서버 URL — 데이터·인증 (**필수**, 기본 `http://localhost:8080`) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push 공개키 (클라이언트, 구독용) |
+| `INTERNAL_API_KEY` | BFF `/internal/*` 호출용 Bearer 인증 (**필수**, ≥32자) |
 | `DISCORD_WEBHOOK_URL` | 에러 로깅 웹훅 |
-| `API_URL` | Kotlin BFF 서버 URL (구 `KOTLIN_API_URL`, 기본 `http://localhost:8080`) |
 | `OAUTH_KAKAO_REST_API_KEY` | 카카오 REST API 키 — 없으면 카카오 로그인 비활성 |
 | `OAUTH_GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID — 없으면 구글 로그인 비활성 |
 | `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
@@ -852,15 +831,12 @@ src/app/api/cron/scheduled-reminders/  -- 개별 리마인더 발송
 |--------|------|------|
 | next | ^16.1.6 | App Router, Server Components/Actions |
 | react / react-dom | 19.2.0 | UI 라이브러리 |
-| @supabase/ssr | ^0.8.0 | Next.js 쿠키 기반 Supabase 세션 |
-| @supabase/supabase-js | ^2.86.0 | Supabase 클라이언트 |
 | @aws-sdk/client-s3 | ^3.990.0 | Cloudflare R2 (S3 호환) |
 | zod | ^4.3.6 | 런타임 입력 검증 |
 | tailwindcss | ^4 | 유틸리티 CSS |
 | radix-ui | ^1.4.3 | 접근성 UI 프리미티브 |
 | sonner | ^2.0.7 | 토스트 알림 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
-| web-push | ^3.6.7 | 서버 사이드 웹 푸시 발송 |
 | @dnd-kit/sortable | ^10.x | BottomNav 아이템 드래그 정렬 (설정 화면) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |

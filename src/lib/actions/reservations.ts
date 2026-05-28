@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import type { Reservation, ReservationStatus, Sale } from '@/types/database';
-import { reservationSchema, uuidSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import type {Reservation, ReservationStatus, Sale} from '@/types/database';
+import {reservationSchema, uuidSchema} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 // Kotlin /reservations 응답의 단일 예약 (camelCase). 서버 계약과 1:1.
 interface KotlinReservation {
@@ -91,7 +91,7 @@ function mapKotlinSale(s: KotlinSale): Sale {
   };
 }
 
-// getReservations: Kotlin GET /reservations?month 으로 전환 (이전엔 Supabase 조인 잔류).
+// getReservations: Kotlin GET /reservations?month.
 // 매출 조인 부가필드(sale_date/product_category/purchase_count 등)는 Kotlin 기본 응답에 없어
 // undefined로 둔다 — sale 연결 예약의 부가 표시(상품 카테고리 칩/방문 횟수 뱃지)만 영향,
 // 예약 자체 표시·상태 관리는 정상. (전체 충실도 필요 시 Kotlin 측 조인 엔드포인트 보강)

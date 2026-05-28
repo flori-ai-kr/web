@@ -8,7 +8,7 @@
 
 **flori** — 꽃집 매출·지출·고객·사진첩·예약·인사이트를 관리하는 PWA 어드민 웹앱.
 
-멀티테넌시(테넌트별 데이터 격리)를 기본으로 한다. 인증과 비즈니스 데이터는 모두 Kotlin BFF(`flori-ai/server`) REST API를 Next.js 서버 레이어 경유로 호출하며, BFF가 DB(PostgreSQL)를 소유한다. **단 Supabase → Kotlin BFF 데이터 마이그레이션이 진행 중**이라, 일부 엔드포인트(설정·푸시 구독·인사이트 일부·매출 집계 RPC 등)는 아직 Supabase를 직접 호출한다.
+멀티테넌시(테넌트별 데이터 격리)를 기본으로 한다. 인증과 비즈니스 데이터는 **전부** Kotlin BFF(`flori-ai/server`) REST API를 Next.js 서버 레이어 경유(`apiFetch`)로 호출하며, BFF가 DB(PostgreSQL)를 소유한다. web은 DB에 직접 연결하지 않는다(Supabase 클라이언트 없음).
 
 ### 기술 스택
 
@@ -17,12 +17,13 @@
 | Framework | Next.js 16 (App Router), React 19 |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4, shadcn/ui (Radix UI) |
-| Data API | Kotlin BFF (`flori-ai/server`) REST — `apiFetch` 서버↔서버 호출 (주 경로) |
-| Database | PostgreSQL (BFF 소유). Supabase 직접 호출은 일부 잔존 (마이그레이션 진행 중) |
+| Data API | Kotlin BFF (`flori-ai/server`) REST — `apiFetch` 서버↔서버 호출 (유일한 데이터 경로) |
+| Database | PostgreSQL — BFF가 소유. web은 DB에 직접 연결하지 않음 |
 | Auth | Kotlin BFF JWT 쿠키 + 소셜 OAuth (kakao·google·naver) |
 | Storage | Cloudflare R2 (S3 호환, CDN, presigned 업로드) |
 | Validation | Zod 4 |
 | State | React hooks (글로벌 스토어 없음) |
+| Editor | Tiptap v3 (커뮤니티 게시판 본문, JSON 저장 + plain text 미리보기) |
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
 | Test | Vitest, fast-check, Testing Library |
@@ -64,10 +65,9 @@ src/
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
+│   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write. ⚠️ 서버 BFF 미구현, lib/community-fixtures 목업
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
-├── app/api/cron/        # Vercel Cron — daily-reminder / scheduled-reminders / generate-recurring-expenses
-├── app/api/internal/    # 내부 API (Bearer INTERNAL_API_KEY, Service Role) — trends / instagram / instagram-accounts
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
 ├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx
@@ -76,18 +76,18 @@ src/
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택 포함)
 ├── components/layout/    # AppLayout, Header, Sidebar, BottomNav
-├── components/{sales,gallery,expenses,insights,auth,public}/  # 도메인별 공통 컴포넌트
+├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card 등)
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
-├── lib/supabase/         # client / server / middleware / service(Service Role)
-├── lib/api/              # Kotlin BFF 클라이언트 (client.ts, auth-cookies.ts, cookie-names.ts)
+├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts
 ├── lib/storage.ts        # Cloudflare R2 추상화 (uploadFile + getSignedUploadUrl)
 ├── lib/photo-upload.ts   # presigned URL 발급 → 브라우저→R2 직접 PUT
 ├── lib/validations.ts    # Zod 스키마 + 이미지 검증
 ├── lib/errors.ts         # AppError, ErrorCode, withErrorLogging()
 ├── lib/auth-guard.ts     # requireAuth() — /me 조회 + 온보딩 게이트
 ├── lib/env.ts            # 환경변수 Zod 검증
-├── lib/{constants,utils,date-locale,export,logger,internal-auth,push-broadcast}.ts
+├── lib/community-fixtures.ts # 커뮤니티 목업 시드 (서버 BFF 구현 시 제거 예정)
+├── lib/{constants,utils,date-locale,export,logger}.ts
 ├── lib/{public-config,instagram-url,legal-config,onboarding-options}.ts
 ├── types/database.ts     # 전체 타입 정의
 └── public/
@@ -103,9 +103,10 @@ src/
 
 ### 데이터 접근
 
-- **주 경로**: Server Action에서 `apiFetch`(`src/lib/api/client.ts`)로 Kotlin BFF REST 호출. JWT 쿠키를 Authorization 헤더로 붙이고, 401이면 refresh로 1회 자동 재발급 후 재시도. 테넌트 격리·카드수수료 등 계산은 **BFF가 JWT 기준으로 수행** (web은 `user_id`를 보내지 않음)
-- **잔존 Supabase 직접 호출** (이전 예정): `settings.ts`(카드사 설정), `push.ts`(구독), `insights.ts`(트렌드 카테고리 distinct + Service Role 쓰기), `sales.ts`(`get_sales_summary` RPC·일부 사진 헬퍼), `statistics.ts` 일부
-- page.tsx는 Supabase를 직접 import하지 않고 Server Action만 호출한다
+- **유일 경로**: Server Action에서 `apiFetch`(`src/lib/api/client.ts`)로 Kotlin BFF REST 호출. JWT 쿠키를 Authorization 헤더로 붙이고, 401이면 refresh로 1회 자동 재발급 후 재시도. 테넌트 격리·카드수수료 등 계산은 **BFF가 JWT 기준으로 수행** (web은 `user_id`를 보내지 않음)
+- **내부 API 호출**: 서버에 사용자용 엔드포인트가 없는 관리 작업(인스타 계정 CRUD)은 `apiFetchInternal`로 BFF `/internal/*`(Bearer `INTERNAL_API_KEY`) 호출 — 서버 액션 내부에서만
+- page.tsx는 데이터 클라이언트를 직접 import하지 않고 Server Action만 호출한다
+- **서버 미구현 대기**: `getSalesSummary`·트렌드 카테고리 카운트·IG 최근 수집시각·테스트 푸시는 아직 미구현 BFF 엔드포인트를 호출 → 서버 배포 전까지 비동작 (`docs/plans/` TODO 참조)
 
 ---
 
@@ -124,7 +125,7 @@ src/
 
 ## 멀티테넌시
 
-> BFF로 이전된 도메인은 Kotlin 서버가 JWT 기준으로 테넌트를 격리한다 (web은 `user_id`를 보내지 않음). 아래 RLS·`user_id` 규칙은 DB 스키마 정의 + 잔존 Supabase 직접 호출 경로에 적용된다.
+> 테넌트 격리는 Kotlin 서버가 JWT 기준으로 수행한다 (web은 `user_id`를 보내지 않음). 아래 `user_id`·RLS 규칙은 BFF가 소유한 DB 스키마 설명이며, web 코드에는 더 이상 반영되지 않는다.
 
 - 19개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` (인사이트 스크랩, 고정비 포함)
   - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, expense_categories, expense_payment_methods, push_subscriptions, user_preferences, insight_scraps, recurring_expenses, recurring_skips
@@ -151,6 +152,7 @@ src/
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`, RPC `get_sales_summary` 인자도 `text[]`
+- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. ⚠️ **서버 BFF 미구현** — `lib/community-fixtures.ts` 목업 + `actions/community.ts`가 `requireAuth().name` 기준 마스킹, 쓰기는 stub. 서버 구현 시 fixture→`apiFetch` 교체 (계약: 플랜 문서)
 
 ---
 

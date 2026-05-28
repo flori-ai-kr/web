@@ -28,7 +28,8 @@ export const createSale = withErrorLogging(async (input: SaleInput) => {
 
 - **주 경로**: `apiFetch`(`src/lib/api/client.ts`)로 Kotlin BFF REST 호출. JWT 쿠키를 Authorization 헤더로 붙이고, 401이면 refresh로 1회 자동 재발급 후 재시도
 - 테넌트 격리·카드수수료(fee/expected_deposit) 등 계산은 **BFF가 JWT 기준으로 수행** → web은 `user_id` 를 보내지 않는다
-- **잔존 Supabase 직접 호출**(이전 예정): `settings.ts`, `push.ts`, `insights.ts` 일부, `sales.ts`(`get_sales_summary` RPC·사진 헬퍼), `statistics.ts` 일부. 이 경로에서만 `createClient` + `user_id` 삽입이 남아 있다
+- web은 DB에 직접 연결하지 않는다 (Supabase 클라이언트 없음)
+- **내부 API**: 서버에 사용자용 엔드포인트가 없는 관리 작업(인스타 계정 CRUD)은 `apiFetchInternal`로 BFF `/internal/*`(Bearer `INTERNAL_API_KEY`)를 호출한다
 
 ## 3. 에러 처리
 

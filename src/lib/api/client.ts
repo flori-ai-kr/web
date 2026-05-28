@@ -1,13 +1,8 @@
 import 'server-only';
 
-import { cache } from 'react';
-import { AppError, ErrorCode } from '@/lib/errors';
-import {
-  clearAuthTokens,
-  getAccessToken,
-  getRefreshToken,
-  setAuthTokens,
-} from './auth-cookies';
+import {cache} from 'react';
+import {AppError, ErrorCode} from '@/lib/errors';
+import {clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens,} from './auth-cookies';
 
 // ─── BFF API 클라이언트 ───────────────────────────────────────
 // Next.js 서버 레이어에서 Kotlin REST API로 서버↔서버 fetch.
@@ -112,5 +107,27 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     return undefined as T;
   }
 
+  return (await res.json()) as T;
+}
+
+// ─── 내부(서버↔서버) API 클라이언트 ───────────────────────────
+// Kotlin `/internal/**` 엔드포인트는 사용자 JWT가 아니라 Bearer INTERNAL_API_KEY로 인증한다.
+// 인스타 계정 관리처럼 서버에 사용자용 엔드포인트가 없는 관리 작업에서 서버 액션 내부에서만 사용한다.
+/**
+ * Kotlin `/internal/**` API를 INTERNAL_API_KEY로 호출하고 JSON을 T로 파싱한다.
+ * refresh 로직 없음(사용자 세션과 무관). 비-2xx는 서버 메시지를 담은 AppError로 throw.
+ */
+export async function apiFetchInternal<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const key = process.env.INTERNAL_API_KEY;
+  if (!key) throw new AppError(ErrorCode.UNKNOWN, 'INTERNAL_API_KEY가 설정되지 않았습니다');
+
+  const headers = new Headers(init.headers);
+  headers.set('Content-Type', 'application/json');
+  headers.set('Authorization', `Bearer ${key}`);
+
+  const res = await fetch(apiUrl(path), { ...init, headers, cache: 'no-store' });
+
+  if (!res.ok) throw await toAppError(res);
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }

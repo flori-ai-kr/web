@@ -1,8 +1,8 @@
 'use client';
 
-import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
+import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
 import Image from 'next/image';
-import {Bell, CalendarDays, ChevronLeft, ChevronRight, LogOut, Moon, Settings, Sun} from 'lucide-react';
+import {Bell, CalendarDays, LogOut, Moon, Settings, Sun} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {Popover, PopoverContent, PopoverTrigger,} from '@/components/ui/popover';
 import Link from 'next/link';
-import {usePathname, useRouter} from 'next/navigation';
 import {useTheme} from 'next-themes';
 import {signOut} from '@/lib/actions/auth';
 import {getTriggeredReminders} from '@/lib/actions/reservations';
@@ -24,61 +23,13 @@ interface HeaderProps {
   userEmail: string;
 }
 
-const pageTitles: Record<string, string> = {
-  '/admin': '대시보드',
-  '/admin/calendar': '캘린더',
-  '/admin/sales': '매출 관리',
-  '/admin/expenses': '지출 관리',
-  '/admin/customers': '고객 관리',
-  '/admin/gallery': '사진첩',
-  '/admin/settings': '설정',
-};
-
-function getPageTitle(pathname: string): string {
-  if (pageTitles[pathname]) {
-    return pageTitles[pathname];
-  }
-  for (const [path, title] of Object.entries(pageTitles)) {
-    if (path !== '/admin' && pathname.startsWith(path)) {
-      return title;
-    }
-  }
-  return 'flori';
-}
-
 function getInitial(email: string): string {
   return (email[0] || '?').toUpperCase();
 }
 
 export function Header({ userEmail }: HeaderProps) {
-  const pathname = usePathname();
-  const pageTitle = getPageTitle(pathname);
-  const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
 
-  // In-app navigation tracking (useEffect to satisfy react-hooks/refs)
-  const isInitialMount = useRef(true);
-  const hasNavigatedRef = useRef(false);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    hasNavigatedRef.current = true;
-  }, [pathname]);
-
-  const showNavButtons = pathname !== '/admin';
-  const handleBack = useCallback(() => {
-    if (hasNavigatedRef.current) {
-      router.back();
-    } else {
-      router.push('/admin');
-    }
-  }, [router]);
-  const handleForward = useCallback(() => {
-    window.history.forward();
-  }, []);
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -123,46 +74,15 @@ export function Header({ userEmail }: HeaderProps) {
   const unreadCount = reminders.length;
 
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="fixed top-0 inset-x-0 z-40 h-14 border-b border-sidebar-border bg-sidebar">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
-        {/* Left side */}
-        <div className="flex items-center gap-1">
-          {/* 모바일: 대시보드면 로고, 아니면 뒤로가기 + 페이지 타이틀 */}
-          {pathname === '/admin' ? (
-            <Link href="/admin" className="lg:hidden flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
-              <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center">
-                <Image src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
-              </div>
-              <span className="text-lg font-semibold text-foreground tracking-tight">flori</span>
-            </Link>
-          ) : (
-            <div className="lg:hidden flex items-center gap-2 min-w-0">
-              {showNavButtons && (
-                <button
-                  onClick={handleBack}
-                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
-                  aria-label="뒤로 가기"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <h1 className="text-sm font-semibold text-foreground truncate">{pageTitle}</h1>
-              {showNavButtons && (
-                <button
-                  onClick={handleForward}
-                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
-                  aria-label="앞으로 가기"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          )}
-          {/* 데스크탑: 페이지 타이틀 */}
-          <h1 className="hidden lg:block text-sm font-semibold text-foreground truncate">
-            {pageTitle}
-          </h1>
-        </div>
+        {/* Left: brand (탭 → 대시보드) */}
+        <Link href="/admin" className="flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
+          <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center shrink-0">
+            <Image src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
+          </div>
+          <span className="text-lg font-semibold text-foreground tracking-tight">flori</span>
+        </Link>
 
         {/* Right side */}
         <div className="flex items-center gap-0.5 shrink-0">

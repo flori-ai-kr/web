@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import type { Expense, ExpenseCategory, PaymentMethod } from '@/types/database';
-import { expenseSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import type {Expense, ExpenseCategory, PaymentMethod} from '@/types/database';
+import {expenseSchema} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 // Kotlin /expenses 응답의 단일 지출 (camelCase). 서버 계약(ExpenseResponse)과 1:1.
 interface KotlinExpense {
@@ -69,7 +69,7 @@ async function _getExpenseById(id: string): Promise<Expense | null> {
     const row = await apiFetch<KotlinExpense>(`/expenses/${id}`);
     return mapKotlinExpense(row);
   } catch (err) {
-    // 존재하지 않으면 null (기존 Supabase .single() 실패와 동일 시맨틱)
+    // 존재하지 않으면 null
     if (err instanceof AppError && err.code === ErrorCode.NOT_FOUND) return null;
     throw err;
   }

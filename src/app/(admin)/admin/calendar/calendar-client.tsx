@@ -875,10 +875,10 @@ export function CalendarClient() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">캘린더</h1>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">캘린더</h1>
           <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
         </div>
       </div>
