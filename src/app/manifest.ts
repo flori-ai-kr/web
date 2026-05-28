@@ -2,15 +2,15 @@ import type {MetadataRoute} from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '헤이즐 어드민 - 꽃집 관리 시스템',
-    short_name: '헤이즐',
+    name: 'flori - 꽃에만 집중하세요',
+    short_name: 'flori',
     description: '매출, 지출, 고객, 예약을 한곳에서 관리하세요',
     start_url: '/admin',
     scope: '/admin',
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#FAFAF8',
-    theme_color: '#E5614E',
+    theme_color: '#A85475',
     categories: ['productivity', 'business'],
     icons: [
       {

@@ -31,8 +31,8 @@ import type {
     PaymentMethodStat,
 } from '@/lib/actions/statistics';
 import {formatCurrency, getTodayKST} from '@/lib/utils';
-import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
-import {GrowthRecordWidget} from '@/components/dashboard/growth-record-widget';
+// 랜딩페이지 재사용 예정 — 대시보드에서 일단 제거 (ai-briefing-card.tsx는 보존)
+// import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
 import {SectionHeader} from '@/components/dashboard/section-header';
 
@@ -242,11 +242,9 @@ export function DashboardClient() {
         </KpiGroup>
       )}
 
-      {/* Flori AI 브리핑 + 성장 기록 (mock data) */}
-      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-4">
-        <AiBriefingCard />
-        <GrowthRecordWidget />
-      </div>
+      {/* flori AI 브리핑(프리미엄 teaser) — 대시보드에서 일단 제거.
+          컴포넌트(ai-briefing-card.tsx)는 보존, 랜딩페이지 만들 때 재사용 예정.
+          <AiBriefingCard /> */}
 
       {/* Two Column: Reservations + Recent Sales */}
       <div className="grid lg:grid-cols-2 gap-4">

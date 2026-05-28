@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
+import NextImage from 'next/image';
 import {
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
-    Flower2,
     Heart,
     Image,
     LayoutDashboard,
@@ -147,11 +147,11 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
             isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
           )}>
             <Link href="/admin" className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shrink-0">
-                <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
+              <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center shrink-0">
+                <NextImage src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
               </div>
               {!isCollapsed && (
-                <span className="text-lg font-semibold text-foreground truncate tracking-tight">Flori</span>
+                <span className="text-lg font-semibold text-foreground truncate tracking-tight">flori</span>
               )}
             </Link>
           </div>

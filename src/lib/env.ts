@@ -23,15 +23,19 @@ const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Service Role 키 필수'),
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
-  // ─── 필수: Kotlin 백엔드 API (BFF 서버↔서버) ────────────────
+  // ─── 필수: 백엔드 API (BFF 서버↔서버) ────────────────────────
   // NEXT_PUBLIC_ 접두사 없음 — 서버 전용. 브라우저에 노출 금지.
-  KOTLIN_API_URL: z.string().url('유효한 Kotlin API URL이어야 합니다').default('http://localhost:8080'),
+  API_URL: z.string().url('유효한 API URL이어야 합니다').default('http://localhost:8080'),
 
   // ─── 선택: 기능별 ─────────────────────────────────────────
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   CRON_SECRET: z.string().min(1).optional(),
+  // 소셜 OAuth 키. 모두 서버 전용(NEXT_PUBLIC 금지). 없으면 해당 공급자 로그인 비활성.
+  OAUTH_KAKAO_REST_API_KEY: z.string().min(1).optional(),
+  OAUTH_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  OAUTH_NAVER_CLIENT_ID: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

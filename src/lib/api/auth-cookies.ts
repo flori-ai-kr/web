@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-import { ACCESS_COOKIE, REFRESH_COOKIE } from './cookie-names';
+import { ACCESS_COOKIE, REFRESH_COOKIE, REGISTER_COOKIE } from './cookie-names';
 
 // ─── BFF JWT 쿠키 헬퍼 ────────────────────────────────────────
 // Kotlin API가 발급한 access/refresh 토큰을 httpOnly 쿠키로 저장한다.
@@ -62,4 +62,29 @@ export async function getAccessToken(): Promise<string | undefined> {
 export async function getRefreshToken(): Promise<string | undefined> {
   const store = await cookies();
   return store.get(REFRESH_COOKIE)?.value;
+}
+
+// ─── 소셜 가입 토큰(registerToken) 쿠키 헬퍼 ───────────────────
+// 소셜 인증은 됐지만 아직 미가입인 유저의 가입 자격증명. 콜백에서 저장하고
+// register/complete 액션에서 읽어 body로 보낸 뒤 삭제한다. 클라이언트 JS 비노출.
+
+/** 미가입 소셜 유저의 registerToken을 httpOnly 쿠키에 저장한다. (기본 수명 5분) */
+export async function setRegisterToken(token: string, maxAge = 300): Promise<void> {
+  const store = await cookies();
+  store.set(REGISTER_COOKIE, token, cookieOptions(maxAge));
+}
+
+export async function getRegisterToken(): Promise<string | undefined> {
+  const store = await cookies();
+  return store.get(REGISTER_COOKIE)?.value;
+}
+
+/** 가입 완료·취소 시 registerToken 쿠키를 제거한다. (읽기 컨텍스트에선 무시) */
+export async function clearRegisterToken(): Promise<void> {
+  try {
+    const store = await cookies();
+    store.delete(REGISTER_COOKIE);
+  } catch {
+    // Server Component 렌더 중에는 쿠키 삭제 불가 — 무시
+  }
 }
