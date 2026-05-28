@@ -5,13 +5,11 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
     CalendarDays,
-    Heart,
     Image as ImageIcon,
     LayoutDashboard,
     MoreHorizontal,
     Receipt,
     Settings as SettingsIcon,
-    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -26,8 +24,6 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   expenses: Wallet,
   customers: Users,
   gallery: ImageIcon,
-  insights: TrendingUp,
-  follows: Heart,
 };
 
 const ALL_NAV_ITEMS: NavItemKey[] = [
@@ -37,9 +33,12 @@ const ALL_NAV_ITEMS: NavItemKey[] = [
   'expenses',
   'customers',
   'gallery',
-  'insights',
-  'follows',
 ];
+
+// 저장된 사용자 설정에 제거된 키(insights/follows)가 남아있어도 안전하게 거른다
+function sanitize(keys: NavItemKey[]): NavItemKey[] {
+  return keys.filter((k): k is NavItemKey => k in ICON_MAP);
+}
 
 interface BottomNavProps {
   items?: NavItemKey[];
@@ -50,7 +49,8 @@ export function BottomNav({ items }: BottomNavProps) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const displayedItems = useMemo(() => {
-    const source = items && items.length >= 4 ? items : DEFAULT_BOTTOM_NAV_ITEMS;
+    const cleaned = items ? sanitize(items) : [];
+    const source = cleaned.length >= 4 ? cleaned : DEFAULT_BOTTOM_NAV_ITEMS;
     return source.slice(0, 6);
   }, [items]);
 

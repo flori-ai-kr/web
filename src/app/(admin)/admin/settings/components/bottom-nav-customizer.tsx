@@ -20,13 +20,11 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {
     CalendarDays,
-    Heart,
     Image as ImageIcon,
     LayoutDashboard,
     Plus,
     Receipt,
     RotateCcw,
-    TrendingUp,
     Users,
     Wallet,
     X,
@@ -54,8 +52,6 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   expenses: Wallet,
   customers: Users,
   gallery: ImageIcon,
-  insights: TrendingUp,
-  follows: Heart,
 };
 
 const ALL_KEYS: NavItemKey[] = [
@@ -65,9 +61,12 @@ const ALL_KEYS: NavItemKey[] = [
   'expenses',
   'customers',
   'gallery',
-  'insights',
-  'follows',
 ];
+
+// 저장된 설정에 제거된 키(insights/follows)가 남아있어도 유효한 키만 남긴다
+function sanitize(keys: NavItemKey[]): NavItemKey[] {
+  return keys.filter((k) => ALL_KEYS.includes(k));
+}
 
 export function BottomNavCustomizer() {
   const router = useRouter();
@@ -79,8 +78,9 @@ export function BottomNavCustomizer() {
   useEffect(() => {
     getUserPreferences()
       .then((prefs) => {
-        setActiveItems(prefs.bottom_nav_items);
-        setInitialItems(prefs.bottom_nav_items);
+        const cleaned = sanitize(prefs.bottom_nav_items);
+        setActiveItems(cleaned);
+        setInitialItems(cleaned);
       })
       .catch(() => toast.error('설정을 불러오지 못했어요'))
       .finally(() => setIsLoading(false));

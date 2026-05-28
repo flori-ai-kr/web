@@ -328,9 +328,7 @@ export type NavItemKey =
   | 'sales'
   | 'expenses'
   | 'customers'
-  | 'gallery'
-  | 'insights'
-  | 'follows';
+  | 'gallery';
 
 export interface UserPreferences {
   user_id: string;
@@ -345,8 +343,6 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
   expenses: '지출관리',
   customers: '고객관리',
   gallery: '사진첩',
-  insights: '인사이트',
-  follows: '팔로우',
 };
 
 export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
@@ -356,8 +352,6 @@ export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
   expenses: '/admin/expenses',
   customers: '/admin/customers',
   gallery: '/admin/gallery',
-  insights: '/admin/insights',
-  follows: '/admin/insights/follows',
 };
 
 export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [
@@ -365,7 +359,7 @@ export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [
   'sales',
   'expenses',
   'customers',
-  'insights',
+  'calendar',
 ];
 
 export const MIN_BOTTOM_NAV_ITEMS = 4;

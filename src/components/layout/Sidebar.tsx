@@ -7,12 +7,9 @@ import {
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
-    Heart,
     Image,
     LayoutDashboard,
     Receipt,
-    Sparkles,
-    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -46,14 +43,6 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/customers', icon: Users, label: '고객관리' },
       { href: '/admin/gallery', icon: Image, label: '사진첩' },
-    ],
-  },
-  {
-    title: '인사이트',
-    items: [
-      { href: '/admin/insights', icon: TrendingUp, label: '인사이트' },
-      { href: '/admin/insights/trends', icon: Sparkles, label: '트렌드' },
-      { href: '/admin/insights/follows', icon: Heart, label: '팔로우' },
     ],
   },
 ];
