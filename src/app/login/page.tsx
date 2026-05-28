@@ -14,7 +14,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <LoginForm available={available} />
     </Suspense>
   )

@@ -90,6 +90,11 @@ export async function GET(
       return NextResponse.redirect(onboardingUrl)
     }
 
+    // 계약(registered+token | !registered+registerToken)과 어긋난 비정상 응답 — 디버깅용 로깅.
+    console.error('[OAuth callback] 예상치 못한 OAuthResult 형태', {
+      provider,
+      registered: result.registered,
+    })
     return failed
   } catch {
     return failed

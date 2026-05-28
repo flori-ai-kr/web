@@ -40,6 +40,7 @@ function TypingBriefing({lines}: {lines: string[]}) {
       return;
     }
 
+    let cancelled = false;
     let line = 0;
     let char = 0;
     let deleting = false;
@@ -49,6 +50,7 @@ function TypingBriefing({lines}: {lines: string[]}) {
     };
 
     const tick = () => {
+      if (cancelled) return;
       const current = lines[line] ?? '';
       if (!deleting) {
         char += 1;
@@ -75,11 +77,13 @@ function TypingBriefing({lines}: {lines: string[]}) {
     // 첫 타이핑 직전 화면을 비운다 — effect 본문이 아닌 타이머 콜백 안에서 setState하여
     // 동기 setState로 인한 cascading render 경고를 피한다.
     timerRef.current = setTimeout(() => {
+      if (cancelled) return;
       setDisplay('');
       schedule(150);
     }, 300);
 
     return () => {
+      cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [lines]);

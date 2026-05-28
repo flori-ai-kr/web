@@ -30,7 +30,7 @@ export async function GET(
 
   let authorizeUrl =
     config.authorize +
-    `?client_id=${clientId}` +
+    `?client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     '&response_type=code' +
     `&state=${state}`

@@ -22,7 +22,7 @@ export default async function OnboardingPage({
   const { email, nickname } = await searchParams
 
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <OnboardingForm defaultEmail={email ?? ''} defaultNickname={nickname ?? ''} />
     </Suspense>
   )
