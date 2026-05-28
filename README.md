@@ -101,8 +101,9 @@ flowchart TB
     end
 
     subgraph Backend["백엔드"]
-        BFF["Kotlin BFF\n인증 · OAuth · 온보딩"]
-        Supabase[("Supabase\nPostgreSQL + RLS")]
+        BFF["Kotlin BFF (flori-ai/server)\n인증 · OAuth · 비즈니스 데이터"]
+        DB[("PostgreSQL\nBFF 소유")]
+        Supabase[("Supabase\n직접 호출 잔존 · 이전 예정")]
         R2[("Cloudflare R2\n이미지 · CDN")]
     end
 
@@ -112,16 +113,17 @@ flowchart TB
 
     User --> Next
     User <-->|"브라우저 직접 PUT (presigned)"| R2
-    Next -->|"JWT 쿠키 · 서버↔서버"| BFF
-    Next -->|"비즈니스 데이터 (RLS)"| Supabase
+    Next -->|"JWT 쿠키 · 서버↔서버 (주 경로)"| BFF
+    Next -.->|"일부 쿼리 직접 호출"| Supabase
     Next -->|"presigned URL 발급"| R2
     Next -.->|"미지 에러"| Discord
+    BFF --> DB
     BFF <--> OAuth
     Cron --> Push --> SW --> User
 
     style Next fill:#1565c0,color:#fff
     style BFF fill:#6a1b9a,color:#fff
-    style Supabase fill:#2e7d32,color:#fff
+    style DB fill:#2e7d32,color:#fff
     style R2 fill:#ef6c00,color:#fff
 ```
 
@@ -152,8 +154,8 @@ sequenceDiagram
 ```
 
 - **Next.js (Vercel)**: 서버 컴포넌트 데이터 fetch, Server Action(CUD), Route Handler(OAuth/Cron/내부 API)
-- **Kotlin BFF**: 인증·OAuth·온보딩. Next 서버 레이어에서 JWT 쿠키로 서버↔서버 호출
-- **Supabase**: 비즈니스 데이터 저장, Row Level Security 로 테넌트 격리
+- **Kotlin BFF**: 인증·OAuth·온보딩 + 비즈니스 데이터의 **주 경로**. Next 서버 레이어에서 JWT 쿠키로 서버↔서버 호출(`apiFetch`)하며, BFF가 DB(PostgreSQL)를 소유하고 테넌트 격리·카드수수료 계산을 수행
+- **Supabase**: Supabase → BFF **마이그레이션 진행 중**이라 일부 엔드포인트(설정·푸시 구독·인사이트 일부·매출 집계 RPC 등)는 아직 Supabase를 직접 호출
 - **Cloudflare R2**: 이미지 저장. Vercel 4.5MB 본문 제한을 우회하기 위해 presigned URL 로 브라우저가 R2에 직접 PUT
 
 ---
@@ -202,9 +204,8 @@ src/
 
 | 항목 | 내용 |
 |------|------|
-| 격리 방식 | 19개 테이블에 `user_id` 컬럼 + RLS 정책 `auth.uid() = user_id` |
-| 쓰기 | Server Action 에서 `requireAuth()` 로 사용자 확인 후 `user_id` 삽입 |
-| 공유 읽기 | trend_articles · instagram_accounts · instagram_posts (SELECT only, 쓰기는 Service Role) |
+| 격리 방식 (주 경로) | Kotlin BFF가 JWT 기준으로 테넌트를 격리 (web은 `user_id` 미전송) |
+| 격리 방식 (DB/잔존 Supabase) | 19개 테이블에 `user_id` 컬럼 + RLS 정책 `auth.uid() = user_id` |
 | unique 제약 | 단일 컬럼 → `(column, user_id)` 복합 (예: `customers(phone, user_id)`) |
 
 ---

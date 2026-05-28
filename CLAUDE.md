@@ -8,7 +8,7 @@
 
 **flori** — 꽃집 매출·지출·고객·사진첩·예약·인사이트를 관리하는 PWA 어드민 웹앱.
 
-멀티테넌시(테넌트별 데이터 격리)를 기본으로 하며, 인증은 Kotlin BFF(`flori-ai/server`)를 Next.js 서버 레이어 경유로 호출하고, 비즈니스 데이터는 Supabase(PostgreSQL + RLS)에 저장한다.
+멀티테넌시(테넌트별 데이터 격리)를 기본으로 한다. 인증과 비즈니스 데이터는 모두 Kotlin BFF(`flori-ai/server`) REST API를 Next.js 서버 레이어 경유로 호출하며, BFF가 DB(PostgreSQL)를 소유한다. **단 Supabase → Kotlin BFF 데이터 마이그레이션이 진행 중**이라, 일부 엔드포인트(설정·푸시 구독·인사이트 일부·매출 집계 RPC 등)는 아직 Supabase를 직접 호출한다.
 
 ### 기술 스택
 
@@ -17,7 +17,8 @@
 | Framework | Next.js 16 (App Router), React 19 |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4, shadcn/ui (Radix UI) |
-| Database | Supabase (PostgreSQL, Row Level Security) |
+| Data API | Kotlin BFF (`flori-ai/server`) REST — `apiFetch` 서버↔서버 호출 (주 경로) |
+| Database | PostgreSQL (BFF 소유). Supabase 직접 호출은 일부 잔존 (마이그레이션 진행 중) |
 | Auth | Kotlin BFF JWT 쿠키 + 소셜 OAuth (kakao·google·naver) |
 | Storage | Cloudflare R2 (S3 호환, CDN, presigned 업로드) |
 | Validation | Zod 4 |
@@ -100,6 +101,12 @@ src/
 - `/admin/*` 경로만 인증 강제. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 는 공개 라우트
 - 소셜 OAuth: `/auth/login/[provider]` → 공급자 redirect → `/auth/callback/[provider]` → BFF `POST /auth/oauth/{provider}` → registered=true이면 `/admin`, false이면 `registerToken` 쿠키(`flori_register`) → `/onboarding`
 
+### 데이터 접근
+
+- **주 경로**: Server Action에서 `apiFetch`(`src/lib/api/client.ts`)로 Kotlin BFF REST 호출. JWT 쿠키를 Authorization 헤더로 붙이고, 401이면 refresh로 1회 자동 재발급 후 재시도. 테넌트 격리·카드수수료 등 계산은 **BFF가 JWT 기준으로 수행** (web은 `user_id`를 보내지 않음)
+- **잔존 Supabase 직접 호출** (이전 예정): `settings.ts`(카드사 설정), `push.ts`(구독), `insights.ts`(트렌드 카테고리 distinct + Service Role 쓰기), `sales.ts`(`get_sales_summary` RPC·일부 사진 헬퍼), `statistics.ts` 일부
+- page.tsx는 Supabase를 직접 import하지 않고 Server Action만 호출한다
+
 ---
 
 ## 코딩 컨벤션
@@ -117,6 +124,8 @@ src/
 
 ## 멀티테넌시
 
+> BFF로 이전된 도메인은 Kotlin 서버가 JWT 기준으로 테넌트를 격리한다 (web은 `user_id`를 보내지 않음). 아래 RLS·`user_id` 규칙은 DB 스키마 정의 + 잔존 Supabase 직접 호출 경로에 적용된다.
+
 - 19개 테이블에 `user_id UUID NOT NULL REFERENCES auth.users(id)` (인사이트 스크랩, 고정비 포함)
   - sales, expenses, customers, reservations, photo_cards, photo_tags, card_company_settings, sale_categories, payment_methods, expense_categories, expense_payment_methods, push_subscriptions, user_preferences, insight_scraps, recurring_expenses, recurring_skips
   - 공유 읽기 테이블 (SELECT only, writes via service role): trend_articles, instagram_accounts, instagram_posts
@@ -132,7 +141,7 @@ src/
 
 - 고객 식별: 전화번호 + user_id 복합 unique, 성별(male/female) 선택
 - 로드 구입: 매출 등록 간편 모드 (결제방식=현금, 채널=road 고정, 카드사/주문자명/연락처 생략)
-- 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`, 입금 예정일은 영업일 기준 N일
+- 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`, 입금 예정일은 영업일 기준 N일. **fee/expected_deposit/deposit_status/is_unpaid 계산은 BFF가 수행** (web은 입력값만 POST)
 - 지출 총액: `unit_price * quantity`
 - 사진: 3MB 초과 시 자동 압축(`useWebWorker: false` — CSP worker-src 제약), 카드당 최대 10장, Cloudflare R2 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 presigned PUT URL 발급 → 브라우저가 R2 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
 - 예약 리마인더: `reminder_at` 설정 → Cron 푸시 발송
