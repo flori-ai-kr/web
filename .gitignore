@@ -56,19 +56,6 @@ next-env.d.ts
 ### IDE ####
 .idea
 
-### MoAI ###
-# 세션 텔레메트리 (로컬 디버깅용, 공유 X)
-.moai/logs/
-# 자동 생성 캐시
-.moai/cache/
-.moai/reports/
-.moai/design/
-.moai/design/*.md
-# 세션 상태 (resume용 로컬 데이터)
-.moai/state/*.json
-.moai/state/*.md
-!.moai/state/db-detection.json
+### Design ###
 # 디자인 리서치 raw 데이터 (스크래핑 원본, 9MB+)
-.moai/design/research/
-# 에이전트 작업 메모 (로컬 스크래치)
-.claude/agent-memory/
+docs/design/research/

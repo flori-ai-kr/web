@@ -5,10 +5,6 @@ import {z} from 'zod';
 // 새 환경변수 추가 시 이 스키마에도 추가할 것.
 
 const serverEnvSchema = z.object({
-  // ─── 필수: Supabase ───────────────────────────────────────
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url('유효한 Supabase URL이어야 합니다'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, '빈 값일 수 없습니다'),
-
   // ─── 필수: Cloudflare R2 ──────────────────────────────────
   R2_ACCOUNT_ID: z.string().min(1, '빈 값일 수 없습니다'),
   R2_ACCESS_KEY_ID: z.string().min(1, '빈 값일 수 없습니다'),
@@ -20,7 +16,6 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
   // ─── 필수: 서버 기능 ──────────────────────────────────────
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Service Role 키 필수'),
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
   // ─── 필수: 백엔드 API (BFF 서버↔서버) ────────────────────────
@@ -28,10 +23,7 @@ const serverEnvSchema = z.object({
   API_URL: z.string().url('유효한 API URL이어야 합니다').default('http://localhost:8080'),
 
   // ─── 선택: 기능별 ─────────────────────────────────────────
-  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
-  VAPID_SUBJECT: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
-  CRON_SECRET: z.string().min(1).optional(),
   // 소셜 OAuth 키. 모두 서버 전용(NEXT_PUBLIC 금지). 없으면 해당 공급자 로그인 비활성.
   OAUTH_KAKAO_REST_API_KEY: z.string().min(1).optional(),
   OAUTH_GOOGLE_CLIENT_ID: z.string().min(1).optional(),

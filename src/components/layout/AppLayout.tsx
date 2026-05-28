@@ -33,6 +33,9 @@ export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProp
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 전체 너비 1줄 헤더 (좌: 로고 → 대시보드, 우: 알림·테마·아바타) */}
+      <Header userEmail={userEmail} />
+
       <Sidebar
         isCollapsed={isCollapsed}
         onToggleCollapse={handleToggleCollapse}
@@ -40,11 +43,9 @@ export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProp
       />
 
       <div className={cn(
-        'transition-[margin] duration-200',
+        'pt-14 transition-[margin] duration-200',
         isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
       )}>
-        <Header userEmail={userEmail} />
-
         <main className="p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8" aria-label="주요 콘텐츠">
           <div className="max-w-7xl mx-auto">
             {children}

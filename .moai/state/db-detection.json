@@ -1,7 +1,0 @@
-{
-  "detected": true,
-  "matched_keywords": ["supabase", "postgresql"],
-  "source_files": ["package.json", ".moai/project/tech.md"],
-  "scanned_at": "2026-05-04T07:20:00Z",
-  "tech_md_hash": "b05c34b597c37d1a8d635b3a6e34bc8acdf852fd7863f482b59fd17075297663"
-}

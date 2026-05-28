@@ -69,7 +69,7 @@ function BarList({
     return <p className="text-sm text-muted-foreground py-6 text-center">{emptyMessage}</p>;
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 px-4 sm:px-6 py-5 sm:py-7">
       {items.map((item, i) => (
         <div key={i} className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
@@ -186,11 +186,11 @@ export function DashboardClient() {
   const netProfit = totalSales - monthExpenseTotal;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="font-sans text-2xl font-semibold text-foreground tracking-tight">대시보드</h1>
+          <h1 className="font-sans text-xl font-semibold text-foreground tracking-tight">대시보드</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(now, 'yyyy년 M월 d일 (EEEE)', { locale: ko })}
           </p>

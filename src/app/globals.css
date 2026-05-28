@@ -384,3 +384,79 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── Tiptap 커뮤니티 본문 렌더링 ─────────────────────────── */
+.tiptap-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+.tiptap-content p {
+  margin: 0.5rem 0;
+}
+.tiptap-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.tiptap-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.4rem;
+}
+.tiptap-content ul,
+.tiptap-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.4rem;
+}
+.tiptap-content ul {
+  list-style: disc;
+}
+.tiptap-content ol {
+  list-style: decimal;
+}
+.tiptap-content blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0.5rem 0;
+}
+.tiptap-content img {
+  border-radius: 0.5rem;
+  max-width: 100%;
+  height: auto;
+}
+.tiptap-content pre {
+  background: var(--muted);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+.tiptap-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.tiptap-content :not(pre) > code {
+  background: var(--muted);
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+.tiptap-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+}
+.tiptap-content a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+/* Placeholder (빈 에디터 첫 줄) */
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  height: 0;
+}

@@ -3,7 +3,6 @@ import {validateEnv} from "./src/lib/env";
 
 const env = validateEnv();
 
-const supabaseHostname = new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 const r2Hostname = new URL(env.R2_PUBLIC_URL).hostname;
 // AWS SDK S3 클라이언트는 기본적으로 virtual-hosted-style URL을 생성한다:
 // https://<bucket>.<account>.r2.cloudflarestorage.com — presigned PUT 대상 호스트.
@@ -15,11 +14,6 @@ const nextConfig: NextConfig = {
     // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: supabaseHostname,
-        pathname: '/storage/v1/object/public/**',
-      },
       {
         protocol: 'https',
         hostname: r2Hostname,
@@ -69,9 +63,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
-              `img-src 'self' data: blob: https://${supabaseHostname} https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
+              `img-src 'self' data: blob: https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
-              `connect-src 'self' https://${supabaseHostname} wss://${supabaseHostname} https://${r2Hostname} https://${r2ApiHost}`,
+              `connect-src 'self' https://${r2Hostname} https://${r2ApiHost}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self'",

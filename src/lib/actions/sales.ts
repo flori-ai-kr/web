@@ -1,15 +1,12 @@
 'use server';
 
-import {createClient} from '@/lib/supabase/server';
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {findOrCreateCustomer} from './customers';
 import type {PaymentMethod, ReservationChannel, Sale} from '@/types/database';
 import {z} from 'zod';
-import {saleSchema, uuidSchema, validateImageFile} from '@/lib/validations';
+import {saleSchema, uuidSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
-import {getMonthDateRange} from '@/lib/utils';
-import {deleteFileByUrl, generateFileKey, StoragePrefix, uploadFile} from '@/lib/storage';
 import {apiFetch} from '@/lib/api/client';
 
 /**
@@ -132,36 +129,28 @@ async function _loadMoreSales(month: string | null, offset: number, filters?: Sa
 
 export const loadMoreSales = withErrorLogging('loadMoreSales', _loadMoreSales);
 
-// 요약 집계 (DB RPC로 직접 집계 — row limit 영향 없음)
+interface KotlinSalesSummary {
+  total: number;
+  card: number;
+  naverpay: number;
+  transfer: number;
+  cash: number;
+  count: number;
+}
+
+// 요약 집계: 페이지네이션과 무관하게 필터 적용 전체를 서버가 집계한다.
+// month 파싱(연/특정일/월 범위)과 필터 적용은 서버 `/sales/summary`가 담당한다.
 async function _getSalesSummary(month?: string, filters?: SalesFilters) {
   await requireAuth();
-  const supabase = await createClient();
 
-  let startDate: string | null = null;
-  let endDate: string | null = null;
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  for (const c of filters?.category ?? []) params.append('category', c);
+  for (const p of filters?.payment ?? []) params.append('payment', p);
+  for (const ch of filters?.channel ?? []) params.append('channel', ch);
+  if (filters?.search) params.set('search', filters.search);
 
-  if (month) {
-    if (month.length === 4) {
-      startDate = `${month}-01-01`;
-      endDate = `${month}-12-31`;
-    } else if (month.length === 10) {
-      startDate = month;
-      endDate = month;
-    } else {
-      const range = getMonthDateRange(month);
-      startDate = range.startDate;
-      endDate = range.endDate;
-    }
-  }
-
-  const { data, error } = await supabase.rpc('get_sales_summary', {
-    p_start_date: startDate,
-    p_end_date: endDate,
-    p_category: filters?.category && filters.category.length > 0 ? filters.category : null,
-    p_payment: filters?.payment && filters.payment.length > 0 ? filters.payment : null,
-    p_channel: filters?.channel && filters.channel.length > 0 ? filters.channel : null,
-  });
-  if (error) throw error;
+  const data = await apiFetch<KotlinSalesSummary>(`/sales/summary?${params.toString()}`);
 
   return {
     total: data?.total ?? 0,
@@ -342,81 +331,6 @@ async function _deleteSale(id: string) {
 }
 
 export const deleteSale = withErrorLogging('deleteSale', _deleteSale);
-
-// Photo upload functions
-async function _uploadSalePhotos(saleId: string, formData: FormData): Promise<string[]> {
-  await requireAuth();
-  const supabase = await createClient();
-  const files = formData.getAll('photos') as File[];
-  const uploadedUrls: string[] = [];
-
-  for (const file of files) {
-    if (!file.size) continue;
-
-    const imageError = validateImageFile(file);
-    if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
-
-    // R2 Storage: 키 생성 및 업로드
-    const key = generateFileKey(StoragePrefix.PHOTO_CARDS, saleId, file.name);
-    const arrayBuffer = await file.arrayBuffer();
-    const publicUrl = await uploadFile(key, arrayBuffer, file.type || 'image/jpeg');
-
-    uploadedUrls.push(publicUrl);
-  }
-
-  // Update sale with photo URLs
-  if (uploadedUrls.length > 0) {
-    const { data: sale } = await supabase
-      .from('sales')
-      .select('photos')
-      .eq('id', saleId)
-      .single();
-
-    const existingPhotos = sale?.photos || [];
-    const allPhotos = [...existingPhotos, ...uploadedUrls];
-
-    const { error: updateError } = await supabase
-      .from('sales')
-      .update({ photos: allPhotos })
-      .eq('id', saleId);
-
-    if (updateError) throw updateError;
-  }
-
-  revalidatePath('/sales');
-  revalidatePath('/customers');
-  return uploadedUrls;
-}
-
-export const uploadSalePhotos = withErrorLogging('uploadSalePhotos', _uploadSalePhotos);
-
-async function _deleteSalePhoto(saleId: string, photoUrl: string): Promise<void> {
-  await requireAuth();
-  const supabase = await createClient();
-
-  // R2 Storage: URL로 파일 삭제
-  await deleteFileByUrl(photoUrl);
-
-  // Update sale to remove photo URL
-  const { data: sale } = await supabase
-    .from('sales')
-    .select('photos')
-    .eq('id', saleId)
-    .single();
-
-  if (sale?.photos) {
-    const updatedPhotos = sale.photos.filter((p: string) => p !== photoUrl);
-    await supabase
-      .from('sales')
-      .update({ photos: updatedPhotos })
-      .eq('id', saleId);
-  }
-
-  revalidatePath('/sales');
-  revalidatePath('/customers');
-}
-
-export const deleteSalePhoto = withErrorLogging('deleteSalePhoto', _deleteSalePhoto);
 
 async function _getSaleById(id: string): Promise<Sale | null> {
   await requireAuth();

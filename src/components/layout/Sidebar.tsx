@@ -2,17 +2,14 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import NextImage from 'next/image';
 import {
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
-    Heart,
     Image,
     LayoutDashboard,
+    MessagesSquare,
     Receipt,
-    Sparkles,
-    TrendingUp,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -49,11 +46,9 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: '인사이트',
+    title: '소통',
     items: [
-      { href: '/admin/insights', icon: TrendingUp, label: '인사이트' },
-      { href: '/admin/insights/trends', icon: Sparkles, label: '트렌드' },
-      { href: '/admin/insights/follows', icon: Heart, label: '팔로우' },
+      { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티' },
     ],
   },
 ];
@@ -136,26 +131,11 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
       {/* Desktop sidebar only — mobile uses BottomNav */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out hidden lg:block',
+          'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out hidden lg:block',
           isCollapsed ? 'w-16' : 'w-60'
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className={cn(
-            'h-14 flex items-center border-b border-sidebar-border shrink-0',
-            isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
-          )}>
-            <Link href="/admin" className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center shrink-0">
-                <NextImage src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
-              </div>
-              {!isCollapsed && (
-                <span className="text-lg font-semibold text-foreground truncate tracking-tight">flori</span>
-              )}
-            </Link>
-          </div>
-
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4" aria-label="주요 네비게이션">
             {/* Dashboard (standalone) */}

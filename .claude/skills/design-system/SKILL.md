@@ -62,7 +62,7 @@ redundant spacing vars, no arbitrary values like `p-[13px]`.
 
 ## Pencil document
 
-- Canonical .pen path: `.moai/design/flori-admin.pen` (repo-tracked; user may need to Save manually in the Pencil app the first time).
+- Canonical .pen path: `docs/design/flori-admin.pen` (repo-tracked; user may need to Save manually in the Pencil app the first time).
 - The `/pencil-welcome-desktop.pen` welcome file has a rich shadcn-style component kit, but components **cannot be referenced across files** — build flori screens with primitive frame/text/icon_font nodes + token variables instead, or copy components in.
 
 ## Design tokens → Pencil variables
