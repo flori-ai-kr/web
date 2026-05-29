@@ -1,10 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { uuidSchema } from '@/lib/validations';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {idSchema} from '@/lib/validations';
+import {apiFetch} from '@/lib/api/client';
 
 export interface SaleCategory {
   id: string;
@@ -85,7 +85,7 @@ export const createSaleCategory = withErrorLogging('createSaleCategory', _create
 // 카테고리 수정
 async function _updateSaleCategory(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<LabelSettingDto>(`/settings/sale-categories/${id}`, {
@@ -101,7 +101,7 @@ export const updateSaleCategory = withErrorLogging('updateSaleCategory', _update
 // 카테고리 삭제
 async function _deleteSaleCategory(id: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<void>(`/settings/sale-categories/${id}`, { method: 'DELETE' });
@@ -138,7 +138,7 @@ export const createPaymentMethod = withErrorLogging('createPaymentMethod', _crea
 // 결제방식 수정 (value는 수정 불가 - CHECK 제약조건 때문)
 async function _updatePaymentMethod(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<LabelSettingDto>(`/settings/payment-methods/${id}`, {
@@ -154,7 +154,7 @@ export const updatePaymentMethod = withErrorLogging('updatePaymentMethod', _upda
 // 결제방식 삭제
 async function _deletePaymentMethod(id: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<void>(`/settings/payment-methods/${id}`, { method: 'DELETE' });

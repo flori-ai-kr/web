@@ -237,7 +237,6 @@ export function DashboardClient() {
             label="순이익"
             value={formatCurrency(netProfit)}
             valueClassName={netProfit >= 0 ? '' : 'text-danger'}
-            sub="매출 − 지출"
           />
         </KpiGroup>
       )}
@@ -247,10 +246,10 @@ export function DashboardClient() {
           <AiBriefingCard /> */}
 
       {/* Two Column: Reservations + Recent Sales */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
         {/* Upcoming Reservations */}
         <Card className="overflow-hidden">
-          <CardContent className="p-5 pb-3">
+          <CardContent className="p-4 pb-2">
             <SectionHeader
               title={
                 <span className="inline-flex items-center gap-2">
@@ -269,7 +268,7 @@ export function DashboardClient() {
               }
             />
           </CardContent>
-          <CardContent className="p-5 pt-4">
+          <CardContent className="p-4 pt-2">
             {isTodayLoading ? (
               <div className="space-y-2 py-1">
                 {[...Array(5)].map((_, i) => (
@@ -364,7 +363,7 @@ export function DashboardClient() {
 
         {/* Recent Sales */}
         <Card className="overflow-hidden">
-          <CardContent className="p-5 pb-3">
+          <CardContent className="p-4 pb-2">
             <SectionHeader
               title={
                 <span className="inline-flex items-center gap-2">
@@ -382,11 +381,11 @@ export function DashboardClient() {
               }
             />
           </CardContent>
-          <CardContent className="p-5 pt-4">
+          <CardContent className="p-4 pt-2">
             {isTodayLoading ? (
-              <div className="space-y-1 py-1">
+              <div>
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-3 w-8" />
                       <Skeleton className="h-5 w-14 rounded" />
@@ -397,17 +396,17 @@ export function DashboardClient() {
                 ))}
               </div>
             ) : recentSales.length > 0 ? (
-              <div className="space-y-1">
+              <div>
                 {recentSales.map((sale) => (
                   <div
                     key={sale.id}
-                    className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
+                    className="flex items-center justify-between py-1.5 border-b border-border last:border-0"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-muted-foreground w-16 tabular-nums shrink-0">
                         {format(new Date(sale.date), 'yy/MM/dd')}
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 leading-tight">
                         <p className="text-sm font-medium text-foreground truncate">
                           {categoryLabels[sale.product_category] ||
                             categoryLabels[sale.product_name] ||

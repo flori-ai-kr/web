@@ -10,11 +10,9 @@ import {Label} from '@/components/ui/label';
 import {Badge} from '@/components/ui/badge';
 import {GripVertical, Loader2, Plus, Trash2, Upload, X} from 'lucide-react';
 import {toast} from 'sonner';
-import imageCompression from 'browser-image-compression';
 import {
     createOrUpdatePhotoCardForSale,
     deletePhotoCard,
-    deletePhotosFromStorage,
     getPhotoCardBySaleId,
     reorderPhotos,
 } from '@/lib/actions/photo-cards';
@@ -22,16 +20,9 @@ import {createPhotoTag, getPhotoTags} from '@/lib/actions/photo-tags';
 import {uploadPhotoFiles} from '@/lib/photo-upload';
 import {cn} from '@/lib/utils';
 
-const MAX_FILE_SIZE_MB = 3;
+const MAX_FILE_SIZE_MB = 5;
 const MAX_PHOTOS = 10;
 const MAX_TAGS = 3;
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: MAX_FILE_SIZE_MB,
-  maxWidthOrHeight: 2560,
-  // CSP가 외부 CDN 스크립트를 차단하므로 워커 대신 메인스레드 압축 사용
-  useWebWorker: false,
-};
 
 type PhotoItem =
   | { type: 'existing'; photo: PhotoFile }
@@ -64,7 +55,6 @@ export function SalePhotoModal({
   const [existingCard, setExistingCard] = useState<PhotoCard | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isCompressing, setIsCompressing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -114,49 +104,40 @@ export function SalePhotoModal({
     };
   }, []);
 
-  const addFiles = useCallback(async (files: File[]) => {
+  const addFiles = useCallback((files: File[]) => {
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    const totalCount = photoItems.length + imageFiles.length;
 
+    const oversized = imageFiles.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+    const validFiles = imageFiles.filter(f => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024);
+
+    if (oversized.length > 0) {
+      toast.error(`${MAX_FILE_SIZE_MB}MB를 초과하는 이미지는 등록할 수 없습니다`);
+    }
+    if (validFiles.length === 0) return;
+
+    const totalCount = photoItems.length + validFiles.length;
     if (totalCount > MAX_PHOTOS) {
       toast.error(`사진은 최대 ${MAX_PHOTOS}장까지 등록할 수 있습니다`);
       return;
     }
 
-    setIsCompressing(true);
-    try {
-      const newItems: PhotoItem[] = [];
+    const newItems: PhotoItem[] = validFiles.map(file => ({
+      type: 'new',
+      file,
+      preview: URL.createObjectURL(file),
+    }));
 
-      for (const file of imageFiles) {
-        let processedFile = file;
-
-        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-          processedFile = await imageCompression(file, COMPRESSION_OPTIONS);
-        }
-
-        newItems.push({
-          type: 'new',
-          file: new File([processedFile], file.name, { type: processedFile.type }),
-          preview: URL.createObjectURL(processedFile),
-        });
-      }
-
-      setPhotoItems(prev => [...prev, ...newItems]);
-    } catch {
-      toast.error('이미지 처리 중 오류가 발생했습니다');
-    } finally {
-      setIsCompressing(false);
-    }
+    setPhotoItems(prev => [...prev, ...newItems]);
   }, [photoItems.length]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    await addFiles(Array.from(e.target.files || []));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files || []));
     e.target.value = '';
   };
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    await addFiles(Array.from(e.dataTransfer.files));
+    addFiles(Array.from(e.dataTransfer.files));
   }, [addFiles]);
 
   const removePhoto = (index: number) => {
@@ -281,10 +262,7 @@ export function SalePhotoModal({
     if (!existingCard) return;
     setIsDeleting(true);
     try {
-      const photos = await deletePhotoCard(existingCard.id);
-      if (photos.length > 0) {
-        await deletePhotosFromStorage(photos);
-      }
+      await deletePhotoCard(existingCard.id);
       toast.success('사진첩이 삭제되었습니다');
       onSuccess?.();
       onClose();
@@ -389,43 +367,34 @@ export function SalePhotoModal({
               <div
                 className={cn(
                   "border-2 border-dashed border-border rounded-lg p-6 text-center transition-colors",
-                  isCompressing ? "opacity-50 pointer-events-none" : "hover:bg-brand-muted"
+                  "hover:bg-brand-muted"
                 )}
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
               >
-                {isCompressing ? (
-                  <>
-                    <Loader2 className="w-8 h-8 mx-auto text-brand mb-2 animate-spin" />
-                    <p className="text-sm text-muted-foreground">이미지 처리 중...</p>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      이미지를 드래그하거나 클릭하여 업로드
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {MAX_FILE_SIZE_MB}MB 초과 시 자동 압축
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileChange}
-                      className="hidden"
-                      id="sale-photo-modal-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => document.getElementById('sale-photo-modal-upload')?.click()}
-                    >
-                      파일 선택
-                    </Button>
-                  </>
-                )}
+                <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-1">
+                  이미지를 드래그하거나 클릭하여 업로드
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {MAX_FILE_SIZE_MB}MB 이하 이미지만 등록할 수 있습니다
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="sale-photo-modal-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('sale-photo-modal-upload')?.click()}
+                >
+                  파일 선택
+                </Button>
               </div>
 
               {photoItems.length > 0 && (
@@ -464,7 +433,7 @@ export function SalePhotoModal({
                         <button
                           type="button"
                           onClick={() => removePhoto(index)}
-                          className="absolute -top-2 -right-2 bg-danger text-danger-foreground rounded-full p-1.5 hover:bg-danger/90 transition-colors"
+                          className="absolute top-1 -right-2 bg-danger text-danger-foreground rounded-full p-1.5 hover:bg-danger/90 transition-colors"
                           aria-label="사진 삭제"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -508,7 +477,7 @@ export function SalePhotoModal({
                     variant="ghost"
                     className="text-danger hover:text-danger hover:bg-danger/10"
                     onClick={() => setShowDeleteConfirm(true)}
-                    disabled={isCompressing || isSubmitting}
+                    disabled={isSubmitting}
                   >
                     <Trash2 className="w-4 h-4 mr-1.5" />
                     삭제
@@ -518,12 +487,12 @@ export function SalePhotoModal({
                 <div />
               )}
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isCompressing || isSubmitting || isDeleting}>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isDeleting}>
                   취소
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={isCompressing || isSubmitting || isDeleting}
+                  disabled={isSubmitting || isDeleting}
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   저장

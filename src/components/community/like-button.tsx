@@ -28,7 +28,7 @@ export function LikeButton({ postId, initialLiked, initialCount }: LikeButtonPro
     setCount((c) => c + (nextLiked ? 1 : -1));
     setPending(true);
     try {
-      const res = await togglePostLike(postId, prevLiked);
+      const res = await togglePostLike(postId);
       setLiked(res.liked);
       setCount(res.likeCount);
     } catch {

@@ -1,10 +1,10 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { uuidSchema, categorySettingSchema } from '@/lib/validations';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {categorySettingSchema, idSchema} from '@/lib/validations';
+import {apiFetch} from '@/lib/api/client';
 
 export interface ExpenseCategory {
   id: string;
@@ -127,7 +127,7 @@ export const createExpenseCategory = withErrorLogging('createExpenseCategory', _
 
 async function _updateExpenseCategory(id: string, label: string, color: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   const parsed = categorySettingSchema.safeParse({ label, color });
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
@@ -144,7 +144,7 @@ export const updateExpenseCategory = withErrorLogging('updateExpenseCategory', _
 
 async function _deleteExpenseCategory(id: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<void>(`/settings/expense-categories/${id}`, { method: 'DELETE' });

@@ -69,7 +69,7 @@ export function CommentForm({
           />
           <Lock className="h-3.5 w-3.5" />
           비밀{parentId ? '답글' : '댓글'}
-          {forceSecret && <span className="text-xs">(부모가 비밀글이에요)</span>}
+          {forceSecret && <span className="text-xs">(자동)</span>}
         </label>
         <div className="flex items-center gap-2">
           {onCancel && (

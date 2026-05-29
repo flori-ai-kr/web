@@ -36,14 +36,14 @@ export function CommunityClient({ initialPosts, activeCategory }: CommunityClien
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
       {/* Header */}
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">커뮤니티</h1>
           <p className="text-sm text-muted-foreground mt-1">
             꽃집 사장님들과 노하우와 일상을 나눠보세요
           </p>
         </div>
-        <Button asChild size="sm" className="shrink-0">
+        <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
           <Link href="/admin/community/write">
             <PenSquare className="w-4 h-4" /> 글쓰기
           </Link>

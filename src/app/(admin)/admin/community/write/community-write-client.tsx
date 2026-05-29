@@ -53,12 +53,10 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
         toast.success('게시글을 수정했어요');
         router.push(`/admin/community/${post.id}`);
       } else {
-        await createCommunityPost(payload);
-        // STUB: 목업 단계라 새 글이 영속화되지 않아 상세로 못 감 → 목록으로 이동
+        const created = await createCommunityPost(payload);
         toast.success('게시글을 등록했어요');
-        router.push('/admin/community');
+        router.push(`/admin/community/${created.id}`);
       }
-      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '저장에 실패했어요');
       setPending(false);

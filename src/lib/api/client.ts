@@ -21,16 +21,46 @@ function apiUrl(path: string): string {
   return `${base}${path}`;
 }
 
-/** 비-2xx 응답에서 서버 메시지({code,message})를 추출해 AppError로 변환한다. */
+// 서버 원문 메시지를 노출하지 않을 때 쓰는 공통 사용자 문구.
+const COMMON_ERROR_MESSAGE = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+
+/**
+ * 비-2xx 응답을 AppError로 변환한다.
+ * - 4xx(예상된 클라이언트 에러): 서버가 의도한 사용자용 메시지를 그대로 노출한다.
+ * - 5xx 등 그 외(내부/예상치 못한 에러): 원문을 숨기고 공통 문구로 대체한다.
+ *   ("스토리지가 구성되지 않았습니다" 같은 내부 메시지가 사용자에게 새어나가지 않도록)
+ */
 async function toAppError(res: Response): Promise<AppError> {
-  let message = '서버 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+  let serverMessage: string | undefined;
   try {
     const body = (await res.json()) as { message?: string };
-    if (body?.message) message = body.message;
+    if (body?.message) serverMessage = body.message;
   } catch {
-    // JSON 본문이 없으면 기본 메시지 사용
+    // JSON 본문 없음
   }
-  const code = res.status === 404 ? ErrorCode.NOT_FOUND : ErrorCode.UNKNOWN;
+
+  let code: ErrorCode;
+  switch (res.status) {
+    case 400:
+    case 422:
+      code = ErrorCode.VALIDATION;
+      break;
+    case 401:
+    case 403:
+      code = ErrorCode.UNAUTHORIZED;
+      break;
+    case 404:
+      code = ErrorCode.NOT_FOUND;
+      break;
+    case 409:
+      code = ErrorCode.DUPLICATE;
+      break;
+    default:
+      code = ErrorCode.UNKNOWN;
+  }
+
+  const isClientError = res.status >= 400 && res.status < 500;
+  const message = isClientError && serverMessage ? serverMessage : COMMON_ERROR_MESSAGE;
   return new AppError(code, message);
 }
 

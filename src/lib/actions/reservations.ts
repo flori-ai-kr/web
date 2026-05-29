@@ -3,7 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import type {Reservation, ReservationStatus, Sale} from '@/types/database';
-import {reservationSchema, uuidSchema} from '@/lib/validations';
+import {idSchema, reservationSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
@@ -168,7 +168,7 @@ async function _updateReservation(
 ): Promise<void> {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   const parsed = reservationSchema.partial().safeParse({
@@ -200,7 +200,7 @@ async function _updateReservation(
   if (formData.reminder_at !== undefined) body.reminderAt = formData.reminder_at;
   if (formData.pickup_completed !== undefined) body.pickupCompleted = formData.pickup_completed;
   if (formData.sale_id !== undefined) {
-    const saleParsed = formData.sale_id ? uuidSchema.safeParse(formData.sale_id) : null;
+    const saleParsed = formData.sale_id ? idSchema.safeParse(formData.sale_id) : null;
     if (formData.sale_id && (!saleParsed || !saleParsed.success)) {
       throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 매출 ID입니다');
     }
@@ -217,7 +217,7 @@ export const updateReservation = withErrorLogging('updateReservation', _updateRe
 
 async function _deleteReservation(id: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
   await apiFetch<void>(`/reservations/${idParsed.data}`, { method: 'DELETE' });
 }
@@ -234,7 +234,7 @@ async function _convertReservationToSale(
 ): Promise<Sale> {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(reservationId);
+  const idParsed = idSchema.safeParse(reservationId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   // FormData → SaleCreateRequest(camelCase) 매핑. 고객 해석/계산은 서버가 처리한다.
@@ -279,7 +279,7 @@ async function _addPickupToSale(
 ): Promise<Reservation> {
   await requireAuth();
 
-  const saleParsed = uuidSchema.safeParse(saleId);
+  const saleParsed = idSchema.safeParse(saleId);
   if (!saleParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 매출 ID입니다');
 
   const parsed = reservationSchema.pick({
@@ -322,7 +322,7 @@ export const addPickupToSale = withErrorLogging('addPickupToSale', _addPickupToS
 async function _getReservationsForSale(saleId: string): Promise<Reservation[]> {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(saleId);
+  const idParsed = idSchema.safeParse(saleId);
   if (!idParsed.success) return [];
 
   const list = await apiFetch<KotlinReservation[]>(`/reservations/by-sale/${idParsed.data}`);

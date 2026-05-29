@@ -20,7 +20,7 @@
 | Data API | Kotlin BFF (`flori-ai/server`) REST — `apiFetch` 서버↔서버 호출 (유일한 데이터 경로) |
 | Database | PostgreSQL — BFF가 소유. web은 DB에 직접 연결하지 않음 |
 | Auth | Kotlin BFF JWT 쿠키 + 소셜 OAuth (kakao·google·naver) |
-| Storage | Cloudflare R2 (S3 호환, CDN, presigned 업로드) |
+| Storage | AWS S3 + CloudFront (CDN, presigned 업로드 — BFF가 presigned URL 발급) |
 | Validation | Zod 4 |
 | State | React hooks (글로벌 스토어 없음) |
 | Editor | Tiptap v3 (커뮤니티 게시판 본문, JSON 저장 + plain text 미리보기) |
@@ -65,7 +65,7 @@ src/
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
-│   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write. ⚠️ 서버 BFF 미구현, lib/community-fixtures 목업
+│   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
@@ -80,13 +80,12 @@ src/
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
 ├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts
-├── lib/storage.ts        # Cloudflare R2 추상화 (uploadFile + getSignedUploadUrl)
-├── lib/photo-upload.ts   # presigned URL 발급 → 브라우저→R2 직접 PUT
+├── lib/photo-upload.ts   # presigned URL 발급 → 브라우저→S3 직접 PUT
 ├── lib/validations.ts    # Zod 스키마 + 이미지 검증
 ├── lib/errors.ts         # AppError, ErrorCode, withErrorLogging()
 ├── lib/auth-guard.ts     # requireAuth() — /me 조회 + 온보딩 게이트
 ├── lib/env.ts            # 환경변수 Zod 검증
-├── lib/community-fixtures.ts # 커뮤니티 목업 시드 (서버 BFF 구현 시 제거 예정)
+├── lib/business-verification.ts # 사업자 인증 타입·상수 (BusinessVerification, BUSINESS_LICENSE_TYPES 등)
 ├── lib/{constants,utils,date-locale,export,logger}.ts
 ├── lib/{public-config,instagram-url,legal-config,onboarding-options}.ts
 ├── types/database.ts     # 전체 타입 정의
@@ -144,7 +143,7 @@ src/
 - 로드 구입: 매출 등록 간편 모드 (결제방식=현금, 채널=road 고정, 카드사/주문자명/연락처 생략)
 - 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`, 입금 예정일은 영업일 기준 N일. **fee/expected_deposit/deposit_status/is_unpaid 계산은 BFF가 수행** (web은 입력값만 POST)
 - 지출 총액: `unit_price * quantity`
-- 사진: 3MB 초과 시 자동 압축(`useWebWorker: false` — CSP worker-src 제약), 카드당 최대 10장, Cloudflare R2 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 presigned PUT URL 발급 → 브라우저가 R2 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
+- 사진: 5MB 초과 시 하드 거부(클라이언트 자동 압축 제거됨), 카드당 최대 10장, AWS S3 + CloudFront 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 BFF에서 presigned PUT URL 발급 → 브라우저가 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
 - 예약 리마인더: `reminder_at` 설정 → Cron 푸시 발송
 - 미수(외상): `payment_method='unpaid'` + `is_unpaid=true`, 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
@@ -152,7 +151,7 @@ src/
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`, RPC `get_sales_summary` 인자도 `text[]`
-- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. ⚠️ **서버 BFF 미구현** — `lib/community-fixtures.ts` 목업 + `actions/community.ts`가 `requireAuth().name` 기준 마스킹, 쓰기는 stub. 서버 구현 시 fixture→`apiFetch` 교체 (계약: 플랜 문서)
+- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
 
 ---
 
@@ -179,7 +178,8 @@ src/
 | 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트) |
 | BFF 클라이언트 | `lib/api/client.ts`, `lib/api/auth-cookies.ts` |
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
-| R2 스토리지 | `lib/storage.ts`, `lib/photo-upload.ts` |
+| 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
+| 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions) |
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |
 | 푸시 브로드캐스트 | `lib/push-broadcast.ts` |
 | 환경변수 검증 | `lib/env.ts` |

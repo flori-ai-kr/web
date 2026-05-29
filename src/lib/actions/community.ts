@@ -1,72 +1,94 @@
 'use server';
 
+import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {idSchema} from '@/lib/validations';
+import {apiFetch} from '@/lib/api/client';
 import type {CommunityCategory, CommunityComment, CommunityPost,} from '@/types/database';
-import {
-    COMMUNITY_COMMENTS,
-    COMMUNITY_POSTS,
-    type RawCommunityComment,
-    type RawCommunityPost,
-} from '@/lib/community-fixtures';
 
 // ─── 커뮤니티 Server Actions ────────────────────────────────────
-// ⚠️ 서버(BFF) 미구현: 현재는 community-fixtures 기반 목업.
-//   읽기 = fixture + 현재 사용자(닉네임) 기준 비밀/소유 마스킹 계산.
-//   쓰기 = stub(영속화 없음, 성공 형태만 반환) → 클라이언트가 낙관적 state로 데모.
-//   서버 구현 후 각 함수 주석의 BFF 엔드포인트로 apiFetch 교체 예정.
+// 단일 커뮤니티(테넌트 간 공유). 권한/마스킹/소유권은 BFF가 뷰어(JWT) 기준으로 계산해 응답에 채운다.
 
-// ─── 매핑 (raw → 뷰 타입, 뷰어 기준 마스킹) ──────────────────────
+// ─── Kotlin DTO 미러 (camelCase) ────────────────────────────────
 
-function activeCommentCount(postId: string): number {
-  return COMMUNITY_COMMENTS.filter((c) => c.post_id === postId && !c.is_deleted).length;
+interface PostResponseDto {
+  id: number;
+  authorNickname: string;
+  category: CommunityCategory;
+  title: string;
+  content: unknown; // Tiptap JSON
+  contentText: string;
+  imageUrls: string[];
+  isSecret: boolean;
+  isPinned: boolean;
+  likeCount: number;
+  commentCount: number;
+  liked: boolean;
+  isMine: boolean;
+  canView: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-function toPost(raw: RawCommunityPost, me: string): CommunityPost {
-  const is_mine = raw.author_nickname === me;
-  const can_view = !raw.is_secret || is_mine;
+interface PostsPageDto {
+  posts: PostResponseDto[];
+  hasMore: boolean;
+}
+
+interface CommentResponseDto {
+  id: number;
+  postId: number;
+  parentId: number | null;
+  authorNickname: string;
+  content: string;
+  isSecret: boolean;
+  isMine: boolean;
+  canView: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+}
+
+interface LikeToggleDto {
+  liked: boolean;
+  likeCount: number;
+}
+
+// ─── 매핑 (camelCase DTO → 웹 snake_case 타입, id는 string으로 정규화) ──
+
+function toPost(dto: PostResponseDto): CommunityPost {
   return {
-    id: raw.id,
-    author_nickname: raw.author_nickname,
-    category: raw.category,
-    title: raw.title,
-    content: can_view ? raw.content : null,
-    content_text: can_view ? raw.content_text : '비밀글입니다.',
-    image_urls: can_view ? raw.image_urls : [],
-    is_secret: raw.is_secret,
-    is_pinned: raw.is_pinned,
-    like_count: raw.liked_by.length,
-    liked: raw.liked_by.includes(me),
-    comment_count: activeCommentCount(raw.id),
-    is_mine,
-    can_view,
-    created_at: raw.created_at,
-    updated_at: raw.updated_at,
+    id: String(dto.id),
+    author_nickname: dto.authorNickname,
+    category: dto.category,
+    title: dto.title,
+    content: dto.content,
+    content_text: dto.contentText,
+    image_urls: dto.imageUrls ?? [],
+    is_secret: dto.isSecret,
+    is_pinned: dto.isPinned,
+    like_count: dto.likeCount,
+    liked: dto.liked,
+    comment_count: dto.commentCount,
+    is_mine: dto.isMine,
+    can_view: dto.canView,
+    created_at: dto.createdAt,
+    updated_at: dto.updatedAt,
   };
 }
 
-function toComment(
-  raw: RawCommunityComment,
-  me: string,
-  postAuthor: string,
-): CommunityComment {
-  const is_mine = raw.author_nickname === me;
-  const parentAuthor = raw.parent_id
-    ? COMMUNITY_COMMENTS.find((c) => c.id === raw.parent_id)?.author_nickname ?? null
-    : null;
-  // 비밀댓글 열람: 작성자 + 글쓴이 + (대댓글이면) 부모댓글 작성자
-  const can_view = !raw.is_secret || is_mine || postAuthor === me || parentAuthor === me;
+function toComment(dto: CommentResponseDto): CommunityComment {
   return {
-    id: raw.id,
-    post_id: raw.post_id,
-    parent_id: raw.parent_id,
-    author_nickname: raw.author_nickname,
-    content: raw.is_deleted ? '' : can_view ? raw.content : '',
-    is_secret: raw.is_secret,
-    is_mine,
-    can_view,
-    is_deleted: raw.is_deleted,
-    created_at: raw.created_at,
+    id: String(dto.id),
+    post_id: String(dto.postId),
+    parent_id: dto.parentId != null ? String(dto.parentId) : null,
+    author_nickname: dto.authorNickname,
+    content: dto.content,
+    is_secret: dto.isSecret,
+    is_mine: dto.isMine,
+    can_view: dto.canView,
+    is_deleted: dto.isDeleted,
+    created_at: dto.createdAt,
   };
 }
 
@@ -79,51 +101,50 @@ export interface CommunityFilters {
 
 // BFF: GET /community/posts?category&search&offset&limit
 async function _getCommunityPosts(filters?: CommunityFilters): Promise<CommunityPost[]> {
-  const user = await requireAuth();
-  const me = user.name;
+  await requireAuth();
 
-  // 먼저 뷰어 기준으로 마스킹(toPost) → 비밀글 본문이 검색에 노출되지 않게 한다.
-  let posts = COMMUNITY_POSTS.map((r) => toPost(r, me));
-  if (filters?.category) posts = posts.filter((p) => p.category === filters.category);
-  if (filters?.search) {
-    const q = filters.search.toLowerCase();
-    posts = posts.filter(
-      (p) => p.title.toLowerCase().includes(q) || p.content_text.toLowerCase().includes(q),
-    );
-  }
-  // 고정글 우선, 그 다음 최신순
-  posts.sort((a, b) => {
-    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-    return b.created_at.localeCompare(a.created_at);
-  });
-  return posts;
+  const params = new URLSearchParams();
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.search) params.append('search', filters.search);
+  params.append('limit', '100');
+  const qs = params.toString();
+
+  const page = await apiFetch<PostsPageDto>(`/community/posts${qs ? `?${qs}` : ''}`);
+  return (page.posts || []).map(toPost);
 }
 
 export const getCommunityPosts = withErrorLogging('getCommunityPosts', _getCommunityPosts);
 
 // BFF: GET /community/posts/{id}
 async function _getCommunityPost(id: string): Promise<CommunityPost | null> {
-  const user = await requireAuth();
-  const raw = COMMUNITY_POSTS.find((p) => p.id === id);
-  if (!raw) return null;
-  return toPost(raw, user.name);
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  try {
+    const dto = await apiFetch<PostResponseDto>(`/community/posts/${id}`);
+    return toPost(dto);
+  } catch (e) {
+    if (e instanceof AppError && e.code === ErrorCode.NOT_FOUND) return null;
+    throw e;
+  }
 }
 
 export const getCommunityPost = withErrorLogging('getCommunityPost', _getCommunityPost);
 
 // BFF: GET /community/posts/{id}/comments
 async function _getComments(postId: string): Promise<CommunityComment[]> {
-  const user = await requireAuth();
-  const post = COMMUNITY_POSTS.find((p) => p.id === postId);
-  const postAuthor = post?.author_nickname ?? '';
-  return COMMUNITY_COMMENTS.filter((c) => c.post_id === postId)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map((c) => toComment(c, user.name, postAuthor));
+  await requireAuth();
+  const idParsed = idSchema.safeParse(postId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  const dtos = await apiFetch<CommentResponseDto[]>(`/community/posts/${postId}/comments`);
+  return (dtos || []).map(toComment);
 }
 
 export const getComments = withErrorLogging('getComments', _getComments);
 
-// ─── 변경 (stub) ────────────────────────────────────────────────
+// ─── 변경 ───────────────────────────────────────────────────────
 
 export interface CommunityPostInput {
   category: CommunityCategory;
@@ -134,92 +155,72 @@ export interface CommunityPostInput {
   imageUrls?: string[];
 }
 
+function postBody(input: CommunityPostInput) {
+  return {
+    category: input.category,
+    title: input.title.trim(),
+    contentJson: input.content,
+    contentText: input.contentText,
+    isSecret: input.isSecret,
+    imageUrls: input.imageUrls ?? [],
+  };
+}
+
 // BFF: POST /community/posts
 async function _createCommunityPost(input: CommunityPostInput): Promise<CommunityPost> {
-  const user = await requireAuth();
+  await requireAuth();
   if (!input.title?.trim()) throw new AppError(ErrorCode.VALIDATION, '제목을 입력해주세요');
   if (!input.contentText?.trim()) throw new AppError(ErrorCode.VALIDATION, '내용을 입력해주세요');
 
-  const now = new Date().toISOString();
-  // STUB: 영속화 없음. 서버 구현 시 apiFetch<CommunityPost>('/community/posts', { method:'POST', ... })
-  return {
-    id: crypto.randomUUID(),
-    author_nickname: user.name,
-    category: input.category,
-    title: input.title.trim(),
-    content: input.content,
-    content_text: input.contentText,
-    image_urls: input.imageUrls ?? [],
-    is_secret: input.isSecret,
-    is_pinned: false,
-    like_count: 0,
-    liked: false,
-    comment_count: 0,
-    is_mine: true,
-    can_view: true,
-    created_at: now,
-    updated_at: now,
-  };
+  const dto = await apiFetch<PostResponseDto>('/community/posts', {
+    method: 'POST',
+    body: JSON.stringify(postBody(input)),
+  });
+  revalidatePath('/admin/community');
+  return toPost(dto);
 }
 
 export const createCommunityPost = withErrorLogging('createCommunityPost', _createCommunityPost);
 
 // BFF: PATCH /community/posts/{id}
 async function _updateCommunityPost(id: string, input: CommunityPostInput): Promise<CommunityPost> {
-  const user = await requireAuth();
-  // 소유권 가드 (방어적 — 서버 BFF도 JWT 기준으로 재검증)
-  const existing = COMMUNITY_POSTS.find((p) => p.id === id);
-  if (existing && existing.author_nickname !== user.name) {
-    throw new AppError(ErrorCode.UNAUTHORIZED, '수정 권한이 없습니다');
-  }
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   if (!input.title?.trim()) throw new AppError(ErrorCode.VALIDATION, '제목을 입력해주세요');
   if (!input.contentText?.trim()) throw new AppError(ErrorCode.VALIDATION, '내용을 입력해주세요');
-  const now = new Date().toISOString();
-  // STUB
-  return {
-    id,
-    author_nickname: user.name,
-    category: input.category,
-    title: input.title.trim(),
-    content: input.content,
-    content_text: input.contentText,
-    image_urls: input.imageUrls ?? [],
-    is_secret: input.isSecret,
-    is_pinned: false,
-    like_count: 0,
-    liked: false,
-    comment_count: 0,
-    is_mine: true,
-    can_view: true,
-    created_at: now,
-    updated_at: now,
-  };
+
+  const dto = await apiFetch<PostResponseDto>(`/community/posts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(postBody(input)),
+  });
+  revalidatePath('/admin/community');
+  revalidatePath(`/admin/community/${id}`);
+  return toPost(dto);
 }
 
 export const updateCommunityPost = withErrorLogging('updateCommunityPost', _updateCommunityPost);
 
 // BFF: DELETE /community/posts/{id}
-async function _deleteCommunityPost(id: string): Promise<{ success: boolean }> {
-  const user = await requireAuth();
-  const existing = COMMUNITY_POSTS.find((p) => p.id === id);
-  if (existing && existing.author_nickname !== user.name) {
-    throw new AppError(ErrorCode.UNAUTHORIZED, '삭제 권한이 없습니다');
-  }
-  return { success: true }; // STUB
+async function _deleteCommunityPost(id: string): Promise<void> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  await apiFetch<void>(`/community/posts/${id}`, { method: 'DELETE' });
+  revalidatePath('/admin/community');
 }
 
 export const deleteCommunityPost = withErrorLogging('deleteCommunityPost', _deleteCommunityPost);
 
-// BFF: POST /community/posts/{id}/like
-async function _togglePostLike(
-  id: string,
-  liked: boolean,
-): Promise<{ liked: boolean; likeCount: number }> {
+// BFF: POST /community/posts/{id}/like — 서버가 뷰어 기준으로 토글하고 새 상태를 반환한다.
+async function _togglePostLike(id: string): Promise<{ liked: boolean; likeCount: number }> {
   await requireAuth();
-  // STUB: 클라이언트가 보낸 현재 상태를 반전해 돌려준다(낙관적 업데이트와 일치).
-  const raw = COMMUNITY_POSTS.find((p) => p.id === id);
-  const base = raw ? raw.liked_by.length : 0;
-  return { liked: !liked, likeCount: base + (!liked ? 1 : 0) };
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  const dto = await apiFetch<LikeToggleDto>(`/community/posts/${id}/like`, { method: 'POST' });
+  return { liked: dto.liked, likeCount: dto.likeCount };
 }
 
 export const togglePostLike = withErrorLogging('togglePostLike', _togglePostLike);
@@ -232,33 +233,32 @@ export interface CommentInput {
 
 // BFF: POST /community/posts/{id}/comments
 async function _createComment(postId: string, input: CommentInput): Promise<CommunityComment> {
-  const user = await requireAuth();
+  await requireAuth();
+  const idParsed = idSchema.safeParse(postId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   if (!input.content?.trim()) throw new AppError(ErrorCode.VALIDATION, '댓글 내용을 입력해주세요');
-  // STUB
-  return {
-    id: crypto.randomUUID(),
-    post_id: postId,
-    parent_id: input.parentId ?? null,
-    author_nickname: user.name,
-    content: input.content.trim(),
-    is_secret: input.isSecret,
-    is_mine: true,
-    can_view: true,
-    is_deleted: false,
-    created_at: new Date().toISOString(),
-  };
+
+  const dto = await apiFetch<CommentResponseDto>(`/community/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({
+      content: input.content.trim(),
+      parentId: input.parentId ? Number(input.parentId) : null,
+      isSecret: input.isSecret,
+    }),
+  });
+  revalidatePath(`/admin/community/${postId}`);
+  return toComment(dto);
 }
 
 export const createComment = withErrorLogging('createComment', _createComment);
 
 // BFF: DELETE /community/comments/{id}
-async function _deleteComment(id: string): Promise<{ success: boolean }> {
-  const user = await requireAuth();
-  const existing = COMMUNITY_COMMENTS.find((c) => c.id === id);
-  if (existing && existing.author_nickname !== user.name) {
-    throw new AppError(ErrorCode.UNAUTHORIZED, '삭제 권한이 없습니다');
-  }
-  return { success: true }; // STUB
+async function _deleteComment(id: string): Promise<void> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  await apiFetch<void>(`/community/comments/${id}`, { method: 'DELETE' });
 }
 
 export const deleteComment = withErrorLogging('deleteComment', _deleteComment);

@@ -11,6 +11,12 @@ import type {CommunityComment} from '@/types/database';
 import {CommentForm} from './comment-form';
 import {deleteComment} from '@/lib/actions/community';
 
+// 최대 5뎁스(루트 depth 0 ~ 4). depth < MAX_REPLY_DEPTH 일 때만 답글 허용.
+// 서버(CommunityService.MAX_COMMENT_DEPTH=5)와 동기화할 것.
+const MAX_REPLY_DEPTH = 4;
+// 들여쓰기는 모바일 오버플로 방지를 위해 이 깊이까지만 누적한다.
+const MAX_INDENT_DEPTH = 3;
+
 interface CommentTreeProps {
   postId: string;
   comments: CommunityComment[];
@@ -89,7 +95,7 @@ function CommentNode({
   };
 
   return (
-    <li className={cn(depth > 0 && 'ml-5 sm:ml-8')}>
+    <li className={cn(depth > 0 && depth <= MAX_INDENT_DEPTH && 'ml-3 sm:ml-6')}>
       <div className="rounded-lg border border-border bg-card p-3">
         {comment.is_deleted ? (
           <p className="text-sm text-muted-foreground italic">삭제된 댓글입니다</p>
@@ -108,7 +114,7 @@ function CommentNode({
             </div>
             <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
             <div className="flex items-center gap-1 mt-1.5">
-              {depth === 0 && (
+              {depth < MAX_REPLY_DEPTH && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -136,7 +142,7 @@ function CommentNode({
       </div>
 
       {replying && (
-        <div className="mt-2 ml-5 sm:ml-8">
+        <div className="mt-2 ml-3 sm:ml-6">
           <CommentForm
             postId={postId}
             parentId={comment.id}

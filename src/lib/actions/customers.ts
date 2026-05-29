@@ -1,18 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import type {
-  Customer,
-  CustomerGender,
-  CustomerGrade,
-  PaymentMethod,
-  ReservationChannel,
-  Sale,
-} from '@/types/database';
-import { customerSchema, uuidSchema, customerGradeSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import type {Customer, CustomerGender, CustomerGrade, PaymentMethod, ReservationChannel, Sale,} from '@/types/database';
+import {customerGradeSchema, customerSchema, idSchema} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 // Kotlin /customers 응답 (camelCase). 서버 계약과 1:1.
 interface KotlinCustomer {
@@ -113,7 +106,7 @@ export const createCustomer = withErrorLogging('createCustomer', _createCustomer
 async function _updateCustomer(id: string, formData: FormData) {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   const parsed = customerSchema.partial().safeParse({
@@ -148,7 +141,7 @@ export const updateCustomer = withErrorLogging('updateCustomer', _updateCustomer
 async function _updateCustomerGrade(id: string, grade: CustomerGrade) {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
   const gradeParsed = customerGradeSchema.safeParse(grade);
   if (!gradeParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 등급입니다');
@@ -166,7 +159,7 @@ export const updateCustomerGrade = withErrorLogging('updateCustomerGrade', _upda
 
 async function _deleteCustomer(id: string) {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   await apiFetch<void>(`/customers/${idParsed.data}`, { method: 'DELETE' });

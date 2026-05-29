@@ -29,7 +29,7 @@ export function KpiCard({
         {label}
       </p>
       <p
-        className={`mt-2.5 text-xl sm:text-2xl font-semibold leading-none tabular-nums text-foreground ${valueClassName ?? ''}`}
+        className={`mt-2.5 text-lg sm:text-xl font-semibold leading-tight tabular-nums text-foreground ${valueClassName ?? ''}`}
       >
         {value}
         {unit && <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>}

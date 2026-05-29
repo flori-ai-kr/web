@@ -5,13 +5,6 @@ import {z} from 'zod';
 // 새 환경변수 추가 시 이 스키마에도 추가할 것.
 
 const serverEnvSchema = z.object({
-  // ─── 필수: Cloudflare R2 ──────────────────────────────────
-  R2_ACCOUNT_ID: z.string().min(1, '빈 값일 수 없습니다'),
-  R2_ACCESS_KEY_ID: z.string().min(1, '빈 값일 수 없습니다'),
-  R2_SECRET_ACCESS_KEY: z.string().min(1, '빈 값일 수 없습니다'),
-  R2_BUCKET_NAME: z.string().min(1, '빈 값일 수 없습니다'),
-  R2_PUBLIC_URL: z.string().url('유효한 R2 퍼블릭 URL이어야 합니다'),
-
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
@@ -23,6 +16,10 @@ const serverEnvSchema = z.object({
   API_URL: z.string().url('유효한 API URL이어야 합니다').default('http://localhost:8080'),
 
   // ─── 선택: 기능별 ─────────────────────────────────────────
+  // 사진 스토리지 공개 URL. 업로드·삭제·presigned 발급은 BFF가 소유하지만,
+  // 브라우저가 이미지를 표시(next/image, CSP img-src)하고 presigned PUT(CSP connect-src)을
+  // 하려면 호스트명이 필요하다. 자격증명이 아니라 공개 도메인. 미설정 시 해당 호스트 미허용.
+  STORAGE_PUBLIC_URL: z.string().url().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
   // 소셜 OAuth 키. 모두 서버 전용(NEXT_PUBLIC 금지). 없으면 해당 공급자 로그인 비활성.
   OAUTH_KAKAO_REST_API_KEY: z.string().min(1).optional(),
