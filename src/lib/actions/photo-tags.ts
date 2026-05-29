@@ -1,10 +1,10 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth-guard';
-import { PhotoTag } from '@/types/database';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { uuidSchema } from '@/lib/validations';
-import { apiFetch } from '@/lib/api/client';
+import {requireAuth} from '@/lib/auth-guard';
+import {PhotoTag} from '@/types/database';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {idSchema} from '@/lib/validations';
+import {apiFetch} from '@/lib/api/client';
 
 // ─── Kotlin DTO 미러 (camelCase) ───────────────────────────────
 
@@ -56,7 +56,7 @@ export const createPhotoTag = withErrorLogging('createPhotoTag', _createPhotoTag
 
 async function _updatePhotoTag(id: string, name: string, color: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const trimmedName = name.trim();
@@ -75,7 +75,7 @@ export const updatePhotoTag = withErrorLogging('updatePhotoTag', _updatePhotoTag
 
 async function _deletePhotoTag(id: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   // 서버가 삭제 + 모든 카드 tags 배열에서 cascade 제거(array_remove)한다.

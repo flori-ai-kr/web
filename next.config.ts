@@ -3,10 +3,10 @@ import {validateEnv} from "./src/lib/env";
 
 const env = validateEnv();
 
-const r2Hostname = new URL(env.R2_PUBLIC_URL).hostname;
-// AWS SDK S3 클라이언트는 기본적으로 virtual-hosted-style URL을 생성한다:
-// https://<bucket>.<account>.r2.cloudflarestorage.com — presigned PUT 대상 호스트.
-const r2ApiHost = `${env.R2_BUCKET_NAME}.${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+// 사진 스토리지 공개 호스트. 업로드·삭제·presigned 발급은 BFF가 소유하지만,
+// 브라우저가 이미지를 표시(next/image, CSP img-src)하고 presigned PUT(CSP connect-src)을
+// 하려면 호스트명이 필요하다. 미설정 시 스토리지 호스트는 허용 목록에서 빠진다.
+const storageHostname = env.STORAGE_PUBLIC_URL ? new URL(env.STORAGE_PUBLIC_URL).hostname : null;
 
 const nextConfig: NextConfig = {
   images: {
@@ -14,11 +14,9 @@ const nextConfig: NextConfig = {
     // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: r2Hostname,
-        pathname: '/**',
-      },
+      ...(storageHostname
+        ? [{ protocol: 'https' as const, hostname: storageHostname, pathname: '/**' }]
+        : []),
       // Instagram CDN (Apify 스크랩 썸네일)
       {
         protocol: 'https',
@@ -38,7 +36,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
@@ -63,9 +60,11 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
-              `img-src 'self' data: blob: https://${r2Hostname} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
+              `img-src 'self' data: blob:${storageHostname ? ` https://${storageHostname}` : ''} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
-              `connect-src 'self' https://${r2Hostname} https://${r2ApiHost}`,
+              // 브라우저 직접 업로드(presigned PUT) + 원본 다운로드(presigned GET)는 S3 버킷 호스트로
+              // 향한다(<bucket>.s3.<region>.amazonaws.com). 공개 읽기는 CloudFront(img-src)라 별개다.
+              `connect-src 'self' https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self'",

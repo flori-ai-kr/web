@@ -1,22 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { PhotoCard } from '@/types/database';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Edit, Trash2, Loader2, Download, ExternalLink } from 'lucide-react';
+import {useState} from 'react';
+import {PhotoCard} from '@/types/database';
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Loader2, Trash2} from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { format } from 'date-fns';
-import { ko } from '@/lib/date-locale';
-import { toast } from 'sonner';
-import { deletePhotoCard, deletePhotosFromStorage, downloadPhoto, downloadAllPhotos } from '@/lib/actions/photo-cards';
+import {format} from 'date-fns';
+import {ko} from '@/lib/date-locale';
+import {toast} from 'sonner';
+import {deletePhotoCard, downloadAllPhotos, downloadPhoto} from '@/lib/actions/photo-cards';
 
 interface PhotoCardDialogProps {
   card: PhotoCard | null;
@@ -44,8 +39,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const photoUrls = await deletePhotoCard(card.id);
-      await deletePhotosFromStorage(photoUrls);
+      await deletePhotoCard(card.id);
       toast.success('카드가 삭제되었습니다');
       onDelete();
       onClose();
@@ -75,7 +69,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
     setIsDownloading(true);
     try {
-      const result = await downloadPhoto(card.photos[currentIndex]);
+      const result = await downloadPhoto(card.id, card.photos[currentIndex]);
       if (result) {
         await downloadBlob(result.url, result.filename);
         toast.success('다운로드 완료');

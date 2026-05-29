@@ -6,6 +6,7 @@ import {
     customerSchema,
     dateSchema,
     expenseSchema,
+    idSchema,
     idsSchema,
     monthSchema,
     phoneSchema,
@@ -13,27 +14,26 @@ import {
     reservationSchema,
     saleSchema,
     searchQuerySchema,
-    uuidSchema,
 } from '../validations'
 
 // =============================================
 // Zod 검증 스키마 테스트 (보안 입력 검증)
 // =============================================
 
-describe('UUID Schema', () => {
-  it('유효한 UUID는 통과한다', () => {
+describe('ID Schema (BFF Long id)', () => {
+  it('유효한 숫자 id(문자열·숫자)는 통과한다', () => {
     fc.assert(
-      fc.property(fc.uuid(), (uuid) => {
-        return uuidSchema.safeParse(uuid).success
+      fc.property(fc.integer({ min: 1, max: Number.MAX_SAFE_INTEGER }), (n) => {
+        return idSchema.safeParse(n).success && idSchema.safeParse(String(n)).success
       }),
       { numRuns: 100 }
     )
   })
 
-  it('잘못된 UUID는 거부한다', () => {
-    const invalidUuids = ['', 'not-a-uuid', '12345', 'zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz']
-    invalidUuids.forEach((id) => {
-      expect(uuidSchema.safeParse(id).success).toBe(false)
+  it('숫자가 아닌 id는 거부한다', () => {
+    const invalid = ['', '0', 'not-an-id', '12a45', '00000000-0000-0000-0000-000000000000', '1.5', '-1']
+    invalid.forEach((id) => {
+      expect(idSchema.safeParse(id).success).toBe(false)
     })
   })
 
@@ -45,7 +45,7 @@ describe('UUID Schema', () => {
       '"><script>alert(1)</script>',
     ]
     injections.forEach((payload) => {
-      expect(uuidSchema.safeParse(payload).success).toBe(false)
+      expect(idSchema.safeParse(payload).success).toBe(false)
     })
   })
 })
@@ -328,10 +328,10 @@ describe('Reservation Schema (예약)', () => {
 })
 
 describe('IDs Schema (ID 배열)', () => {
-  it('유효한 UUID 배열을 통과한다', () => {
+  it('유효한 숫자 id 배열을 통과한다', () => {
     fc.assert(
       fc.property(
-        fc.array(fc.uuid(), { minLength: 1, maxLength: 100 }),
+        fc.array(fc.integer({ min: 1, max: Number.MAX_SAFE_INTEGER }), { minLength: 1, maxLength: 100 }),
         (ids) => {
           return idsSchema.safeParse(ids).success
         }
@@ -344,12 +344,12 @@ describe('IDs Schema (ID 배열)', () => {
     expect(idsSchema.safeParse([]).success).toBe(false)
   })
 
-  it('잘못된 UUID가 포함된 배열을 거부한다', () => {
-    expect(idsSchema.safeParse(['not-a-uuid']).success).toBe(false)
+  it('숫자가 아닌 id가 포함된 배열을 거부한다', () => {
+    expect(idsSchema.safeParse(['not-an-id']).success).toBe(false)
   })
 
   it('100개 초과를 거부한다', () => {
-    const ids = Array.from({ length: 101 }, () => '00000000-0000-0000-0000-000000000000')
+    const ids = Array.from({ length: 101 }, () => '1')
     expect(idsSchema.safeParse(ids).success).toBe(false)
   })
 })

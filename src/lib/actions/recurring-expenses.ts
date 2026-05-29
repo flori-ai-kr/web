@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth-guard';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { recurringExpenseSchema, uuidSchema } from '@/lib/validations';
-import type { RecurringExpense, RecurringFrequency, YearlyDate } from '@/types/database';
-import { apiFetch } from '@/lib/api/client';
+import {revalidatePath} from 'next/cache';
+import {requireAuth} from '@/lib/auth-guard';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {idSchema, recurringExpenseSchema} from '@/lib/validations';
+import type {RecurringExpense, RecurringFrequency, YearlyDate} from '@/types/database';
+import {apiFetch} from '@/lib/api/client';
 
 type RuleShape = Pick<
   RecurringExpense,
@@ -209,7 +209,7 @@ export const createRecurringExpense = withErrorLogging('createRecurringExpense',
 
 async function _updateRecurringExpense(id: string, input: RecurringInput): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   const parsed = recurringExpenseSchema.safeParse(input);
   if (!parsed.success) {
@@ -227,7 +227,7 @@ export const updateRecurringExpense = withErrorLogging('updateRecurringExpense',
 
 async function _deleteRecurringExpense(id: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<void>(`/recurring-expenses/${id}`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');
@@ -238,7 +238,7 @@ export const deleteRecurringExpense = withErrorLogging('deleteRecurringExpense',
 
 async function _toggleRecurringExpenseActive(id: string, isActive: boolean): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(id);
+  const parsed = idSchema.safeParse(id);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<KotlinRecurringExpense>(`/recurring-expenses/${id}/toggle`, {
     method: 'POST',
@@ -253,7 +253,7 @@ export const toggleRecurringExpenseActive = withErrorLogging('toggleRecurringExp
 // 빠른 추가: 오늘 날짜로 expense 즉시 생성 (서버가 템플릿에서 복제)
 async function _quickAddFromRecurring(recurringId: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(recurringId);
+  const parsed = idSchema.safeParse(recurringId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<unknown>(`/recurring-expenses/${recurringId}/quick-add`, { method: 'POST' });
   revalidatePath('/admin/expenses');
@@ -281,7 +281,7 @@ function toInstanceRequest(fields: Partial<RecurringInput> & { date?: string }) 
 
 async function _updateExpenseInstanceOnly(expenseId: string, fields: Partial<RecurringInput> & { date: string }): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(expenseId);
+  const parsed = idSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=this`, {
     method: 'PATCH',
@@ -294,7 +294,7 @@ export const updateExpenseInstanceOnly = withErrorLogging('updateExpenseInstance
 
 async function _updateRecurringFromInstance(expenseId: string, fields: Partial<RecurringInput>): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(expenseId);
+  const parsed = idSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=all`, {
     method: 'PATCH',
@@ -308,7 +308,7 @@ export const updateRecurringFromInstance = withErrorLogging('updateRecurringFrom
 
 async function _deleteExpenseInstanceOnly(expenseId: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(expenseId);
+  const parsed = idSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=this`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');
@@ -318,7 +318,7 @@ export const deleteExpenseInstanceOnly = withErrorLogging('deleteExpenseInstance
 
 async function _deleteRecurringFromInstance(expenseId: string): Promise<void> {
   await requireAuth();
-  const parsed = uuidSchema.safeParse(expenseId);
+  const parsed = idSchema.safeParse(expenseId);
   if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
   await apiFetch<void>(`/recurring-expenses/instances/${expenseId}?scope=all`, { method: 'DELETE' });
   revalidatePath('/admin/expenses');

@@ -13,20 +13,18 @@ import {
     isToday,
     startOfMonth,
     startOfWeek,
-    subDays,
     subMonths,
 } from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {
     BellRing,
     CalendarDays,
-    Check,
     ChevronLeft,
     ChevronRight,
     ExternalLink,
     ImageIcon,
+    List,
     Loader2,
-    PackageCheck,
     Pencil,
     Plus,
     Trash2,
@@ -133,7 +131,8 @@ export function CalendarClient() {
     }
     return new Date();
   });
-  const [viewMode, setViewMode] = useState<'month' | '5day'>('month');
+  const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
+  const [dayTab, setDayTab] = useState<'reservation' | 'event'>('reservation');
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
   const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
   const [saleIdsWithPhotos, setSaleIdsWithPhotos] = useState<Set<string>>(new Set());
@@ -191,12 +190,7 @@ export function CalendarClient() {
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
-  // 5일 뷰 days
-  const fiveDayDays = useMemo(() => {
-    return Array.from({ length: 5 }, (_, i) => addDays(subDays(selectedDate, 2), i));
-  }, [selectedDate]);
-
-  // selectedDate 변경 시 5일 뷰에서 currentMonth 동기화 + URL 반영
+  // selectedDate 변경 시 currentMonth 동기화 + URL 반영
   function selectDate(date: Date) {
     setSelectedDate(date);
     setShowForm(false);
@@ -396,7 +390,7 @@ export function CalendarClient() {
       occupied.push({ start: event.start_date, end: event.end_date, lane });
     }
 
-    // 2. 날짜별 이벤트 맵 (멀티데이 이벤트 펼치기)
+    // 2. 날짜별 일정 맵 (멀티데이 일정 펼치기)
     const map = new Map<string, CalendarEvent[]>();
     for (const event of calendarEvents) {
       let current = new Date(event.start_date);
@@ -432,16 +426,6 @@ export function CalendarClient() {
       }
     }
     return map;
-  }, [reservations]);
-
-  // Count reservations for current month
-  const currentMonthReservationCount = useMemo(() => {
-    return reservations.length;
-  }, [reservations]);
-
-  // 제작 필요 수 (status !== 'completed')
-  const pendingCount = useMemo(() => {
-    return reservations.filter(r => r.status !== 'completed').length;
   }, [reservations]);
 
   function resetForm() {
@@ -818,7 +802,7 @@ export function CalendarClient() {
       description: event.description || '',
     });
     setShowEventForm(true);
-    // 이벤트 폼 열 때 예약 폼은 닫기
+    // 일정 폼 열 때 예약 폼은 닫기
     setShowForm(false);
   }
 
@@ -838,7 +822,7 @@ export function CalendarClient() {
           color: eventFormData.color,
           description: eventFormData.description || null,
         });
-        toast.success('이벤트가 수정되었습니다');
+        toast.success('일정이 수정되었습니다');
       } else {
         await createCalendarEvent({
           title: eventFormData.title,
@@ -847,7 +831,7 @@ export function CalendarClient() {
           color: eventFormData.color,
           description: eventFormData.description || undefined,
         });
-        toast.success('이벤트가 등록되었습니다');
+        toast.success('일정이 등록되었습니다');
       }
       resetEventForm();
       fetchData();
@@ -862,7 +846,7 @@ export function CalendarClient() {
     setIsDeleting(true);
     try {
       await deleteCalendarEvent(deleteEventTarget.id);
-      toast.success('이벤트가 삭제되었습니다');
+      toast.success('일정이 삭제되었습니다');
       setDeleteEventTarget(null);
       resetEventForm();
       fetchData();
@@ -876,65 +860,55 @@ export function CalendarClient() {
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">캘린더</h1>
           <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
         </div>
+        <div className="flex bg-muted rounded-lg p-0.5 shrink-0 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setViewMode('day')}
+            aria-label="일간 리스트"
+            className={cn(
+              'p-1.5 rounded-md transition-colors',
+              viewMode === 'day' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('month')}
+            aria-label="월간 캘린더"
+            className={cn(
+              'p-1.5 rounded-md transition-colors',
+              viewMode === 'month' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <CalendarDays className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
-        {/* Calendar */}
-        <Card className="lg:sticky lg:top-4">
-          <CardContent className="p-4">
-            {/* Navigation + View toggle */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
+        {/* 캘린더(월간) — 모바일은 토글, lg+는 항상 좌측 */}
+        <div className={cn('min-w-0', 'lg:block', viewMode === 'month' ? 'block' : 'hidden')}>
+        <Card className="-mx-8 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x lg:sticky lg:top-4">
+          <CardContent className="p-2 sm:p-4">
+            {/* Navigation */}
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h2 className="font-sans text-base min-[450px]:text-lg font-semibold text-foreground whitespace-nowrap">
-                {viewMode === 'month'
-                  ? format(currentMonth, 'yyyy년 M월', { locale: ko })
-                  : `${format(fiveDayDays[0], 'M.d', { locale: ko })} - ${format(fiveDayDays[4], 'M.d', { locale: ko })}`
-                }
+                {format(currentMonth, 'yyyy년 M월', { locale: ko })}
               </h2>
               <div className="flex items-center gap-1 min-[450px]:gap-2">
-                {/* View toggle */}
-                <div className="flex bg-muted rounded-lg p-0.5">
-                  <button
-                    onClick={() => setViewMode('month')}
-                    className={cn(
-                      'px-2 min-[450px]:px-2.5 py-1 text-xs rounded-md transition-colors',
-                      viewMode === 'month' ? 'bg-background shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    월간
-                  </button>
-                  <button
-                    onClick={() => {
-                      setViewMode('5day');
-                      if (!isSameMonth(selectedDate, currentMonth)) {
-                        setCurrentMonth(selectedDate);
-                      }
-                    }}
-                    className={cn(
-                      'px-2 min-[450px]:px-2.5 py-1 text-xs rounded-md transition-colors',
-                      viewMode === '5day' ? 'bg-background shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    5일
-                  </button>
-                </div>
                 {/* Navigation */}
                 <div className="flex items-center gap-0.5 min-[450px]:gap-1">
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => {
-                      if (viewMode === 'month') {
-                        setCurrentMonth(subMonths(currentMonth, 1));
-                      } else {
-                        selectDate(subDays(selectedDate, 1));
-                      }
-                    }}
-                    aria-label={viewMode === 'month' ? '이전 달' : '이전 날'}
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    aria-label="이전 달"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -952,14 +926,8 @@ export function CalendarClient() {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => {
-                      if (viewMode === 'month') {
-                        setCurrentMonth(addMonths(currentMonth, 1));
-                      } else {
-                        selectDate(addDays(selectedDate, 1));
-                      }
-                    }}
-                    aria-label={viewMode === 'month' ? '다음 달' : '다음 날'}
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    aria-label="다음 달"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -967,7 +935,7 @@ export function CalendarClient() {
               </div>
             </div>
 
-            {viewMode === 'month' ? (
+            {(
               <>
                 {/* Week day headers */}
                 <div className="grid grid-cols-7">
@@ -996,9 +964,9 @@ export function CalendarClient() {
                       <button
                         key={dateKey}
                         onClick={() => selectDate(day)}
-                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 이벤트 ${dayEvents.length}건` : ''}`}
+                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 일정 ${dayEvents.length}건` : ''}`}
                         className={cn(
-                          'relative min-h-[120px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col overflow-visible',
+                          'relative min-h-[88px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col overflow-visible',
                           !isCurrentMonth && 'opacity-30',
                           isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
                         )}
@@ -1012,7 +980,7 @@ export function CalendarClient() {
                         )}>
                           {format(day, 'd')}
                         </span>
-                        {/* Event bars (lane-based positioning) */}
+                        {/* Event bars (lane-based positioning) — 그대로 유지 */}
                         {dayEvents.length > 0 && (() => {
                           const maxLane = Math.max(...dayEvents.map(e => eventLaneMap.get(e.id) ?? 0));
                           const lanes: (CalendarEvent | null)[] = Array(maxLane + 1).fill(null);
@@ -1024,7 +992,7 @@ export function CalendarClient() {
                             <div className="flex flex-col gap-px mb-0.5">
                               {lanes.map((event, lane) => {
                                 if (!event) {
-                                  return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{'\u00A0'}</div>;
+                                  return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{' '}</div>;
                                 }
                                 const isStart = event.start_date === dateKey;
                                 const isEnd = event.end_date === dateKey;
@@ -1032,9 +1000,8 @@ export function CalendarClient() {
                                 return (
                                   <div
                                     key={event.id}
-                                    onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
                                     className={cn(
-                                      'text-[10px] leading-tight px-1 py-px font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1',
+                                      'text-[10px] leading-tight px-1 py-px font-medium -mx-1',
                                       isStart && !isSingle ? 'whitespace-nowrap overflow-visible relative z-10' : 'truncate',
                                     )}
                                     style={{
@@ -1043,313 +1010,117 @@ export function CalendarClient() {
                                       borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
                                     }}
                                   >
-                                    {isStart ? event.title : '\u00A0'}
+                                    {isStart ? event.title : ' '}
                                   </div>
                                 );
                               })}
                             </div>
                           );
                         })()}
-                        {/* Reservations */}
-                        {dayReservations.length > 0 && (() => {
-                          const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
-                          return (
-                          <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
-                            {dayReservations.slice(0, 5).map((r) => (
-                              <div
-                                key={r.id}
-                                className={cn(
-                                  'text-[10px] leading-tight px-1 py-0.5 rounded truncate',
-                                  r.status === 'completed'
-                                    ? 'bg-sage-muted text-sage'
-                                    : r.status === 'confirmed'
-                                      ? 'bg-info-soft text-info'
-                                      : 'bg-brand/15 text-brand'
-                                )}
-                              >
-                                {r.status === 'completed' && <span className="hidden min-[450px]:inline">📦 </span>}
-                                <span className={r.status === 'completed' ? 'line-through' : undefined}>
-                                  {r.time ? r.time.slice(0, 5) : ''}
-                                  <span className="hidden min-[450px]:inline">
-                                    {r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}
-                                  </span>
-                                </span>
-                              </div>
-                            ))}
-                            {dayReservations.length > 5 && (
-                              <span className="text-[10px] text-muted-foreground leading-none px-1">+{dayReservations.length - 5}건</span>
-                            )}
-                            {dayPendingCount > 0 && (
-                              <span className="text-[10px] font-medium text-brand mt-auto px-1 hidden min-[450px]:block">{dayPendingCount}개 제작</span>
-                            )}
-                          </div>
-                          );
-                        })()}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* 5-day view headers */}
-                <div className="grid grid-cols-5">
-                  {fiveDayDays.map((day) => {
-                    const dayOfWeek = day.getDay();
-                    return (
-                      <div key={format(day, 'yyyy-MM-dd')} className={cn(
-                        'text-center text-xs font-medium py-1.5',
-                        dayOfWeek === 0 ? 'text-danger' : dayOfWeek === 6 ? 'text-info' : 'text-muted-foreground'
-                      )}>
-                        {weekDays[dayOfWeek]}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* 5-day grid */}
-                <div className="grid grid-cols-5 border-t border-border">
-                  {fiveDayDays.map((day) => {
-                    const dateKey = format(day, 'yyyy-MM-dd');
-                    const dayReservations = reservationsByDate.get(dateKey) || [];
-                    const dayEvents = eventsByDate.get(dateKey) || [];
-                    const isSelected = isSameDay(day, selectedDate);
-                    const isTodayDate = isToday(day);
-                    const dayOfWeek = day.getDay();
-                    const dayPendingCount = dayReservations.filter(r => r.status !== 'completed').length;
-
-                    return (
-                      <button
-                        key={dateKey}
-                        onClick={() => selectDate(day)}
-                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 이벤트 ${dayEvents.length}건` : ''}`}
-                        className={cn(
-                          'relative min-h-[100px] min-[450px]:min-h-[200px] p-1.5 min-[450px]:p-2 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(5n)]:border-r-0 flex flex-col',
-                          isSelected && 'bg-brand-muted/50 hover:bg-brand-muted/50',
+                        {/* 예약 건수 (바 대신 숫자) */}
+                        {dayReservations.length > 0 && (
+                          <span className="mt-auto text-[10px] sm:text-xs font-medium text-brand leading-tight px-0.5 pb-0.5">
+                            예약 {dayReservations.length}건
+                          </span>
                         )}
-                      >
-                        <span className={cn(
-                          'inline-flex items-center justify-center w-6 h-6 min-[450px]:w-7 min-[450px]:h-7 text-xs min-[450px]:text-sm rounded-full mb-0.5 min-[450px]:mb-1 shrink-0',
-                          isTodayDate && 'bg-brand text-brand-foreground font-semibold',
-                          !isTodayDate && dayOfWeek === 0 && 'text-danger',
-                          !isTodayDate && dayOfWeek === 6 && 'text-info',
-                          !isTodayDate && isSelected && 'font-semibold text-foreground',
-                        )}>
-                          {format(day, 'd')}
-                        </span>
-                        {/* Event bars (lane-based positioning) */}
-                        {dayEvents.length > 0 && (() => {
-                          const maxLane = Math.max(...dayEvents.map(e => eventLaneMap.get(e.id) ?? 0));
-                          const lanes: (CalendarEvent | null)[] = Array(maxLane + 1).fill(null);
-                          for (const event of dayEvents) {
-                            const lane = eventLaneMap.get(event.id) ?? 0;
-                            lanes[lane] = event;
-                          }
-                          return (
-                            <div className="flex flex-col gap-px mb-0.5">
-                              {lanes.map((event, lane) => {
-                                if (!event) {
-                                  return <div key={`spacer-${lane}`} className="text-[10px] min-[450px]:text-xs leading-tight py-px min-[450px]:py-0.5 -mx-1.5 min-[450px]:-mx-2 invisible" aria-hidden="true">{'\u00A0'}</div>;
-                                }
-                                const isStart = event.start_date === dateKey;
-                                const isEnd = event.end_date === dateKey;
-                                const isSingle = isStart && isEnd;
-                                return (
-                                  <div
-                                    key={event.id}
-                                    onClick={(e) => { e.stopPropagation(); startEditEvent(event); }}
-                                    className="text-[10px] min-[450px]:text-xs leading-tight px-1 min-[450px]:px-1.5 py-px min-[450px]:py-0.5 truncate font-medium cursor-pointer hover:opacity-80 transition-opacity -mx-1.5 min-[450px]:-mx-2"
-                                    style={{
-                                      backgroundColor: `${event.color}30`,
-                                      color: event.color,
-                                      borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
-                                    }}
-                                  >
-                                    {isStart ? event.title : '\u00A0'}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                        {/* Reservations */}
-                        {dayReservations.length > 0 ? (
-                          <div className="flex flex-col gap-0.5 min-[450px]:gap-1 overflow-hidden flex-1">
-                            {dayReservations.map((r) => (
-                              <div
-                                key={r.id}
-                                className={cn(
-                                  'text-[10px] min-[450px]:text-xs leading-snug px-1 min-[450px]:px-1.5 py-0.5 min-[450px]:py-1 rounded',
-                                  r.status === 'completed'
-                                    ? 'bg-sage-muted text-sage'
-                                    : r.status === 'confirmed'
-                                      ? 'bg-info-soft text-info'
-                                      : 'bg-brand/15 text-brand'
-                                )}
-                              >
-                                <div className="font-medium truncate">
-                                  {r.status === 'completed' && <span className="hidden min-[450px]:inline">📦 </span>}
-                                  <span className={r.status === 'completed' ? 'line-through' : undefined}>
-                                    {r.time ? r.time.slice(0, 5) : ''}<span className="hidden min-[450px]:inline">{r.time && r.customer_name ? ' ' : ''}{r.customer_name || r.title}</span>
-                                  </span>
-                                </div>
-                                <div className={cn('hidden min-[450px]:block', r.status === 'completed' && 'line-through')}>
-                                  {r.title && r.customer_name && (
-                                    <div className="truncate opacity-80">{r.title}</div>
-                                  )}
-                                  {r.amount > 0 && (
-                                    <div className="opacity-70">{formatCurrency(r.amount)}</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            {dayPendingCount > 0 && (
-                              <span className="text-[10px] min-[450px]:text-xs font-medium text-brand mt-auto px-1">{dayPendingCount}개 제작</span>
-                            )}
-                          </div>
-                        ) : dayEvents.length === 0 ? (
-                          <span className="text-[10px] min-[450px]:text-xs text-muted-foreground/50 mt-2">예약 없음</span>
-                        ) : null}
                       </button>
                     );
                   })}
                 </div>
               </>
             )}
-            {/* Reservation count + pending */}
-            <div className="mt-3 pt-3 border-t border-border flex items-center justify-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                이번 달 예약 {currentMonthReservationCount}건
-              </p>
-              {pendingCount > 0 && (
-                <span className="text-sm font-medium text-brand">
-                  {pendingCount}개 제작 필요
-                </span>
-              )}
-            </div>
           </CardContent>
         </Card>
+        </div>
 
-        {/* Side Panel */}
-        <div className="space-y-3 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+        <div className="space-y-3">
+          {(
+          <>
           {/* Selected date header */}
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => selectDate(subDays(selectedDate, 1))}
-                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
-                    aria-label="이전 날"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-foreground">
-                      {format(selectedDate, 'M월 d일 (EEE)', { locale: ko })}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {selectedDateReservations.length > 0
-                        ? `${selectedDateReservations.length}건의 예약`
-                        : '예약 없음'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => selectDate(addDays(selectedDate, 1))}
-                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors shrink-0"
-                    aria-label="다음 날"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {format(selectedDate, 'M월 d일 (EEE)', { locale: ko })}
+                  </p>
                 </div>
-                <Button size="sm" onClick={() => {
-                  const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                  setFormData({
-                    customer_name: '',
-                    customer_phone: '',
-                    title: '',
-                    description: '',
-                    product_category: '',
-                    payment_method: '',
-                    reservation_channel: 'other',
-                    sale_date: format(new Date(), 'yyyy-MM-dd'),
-                  });
-                  setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
-                  setDeletedPickupIds([]);
-                  setEditingId(null);
-                  setEditingSaleId(null);
-                  setShowForm(true);
-                }}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  추가
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Event Section */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-sm font-semibold text-foreground">이벤트</p>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => {
-                  resetEventForm();
-                  setEventFormData(prev => ({
-                    ...prev,
-                    start_date: format(selectedDate, 'yyyy-MM-dd'),
-                    end_date: format(selectedDate, 'yyyy-MM-dd'),
-                  }));
-                  setShowEventForm(true);
-                  setShowForm(false);
-                }}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  추가
-                </Button>
-              </div>
-              {/* Selected date events list */}
-              {selectedDateEvents.length > 0 && (
-                <div className="mt-3 space-y-1.5">
-                  {selectedDateEvents.map((event) => (
-                    <button
-                      key={event.id}
-                      onClick={() => startEditEvent(event)}
-                      className="w-full text-left p-2 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: event.color }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {event.start_date === event.end_date
-                              ? format(new Date(event.start_date), 'M월 d일', { locale: ko })
-                              : `${format(new Date(event.start_date), 'M.d', { locale: ko })} - ${format(new Date(event.end_date), 'M.d', { locale: ko })}`
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      {event.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1 pl-[18px]">{event.description}</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Event Form */}
-          {showEventForm && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-foreground">{editingEventId ? '이벤트 수정' : '새 이벤트'}</p>
-                  <Button variant="ghost" size="icon-sm" onClick={resetEventForm} aria-label="이벤트 폼 닫기">
-                    <X className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button size="sm" onClick={() => {
+                    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                    setFormData({
+                      customer_name: '',
+                      customer_phone: '',
+                      title: '',
+                      description: '',
+                      product_category: '',
+                      payment_method: '',
+                      reservation_channel: 'other',
+                      sale_date: format(new Date(), 'yyyy-MM-dd'),
+                    });
+                    setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
+                    setDeletedPickupIds([]);
+                    setEditingId(null);
+                    setEditingSaleId(null);
+                    setShowEventForm(false);
+                    setShowForm(true);
+                  }}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    예약
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    resetEventForm();
+                    setEventFormData(prev => ({
+                      ...prev,
+                      start_date: format(selectedDate, 'yyyy-MM-dd'),
+                      end_date: format(selectedDate, 'yyyy-MM-dd'),
+                    }));
+                    setShowForm(false);
+                    setShowEventForm(true);
+                  }}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    일정
                   </Button>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 예약/일정 탭 */}
+          <div className="flex gap-1 border-b border-border">
+            <button
+              type="button"
+              onClick={() => setDayTab('reservation')}
+              className={cn(
+                'flex-1 text-sm font-medium py-2 border-b-2 -mb-px transition-colors',
+                dayTab === 'reservation' ? 'border-brand text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              예약{selectedDateReservations.length > 0 ? ` ${selectedDateReservations.length}` : ''}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDayTab('event')}
+              className={cn(
+                'flex-1 text-sm font-medium py-2 border-b-2 -mb-px transition-colors',
+                dayTab === 'event' ? 'border-brand text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              일정{selectedDateEvents.length > 0 ? ` ${selectedDateEvents.length}` : ''}
+            </button>
+          </div>
+          </>
+          )}
+
+          {/* 일정 Form (modal) */}
+          <Dialog open={showEventForm} onOpenChange={(open) => { if (!open) resetEventForm(); }}>
+            <DialogContent
+              className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+              onInteractOutside={(e) => e.preventDefault()}
+            >
+              <DialogHeader>
+                <DialogTitle>{editingEventId ? '일정 수정' : '새 일정'}</DialogTitle>
+              </DialogHeader>
                 <form onSubmit={handleEventSubmit} className="space-y-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
@@ -1407,7 +1178,7 @@ export function CalendarClient() {
                       placeholder="메모를 입력하세요"
                       rows={2}
                       className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
-                      aria-label="이벤트 메모"
+                      aria-label="일정 메모"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -1425,27 +1196,25 @@ export function CalendarClient() {
                         size="sm"
                         className="h-9 px-3"
                         onClick={() => setDeleteEventTarget(calendarEvents.find(e => e.id === editingEventId) || null)}
-                        aria-label="이벤트 삭제"
+                        aria-label="일정 삭제"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                   </div>
                 </form>
-              </CardContent>
-            </Card>
-          )}
+            </DialogContent>
+          </Dialog>
 
-          {/* Reservation Form */}
-          {showForm && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-foreground">{editingId ? '예약 수정' : '새 예약'}</p>
-                  <Button variant="ghost" size="icon-sm" onClick={resetForm} aria-label="폼 닫기">
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+          {/* Reservation Form (modal) */}
+          <Dialog open={showForm} onOpenChange={(open) => { if (!open) resetForm(); }}>
+            <DialogContent
+              className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+              onInteractOutside={(e) => e.preventDefault()}
+            >
+              <DialogHeader>
+                <DialogTitle>{editingId ? '예약 수정' : '새 예약'}</DialogTitle>
+              </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-3">
                   {/* 고객명 | 전화번호 */}
                   <div className="grid grid-cols-2 gap-3">
@@ -1698,12 +1467,50 @@ export function CalendarClient() {
                     </Button>
                   </div>
                 </form>
-              </CardContent>
-            </Card>
-          )}
+            </DialogContent>
+          </Dialog>
 
-          {/* Reservation list */}
-          {isLoading ? (
+          {/* 탭 콘텐츠 */}
+          {dayTab === 'event' ? (
+            selectedDateEvents.length > 0 ? (
+              <div className="space-y-1.5">
+                {selectedDateEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="p-3 rounded-lg border border-border"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: event.color }} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {event.start_date === event.end_date
+                              ? format(new Date(event.start_date), 'M월 d일', { locale: ko })
+                              : `${format(new Date(event.start_date), 'M.d', { locale: ko })} - ${format(new Date(event.end_date), 'M.d', { locale: ko })}`
+                            }
+                          </p>
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{event.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEditEvent(event)} aria-label="일정 수정">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteEventTarget(event)} aria-label="일정 삭제">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">일정이 없습니다</div>
+            )
+          ) : (isLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
                 <Card key={i}>
@@ -1720,8 +1527,19 @@ export function CalendarClient() {
             </div>
           ) : selectedDateReservations.length > 0 ? (
             <div className="space-y-2">
-              {selectedDateReservations.map((r) => (
+              {[...selectedDateReservations]
+                .sort((a, b) => (a.status === 'completed' ? 1 : 0) - (b.status === 'completed' ? 1 : 0))
+                .map((r, i, arr) => {
+                  const isFirstDone = r.status === 'completed' && (i === 0 || arr[i - 1].status !== 'completed');
+                  return (
                 <div key={r.id} className="space-y-2">
+                {isFirstDone && (
+                  <div className="flex items-center gap-2 pt-1 pb-0.5">
+                    <div className="flex-1 border-t border-border" />
+                    <span className="text-xs text-muted-foreground shrink-0">픽업 완료</span>
+                    <div className="flex-1 border-t border-border" />
+                  </div>
+                )}
                 <Card className="group">
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -1732,7 +1550,7 @@ export function CalendarClient() {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
-                          <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
+                          <p className={cn('text-sm font-medium truncate', r.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground')}>{r.title}</p>
                           {r.sale_is_unpaid && r.sale_payment_method === 'unpaid' && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: '#ef444440', color: '#ef4444' }}>
                               미수
@@ -1819,84 +1637,75 @@ export function CalendarClient() {
                           </div>
                         )}
 
-                        {/* 상태 토글 */}
-                        <div className="flex gap-1.5 mt-2 items-center">
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        {/* 사진/수정/삭제 (가로, 위) */}
+                        <div className="flex gap-0.5">
+                          {r.sale_id && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className={saleIdsWithPhotos.has(r.sale_id) ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
+                              onClick={() => {
+                                const catLabel = r.product_category
+                                  ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
+                                  : r.title;
+                                const dateStr = format(new Date(r.date), 'yy/MM/dd');
+                                setPhotoModal({ saleId: r.sale_id!, defaultTitle: `${dateStr} ${catLabel}` });
+                              }}
+                              aria-label={saleIdsWithPhotos.has(r.sale_id) ? '사진 수정' : '사진 등록'}
+                            >
+                              <ImageIcon className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteTarget(r)} aria-label="삭제">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        {/* 제작/픽업 (일반 버튼, 아래) */}
+                        <div className="flex gap-1.5">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleCompletion(r);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); toggleCompletion(r); }}
                             disabled={r.status === 'completed'}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
-                              r.status === 'confirmed' || r.status === 'completed'
-                                ? 'bg-brand text-brand-foreground'
-                                : 'border border-input text-muted-foreground hover:bg-muted',
+                              'text-xs px-3 py-1.5 rounded-md border font-medium transition-colors shrink-0',
+                              r.status !== 'pending' ? 'bg-brand text-brand-foreground border-brand' : 'border-input text-muted-foreground hover:bg-muted',
                               r.status === 'completed' && 'opacity-60 cursor-not-allowed'
                             )}
                             aria-label={r.status !== 'pending' ? '제작 완료 취소' : '제작 완료로 변경'}
                           >
-                            {(r.status === 'confirmed' || r.status === 'completed') && <Check className="w-3 h-3" />}
-                            제작 완료
+                            제작
                           </button>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              togglePickup(r);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); togglePickup(r); }}
                             disabled={r.status === 'pending'}
                             className={cn(
-                              'text-xs py-1 px-2 rounded transition-colors inline-flex items-center gap-1 shrink-0',
-                              r.status === 'completed'
-                                ? 'bg-success text-success-foreground'
-                                : r.status === 'pending'
-                                  ? 'border border-input text-muted-foreground opacity-40 cursor-not-allowed'
-                                  : 'border border-input text-muted-foreground hover:bg-muted'
+                              'text-xs px-3 py-1.5 rounded-md border font-medium transition-colors shrink-0',
+                              r.status === 'completed' ? 'bg-success text-success-foreground border-success' : 'border-input text-muted-foreground hover:bg-muted',
+                              r.status === 'pending' && 'opacity-40 cursor-not-allowed'
                             )}
                             aria-label={r.status === 'completed' ? '픽업 완료 취소' : '픽업 완료로 변경'}
                           >
-                            {r.status === 'completed' && <PackageCheck className="w-3 h-3" />}
-                            픽업 완료
+                            픽업
                           </button>
                         </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        {r.sale_id && (
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className={saleIdsWithPhotos.has(r.sale_id) ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
-                            onClick={() => {
-                              const catLabel = r.product_category
-                                ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
-                                : r.title;
-                              const dateStr = format(new Date(r.date), 'yy/MM/dd');
-                              setPhotoModal({ saleId: r.sale_id!, defaultTitle: `${dateStr} ${catLabel}` });
-                            }}
-                            aria-label={saleIdsWithPhotos.has(r.sale_id) ? '사진 수정' : '사진 등록'}
-                          >
-                            <ImageIcon className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteTarget(r)} aria-label="삭제">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 </div>
-              ))}
+                );
+              })}
             </div>
-          ) : !showForm && selectedDateEvents.length === 0 ? (
+          ) : (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              이 날짜에 일정이 없습니다
+              예약이 없습니다
             </div>
-          ) : null}
+          ))}
         </div>
       </div>
 
@@ -1965,9 +1774,9 @@ export function CalendarClient() {
       <Dialog open={!!deleteEventTarget} onOpenChange={() => setDeleteEventTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>이벤트 삭제</DialogTitle>
+            <DialogTitle>일정 삭제</DialogTitle>
             <DialogDescription>
-              &quot;{deleteEventTarget?.title}&quot; 이벤트를 삭제하시겠습니까?
+              &quot;{deleteEventTarget?.title}&quot; 일정을 삭제하시겠습니까?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

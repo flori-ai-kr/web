@@ -5,7 +5,7 @@ import {requireAuth} from '@/lib/auth-guard';
 import {findOrCreateCustomer} from './customers';
 import type {PaymentMethod, ReservationChannel, Sale} from '@/types/database';
 import {z} from 'zod';
-import {saleSchema, uuidSchema} from '@/lib/validations';
+import {idSchema, saleSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
@@ -218,7 +218,7 @@ export const createSale = withErrorLogging('createSale', _createSale);
 async function _updateSale(id: string, formData: FormData) {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   // formData.has()로 미전송 필드와 명시적 null을 구분하여 부분 업데이트를 안전하게 처리
@@ -280,7 +280,7 @@ export const updateSale = withErrorLogging('updateSale', _updateSale);
  */
 async function _completeUnpaidSale(saleId: string, paymentMethod: string) {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(saleId);
+  const idParsed = idSchema.safeParse(saleId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   const pmParsed = z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']).safeParse(paymentMethod);
@@ -304,7 +304,7 @@ export const completeUnpaidSale = withErrorLogging('completeUnpaidSale', _comple
  */
 async function _revertUnpaidSale(saleId: string) {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(saleId);
+  const idParsed = idSchema.safeParse(saleId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   await apiFetch<KotlinSale>(`/sales/${idParsed.data}/revert-unpaid`, {
@@ -320,7 +320,7 @@ export const revertUnpaidSale = withErrorLogging('revertUnpaidSale', _revertUnpa
 
 async function _deleteSale(id: string) {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   await apiFetch<void>(`/sales/${idParsed.data}`, { method: 'DELETE' });

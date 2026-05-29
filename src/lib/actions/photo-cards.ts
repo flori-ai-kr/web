@@ -2,10 +2,9 @@
 
 import {requireAuth} from '@/lib/auth-guard';
 import {PhotoCard, PhotoFile} from '@/types/database';
-import {photoCardSchema, uuidSchema, validateImageMeta} from '@/lib/validations';
+import {idSchema, photoCardSchema, validateImageMeta} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
-import {deleteFileByUrl, deleteFilesByUrls, getSignedDownloadUrl} from '@/lib/storage';
 
 const MAX_PHOTOS_PER_CARD = 10;
 
@@ -40,6 +39,10 @@ interface UploadTargetDto {
   originalName: string;
 }
 
+interface PhotoDownloadDto {
+  downloadUrl: string;
+}
+
 /** Kotlin PhotoCardResponse(camelCase) → 웹 PhotoCard(snake_case) 매핑. */
 function toPhotoCard(dto: PhotoCardDto): PhotoCard {
   return {
@@ -70,7 +73,7 @@ async function _getPhotoCards(
   await requireAuth();
 
   if (customerId) {
-    const parsed = uuidSchema.safeParse(customerId);
+    const parsed = idSchema.safeParse(customerId);
     if (!parsed.success) {
       throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
     }
@@ -95,7 +98,7 @@ export const getPhotoCards = withErrorLogging('getPhotoCards', _getPhotoCards);
 
 async function _getPhotoCardById(id: string): Promise<PhotoCard | null> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${id}`);
@@ -150,7 +153,7 @@ export const createPhotoCard = withErrorLogging('createPhotoCard', _createPhotoC
 
 async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const title = formData.get('title') as string;
@@ -192,17 +195,15 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
 
 export const updatePhotoCard = withErrorLogging('updatePhotoCard', _updatePhotoCard);
 
-async function _deletePhotoCard(id: string): Promise<PhotoFile[]> {
+async function _deletePhotoCard(id: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  // DELETE는 정리 대상 사진 목록(PhotoFile[])을 반환한다
-  const photos = await apiFetch<PhotoFileDto[]>(`/photo-cards/${id}`, {
+  // BFF가 DB 레코드와 S3 객체를 함께 정리한다
+  await apiFetch<void>(`/photo-cards/${id}`, {
     method: 'DELETE',
   });
-
-  return (photos || []).map((p) => ({ url: p.url, originalName: p.originalName }));
 }
 
 export const deletePhotoCard = withErrorLogging('deletePhotoCard', _deletePhotoCard);
@@ -213,7 +214,7 @@ async function _createPhotoUploadTargets(
   files: { name: string; type: string; size: number }[],
 ): Promise<{ uploadUrl: string; publicUrl: string; originalName: string }[]> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(cardId);
+  const idParsed = idSchema.safeParse(cardId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   // 앱 레이어 사전 검증(서버도 검증하지만 빠른 실패 + 한국어 메시지 일관성)
@@ -242,42 +243,58 @@ async function _createPhotoUploadTargets(
 
 export const createPhotoUploadTargets = withErrorLogging('createPhotoUploadTargets', _createPhotoUploadTargets);
 
+/**
+ * 카드 생성 전(신규) presigned PUT URL 발급. 카드 id가 없으므로 userId 기준 키로 발급된다.
+ * 업로드를 먼저 끝낸 뒤 imageUrls를 담아 카드를 생성하면, 업로드 실패 시 DB에 카드가 남지 않는다.
+ */
+async function _createPhotoUploadTargetsStandalone(
+  files: { name: string; type: string; size: number }[],
+): Promise<{ uploadUrl: string; publicUrl: string; originalName: string }[]> {
+  await requireAuth();
+
+  if (files.length > MAX_PHOTOS_PER_CARD) {
+    throw new AppError(ErrorCode.VALIDATION, `사진은 최대 ${MAX_PHOTOS_PER_CARD}장까지 등록할 수 있습니다.`);
+  }
+  for (const file of files) {
+    const imageError = validateImageMeta(file);
+    if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
+  }
+
+  const targets = await apiFetch<UploadTargetDto[]>('/photo-cards/upload-targets', {
+    method: 'POST',
+    body: JSON.stringify({
+      files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+    }),
+  });
+
+  return targets.map((t) => ({
+    uploadUrl: t.uploadUrl,
+    publicUrl: t.fileUrl,
+    originalName: t.originalName,
+  }));
+}
+
+export const createPhotoUploadTargetsStandalone = withErrorLogging(
+  'createPhotoUploadTargetsStandalone',
+  _createPhotoUploadTargetsStandalone,
+);
+
 async function _deletePhoto(cardId: string, photoUrl: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(cardId);
+  const idParsed = idSchema.safeParse(cardId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  // 서버는 photos 배열에서 해당 URL만 제거한다(스토리지 클린업은 호출측 책임)
+  // BFF가 photos 배열에서 URL을 제거하고 S3 객체도 함께 삭제한다
   await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos?url=${encodeURIComponent(photoUrl)}`, {
     method: 'DELETE',
   });
-
-  // R2 Storage: URL로 파일 삭제
-  try {
-    await deleteFileByUrl(photoUrl);
-  } catch {
-    // Storage 삭제 실패는 무시 (DB 레코드는 이미 삭제됨)
-  }
 }
 
 export const deletePhoto = withErrorLogging('deletePhoto', _deletePhoto);
 
-async function _deletePhotosFromStorage(photos: PhotoFile[]): Promise<void> {
-  await requireAuth();
-
-  // 카드 삭제 시 서버는 DB만 정리하므로(스토리지 클린업은 호출측 책임),
-  // R2 파일 삭제는 클라이언트 후속 호출에서 수행한다.
-  const urls = photos.map((photo) => photo.url);
-  if (urls.length > 0) {
-    await deleteFilesByUrls(urls);
-  }
-}
-
-export const deletePhotosFromStorage = withErrorLogging('deletePhotosFromStorage', _deletePhotosFromStorage);
-
 async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(cardId);
+  const idParsed = idSchema.safeParse(cardId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos/reorder`, {
@@ -291,15 +308,23 @@ async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void
 export const reorderPhotos = withErrorLogging('reorderPhotos', _reorderPhotos);
 
 
-async function _downloadPhoto(photo: PhotoFile): Promise<{ url: string; filename: string } | null> {
+async function _downloadPhoto(
+  cardId: string,
+  photo: PhotoFile,
+): Promise<{ url: string; filename: string } | null> {
   await requireAuth();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
   try {
-    // R2 Storage: 서명된 다운로드 URL 생성 (다운로드는 스토리지 직접 처리 — Kotlin 엔드포인트 불필요)
-    const signedUrl = await getSignedDownloadUrl(photo.url, 60);
-    if (!signedUrl) return null;
+    // BFF가 소유권 검증 후 서명된 다운로드 URL(presigned GET)을 발급한다
+    const dto = await apiFetch<PhotoDownloadDto>(
+      `/photo-cards/${cardId}/photos/download?url=${encodeURIComponent(photo.url)}`,
+    );
+    if (!dto?.downloadUrl) return null;
 
     return {
-      url: signedUrl,
+      url: dto.downloadUrl,
       filename: photo.originalName,
     };
   } catch {
@@ -311,7 +336,7 @@ export const downloadPhoto = withErrorLogging('downloadPhoto', _downloadPhoto);
 
 async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: string; filename: string }> }> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(cardId);
+  const idParsed = idSchema.safeParse(cardId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}`);
@@ -321,7 +346,7 @@ async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: 
   }
 
   const results = await Promise.all(
-    photos.map((photo) => downloadPhoto({ url: photo.url, originalName: photo.originalName })),
+    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName })),
   );
   const downloadUrls = results.filter((r): r is { url: string; filename: string } => r !== null);
 
@@ -333,7 +358,7 @@ export const downloadAllPhotos = withErrorLogging('downloadAllPhotos', _download
 
 async function _getPhotoCardBySaleId(saleId: string): Promise<PhotoCard | null> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(saleId);
+  const idParsed = idSchema.safeParse(saleId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   // 카드 없으면 204 No Content → apiFetch가 undefined 반환

@@ -1,10 +1,10 @@
 'use server';
 
-import { requireAuth } from '@/lib/auth-guard';
-import type { CalendarEvent } from '@/types/database';
-import { calendarEventSchema, calendarEventBaseSchema, uuidSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { apiFetch } from '@/lib/api/client';
+import {requireAuth} from '@/lib/auth-guard';
+import type {CalendarEvent} from '@/types/database';
+import {calendarEventBaseSchema, calendarEventSchema, idSchema} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 // Kotlin /calendar-events 응답 (camelCase). 서버 계약과 1:1.
 interface KotlinCalendarEvent {
@@ -89,7 +89,7 @@ async function _updateCalendarEvent(
 ): Promise<void> {
   await requireAuth();
 
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
   const parsed = calendarEventBaseSchema.partial().safeParse(formData);
@@ -120,7 +120,7 @@ export const updateCalendarEvent = withErrorLogging('updateCalendarEvent', _upda
 
 async function _deleteCalendarEvent(id: string): Promise<void> {
   await requireAuth();
-  const idParsed = uuidSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
   await apiFetch<void>(`/calendar-events/${idParsed.data}`, { method: 'DELETE' });
 }

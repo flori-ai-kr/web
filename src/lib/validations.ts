@@ -2,11 +2,15 @@ import {z} from 'zod';
 
 // 공통 유틸리티
 const koreanPhoneRegex = /^01[016789]-?\d{3,4}-?\d{4}$/;
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
 
-export const uuidSchema = z.string().regex(uuidRegex, 'UUID 형식이 올바르지 않습니다');
+// BFF 엔티티 id는 Long(숫자). JSON 응답에선 number, URL/FormData에선 string으로 들어오므로
+// 양쪽을 받아 문자열로 정규화한다(웹은 id를 string으로 다룬다).
+export const idSchema = z
+  .union([z.string(), z.number()])
+  .transform((v) => String(v))
+  .pipe(z.string().regex(/^[1-9]\d*$/, 'ID 형식이 올바르지 않습니다'));
 export const dateSchema = z.string().regex(dateRegex, '날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)');
 export const phoneSchema = z.string().regex(koreanPhoneRegex, '전화번호 형식이 올바르지 않습니다');
 export const colorSchema = z.string().regex(hexColorRegex, '색상 형식이 올바르지 않습니다');
@@ -20,7 +24,7 @@ export const saleSchema = z.object({
   reservation_channel: z.enum(['phone', 'kakaotalk', 'naver_booking', 'road', 'other']).optional(),
   customer_name: z.string().max(100).nullable().optional(),
   customer_phone: z.string().max(20).nullable().optional(),
-  customer_id: uuidSchema.nullable().optional(),
+  customer_id: idSchema.nullable().optional(),
   note: z.string().max(1000).nullable().optional(),
 });
 
@@ -140,7 +144,7 @@ export const photoTagSchema = z.object({
 });
 
 // ID 배열 (입금 확인 등)
-export const idsSchema = z.array(uuidSchema).min(1).max(100);
+export const idsSchema = z.array(idSchema).min(1).max(100);
 
 // 검색 쿼리
 export const searchQuerySchema = z.string().min(1).max(100);
@@ -245,6 +249,7 @@ export const instagramAccountCreateSchema = z.object({
 export const instagramAccountUpdateSchema = instagramAccountCreateSchema.partial();
 
 // 하단바 커스터마이즈
+// types/database.ts 의 NavItemKey 와 동기화할 것
 export const navItemKeySchema = z.enum([
   'dashboard',
   'calendar',
@@ -252,8 +257,7 @@ export const navItemKeySchema = z.enum([
   'expenses',
   'customers',
   'gallery',
-  'insights',
-  'follows',
+  'community',
 ]);
 
 export const bottomNavItemsSchema = z
@@ -269,12 +273,12 @@ export const scrapTargetTypeSchema = z.enum(['trend', 'post']);
 
 export const scrapToggleSchema = z.object({
   target_type: scrapTargetTypeSchema,
-  target_id: uuidSchema,
+  target_id: idSchema,
 });
 
 export const scrapMemoSchema = z.object({
   target_type: scrapTargetTypeSchema,
-  target_id: uuidSchema,
+  target_id: idSchema,
   memo: z.string().max(1000, '메모는 1000자 이내로 입력해주세요').nullable(),
 });
 

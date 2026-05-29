@@ -1,5 +1,6 @@
 import {notFound, redirect} from 'next/navigation';
 import {getCommunityPost} from '@/lib/actions/community';
+import {getMyBusinessVerification} from '@/lib/actions/business-verification';
 import {CommunityWriteClient} from '../../write/community-write-client';
 
 export default async function CommunityEditPage({
@@ -7,6 +8,9 @@ export default async function CommunityEditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const verification = await getMyBusinessVerification();
+  if (verification.status !== 'APPROVED') redirect('/admin/community/verify');
+
   const { id } = await params;
   const post = await getCommunityPost(id);
   if (!post) notFound();
