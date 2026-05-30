@@ -68,6 +68,13 @@ src/
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
+├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리, dense dark 셸
+│   ├── layout.tsx           # requireAdmin() 게이트 + console-shell.tsx(중립 dark 네비)
+│   ├── page.tsx             # 개요 (cross-tenant 통계 카드 + AI 헬스 배너)
+│   ├── verifications/   # 사업자 인증 심사 (상태탭 + 상세 다이얼로그 + 승인/거절)
+│   ├── users/           # 유저 dense 테이블 (검색·페이지네이션 + is_active 토글)
+│   ├── subscriptions/   # 구독 현황 목록
+│   └── health/          # AI 헬스 패널 (ai-server/litellm 프록시, 수동 새로고침)
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
 ├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx
@@ -97,7 +104,8 @@ src/
 ### 인증 흐름
 
 - middleware.ts → Kotlin BFF JWT 쿠키(`flori_access`/`flori_refresh`) → `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`)
-- `/admin/*` 경로만 인증 강제. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 는 공개 라우트
+- `/admin/*`·`/console/*` 경로만 인증 강제. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 는 공개 라우트
+- 운영자 콘솔: `/console/*` 는 `requireAdmin()`(`lib/admin-guard.ts` — `/me` 인증 후 BFF `GET /admin/me`로 is_admin 재검증, 비운영자면 `/admin` redirect)로 게이트. 진짜 방어선은 BFF `@RequiresAdmin`(cross-tenant `/admin/**`)
 - 소셜 OAuth: `/auth/login/[provider]` → 공급자 redirect → `/auth/callback/[provider]` → BFF `POST /auth/oauth/{provider}` → registered=true이면 `/admin`, false이면 `registerToken` 쿠키(`flori_register`) → `/onboarding`
 
 ### 데이터 접근
@@ -176,6 +184,7 @@ src/
 |------|------|
 | 에러/로깅 | `lib/errors.ts` (AppError, withErrorLogging), `lib/logger.ts` (Discord) |
 | 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트) |
+| 운영자 콘솔 가드 | `lib/admin-guard.ts` (requireAdmin — `/admin/me` is_admin 재검증), 액션 `lib/actions/admin-*.ts` |
 | BFF 클라이언트 | `lib/api/client.ts`, `lib/api/auth-cookies.ts` |
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
 | 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
