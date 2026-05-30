@@ -45,7 +45,8 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
         await setUserActive(row.id, !row.isActive);
         toast.success(row.isActive ? '비활성화했습니다' : '활성화했습니다');
         setTarget(null);
-        fetchPage(query, data.page);
+        // 중첩 startTransition 방지를 위해 fetchPage 대신 직접 갱신.
+        setData(await listAdminUsers(query, data.page));
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '처리 실패');
       }

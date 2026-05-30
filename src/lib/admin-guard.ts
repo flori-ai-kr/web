@@ -12,13 +12,19 @@ import { AppError, ErrorCode } from '@/lib/errors';
  */
 export async function requireAdmin(): Promise<AuthUser> {
   const user = await requireAuth();
+  let isAdmin = false;
   try {
-    await apiFetch<{ isAdmin: boolean }>('/admin/me');
+    const me = await apiFetch<{ isAdmin: boolean }>('/admin/me');
+    isAdmin = me?.isAdmin === true;
   } catch (error) {
     if (error instanceof AppError && error.code === ErrorCode.UNAUTHORIZED) {
       redirect('/admin');
     }
     throw error;
+  }
+  // 계층 방어: 서버가 200을 주더라도 isAdmin 필드를 명시적으로 확인한다(엔드포인트 계약 회귀 방어).
+  if (!isAdmin) {
+    redirect('/admin');
   }
   return user;
 }

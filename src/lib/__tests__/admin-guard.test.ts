@@ -30,6 +30,11 @@ describe('requireAdmin', () => {
     await expect(requireAdmin()).rejects.toThrow('REDIRECT:/admin');
   });
 
+  it('200이지만 isAdmin=false면 /admin으로 redirect (계층 방어)', async () => {
+    apiFetchMock.mockResolvedValue({ isAdmin: false });
+    await expect(requireAdmin()).rejects.toThrow('REDIRECT:/admin');
+  });
+
   it('기타 에러는 그대로 전파', async () => {
     apiFetchMock.mockRejectedValue(new AppError(ErrorCode.UNKNOWN, 'boom'));
     await expect(requireAdmin()).rejects.toThrow('boom');

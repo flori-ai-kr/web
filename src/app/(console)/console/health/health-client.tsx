@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { getAiHealth } from '@/lib/actions/admin-health';
 import type { AiHealthResponse } from '@/types/admin';
@@ -16,7 +17,15 @@ export function HealthClient({ initial }: { initial: AiHealthResponse }) {
           variant="outline"
           size="sm"
           disabled={pending}
-          onClick={() => startTransition(async () => setHealth(await getAiHealth()))}
+          onClick={() =>
+            startTransition(async () => {
+              try {
+                setHealth(await getAiHealth());
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : '헬스 조회 실패');
+              }
+            })
+          }
         >
           새로고침
         </Button>

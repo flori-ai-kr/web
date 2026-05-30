@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -133,6 +134,9 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
             <>
               <DialogHeader>
                 <DialogTitle>{selected.businessName}</DialogTitle>
+                <DialogDescription>
+                  사업자 인증 신청 내용을 확인하고 승인 또는 거절하세요.
+                </DialogDescription>
               </DialogHeader>
               <dl className="space-y-1 text-sm">
                 <div>
