@@ -28,3 +28,16 @@ export async function requireAdmin(): Promise<AuthUser> {
   }
   return user;
 }
+
+/**
+ * 운영자 여부만 boolean으로 반환한다(리다이렉트 없음). 점주 헤더에서 "운영 콘솔" 진입 링크를
+ * is_admin 일 때만 노출하는 용도. 비운영자/오류는 조용히 false.
+ */
+export async function checkIsAdmin(): Promise<boolean> {
+  try {
+    const me = await apiFetch<{ isAdmin: boolean }>('/admin/me');
+    return me?.isAdmin === true;
+  } catch {
+    return false;
+  }
+}

@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
 import Image from 'next/image';
-import {Bell, CalendarDays, LogOut, Moon, Settings, Sun} from 'lucide-react';
+import {Bell, CalendarDays, LogOut, Moon, Settings, ShieldCheck, Sun} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -17,6 +17,7 @@ import Link from 'next/link';
 import {useTheme} from 'next-themes';
 import {signOut} from '@/lib/actions/auth';
 import {getTriggeredReminders} from '@/lib/actions/reservations';
+import {checkIsAdmin} from '@/lib/admin-guard';
 import type {Reservation} from '@/types/database';
 
 interface HeaderProps {
@@ -33,6 +34,8 @@ export function Header({ userEmail }: HeaderProps) {
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [reminders, setReminders] = useState<Reservation[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  // 운영자(is_admin)에게만 "운영 콘솔" 진입 링크를 노출. 점주에겐 false로 숨김.
+  const [isAdmin, setIsAdmin] = useState(false);
   const LAST_READ_KEY = 'hazel-reminder-last-read';
 
   const fetchReminders = useCallback(async () => {
@@ -55,6 +58,13 @@ export function Header({ userEmail }: HeaderProps) {
   useEffect(() => {
     fetchReminders(); // eslint-disable-line react-hooks/set-state-in-effect -- async fetch on mount
   }, [fetchReminders]);
+
+  useEffect(() => {
+    // 운영자 여부 조회(실패/비운영자는 false 유지 → 링크 숨김)
+    checkIsAdmin()
+      .then((v) => setIsAdmin(v))
+      .catch(() => {});
+  }, []);
 
   // Popover open/close 핸들러
   const handleNotifOpenChange = useCallback((open: boolean) => {
@@ -197,6 +207,14 @@ export function Header({ userEmail }: HeaderProps) {
                   설정
                 </Link>
               </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link href="/console" className="cursor-pointer">
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    운영 콘솔
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => signOut()}
