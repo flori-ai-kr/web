@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { VerificationBadge } from '@/components/console/StatusBadge';
 import {
   listVerifications,
   approveVerification,
@@ -98,7 +99,7 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-zinc-500">
+              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                 데이터 없음
               </TableCell>
             </TableRow>
@@ -143,9 +144,11 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
                   사업자번호: <span className="tabular-nums">{selected.businessNumber}</span>
                 </div>
                 <div>대표자: {selected.representativeName}</div>
-                <div>
-                  상태: {selected.status}
-                  {selected.rejectReason ? ` (${selected.rejectReason})` : ''}
+                <div className="flex items-center gap-2">
+                  상태: <VerificationBadge status={selected.status} />
+                  {selected.rejectReason ? (
+                    <span className="text-muted-foreground">({selected.rejectReason})</span>
+                  ) : null}
                 </div>
               </dl>
               <div className="my-2">
@@ -154,14 +157,14 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
                   <img
                     src={selected.businessLicenseUrl}
                     alt="사업자등록증"
-                    className="max-h-80 rounded border border-zinc-700"
+                    className="max-h-80 rounded border border-border"
                   />
                 ) : (
                   <a
                     href={selected.businessLicenseUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-400 underline"
+                    className="text-sm text-info underline"
                   >
                     등록증 파일 열기 (PDF)
                   </a>
