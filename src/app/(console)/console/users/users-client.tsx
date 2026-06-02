@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition, type FormEvent } from 'react';
+import { useState, useTransition, type FormEvent, type MouseEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,12 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/StatusBadge';
 import { listAdminUsers, setUserActive } from '@/lib/actions/admin-users';
 import type { AdminUserPage, AdminUserRow } from '@/types/admin';
 
 export function UsersClient({ initial }: { initial: AdminUserPage }) {
+  const router = useRouter();
   const [data, setData] = useState<AdminUserPage>(initial);
   const [query, setQuery] = useState('');
   const [target, setTarget] = useState<AdminUserRow | null>(null);
@@ -37,6 +40,11 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
     fetchPage(query, 0);
   };
 
+  const openToggle = (e: MouseEvent, u: AdminUserRow) => {
+    e.stopPropagation();
+    setTarget(u);
+  };
+
   const confirmToggle = () => {
     if (!target) return;
     const row = target;
@@ -45,7 +53,6 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
         await setUserActive(row.id, !row.isActive);
         toast.success(row.isActive ? '비활성화했습니다' : '활성화했습니다');
         setTarget(null);
-        // 중첩 startTransition 방지를 위해 fetchPage 대신 직접 갱신.
         setData(await listAdminUsers(query, data.page));
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '처리 실패');
@@ -57,55 +64,84 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">유저 ({data.total})</h1>
-      <form onSubmit={onSearch} className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="이메일·닉네임 검색"
-          className="max-w-xs"
-        />
-        <Button type="submit" variant="outline" disabled={pending}>
-          검색
-        </Button>
-      </form>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>id</TableHead>
-            <TableHead>이메일</TableHead>
-            <TableHead>닉네임</TableHead>
-            <TableHead>가게</TableHead>
-            <TableHead>구독</TableHead>
-            <TableHead>인증</TableHead>
-            <TableHead>활성</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.rows.map((u) => (
-            <TableRow key={u.id}>
-              <TableCell className="tabular-nums">{u.id}</TableCell>
-              <TableCell>{u.email ?? '-'}</TableCell>
-              <TableCell>{u.nickname ?? '-'}</TableCell>
-              <TableCell>{u.storeName ?? '-'}</TableCell>
-              <TableCell>{u.subscriptionStatus ?? '-'}</TableCell>
-              <TableCell>{u.verificationStatus ?? '-'}</TableCell>
-              <TableCell>{u.isActive ? '✅' : '⛔'}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={u.isAdmin}
-                  onClick={() => setTarget(u)}
-                >
-                  {u.isActive ? '비활성화' : '활성화'}
-                </Button>
-              </TableCell>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-foreground">유저 ({data.total})</h2>
+        <form onSubmit={onSearch} className="flex gap-2">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="이메일·닉네임 검색"
+            className="w-56 bg-card"
+          />
+          <Button type="submit" variant="outline" disabled={pending}>
+            검색
+          </Button>
+        </form>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>이메일</TableHead>
+              <TableHead>닉네임</TableHead>
+              <TableHead>가게</TableHead>
+              <TableHead>구독</TableHead>
+              <TableHead>인증</TableHead>
+              <TableHead>활성</TableHead>
+              <TableHead />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data.rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                  데이터 없음
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.rows.map((u) => (
+                <TableRow
+                  key={u.id}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/console/users/${u.id}`)}
+                >
+                  <TableCell className="tabular-nums">{u.id}</TableCell>
+                  <TableCell>
+                    {u.email ?? '-'}
+                    {u.isAdmin && (
+                      <span className="ml-1.5 align-middle">
+                        <StatusBadge tone="danger">운영자</StatusBadge>
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{u.nickname ?? '-'}</TableCell>
+                  <TableCell>{u.storeName ?? '-'}</TableCell>
+                  <TableCell><SubscriptionBadge status={u.subscriptionStatus} /></TableCell>
+                  <TableCell><VerificationBadge status={u.verificationStatus} /></TableCell>
+                  <TableCell>
+                    <StatusBadge tone={u.isActive ? 'success' : 'muted'}>
+                      {u.isActive ? '활성' : '비활성'}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={u.isAdmin}
+                      onClick={(e) => openToggle(e, u)}
+                    >
+                      {u.isActive ? '비활성화' : '활성화'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
       <div className="flex items-center gap-2 text-sm">
         <Button
           variant="outline"
@@ -115,7 +151,7 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
         >
           이전
         </Button>
-        <span className="text-zinc-400">
+        <span className="text-muted-foreground">
           {data.page + 1} / {maxPage + 1}
         </span>
         <Button
