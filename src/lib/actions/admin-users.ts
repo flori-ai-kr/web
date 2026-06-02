@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { apiFetch } from '@/lib/api/client';
 import { withErrorLogging } from '@/lib/errors';
-import { AppError, ErrorCode } from '@/lib/errors';
 import type { AdminUserDetail, AdminUserPage, AdminUserRow } from '@/types/admin';
 
 // BFF: GET /admin/users?query=&page=&size=
@@ -34,11 +33,13 @@ async function _getAdminUserDetail(id: number): Promise<AdminUserDetail> {
   await requireAdmin();
   try {
     return await apiFetch<AdminUserDetail>(`/admin/users/${id}`);
-  } catch (error) {
-    if (error instanceof AppError && error.code === ErrorCode.NOT_FOUND) {
+  } catch (detailError) {
+    // 상세 엔드포인트는 서버 통계보강 배포 후에야 존재한다. 그 전(미구현→4xx/5xx)에는
+    // 목록 1행으로 폴백해 기본 정보만 채운다. 목록 조회까지 실패하면 원 에러를 전파.
+    try {
       const page = await apiFetch<AdminUserPage>(`/admin/users?page=0&size=200`);
       const row = page.rows.find((r) => r.id === id);
-      if (!row) throw error;
+      if (!row) throw detailError;
       return {
         id: row.id,
         email: row.email,
@@ -55,8 +56,9 @@ async function _getAdminUserDetail(id: number): Promise<AdminUserDetail> {
         salesTotal: null,
         lastSaleDate: null,
       };
+    } catch {
+      throw detailError;
     }
-    throw error;
   }
 }
 export const getAdminUserDetail = withErrorLogging('getAdminUserDetail', _getAdminUserDetail);
