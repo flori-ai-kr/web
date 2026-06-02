@@ -53,7 +53,7 @@ export function TrendChart({
           </defs>
           <XAxis dataKey="date" ticks={ticks} tickFormatter={fmtDay} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
           <Tooltip
-            labelFormatter={fmtDay}
+            labelFormatter={(label) => fmtDay(String(label))}
             contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
           />
           <Area type="monotone" dataKey="count" stroke={BRAND} strokeWidth={2.5} fill="url(#trendFill)" />
@@ -62,7 +62,7 @@ export function TrendChart({
         <BarChart data={data} margin={{ top: 8, right: 6, left: 6, bottom: 0 }}>
           <XAxis dataKey="date" ticks={ticks} tickFormatter={fmtDay} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
           <Tooltip
-            labelFormatter={fmtDay}
+            labelFormatter={(label) => fmtDay(String(label))}
             contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
           />
           <Bar dataKey="count" fill={BRAND} radius={[3, 3, 0, 0]} />
