@@ -98,7 +98,7 @@ export function GrowthRecordWidget() {
                 className={`flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-bold ${
                   b.locked ? 'bg-muted text-muted-foreground' : 'text-white'
                 }`}
-                style={b.locked ? undefined : {background: 'linear-gradient(135deg,#E89BB6,#D2789A)'}}
+                style={b.locked ? undefined : {background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
                 aria-hidden="true"
               >
                 {b.mark}

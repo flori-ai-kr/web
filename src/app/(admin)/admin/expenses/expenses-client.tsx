@@ -4,6 +4,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
+import {DomainBadge} from '@/components/ui/domain-badge';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
@@ -688,27 +689,15 @@ export function ExpensesClient({
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">카테고리</p>
-                  <span
-                    className="inline-block px-2 py-1 text-xs font-medium rounded-md"
-                    style={{
-                      backgroundColor: categoryColors[selectedExpense.category] ? `${categoryColors[selectedExpense.category]}40` : '#f3f4f6',
-                      color: categoryColors[selectedExpense.category] || '#374151'
-                    }}
-                  >
+                  <DomainBadge color={categoryColors[selectedExpense.category]} className="px-2 py-1">
                     {categoryLabels[selectedExpense.category] || selectedExpense.category}
-                  </span>
+                  </DomainBadge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">결제방식</p>
-                  <span
-                    className="inline-block px-2 py-1 text-xs font-medium rounded-md"
-                    style={{
-                      backgroundColor: paymentColors[selectedExpense.payment_method] ? `${paymentColors[selectedExpense.payment_method]}40` : '#f3f4f6',
-                      color: paymentColors[selectedExpense.payment_method] || '#374151'
-                    }}
-                  >
+                  <DomainBadge color={paymentColors[selectedExpense.payment_method]} className="px-2 py-1">
                     {paymentLabels[selectedExpense.payment_method] || selectedExpense.payment_method}
-                  </span>
+                  </DomainBadge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">단가 x 수량 = 총액</p>

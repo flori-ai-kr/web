@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DomainBadge } from '@/components/ui/domain-badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -241,7 +242,7 @@ export function RecurringExpensesSection() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm truncate">{r.item_name}</span>
-                      <span className="px-1.5 py-0.5 text-xs font-medium rounded" style={{ backgroundColor: `${categoryColor(r.category)}40`, color: categoryColor(r.category) }}>{categoryLabel(r.category)}</span>
+                      <DomainBadge color={categoryColor(r.category)} className="px-1.5">{categoryLabel(r.category)}</DomainBadge>
                       {!r.is_active && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">일시정지</span>}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">

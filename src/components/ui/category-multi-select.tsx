@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DomainBadge } from '@/components/ui/domain-badge';
 import { cn } from '@/lib/utils';
 
 export interface CategoryOption {
@@ -68,13 +69,9 @@ export function CategoryMultiSelect({
         ) : (
           <span className="flex items-center gap-1">
             {visibleChips.map(opt => (
-              <span
-                key={opt.value}
-                className="px-1.5 py-0.5 text-xs font-medium rounded"
-                style={{ backgroundColor: `${opt.color}40`, color: opt.color }}
-              >
+              <DomainBadge key={opt.value} color={opt.color} className="px-1.5">
                 {opt.label}
-              </span>
+              </DomainBadge>
             ))}
             {overflowCount > 0 && (
               <span className="text-xs text-muted-foreground">+{overflowCount}</span>
@@ -114,12 +111,9 @@ export function CategoryMultiSelect({
                 {plain ? (
                   <span className="text-sm">{opt.label}</span>
                 ) : (
-                  <span
-                    className="px-1.5 py-0.5 text-xs font-medium rounded"
-                    style={{ backgroundColor: `${opt.color}40`, color: opt.color }}
-                  >
+                  <DomainBadge color={opt.color} className="px-1.5">
                     {opt.label}
-                  </span>
+                  </DomainBadge>
                 )}
               </button>
             );
