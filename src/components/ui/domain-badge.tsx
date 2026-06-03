@@ -22,7 +22,11 @@ export function DomainBadge({
 }) {
   const base = 'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium';
 
-  if (!color) {
+  // 방어 심층: 색은 저장 시 colorSchema(hex)로 검증되지만, 읽기 경로에서도
+  // hex가 아니면 muted로 폴백해 CSS var 오염을 차단한다.
+  const safeColor = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : null;
+
+  if (!safeColor) {
     return (
       <span className={cn(base, 'bg-muted text-muted-foreground', className)} style={style}>
         {children}
@@ -33,7 +37,7 @@ export function DomainBadge({
   return (
     <span
       className={cn('domain-badge', base, className)}
-      style={{ ['--badge' as string]: color, ...style }}
+      style={{ ['--badge' as string]: safeColor, ...style }}
     >
       {children}
     </span>

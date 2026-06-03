@@ -12,6 +12,7 @@ import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import dynamic from 'next/dynamic';
 import {toast} from 'sonner';
+import {createCommunityPost, updateCommunityPost} from '@/lib/actions/community';
 
 // Tiptap+ProseMirror는 무거우므로 글쓰기 진입 시점에 지연 로드(초기 번들에서 제외).
 const TiptapEditor = dynamic(
@@ -23,7 +24,6 @@ const TiptapEditor = dynamic(
     ),
   },
 );
-import {createCommunityPost, updateCommunityPost} from '@/lib/actions/community';
 
 interface WriteClientProps {
   post?: CommunityPost | null; // 있으면 수정 모드

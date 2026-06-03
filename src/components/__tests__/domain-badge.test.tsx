@@ -18,7 +18,14 @@ describe('DomainBadge', () => {
   })
 
   it('className 오버라이드를 병합한다', () => {
-    render(<DomainBadge color="#000" className="px-1.5">X</DomainBadge>)
+    render(<DomainBadge color="#000000" className="px-1.5">X</DomainBadge>)
     expect(screen.getByText('X')).toHaveClass('px-1.5')
+  })
+
+  it('hex가 아닌 색은 muted로 폴백한다(CSS var 오염 차단)', () => {
+    render(<DomainBadge color="red; }malicious">위험</DomainBadge>)
+    const el = screen.getByText('위험')
+    expect(el).not.toHaveClass('domain-badge')
+    expect(el).toHaveClass('bg-muted')
   })
 })

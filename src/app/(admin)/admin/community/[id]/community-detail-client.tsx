@@ -14,15 +14,6 @@ import {LikeButton} from '@/components/community/like-button';
 import {CommentForm} from '@/components/community/comment-form';
 import {CommentTree} from '@/components/community/comment-tree';
 import {Button} from '@/components/ui/button';
-
-// Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
-const TiptapContent = dynamic(
-  () => import('@/components/community/tiptap-content').then((m) => m.TiptapContent),
-  {
-    ssr: false,
-    loading: () => <div className="min-h-[120px] rounded-md bg-muted/30 animate-pulse" />,
-  },
-);
 import {
     Dialog,
     DialogContent,
@@ -33,6 +24,15 @@ import {
 } from '@/components/ui/dialog';
 import {toast} from 'sonner';
 import {deleteCommunityPost} from '@/lib/actions/community';
+
+// Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
+const TiptapContent = dynamic(
+  () => import('@/components/community/tiptap-content').then((m) => m.TiptapContent),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-[120px] rounded-md bg-muted/30 animate-pulse" />,
+  },
+);
 
 interface DetailProps {
   post: CommunityPost;
