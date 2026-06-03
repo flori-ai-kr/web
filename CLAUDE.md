@@ -26,6 +26,7 @@
 | Editor | Tiptap v3 (커뮤니티 게시판 본문, JSON 저장 + plain text 미리보기) |
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
+| Charts | recharts (운영 콘솔 통계 추이) |
 | Test | Vitest, fast-check, Testing Library |
 | Deploy | Vercel (Cron 포함) |
 | Error Logging | Discord 웹훅 |
@@ -68,13 +69,14 @@ src/
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
-├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리, dense dark 셸
-│   ├── layout.tsx           # requireAdmin() 게이트 + console-shell.tsx(중립 dark 네비)
-│   ├── page.tsx             # 개요 (cross-tenant 통계 카드 + AI 헬스 배너)
+├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리. 어드민 토큰 라이트 셸(테마 토글 존중)
+│   ├── layout.tsx           # requireAdmin() 게이트 + components/console/ConsoleShell(onetime식 그룹 사이드바+토픽바+모바일 Sheet)
+│   ├── page.tsx             # 개요 (날짜필터 ?range= + 증감% 카드 + 추이 차트(recharts) + AI 헬스)
 │   ├── verifications/   # 사업자 인증 심사 (상태탭 + 상세 다이얼로그 + 승인/거절)
-│   ├── users/           # 유저 dense 테이블 (검색·페이지네이션 + is_active 토글)
+│   ├── users/           # 유저 테이블(검색·페이지네이션 + is_active 토글) + [id]/ 상세 드릴다운(프로필·구독·인증이력·매출요약)
 │   ├── subscriptions/   # 구독 현황 목록
 │   └── health/          # AI 헬스 패널 (ai-server/litellm 프록시, 수동 새로고침)
+│   (공통 프리미티브: components/console/{StatCard,StatusBadge,TrendChart})
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
 ├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx

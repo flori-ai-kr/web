@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { requireAdmin } from '@/lib/admin-guard';
-import { ConsoleShell } from './console-shell';
+import { ConsoleShell } from '@/components/console/ConsoleShell';
 
 export const metadata = { title: 'flori 운영 콘솔' };
 
