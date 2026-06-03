@@ -33,6 +33,7 @@ import {
 import {toast} from 'sonner';
 
 import {Button} from '@/components/ui/button';
+import {OcrReservationButton} from '@/components/ai/ocr-reservation-dialog';
 import {Card, CardContent} from '@/components/ui/card';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Input} from '@/components/ui/input';
@@ -864,6 +865,10 @@ export function CalendarClient() {
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight">캘린더</h1>
           <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
+          {/* OCR→예약 (이미지에서 예약 초안 추출 → 확인 후 생성) */}
+          <div className="mt-2.5">
+            <OcrReservationButton onCreated={() => router.refresh()} />
+          </div>
         </div>
         <div className="flex bg-muted rounded-lg p-0.5 shrink-0 lg:hidden">
           <button

@@ -35,6 +35,7 @@ import {formatCurrency, getTodayKST} from '@/lib/utils';
 // import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
 import {SectionHeader} from '@/components/dashboard/section-header';
+import {AiBriefingLive} from '@/components/ai/ai-briefing-live';
 
 const PAGE_SIZE = 5;
 
@@ -208,6 +209,9 @@ export function DashboardClient() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* flori AI 오늘의 브리핑 (선제 제안 + 질문) */}
+      <AiBriefingLive />
 
       {/* Summary Cards */}
       {isTodayLoading || isMonthLoading ? (
