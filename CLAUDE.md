@@ -168,7 +168,7 @@ src/
 
 ## 컬러 시스템
 
-- **어드민 브랜드**: Warm Coral (`--brand: #E5614E`) + Sage Green (`--sage: #8B9D83`)
+- **어드민 브랜드**: Dusty Rose (`--brand: #A85475`, 다크 `#DB8FA9`) + Warm Taupe Sage (`--sage: #A09080`) — Jardin v2 Rose 리뉴얼 반영 (구 Warm Coral `#E5614E` 폐기)
 - **공개 홈페이지 v2 팔레트** (Sage & Wood, `.site-public` 스코프):
   - `--site-paper: #FAF7EF` / `--site-paper-soft: #FFFCF5` (베이스)
   - `--site-ink: #2D2418` / `--site-ink-soft: rgba(45,36,24,0.66)` (잉크 다크 브라운)

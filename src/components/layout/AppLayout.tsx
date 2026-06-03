@@ -33,6 +33,13 @@ export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProp
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 키보드 사용자용 본문 바로가기 — 포커스 시에만 노출 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-foreground focus:shadow-lg"
+      >
+        본문으로 건너뛰기
+      </a>
       {/* 전체 너비 1줄 헤더 (좌: 로고 → 대시보드, 우: 알림·테마·아바타) */}
       <Header userEmail={userEmail} />
 
@@ -46,7 +53,7 @@ export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProp
         'pt-14 transition-[margin] duration-200',
         isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
       )}>
-        <main className="p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8" aria-label="주요 콘텐츠">
+        <main id="main-content" className="p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8" aria-label="주요 콘텐츠">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

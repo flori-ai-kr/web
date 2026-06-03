@@ -9,11 +9,20 @@ import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityComment, CommunityPost} from '@/types/database';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
-import {TiptapContent} from '@/components/community/tiptap-content';
+import dynamic from 'next/dynamic';
 import {LikeButton} from '@/components/community/like-button';
 import {CommentForm} from '@/components/community/comment-form';
 import {CommentTree} from '@/components/community/comment-tree';
 import {Button} from '@/components/ui/button';
+
+// Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
+const TiptapContent = dynamic(
+  () => import('@/components/community/tiptap-content').then((m) => m.TiptapContent),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-[120px] rounded-md bg-muted/30 animate-pulse" />,
+  },
+);
 import {
     Dialog,
     DialogContent,
