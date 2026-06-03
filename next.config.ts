@@ -9,6 +9,8 @@ const env = validateEnv();
 const storageHostname = env.STORAGE_PUBLIC_URL ? new URL(env.STORAGE_PUBLIC_URL).hostname : null;
 
 const nextConfig: NextConfig = {
+  // Docker 배포용 독립 실행 번들(.next/standalone) — server.js + 최소 node_modules만 포함.
+  output: 'standalone',
   images: {
     // Instagram signed URL은 며칠 뒤 만료. 최적화 캐시 30일 유지해서
     // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.

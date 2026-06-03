@@ -6,16 +6,15 @@
 # 패턴: aws-infra/.github/workflows/api/deploy-optigen-dev.yml 과 동일 (ubuntu-24.04-arm, QEMU 불필요)
 #
 # [HARD] next.config.ts 가 validateEnv() 를 모듈 로드 시 실행 → `next build`(Docker) 시점에
-#   Supabase/R2/VAPID_PUBLIC/INTERNAL_API_KEY 가 build-args 로 필요. 값은 모두 기존 Supabase cloud.
-#   (build job 에 environment: dev 를 둬서 environment-scoped secrets 를 빌드 시 사용)
-# next.config.ts 에 `output: 'standalone'` 필수. Dockerfile 은 ci/web.Dockerfile.template 참고.
+#   NEXT_PUBLIC_VAPID_PUBLIC_KEY(클라 번들에 baked) 만 build-arg 로 필요.
+#   INTERNAL_API_KEY 는 Dockerfile placeholder 로 검증만 통과시키고 실값은 런타임(.env.web)에서 주입.
+#   (Supabase/R2 는 폐기된 스택 — 제거됨. build job 에 environment: dev 로 secrets 사용)
+# next.config.ts 에 `output: 'standalone'` 적용됨. Dockerfile 은 레포 루트.
 #
-# GitHub Environment `dev` secrets:
+# GitHub Environment `dev` secrets (필수):
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (flori-gha-ecr)
 #   SSH_HOST (= flori-dev-app EIP 3.35.191.16) / SSH_USER (ec2-user) / SSH_PRIVATE_KEY (flori-key.pem)
-#   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
-#   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME / R2_PUBLIC_URL
-#   NEXT_PUBLIC_VAPID_PUBLIC_KEY / INTERNAL_API_KEY
+#   NEXT_PUBLIC_VAPID_PUBLIC_KEY  ← 클라 번들에 baked(필수, 비어있으면 빌드 실패)
 # ==============================================================================
 
 name: 🚀 Deploy web (DEV)
@@ -75,16 +74,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
-            R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
-            R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
-            R2_BUCKET_NAME=${{ secrets.R2_BUCKET_NAME }}
-            R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }}
             NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
-            INTERNAL_API_KEY=${{ secrets.INTERNAL_API_KEY }}
 
   deploy:
     name: EC2 배포
