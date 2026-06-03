@@ -42,6 +42,7 @@ npm run build        # 프로덕션 빌드
 npm run lint         # ESLint
 npm test             # Vitest 1회 실행
 npm run test:watch   # Vitest watch 모드
+npm run test:coverage # Vitest + 커버리지 리포트(@vitest/coverage-v8)
 ```
 
 ---

@@ -214,10 +214,9 @@ describe('exportToExcel', () => {
 })
 
 describe('exportToPDF', () => {
-  let capture: DownloadCapture
-
   beforeEach(() => {
-    capture = installDownloadCapture()
+    // 다운로드 체인 모킹(side effect)만 필요 — jsPDF의 doc.save가 jsdom에서 죽지 않도록.
+    installDownloadCapture()
   })
 
   afterEach(() => {
