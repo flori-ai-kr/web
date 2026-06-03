@@ -84,12 +84,12 @@ src/
 ├── app/login/           # 로그인 (소셜 전용)
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
-├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택 포함)
-├── components/layout/    # AppLayout, Header, Sidebar, BottomNav
+├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응)
+├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
 ├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card 등)
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
-├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts
+├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts, insights-mappers.ts(insights↔scraps 공유 DTO 매퍼)
 ├── lib/photo-upload.ts   # presigned URL 발급 → 브라우저→S3 직접 PUT
 ├── lib/validations.ts    # Zod 스키마 + 이미지 검증
 ├── lib/errors.ts         # AppError, ErrorCode, withErrorLogging()
@@ -176,7 +176,7 @@ src/
   - `--site-muted: rgba(45,36,24,0.42)` / `--site-line: rgba(45,36,24,0.14)`
   - 폰트: Cormorant Garamond(display) + Noto Serif KR + Pretendard(sans)
   - Legacy alias 유지 (`--site-ivory/parchment/charcoal/oxblood/pewter/olive` → v2 매핑)
-- **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
+- **배지 패턴**: 도메인 색 배지는 `<DomainBadge color>`(`components/ui/domain-badge.tsx`) 사용 — 라이트는 기존 `${color}40` 동일, 다크는 `.domain-badge` CSS가 카드색 혼합+대비 보정. 인라인 `style={{backgroundColor: ${color}40}}` 직접 작성 금지(다크 깨짐)
 - 상세 컬러는 `globals.css` 의 CSS 변수 참조
 
 ---
