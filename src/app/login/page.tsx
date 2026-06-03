@@ -5,6 +5,10 @@ export const metadata = {
   title: '로그인 | flori',
 }
 
+// 공급자 활성 여부를 런타임 env(process.env.OAUTH_*)로 계산하므로 요청 시점 렌더링이 필요하다.
+// (정적 프리렌더 시 빌드 타임 env가 baked 되어 .env.web 변경이 반영되지 않음)
+export const dynamic = 'force-dynamic'
+
 export default function LoginPage() {
   // 공급자별 활성 여부를 서버에서 env로 계산해 전달(서버 전용 키는 클라이언트에 노출 안 됨).
   const available = {
