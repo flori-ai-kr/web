@@ -24,9 +24,11 @@ export function ConsoleTopbar({
   const { resolvedTheme, setTheme } = useTheme();
   const [stamp, setStamp] = useState('');
 
+  const updateStamp = () => setStamp(new Date().toLocaleTimeString('ko-KR', { hour12: false }));
+
   useEffect(() => {
     // 마운트 후에만 시각 표기(SSR 하이드레이션 불일치 방지)
-    setStamp(new Date().toLocaleTimeString('ko-KR', { hour12: false }));
+    updateStamp();
   }, []);
 
   return (
@@ -50,7 +52,10 @@ export function ConsoleTopbar({
         {stamp && <span className="hidden text-[11.5px] text-muted-foreground sm:inline">데이터 기준 {stamp}</span>}
         <button
           type="button"
-          onClick={() => router.refresh()}
+          onClick={() => {
+            router.refresh();
+            updateStamp();
+          }}
           aria-label="새로고침"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted"
         >

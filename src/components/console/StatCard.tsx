@@ -47,7 +47,9 @@ export function StatCard({
   );
 
   const cls = `block rounded-xl border border-border bg-card p-4 ${
-    href ? 'hover:border-brand/40 hover:shadow-[0_2px_10px_rgba(168,84,117,0.06)]' : ''
+    href
+      ? 'hover:border-brand/40 hover:shadow-[0_2px_10px_color-mix(in_srgb,var(--brand)_12%,transparent)]'
+      : ''
   }`;
 
   return href ? (

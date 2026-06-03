@@ -104,8 +104,16 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
               data.rows.map((u) => (
                 <TableRow
                   key={u.id}
+                  role="button"
+                  tabIndex={0}
                   className="cursor-pointer"
                   onClick={() => router.push(`/console/users/${u.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/console/users/${u.id}`);
+                    }
+                  }}
                 >
                   <TableCell className="tabular-nums">{u.id}</TableCell>
                   <TableCell>

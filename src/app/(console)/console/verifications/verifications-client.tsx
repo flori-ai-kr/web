@@ -85,6 +85,7 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
         </TabsList>
       </Tabs>
 
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -128,6 +129,7 @@ export function VerificationsClient({ initial }: { initial: AdminVerification[] 
           )}
         </TableBody>
       </Table>
+      </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => { if (!o) setSelected(null); }}>
         <DialogContent>

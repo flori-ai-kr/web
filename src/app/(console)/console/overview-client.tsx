@@ -71,7 +71,7 @@ export function OverviewClient({
           label="매출 입력"
           value={overview.sales.entryCount}
           changePct={cmp?.salesCountChangePct}
-          hint={`최근 30일 ${overview.sales.last30dCount}건 · ${won(overview.sales.totalAmount)}`}
+          hint={`30일 기준 ${overview.sales.last30dCount}건 · 누적 ${won(overview.sales.totalAmount)}`}
           icon={Receipt}
         />
         <StatCard

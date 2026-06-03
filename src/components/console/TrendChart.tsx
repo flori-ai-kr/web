@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import {
   Area,
   AreaChart,
@@ -28,6 +29,7 @@ export function TrendChart({
   data: TimeseriesPoint[];
   height?: number;
 }) {
+  const gradId = `trendFill-${useId().replace(/:/g, '')}`;
   if (!data || data.length === 0) {
     return (
       <div
@@ -46,7 +48,7 @@ export function TrendChart({
       {type === 'line' ? (
         <AreaChart data={data} margin={{ top: 8, right: 6, left: 6, bottom: 0 }}>
           <defs>
-            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={BRAND} stopOpacity={0.18} />
               <stop offset="100%" stopColor={BRAND} stopOpacity={0} />
             </linearGradient>
@@ -56,7 +58,7 @@ export function TrendChart({
             labelFormatter={(label) => fmtDay(String(label))}
             contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', fontSize: 12 }}
           />
-          <Area type="monotone" dataKey="count" stroke={BRAND} strokeWidth={2.5} fill="url(#trendFill)" />
+          <Area type="monotone" dataKey="count" stroke={BRAND} strokeWidth={2.5} fill={`url(#${gradId})`} />
         </AreaChart>
       ) : (
         <BarChart data={data} margin={{ top: 8, right: 6, left: 6, bottom: 0 }}>

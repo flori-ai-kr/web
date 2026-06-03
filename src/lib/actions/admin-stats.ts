@@ -2,7 +2,7 @@
 
 import { requireAdmin } from '@/lib/admin-guard';
 import { apiFetch } from '@/lib/api/client';
-import { withErrorLogging } from '@/lib/errors';
+import { AppError, ErrorCode, withErrorLogging } from '@/lib/errors';
 import type { AdminOverview, StatRange, TimeseriesPoint } from '@/types/admin';
 
 // BFF: GET /admin/stats/overview?range= (cross-tenant 집계 + 기간대비 비교)
@@ -19,8 +19,10 @@ async function _getTimeseries(metric: 'signups' | 'sales', range: StatRange = '3
   await requireAdmin();
   try {
     return await apiFetch<TimeseriesPoint[]>(`/admin/stats/timeseries?metric=${metric}&range=${range}`);
-  } catch {
-    return [];
+  } catch (e) {
+    // 엔드포인트 미배포(404)만 빈 차트로 degrade. 인증실패/5xx는 전파해 에러로깅·바운더리로.
+    if (e instanceof AppError && e.code === ErrorCode.NOT_FOUND) return [];
+    throw e;
   }
 }
 export const getTimeseries = withErrorLogging('getTimeseries', _getTimeseries);

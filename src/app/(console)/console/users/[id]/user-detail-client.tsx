@@ -129,7 +129,7 @@ export function UserDetailClient({ detail }: { detail: AdminUserDetail }) {
               </TableRow>
             ) : (
               detail.verifications.map((v, i) => (
-                <TableRow key={i}>
+                <TableRow key={v.submittedAt ?? i}>
                   <TableCell><VerificationBadge status={v.status} /></TableCell>
                   <TableCell>{v.submittedAt?.slice(0, 10) ?? '-'}</TableCell>
                   <TableCell>{v.reviewedAt?.slice(0, 10) ?? '-'}</TableCell>
