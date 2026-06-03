@@ -15,94 +15,20 @@ import {
 import {bottomNavItemsSchema, instagramAccountCreateSchema, instagramAccountUpdateSchema,} from '@/lib/validations';
 import {withErrorLogging} from '@/lib/errors';
 import {apiFetch, apiFetchInternal} from '@/lib/api/client';
+import {
+    type KotlinTrendArticle,
+    type KotlinInstagramAccount,
+    type KotlinInstagramPost,
+    mapTrendArticle,
+    mapAccount,
+    mapPost,
+} from '@/lib/api/insights-mappers';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 서버 계약과 1:1. created_at/updated_at처럼 Kotlin이 반환하지 않는 필드는
-// 뷰에서 미사용이므로 안전 기본값으로 채운다.
-
-interface KotlinTrendArticle {
-  id: string;
-  category: TrendCategory;
-  title: string;
-  summary: string;
-  keyPoints: string[];
-  sourceUrl: string;
-  sourceName: string | null;
-  publishedAt: string | null;
-  collectedAt: string;
-  createdAt: string;
-}
-
-interface KotlinInstagramAccount {
-  id: string;
-  username: string;
-  displayName: string | null;
-  profileUrl: string;
-  region: InstagramRegion;
-  sortOrder: number;
-  active: boolean;
-  notes: string | null;
-}
-
-interface KotlinInstagramPost {
-  id: string;
-  accountId: string;
-  shortcode: string;
-  permalink: string;
-  imageUrls: string[];
-  caption: string | null;
-  likeCount: number;
-  postedAt: string;
-  account: KotlinInstagramAccount | null;
-}
+// 공통 DTO/매퍼(KotlinTrendArticle/Account/Post)는 lib/api/insights-mappers.ts 에서 import.
 
 interface KotlinUserPreferences {
   bottomNavItems: string[];
-}
-
-function mapTrendArticle(a: KotlinTrendArticle): TrendArticle {
-  return {
-    id: a.id,
-    category: a.category,
-    title: a.title,
-    summary: a.summary,
-    key_points: a.keyPoints ?? [],
-    source_url: a.sourceUrl,
-    source_name: a.sourceName ?? null,
-    published_at: a.publishedAt ?? null,
-    collected_at: a.collectedAt,
-    created_at: a.createdAt,
-  };
-}
-
-function mapAccount(a: KotlinInstagramAccount): InstagramAccount {
-  return {
-    id: a.id,
-    username: a.username,
-    display_name: a.displayName ?? null,
-    profile_url: a.profileUrl,
-    region: a.region,
-    sort_order: a.sortOrder,
-    active: a.active,
-    notes: a.notes ?? null,
-    created_at: '',
-    updated_at: '',
-  };
-}
-
-function mapPost(p: KotlinInstagramPost): InstagramPostWithAccount {
-  return {
-    id: p.id,
-    account_id: p.accountId,
-    shortcode: p.shortcode,
-    permalink: p.permalink,
-    image_urls: p.imageUrls ?? [],
-    caption: p.caption ?? null,
-    like_count: p.likeCount,
-    posted_at: p.postedAt,
-    scraped_at: '',
-    account: p.account ? mapAccount(p.account) : ({} as InstagramAccount),
-  };
 }
 
 // ─── 트렌드 조회 ──────────────────────────────────────────
