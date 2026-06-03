@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/.cov-tmp
+# jsPDF가 테스트 중 루트에 떨구는 PDF 아티팩트
+/*.pdf
 
 # next.js
 /.next/
