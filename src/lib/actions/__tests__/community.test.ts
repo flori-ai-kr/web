@@ -31,7 +31,7 @@ beforeEach(() => {
 })
 
 const kPost = {
-  id: 42, authorNickname: '플로리스트', category: 'free', title: '제목',
+  id: 42, authorNickname: '플로리스트', category: 'daily', title: '제목',
   content: { type: 'doc' }, contentText: '본문', imageUrls: ['https://img/1'],
   isSecret: false, isPinned: true, likeCount: 3, commentCount: 1, liked: false,
   isMine: true, canView: true, createdAt: '2026-01-01', updatedAt: '2026-01-01',
@@ -42,16 +42,16 @@ const kComment = {
 }
 
 const postInput = {
-  category: 'free' as const, title: '제목', content: { type: 'doc' },
+  category: 'daily' as const, title: '제목', content: { type: 'doc' },
   contentText: '본문', isSecret: false, imageUrls: ['https://img/1'],
 }
 
 describe('getCommunityPosts', () => {
   it('필터를 쿼리로 전달하고 id를 string으로 매핑', async () => {
     mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: false })
-    const res = await getCommunityPosts({ category: 'free', search: '꽃' })
+    const res = await getCommunityPosts({ category: 'daily', search: '꽃' })
     const url = mockApiFetch.mock.calls[0][0] as string
-    expect(url).toContain('category=free')
+    expect(url).toContain('category=daily')
     expect(url).toContain('search=')
     expect(url).toContain('limit=100')
     expect(res[0].id).toBe('42')
@@ -98,7 +98,7 @@ describe('createCommunityPost', () => {
     mockApiFetch.mockResolvedValue(kPost)
     await createCommunityPost({ ...postInput, title: '  제목  ' })
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body).toMatchObject({ category: 'free', title: '제목', contentText: '본문' })
+    expect(body).toMatchObject({ category: 'daily', title: '제목', contentText: '본문' })
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/community')
   })
 

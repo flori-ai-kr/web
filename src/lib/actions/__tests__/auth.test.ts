@@ -40,7 +40,7 @@ describe('signOut', () => {
   })
 
   it('refresh 토큰이 없으면 서버 호출 없이 정리·리다이렉트', async () => {
-    mockGetRefresh.mockResolvedValue(null)
+    mockGetRefresh.mockResolvedValue(undefined)
     await signOut()
     expect(fetchMock).not.toHaveBeenCalled()
     expect(mockClear).toHaveBeenCalled()
