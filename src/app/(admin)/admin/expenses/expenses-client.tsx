@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
@@ -112,7 +112,13 @@ export function ExpensesClient({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.value || 'card');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [, startDeleteTransition] = useTransition();
+
+  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
+  const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
+    initialExpenses,
+    (list, deletedId: string) => list.filter((e) => e.id !== deletedId),
+  );
 
   // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
   const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
@@ -166,7 +172,7 @@ export function ExpensesClient({
   };
 
   const filteredExpenses = useMemo(() => {
-    let result = initialExpenses;
+    let result = optimisticExpenses;
 
     if (paymentFilter.length > 0) {
       result = result.filter(e => paymentFilter.includes(e.payment_method));
@@ -186,7 +192,7 @@ export function ExpensesClient({
     }
 
     return result;
-  }, [initialExpenses, paymentFilter, categoryFilter, searchQuery]);
+  }, [optimisticExpenses, paymentFilter, categoryFilter, searchQuery]);
 
   const summary = useMemo(() => {
     const byCategory: Record<string, number> = {};
@@ -358,29 +364,30 @@ export function ExpensesClient({
     setDeleteTarget(expense);
   };
 
-  const confirmDelete = async (scope?: 'instance' | 'future') => {
+  const confirmDelete = (scope?: 'instance' | 'future') => {
     if (!deleteTarget) return;
-    setIsDeleting(true);
-    try {
-      if (deleteTarget.recurring_id && scope === 'instance') {
-        await deleteExpenseInstanceOnly(deleteTarget.id);
-        toast.success('이 항목만 삭제되었습니다');
-      } else if (deleteTarget.recurring_id && scope === 'future') {
-        await deleteRecurringFromInstance(deleteTarget.id);
-        toast.success('이후 모든 반복이 종료되었습니다');
-      } else {
-        await deleteExpense(deleteTarget.id);
-        toast.success('지출이 삭제되었습니다');
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setSelectedExpense(null);
+    startDeleteTransition(async () => {
+      removeOptimisticExpense(target.id);
+      try {
+        if (target.recurring_id && scope === 'instance') {
+          await deleteExpenseInstanceOnly(target.id);
+          toast.success('이 항목만 삭제되었습니다');
+        } else if (target.recurring_id && scope === 'future') {
+          await deleteRecurringFromInstance(target.id);
+          toast.success('이후 모든 반복이 종료되었습니다');
+        } else {
+          await deleteExpense(target.id);
+          toast.success('지출이 삭제되었습니다');
+        }
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to delete expense:', error);
+        toast.error('지출 삭제에 실패했습니다');
       }
-      setDeleteTarget(null);
-      setSelectedExpense(null);
-      router.refresh();
-    } catch (error) {
-      console.error('Failed to delete expense:', error);
-      toast.error('지출 삭제에 실패했습니다');
-    } finally {
-      setIsDeleting(false);
-    }
+    });
   };
 
   return (
@@ -872,24 +879,21 @@ export function ExpensesClient({
           </div>
           {deleteTarget?.recurring_id ? (
             <div className="flex flex-col gap-2">
-              <Button variant="destructive" onClick={() => confirmDelete('instance')} disabled={isDeleting}>
-                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              <Button variant="destructive" onClick={() => confirmDelete('instance')}>
                 이 항목만 삭제
               </Button>
-              <Button variant="destructive" onClick={() => confirmDelete('future')} disabled={isDeleting}>
-                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              <Button variant="destructive" onClick={() => confirmDelete('future')}>
                 이후 모두 삭제
               </Button>
-              <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>
                 취소
               </Button>
             </div>
           ) : (
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>취소</Button>
-              <Button variant="destructive" onClick={() => confirmDelete()} disabled={isDeleting}>
-                {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isDeleting ? '삭제 중...' : '삭제'}
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
+              <Button variant="destructive" onClick={() => confirmDelete()}>
+                삭제
               </Button>
             </div>
           )}
