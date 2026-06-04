@@ -103,7 +103,7 @@ export function ExpensesClient({
   const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startSubmitTransition] = useTransition();
   const [noteValue, setNoteValue] = useState('');
   const [editNoteValue, setEditNoteValue] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -122,7 +122,7 @@ export function ExpensesClient({
 
   // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
   const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
-  const [scopeBusy, setScopeBusy] = useState(false);
+  const [scopeBusy, startScopeTransition] = useTransition();
   const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; notes: string[] }>({ itemNames: [], vendors: [], notes: [] });
   const [createItemName, setCreateItemName] = useState('');
   const [createVendor, setCreateVendor] = useState('');
@@ -273,25 +273,24 @@ export function ExpensesClient({
     router.push(buildUrl({ year: y, month: m, day: d }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData(e.currentTarget);
-      await createExpense(formData);
+    const formData = new FormData(e.currentTarget);
+    startSubmitTransition(async () => {
+      try {
+        await createExpense(formData);
 
-      setIsFormOpen(false);
-      router.refresh();
-      toast.success('지출이 등록되었습니다');
-    } catch (error) {
-      console.error('Failed to create expense:', error);
-      toast.error('지출 등록에 실패했습니다');
-    } finally {
-      setIsSubmitting(false);
-    }
+        setIsFormOpen(false);
+        router.refresh();
+        toast.success('지출이 등록되었습니다');
+      } catch (error) {
+        console.error('Failed to create expense:', error);
+        toast.error('지출 등록에 실패했습니다');
+      }
+    });
   };
 
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingExpense) return;
 
@@ -316,41 +315,41 @@ export function ExpensesClient({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      await updateExpense(editingExpense.id, formData);
-      setEditingExpense(null);
-      setSelectedExpense(null);
-      router.refresh();
-      toast.success('지출이 수정되었습니다');
-    } catch (error) {
-      console.error('Failed to update expense:', error);
-      toast.error('지출 수정에 실패했습니다');
-    } finally {
-      setIsSubmitting(false);
-    }
+    const target = editingExpense;
+    startSubmitTransition(async () => {
+      try {
+        await updateExpense(target.id, formData);
+        setEditingExpense(null);
+        setSelectedExpense(null);
+        router.refresh();
+        toast.success('지출이 수정되었습니다');
+      } catch (error) {
+        console.error('Failed to update expense:', error);
+        toast.error('지출 수정에 실패했습니다');
+      }
+    });
   };
 
-  const handleScopeEditConfirm = async (scope: 'instance' | 'future') => {
+  const handleScopeEditConfirm = (scope: 'instance' | 'future') => {
     if (!pendingScopeEdit) return;
-    setScopeBusy(true);
-    try {
-      if (scope === 'instance') {
-        await updateExpenseInstanceOnly(pendingScopeEdit.expenseId, pendingScopeEdit.fields);
-        toast.success('이 항목만 수정되었습니다');
-      } else {
-        await updateRecurringFromInstance(pendingScopeEdit.expenseId, pendingScopeEdit.fields);
-        toast.success('이후 모든 항목에 반영되었습니다');
+    const pending = pendingScopeEdit;
+    startScopeTransition(async () => {
+      try {
+        if (scope === 'instance') {
+          await updateExpenseInstanceOnly(pending.expenseId, pending.fields);
+          toast.success('이 항목만 수정되었습니다');
+        } else {
+          await updateRecurringFromInstance(pending.expenseId, pending.fields);
+          toast.success('이후 모든 항목에 반영되었습니다');
+        }
+        setPendingScopeEdit(null);
+        setEditingExpense(null);
+        setSelectedExpense(null);
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '수정에 실패했습니다');
       }
-      setPendingScopeEdit(null);
-      setEditingExpense(null);
-      setSelectedExpense(null);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '수정에 실패했습니다');
-    } finally {
-      setScopeBusy(false);
-    }
+    });
   };
 
   const handleEdit = (expense: Expense) => {

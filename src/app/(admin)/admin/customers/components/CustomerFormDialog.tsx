@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, useTransition} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -24,7 +24,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
   const [phoneValue, setPhoneValue] = useState('');
   const [phoneDuplicate, setPhoneDuplicate] = useState<{ name: string } | null>(null);
   const [noteValue, setNoteValue] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
   const phoneCheckRef = useRef<NodeJS.Timeout | null>(null);
 
   const isEditMode = !!customer;
@@ -39,7 +39,6 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
         setNoteValue('');
       }
       setPhoneDuplicate(null);
-      setIsSubmitting(false);
     }
   }, [open, customer]);
 
@@ -58,33 +57,31 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        if (isEditMode) {
+          await updateCustomer(customer.id, formData);
+          toast.success('고객 정보가 수정되었습니다');
+        } else {
+          await createCustomer(formData);
+          toast.success('고객이 등록되었습니다');
+        }
 
-      if (isEditMode) {
-        await updateCustomer(customer.id, formData);
-        toast.success('고객 정보가 수정되었습니다');
-      } else {
-        await createCustomer(formData);
-        toast.success('고객이 등록되었습니다');
+        onOpenChange(false);
+        onSuccess();
+      } catch (error: unknown) {
+        console.error('Failed to save customer:', error);
+        const message = error instanceof Error ? error.message : '';
+        if (message.includes('이미') || (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === '23505')) {
+          toast.error('이미 등록된 연락처입니다');
+        } else {
+          toast.error(isEditMode ? '고객 수정에 실패했습니다' : '고객 등록에 실패했습니다');
+        }
       }
-
-      onOpenChange(false);
-      onSuccess();
-    } catch (error: unknown) {
-      console.error('Failed to save customer:', error);
-      const message = error instanceof Error ? error.message : '';
-      if (message.includes('이미') || (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === '23505')) {
-        toast.error('이미 등록된 연락처입니다');
-      } else {
-        toast.error(isEditMode ? '고객 수정에 실패했습니다' : '고객 등록에 실패했습니다');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (
