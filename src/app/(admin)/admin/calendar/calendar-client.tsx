@@ -39,8 +39,6 @@ import {SuggestionInput} from '@/components/ui/suggestion-input';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -74,6 +72,12 @@ import {CHANNEL_LABELS} from '@/lib/constants';
 import type {CalendarReservation} from './types';
 import {EventCard} from './components/EventCard';
 import {ReservationCard} from './components/ReservationCard';
+import {
+    DeleteEventDialog,
+    DeleteReservationDialog,
+    DeleteSaleDialog,
+    UnpaidPaymentDialog,
+} from './components/CalendarDialogs';
 
 function formatCurrency(amount: number): string {
   if (!amount) return '';
@@ -1559,116 +1563,45 @@ export function CalendarClient() {
       )}
 
       {/* Delete reservation confirmation */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>예약 삭제</DialogTitle>
-            <DialogDescription>
-              &quot;{deleteTarget?.title}&quot; 예약을 삭제하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteReservationDialog
+        open={!!deleteTarget}
+        reservationTitle={deleteTarget?.title}
+        isDeleting={isDeleting}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
 
       {/* Sale delete confirmation (after reservation deleted) */}
-      <Dialog open={!!saleDeleteInfo} onOpenChange={(open) => {
-        if (!open) {
+      <DeleteSaleDialog
+        open={!!saleDeleteInfo}
+        saleDate={saleDeleteInfo?.saleDate}
+        isDeleting={isDeleting}
+        onConfirm={handleSaleDelete}
+        onDismiss={() => {
           toast.success('예약이 삭제되었습니다');
           setSaleDeleteInfo(null);
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>매출도 삭제하시겠습니까?</DialogTitle>
-            <DialogDescription>
-              {saleDeleteInfo?.saleDate
-                ? `${format(new Date(saleDeleteInfo.saleDate), 'yyyy년 M월 d일', { locale: ko })}의 매출도 함께 삭제하시겠습니까?`
-                : '연결된 매출도 함께 삭제하시겠습니까?'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              toast.success('예약이 삭제되었습니다');
-              setSaleDeleteInfo(null);
-            }}>
-              아니요
-            </Button>
-            <Button variant="destructive" onClick={handleSaleDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              매출도 삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }}
+      />
 
       {/* Delete event confirmation */}
-      <Dialog open={!!deleteEventTarget} onOpenChange={() => setDeleteEventTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>일정 삭제</DialogTitle>
-            <DialogDescription>
-              &quot;{deleteEventTarget?.title}&quot; 일정을 삭제하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteEventTarget(null)}>취소</Button>
-            <Button variant="destructive" onClick={handleDeleteEvent} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteEventDialog
+        open={!!deleteEventTarget}
+        eventTitle={deleteEventTarget?.title}
+        isDeleting={isDeleting}
+        onConfirm={handleDeleteEvent}
+        onClose={() => setDeleteEventTarget(null)}
+      />
 
       {/* 미수 결제 완료 dialog */}
-      <Dialog open={!!unpaidTarget} onOpenChange={(open) => { if (!open) setUnpaidTarget(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>결제방식 선택</DialogTitle>
-            <DialogDescription>
-              미수건의 최종 결제방식을 선택해주세요.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap gap-2 py-2">
-            {salePaymentMethods.filter(pm => pm.value !== 'unpaid').map(pm => (
-              <button
-                key={pm.id}
-                type="button"
-                className={cn(
-                  'text-sm py-2 px-4 rounded-lg border transition-colors',
-                  unpaidPaymentMethod === pm.value
-                    ? 'border-transparent font-medium'
-                    : 'border-input text-muted-foreground hover:bg-muted'
-                )}
-                style={unpaidPaymentMethod === pm.value
-                  ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color }
-                  : {}
-                }
-                onClick={() => setUnpaidPaymentMethod(pm.value)}
-              >
-                {pm.label}
-              </button>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUnpaidTarget(null)}>취소</Button>
-            <Button
-              onClick={handleUnpaidComplete}
-              disabled={!unpaidPaymentMethod || isCompletingUnpaid}
-            >
-              {isCompletingUnpaid && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              결제 완료
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UnpaidPaymentDialog
+        open={!!unpaidTarget}
+        paymentMethods={salePaymentMethods}
+        selectedMethod={unpaidPaymentMethod}
+        onSelectMethod={setUnpaidPaymentMethod}
+        isCompleting={isCompletingUnpaid}
+        onConfirm={handleUnpaidComplete}
+        onClose={() => setUnpaidTarget(null)}
+      />
     </div>
   );
 }
