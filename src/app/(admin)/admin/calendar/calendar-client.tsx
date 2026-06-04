@@ -1557,7 +1557,7 @@ export function CalendarClient() {
                         <div className="flex items-center gap-1.5 mt-1">
                           <p className={cn('text-sm font-medium truncate', r.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground')}>{r.title}</p>
                           {r.sale_is_unpaid && r.sale_payment_method === 'unpaid' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: '#ef444440', color: '#ef4444' }}>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-destructive/10 text-destructive">
                               미수
                             </span>
                           )}
