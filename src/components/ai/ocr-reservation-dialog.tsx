@@ -96,7 +96,7 @@ export function OcrReservationButton({onCreated}: {onCreated?: () => void}) {
           <DialogTitle className="flex items-center gap-2">
             <span
               className="flex h-6 w-6 items-center justify-center rounded-md"
-              style={{background: 'linear-gradient(135deg,#E89BB6,#D2789A)'}}
+              style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
               aria-hidden="true"
             >
               <Flower2 className="h-3.5 w-3.5 text-white" />

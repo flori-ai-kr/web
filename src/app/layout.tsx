@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -27,6 +27,15 @@ export const metadata: Metadata = {
   },
 };
 
+// theme-color는 viewport로 분리해 라이트/다크 브라우저 크롬 색을 분기한다.
+// 라이트=브랜드 Rose, 다크=앱 다크 배경(상태바와 자연스럽게 블렌딩).
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#A85475" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1819" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,7 +44,6 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning className={cormorant.variable}>
       <head>
-        <meta name="theme-color" content="#A85475" />
         <link
           rel="stylesheet"
           as="style"

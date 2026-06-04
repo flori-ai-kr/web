@@ -1,4 +1,10 @@
-# pnpm 11: 빌드 스크립트 허용 목록(이전 package.json "pnpm.onlyBuiltDependencies"의 새 위치).
+# 네이티브 빌드 스크립트 허용 (sharp=이미지 최적화 등). 미승인 시 pnpm dev가 ERR_PNPM_IGNORED_BUILDS로 실패.
+# pnpm 11+ 는 allowBuilds(맵)를 사용 — `pnpm approve-builds --all` 로 생성/갱신.
+allowBuilds:
+  core-js: true
+  sharp: true
+  unrs-resolver: true
+# pnpm 9~10 호환용(구버전은 onlyBuiltDependencies 리스트를 읽음).
 onlyBuiltDependencies:
   - core-js
   - sharp

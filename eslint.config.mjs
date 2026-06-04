@@ -5,6 +5,31 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // next/core-web-vitals는 jsx-a11y 플러그인을 등록하지만 일부 룰만 켠다.
+  // 플러그인은 이미 등록돼 있으므로(재등록 시 충돌) recommended 핵심 룰을 추가로 활성화한다.
+  // 기존 코드와 충돌이 많아 warn으로 점진 도입(아래 React 19 룰 다운그레이드와 동일 철학).
+  {
+    files: ["**/*.{jsx,tsx}"],
+    rules: {
+      "jsx-a11y/alt-text": "warn",
+      "jsx-a11y/anchor-has-content": "warn",
+      "jsx-a11y/anchor-is-valid": "warn",
+      "jsx-a11y/aria-activedescendant-has-tabindex": "warn",
+      "jsx-a11y/autocomplete-valid": "warn",
+      "jsx-a11y/click-events-have-key-events": "warn",
+      "jsx-a11y/heading-has-content": "warn",
+      "jsx-a11y/iframe-has-title": "warn",
+      "jsx-a11y/img-redundant-alt": "warn",
+      "jsx-a11y/interactive-supports-focus": "warn",
+      "jsx-a11y/label-has-associated-control": "warn",
+      "jsx-a11y/mouse-events-have-key-events": "warn",
+      "jsx-a11y/no-autofocus": "warn",
+      "jsx-a11y/no-noninteractive-element-interactions": "warn",
+      "jsx-a11y/no-noninteractive-tabindex": "warn",
+      "jsx-a11y/no-static-element-interactions": "warn",
+      "jsx-a11y/tabindex-no-positive": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

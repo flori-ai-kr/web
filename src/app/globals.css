@@ -244,6 +244,9 @@
   --sidebar-accent-foreground: #241F22;
   --sidebar-border: #ECE3DD;
   --sidebar-ring: #A85475;
+  /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
+  --ai-grad-from: #E89BB6;
+  --ai-grad-to: #D2789A;
 }
 
 .dark {
@@ -302,6 +305,22 @@
   --sidebar-accent-foreground: #EDE8E6;
   --sidebar-border: #3D3336;
   --sidebar-ring: #DB8FA9;
+  /* 다크 AI 그라데이션 — 어두운 배경 위 과도한 채도 방지 */
+  --ai-grad-from: #C77A98;
+  --ai-grad-to: #A85475;
+}
+
+/* 도메인 배지(매출/지출/고객 카테고리·결제·채널) 공통 표면.
+   색은 인라인 --badge 커스텀 프로퍼티로 주입한다.
+   - 라이트: 기존 `${color}40` bg + 풀채도 텍스트를 그대로 재현(시각 변화 없음)
+   - 다크: 투명 틴트 대신 카드색과 혼합 + 텍스트를 흰색쪽으로 보정해 대비 확보 */
+.domain-badge {
+  background-color: color-mix(in srgb, var(--badge) 25%, transparent);
+  color: var(--badge);
+}
+.dark .domain-badge {
+  background-color: color-mix(in srgb, var(--badge) 22%, var(--card));
+  color: color-mix(in srgb, var(--badge) 68%, white);
 }
 
 @layer base {

@@ -3,6 +3,7 @@
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import {DomainBadge} from '@/components/ui/domain-badge';
 import {CalendarDays, Check, ExternalLink, ImageIcon, PackageCheck, Pencil, Trash2} from 'lucide-react';
 import Image from 'next/image';
 import {format} from 'date-fns';
@@ -59,27 +60,15 @@ export function SaleDetailDialog({
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">카테고리</p>
-                <span
-                  className="inline-block px-2 py-1 text-xs font-medium rounded-md"
-                  style={{
-                    backgroundColor: categoryColors[sale.product_category] ? `${categoryColors[sale.product_category]}40` : '#f3f4f6',
-                    color: categoryColors[sale.product_category] || '#374151'
-                  }}
-                >
+                <DomainBadge color={categoryColors[sale.product_category]} className="px-2 py-1">
                   {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                </span>
+                </DomainBadge>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">결제방식</p>
-                <span
-                  className="inline-block px-2 py-1 text-xs font-medium rounded-md"
-                  style={{
-                    backgroundColor: paymentColors[sale.payment_method] ? `${paymentColors[sale.payment_method]}40` : '#f3f4f6',
-                    color: paymentColors[sale.payment_method] || '#374151'
-                  }}
-                >
+                <DomainBadge color={paymentColors[sale.payment_method]} className="px-2 py-1">
                   {paymentLabels[sale.payment_method] || sale.payment_method}
-                </span>
+                </DomainBadge>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">예약방식</p>

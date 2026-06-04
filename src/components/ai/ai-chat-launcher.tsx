@@ -87,7 +87,7 @@ export function AiChatLauncher() {
         onClick={() => setOpen(true)}
         aria-label="flori AI 열기"
         className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95 md:bottom-6 md:right-6"
-        style={{background: 'linear-gradient(135deg,#E89BB6,#D2789A)'}}
+        style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
       >
         <Flower2 className="h-6 w-6" />
       </button>
@@ -100,7 +100,7 @@ export function AiChatLauncher() {
           <SheetHeader className="flex-row items-center gap-2.5 border-b border-border px-4 py-3">
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] shadow-sm"
-              style={{background: 'linear-gradient(135deg,#E89BB6,#D2789A)'}}
+              style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
               aria-hidden="true"
             >
               <Flower2 className="h-[18px] w-[18px] text-white" />

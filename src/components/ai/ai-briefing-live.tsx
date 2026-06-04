@@ -42,7 +42,7 @@ export function AiBriefingLive() {
       <div className="flex items-center gap-2.5">
         <span
           className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] shadow-sm"
-          style={{background: 'linear-gradient(135deg,#E89BB6,#D2789A)'}}
+          style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
           aria-hidden="true"
         >
           <Flower2 className="h-[18px] w-[18px] text-white" />

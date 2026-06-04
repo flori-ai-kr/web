@@ -10,9 +10,20 @@ import {Button} from '@/components/ui/button';
 import {Checkbox} from '@/components/ui/checkbox';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
-import {TiptapEditor} from '@/components/community/tiptap-editor';
+import dynamic from 'next/dynamic';
 import {toast} from 'sonner';
 import {createCommunityPost, updateCommunityPost} from '@/lib/actions/community';
+
+// Tiptap+ProseMirror는 무거우므로 글쓰기 진입 시점에 지연 로드(초기 번들에서 제외).
+const TiptapEditor = dynamic(
+  () => import('@/components/community/tiptap-editor').then((m) => m.TiptapEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[240px] rounded-md border border-input bg-muted/30 animate-pulse" />
+    ),
+  },
+);
 
 interface WriteClientProps {
   post?: CommunityPost | null; // 있으면 수정 모드

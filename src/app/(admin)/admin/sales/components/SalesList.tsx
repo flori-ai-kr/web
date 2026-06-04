@@ -3,6 +3,7 @@
 import {useEffect, useMemo, useRef} from 'react';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
+import {DomainBadge} from '@/components/ui/domain-badge';
 import {ImageIcon, Loader2, Search, TrendingUp} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -142,24 +143,12 @@ export function SalesList({
                   {/* 1줄: 카테고리 + 결제 + 고객명 + 금액 */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span
-                        className="px-2 py-0.5 text-xs font-medium rounded shrink-0"
-                        style={{
-                          backgroundColor: categoryColors[sale.product_category] ? `${categoryColors[sale.product_category]}40` : '#f3f4f6',
-                          color: categoryColors[sale.product_category] || '#374151'
-                        }}
-                      >
+                      <DomainBadge color={categoryColors[sale.product_category]} className="shrink-0">
                         {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                      </span>
-                      <span
-                        className="px-1.5 py-0.5 text-[10px] font-medium rounded shrink-0"
-                        style={{
-                          backgroundColor: paymentColors[sale.payment_method] ? `${paymentColors[sale.payment_method]}40` : '#f3f4f6',
-                          color: paymentColors[sale.payment_method] || '#374151'
-                        }}
-                      >
+                      </DomainBadge>
+                      <DomainBadge color={paymentColors[sale.payment_method]} className="px-1.5 text-[10px] shrink-0">
                         {paymentLabels[sale.payment_method] || sale.payment_method}
-                      </span>
+                      </DomainBadge>
                       {(sale.reservation_channel === 'road' || sale.customer_name) && (
                         <span className="text-xs text-muted-foreground truncate">
                           {sale.reservation_channel === 'road' ? '로드' : sale.customer_name}

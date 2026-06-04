@@ -7,65 +7,24 @@ import {scrapMemoSchema, scrapToggleSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 import type {
     InsightScrap,
-    InstagramAccount,
-    InstagramPostWithAccount,
     PostScrap,
     ScrapMap,
     ScrapTargetType,
-    TrendArticle,
-    TrendCategory,
-    InstagramRegion,
     ScrapInfo,
     TrendScrap,
 } from '@/types/database';
+import {
+    type KotlinScrap,
+    type KotlinTrendArticle,
+    type KotlinInstagramPost,
+    mapScrap,
+    mapTrendArticle,
+    mapPost,
+} from '@/lib/api/insights-mappers';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 서버 계약과 1:1. 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰 미사용).
-
-interface KotlinScrap {
-  id: string;
-  targetType: ScrapTargetType;
-  targetId: string;
-  memo: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface KotlinTrendArticle {
-  id: string;
-  category: TrendCategory;
-  title: string;
-  summary: string;
-  keyPoints: string[];
-  sourceUrl: string;
-  sourceName: string | null;
-  publishedAt: string | null;
-  collectedAt: string;
-  createdAt: string;
-}
-
-interface KotlinInstagramAccount {
-  id: string;
-  username: string;
-  displayName: string | null;
-  profileUrl: string;
-  region: InstagramRegion;
-  sortOrder: number;
-  active: boolean;
-  notes: string | null;
-}
-
-interface KotlinInstagramPost {
-  id: string;
-  accountId: string;
-  shortcode: string;
-  permalink: string;
-  imageUrls: string[];
-  caption: string | null;
-  likeCount: number;
-  postedAt: string;
-  account: KotlinInstagramAccount | null;
-}
+// 공통 DTO/매퍼(KotlinScrap/TrendArticle/Account/Post)는 lib/api/insights-mappers.ts 에서 import.
+// 아래는 scraps 전용 합성 DTO만 정의한다.
 
 interface KotlinScrapInfo {
   id: string;
@@ -80,65 +39,6 @@ interface KotlinTrendScrap {
 interface KotlinPostScrap {
   scrap: KotlinScrap;
   post: KotlinInstagramPost;
-}
-
-function mapScrap(s: KotlinScrap): InsightScrap {
-  return {
-    id: s.id,
-    user_id: '',
-    target_type: s.targetType,
-    target_id: s.targetId,
-    memo: s.memo ?? null,
-    created_at: s.createdAt,
-    updated_at: s.updatedAt,
-  };
-}
-
-function mapTrendArticle(a: KotlinTrendArticle): TrendArticle {
-  return {
-    id: a.id,
-    category: a.category,
-    title: a.title,
-    summary: a.summary,
-    key_points: a.keyPoints ?? [],
-    source_url: a.sourceUrl,
-    source_name: a.sourceName ?? null,
-    published_at: a.publishedAt ?? null,
-    collected_at: a.collectedAt,
-    created_at: a.createdAt,
-  };
-}
-
-function mapAccount(a: KotlinInstagramAccount): InstagramAccount {
-  return {
-    id: a.id,
-    username: a.username,
-    display_name: a.displayName ?? null,
-    profile_url: a.profileUrl,
-    region: a.region,
-    sort_order: a.sortOrder,
-    active: a.active,
-    notes: a.notes ?? null,
-    created_at: '',
-    updated_at: '',
-  };
-}
-
-function mapPost(p: KotlinInstagramPost): InstagramPostWithAccount {
-  return {
-    id: p.id,
-    account_id: p.accountId,
-    shortcode: p.shortcode,
-    permalink: p.permalink,
-    image_urls: p.imageUrls ?? [],
-    caption: p.caption ?? null,
-    like_count: p.likeCount,
-    posted_at: p.postedAt,
-    scraped_at: '',
-    account: p.account
-      ? mapAccount(p.account)
-      : ({} as InstagramAccount),
-  };
 }
 
 async function _toggleScrap(input: unknown): Promise<{ scraped: boolean }> {

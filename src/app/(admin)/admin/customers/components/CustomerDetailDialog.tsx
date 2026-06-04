@@ -4,6 +4,7 @@ import {useRouter} from 'next/navigation';
 import {useCallback, useEffect, useRef} from 'react';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import {DomainBadge} from '@/components/ui/domain-badge';
 import {Skeleton} from '@/components/ui/skeleton';
 import {
     ExternalLink,
@@ -162,15 +163,9 @@ export function CustomerDetailDialog({
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">{format(new Date(sale.date), 'yy/MM/dd')}</span>
-                        <span
-                          className="px-1.5 py-0.5 text-xs font-medium rounded"
-                          style={{
-                            backgroundColor: categoryColors[sale.product_category] ? `${categoryColors[sale.product_category]}40` : '#f3f4f6',
-                            color: categoryColors[sale.product_category] || '#374151'
-                          }}
-                        >
+                        <DomainBadge color={categoryColors[sale.product_category]} className="px-1.5">
                           {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                        </span>
+                        </DomainBadge>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{formatCurrency(sale.amount)}</span>
