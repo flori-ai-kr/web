@@ -89,7 +89,7 @@ export function SaleFormDialog({
     const formData = new FormData(e.currentTarget);
 
     // 인라인 검증: 금액은 native required로 빈 값만 막히므로(0은 통과) 직접 검사한다.
-    const amount = parseInt(formData.get('amount') as string) || 0;
+    const amount = parseInt(formData.get('amount') as string, 10) || 0;
     if (amount <= 0) {
       setAmountError('금액을 입력해주세요');
       return;
@@ -147,9 +147,10 @@ export function SaleFormDialog({
                 required
                 onChange={(v) => { if (v > 0 && amountError) setAmountError(null); }}
                 aria-invalid={!!amountError}
+                aria-describedby={amountError ? 'sale-amount-error' : undefined}
                 className={cn("bg-muted", amountError && "border-danger focus-visible:ring-danger")}
               />
-              {amountError && <p className="text-xs text-danger">{amountError}</p>}
+              {amountError && <p id="sale-amount-error" className="text-xs text-danger">{amountError}</p>}
             </div>
           </div>
           <div className="space-y-2">

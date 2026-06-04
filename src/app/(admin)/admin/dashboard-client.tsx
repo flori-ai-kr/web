@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -146,8 +146,10 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
 
   // Fetch today data (once) - 단일 Server Action (기존 4개 → 1개 HTTP)
   // 서버(page.tsx)에서 initialToday를 받았으면 재조회하지 않는다(첫 페인트 즉시 표시).
+  // 마운트 시점의 SSR 데이터 유무를 ref로 한 번만 확정(객체 의존성으로 인한 재실행 방지).
+  const hasInitialToday = useRef(!!initialToday);
   useEffect(() => {
-    if (initialToday) return;
+    if (hasInitialToday.current) return;
     async function fetchTodayData() {
       setIsTodayLoading(true);
       try {
@@ -163,7 +165,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
       }
     }
     fetchTodayData();
-  }, [initialToday]);
+  }, []);
 
   // Fetch monthly data (when month changes) - 단일 Server Action (기존 7개 → 1개 HTTP)
   useEffect(() => {

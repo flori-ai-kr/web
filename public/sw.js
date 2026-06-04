@@ -8,19 +8,24 @@ const OFFLINE_URL = '/offline';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(OFFLINE_CACHE).then((cache) =>
-      cache.add(new Request(OFFLINE_URL, { cache: 'reload' }))
-    )
+    caches
+      .open(OFFLINE_CACHE)
+      .then((cache) => cache.add(new Request(OFFLINE_URL, { cache: 'reload' })))
+      // 폴백 캐시 저장이 끝난 뒤 활성화로 넘어가도록 순서 보장
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // 옛 오프라인 캐시 정리
+      // 옛 버전의 오프라인 캐시만 정리한다(다른 캐시는 건드리지 않음).
       const keys = await caches.keys();
-      await Promise.all(keys.filter((k) => k !== OFFLINE_CACHE).map((k) => caches.delete(k)));
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith('flori-offline-') && k !== OFFLINE_CACHE)
+          .map((k) => caches.delete(k))
+      );
       await self.clients.claim();
     })()
   );
