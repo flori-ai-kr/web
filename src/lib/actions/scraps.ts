@@ -53,7 +53,7 @@ async function _toggleScrap(input: unknown): Promise<{ scraped: boolean }> {
     }),
   });
 
-  revalidatePath('/insights', 'layout');
+  revalidatePath('/admin/insights', 'layout');
   return { scraped: res.scraped };
 }
 
@@ -74,7 +74,7 @@ async function _updateScrapMemo(input: unknown): Promise<InsightScrap> {
     }),
   });
 
-  revalidatePath('/insights', 'layout');
+  revalidatePath('/admin/insights', 'layout');
   return mapScrap(data);
 }
 

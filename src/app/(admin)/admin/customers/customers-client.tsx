@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
@@ -8,7 +8,7 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {AlertTriangle, CalendarDays, Crown, Loader2, Plus, Search, Star, UserPlus, Users} from 'lucide-react';
+import {AlertTriangle, CalendarDays, Crown, Plus, Search, Star, UserPlus, Users} from 'lucide-react';
 import {format, subDays} from 'date-fns';
 import {toast} from 'sonner';
 import {deleteCustomer, getCustomerSales} from '@/lib/actions/customers';
@@ -52,7 +52,13 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const [hasMoreSales, setHasMoreSales] = useState(false);
   const [salesPage, setSalesPage] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [, startDeleteTransition] = useTransition();
+
+  // 낙관적 삭제: 즉시 카드를 제거하고, 서버 실패 시 자동 롤백된다.
+  const [optimisticCustomers, removeOptimisticCustomer] = useOptimistic(
+    initialCustomers,
+    (list, deletedId: string) => list.filter((c) => c.id !== deletedId),
+  );
 
   // Category/Payment method label maps
   const categoryLabels = useMemo(() =>
@@ -81,7 +87,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   }, [sortBy]);
 
   const filteredCustomers = useMemo(() => {
-    const filtered = initialCustomers
+    const filtered = optimisticCustomers
       .filter(c => gradeFilter === 'all' || c.grade === gradeFilter)
       .filter(c => genderFilter === 'all' || c.gender === genderFilter)
       .filter(c => {
@@ -91,7 +97,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
         return c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.phone.replace(/-/g, '').includes(qDigits);
       });
     return sortCustomers(filtered);
-  }, [initialCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
+  }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
 
   // Group by grade (only when grade filter is 'all')
   const groupedByGrade = useMemo(() => {
@@ -198,20 +204,22 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     setSelectedCustomer(null);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!deleteTarget) return;
-    setIsDeleting(true);
-    try {
-      await deleteCustomer(deleteTarget.id);
-      setDeleteTarget(null);
-      router.refresh();
-      toast.success('고객이 삭제되었습니다');
-    } catch (error) {
-      console.error('Failed to delete customer:', error);
-      toast.error('고객 삭제에 실패했습니다');
-    } finally {
-      setIsDeleting(false);
-    }
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setSelectedCustomer(null);
+    startDeleteTransition(async () => {
+      removeOptimisticCustomer(target.id);
+      try {
+        await deleteCustomer(target.id);
+        router.refresh();
+        toast.success('고객이 삭제되었습니다');
+      } catch (error) {
+        console.error('Failed to delete customer:', error);
+        toast.error('고객 삭제에 실패했습니다');
+      }
+    });
   };
 
   const handleSaleRegister = (customer: Customer) => {
@@ -336,7 +344,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
           />
         </div>
         <p className="text-sm text-muted-foreground ml-auto shrink-0">
-          {filteredCustomers.length}명{filteredCustomers.length !== initialCustomers.length && ` / 전체 ${initialCustomers.length}명`}
+          {filteredCustomers.length}명{filteredCustomers.length !== optimisticCustomers.length && ` / 전체 ${optimisticCustomers.length}명`}
         </p>
       </div>
 
@@ -451,16 +459,11 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
             <p className="text-muted-foreground text-xs mt-2">연결된 매출 기록은 유지됩니다.</p>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               취소
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isDeleting ? '삭제 중...' : '삭제'}
+            <Button variant="destructive" onClick={confirmDelete}>
+              삭제
             </Button>
           </div>
         </DialogContent>

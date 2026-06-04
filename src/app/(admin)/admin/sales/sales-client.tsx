@@ -1,13 +1,13 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {CalendarCheck, Loader2, Plus, RotateCcw, Search, Settings} from 'lucide-react';
+import {CalendarCheck, Plus, RotateCcw, Search, Settings} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
@@ -75,7 +75,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
 
   // 무한스크롤 상태
@@ -83,6 +83,12 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const dataVersionRef = useRef(0);
+
+  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
+  const [optimisticSales, removeOptimisticSale] = useOptimistic(
+    allSales,
+    (sales, deletedId: string) => sales.filter((s) => s.id !== deletedId),
+  );
 
   // initialSales가 변경되면(년/월/필터 변경) 리셋
   useEffect(() => {
@@ -189,7 +195,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, serverMonthParam, filtersKey, initialSales, initialHasMore]);
 
-  const filteredSales = allSales;
+  // 내보내기·렌더 모두 낙관적 목록을 기준으로 한다(삭제 진행 중 ghost 행 방지).
+  const filteredSales = optimisticSales;
 
   // 서버에서 필터 적용된 요약 (페이지네이션 무관)
   const summary = initialSummary;
@@ -314,21 +321,24 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setDeleteTarget(sale);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!deleteTarget) return;
-    setIsDeleting(true);
-    try {
-      await deleteSale(deleteTarget.id);
-      setDeleteTarget(null);
-      setSelectedSale(null);
-      router.refresh();
-      toast.success('매출이 삭제되었습니다');
-    } catch (error) {
-      console.error('Failed to delete sale:', error);
-      toast.error('매출 삭제에 실패했습니다');
-    } finally {
-      setIsDeleting(false);
-    }
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    setSelectedSale(null);
+    startDeleteTransition(async () => {
+      removeOptimisticSale(target.id);
+      try {
+        await deleteSale(target.id);
+        // 로컬 목록에서도 제거해 새로고침 전까지 깜빡임 없이 유지(요약은 refresh로 갱신).
+        setAllSales((prev) => prev.filter((s) => s.id !== target.id));
+        router.refresh();
+        toast.success('매출이 삭제되었습니다');
+      } catch (error) {
+        console.error('Failed to delete sale:', error);
+        toast.error('매출 삭제에 실패했습니다');
+      }
+    });
   };
 
   const handleFormSuccess = (newSale?: Sale) => {
@@ -589,16 +599,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
             )}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               취소
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isDeleting ? '삭제 중...' : '삭제'}
+            <Button variant="destructive" onClick={confirmDelete}>
+              삭제
             </Button>
           </div>
         </DialogContent>

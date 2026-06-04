@@ -97,7 +97,7 @@ async function _createCustomer(formData: FormData) {
     }),
   });
 
-  revalidatePath('/customers');
+  revalidatePath('/admin/customers');
   return mapKotlinCustomer(created);
 }
 
@@ -132,8 +132,7 @@ async function _updateCustomer(id: string, formData: FormData) {
     }),
   });
 
-  revalidatePath('/customers');
-  revalidatePath(`/customers/${id}`);
+  revalidatePath('/admin/customers');
 }
 
 export const updateCustomer = withErrorLogging('updateCustomer', _updateCustomer);
@@ -151,8 +150,7 @@ async function _updateCustomerGrade(id: string, grade: CustomerGrade) {
     body: JSON.stringify({ grade: gradeParsed.data }),
   });
 
-  revalidatePath('/customers');
-  revalidatePath(`/customers/${id}`);
+  revalidatePath('/admin/customers');
 }
 
 export const updateCustomerGrade = withErrorLogging('updateCustomerGrade', _updateCustomerGrade);
@@ -164,7 +162,7 @@ async function _deleteCustomer(id: string) {
 
   await apiFetch<void>(`/customers/${idParsed.data}`, { method: 'DELETE' });
 
-  revalidatePath('/customers');
+  revalidatePath('/admin/customers');
 }
 
 export const deleteCustomer = withErrorLogging('deleteCustomer', _deleteCustomer);

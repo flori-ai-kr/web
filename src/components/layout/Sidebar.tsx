@@ -75,6 +75,7 @@ function NavLink({
   const link = (
     <Link
       href={href}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative flex items-center gap-3 min-h-[44px] rounded-lg text-[13px] font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-sidebar',

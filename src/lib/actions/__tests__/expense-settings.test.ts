@@ -73,7 +73,7 @@ describe('createExpenseCategory', () => {
     mockApiFetch.mockResolvedValue(dto)
     await createExpenseCategory('임대료', '#f97316')
     expect(mockApiFetch).toHaveBeenCalledWith('/settings/expense-categories', expect.objectContaining({ method: 'POST' }))
-    expect(mockRevalidate).toHaveBeenCalledWith('/expenses')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/expenses')
   })
 
   it('빈 라벨은 거부', async () => {

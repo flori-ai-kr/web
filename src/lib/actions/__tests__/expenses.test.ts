@@ -87,7 +87,7 @@ describe('createExpense', () => {
     expect(url).toBe('/expenses')
     const body = JSON.parse(init!.body as string)
     expect(body).toMatchObject({ itemName: '포장지', unitPrice: 1000, quantity: 5, paymentMethod: 'card' })
-    expect(mockRevalidate).toHaveBeenCalledWith('/expenses')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/expenses')
   })
 
   it('잘못된 unit_price 문자열은 0으로 보정되어 검증 통과한다', async () => {
@@ -108,7 +108,7 @@ describe('updateExpense', () => {
     mockApiFetch.mockResolvedValue(kExpense)
     await updateExpense('e1', expenseForm())
     expect(mockApiFetch).toHaveBeenCalledWith('/expenses/e1', expect.objectContaining({ method: 'PATCH' }))
-    expect(mockRevalidate).toHaveBeenCalledWith('/expenses')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/expenses')
   })
 
   it('검증 실패 시 호출하지 않는다', async () => {
@@ -122,7 +122,7 @@ describe('deleteExpense', () => {
     mockApiFetch.mockResolvedValue(undefined)
     await deleteExpense('e1')
     expect(mockApiFetch).toHaveBeenCalledWith('/expenses/e1', { method: 'DELETE' })
-    expect(mockRevalidate).toHaveBeenCalledWith('/expenses')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/expenses')
   })
 })
 

@@ -21,11 +21,8 @@ import {
     CalendarDays,
     ChevronLeft,
     ChevronRight,
-    ExternalLink,
-    ImageIcon,
     List,
     Loader2,
-    Pencil,
     Plus,
     Trash2,
     X
@@ -42,8 +39,6 @@ import {SuggestionInput} from '@/components/ui/suggestion-input';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -74,6 +69,15 @@ import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings'
 import type {CalendarEvent, Reservation, ReservationStatus} from '@/types/database';
 import {CALENDAR_EVENT_COLORS} from '@/types/database';
 import {CHANNEL_LABELS} from '@/lib/constants';
+import type {CalendarReservation} from './types';
+import {EventCard} from './components/EventCard';
+import {ReservationCard} from './components/ReservationCard';
+import {
+    DeleteEventDialog,
+    DeleteReservationDialog,
+    DeleteSaleDialog,
+    UnpaidPaymentDialog,
+} from './components/CalendarDialogs';
 
 function formatCurrency(amount: number): string {
   if (!amount) return '';
@@ -135,7 +139,7 @@ export function CalendarClient() {
   const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
   const [dayTab, setDayTab] = useState<'reservation' | 'event'>('reservation');
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
-  const [reservations, setReservations] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]>([]);
+  const [reservations, setReservations] = useState<CalendarReservation[]>([]);
   const [saleIdsWithPhotos, setSaleIdsWithPhotos] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
@@ -164,7 +168,7 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
-  const [deleteTarget, setDeleteTarget] = useState<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string }) | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CalendarReservation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saleDeleteInfo, setSaleDeleteInfo] = useState<{ saleId: string; saleDate?: string } | null>(null);
 
@@ -1480,36 +1484,12 @@ export function CalendarClient() {
             selectedDateEvents.length > 0 ? (
               <div className="space-y-1.5">
                 {selectedDateEvents.map((event) => (
-                  <div
+                  <EventCard
                     key={event.id}
-                    className="p-3 rounded-lg border border-border"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: event.color }} />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {event.start_date === event.end_date
-                              ? format(new Date(event.start_date), 'M월 d일', { locale: ko })
-                              : `${format(new Date(event.start_date), 'M.d', { locale: ko })} - ${format(new Date(event.end_date), 'M.d', { locale: ko })}`
-                            }
-                          </p>
-                          {event.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{event.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEditEvent(event)} aria-label="일정 수정">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteEventTarget(event)} aria-label="일정 삭제">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                    event={event}
+                    onEdit={startEditEvent}
+                    onDelete={setDeleteEventTarget}
+                  />
                 ))}
               </div>
             ) : (
@@ -1545,162 +1525,19 @@ export function CalendarClient() {
                     <div className="flex-1 border-t border-border" />
                   </div>
                 )}
-                <Card className="group">
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {r.time && (
-                            <span className="text-xs text-muted-foreground">{r.time.slice(0, 5)}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <p className={cn('text-sm font-medium truncate', r.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground')}>{r.title}</p>
-                          {r.sale_is_unpaid && r.sale_payment_method === 'unpaid' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: '#ef444440', color: '#ef4444' }}>
-                              미수
-                            </span>
-                          )}
-                        </div>
-                        {r.customer_name && (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {r.customer_id ? (
-                              <button
-                                type="button"
-                                className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors whitespace-nowrap"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/admin/customers?customerId=${r.customer_id}`);
-                                }}
-                                aria-label={`${r.customer_name} 고객 상세 보기`}
-                              >
-                                {r.customer_name}
-                                {r.customer_phone && ` · ${r.customer_phone}`}
-                                <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
-                              </button>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                {r.customer_name}
-                                {r.customer_phone && ` · ${r.customer_phone}`}
-                              </span>
-                            )}
-                            {r.purchase_count != null && r.purchase_count > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium shrink-0">
-                                {r.purchase_count}번 방문
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {r.amount > 0 && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.amount)}</p>
-                        )}
-                        {r.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
-                        )}
-                        {r.reminder_at && (
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <BellRing className="w-3 h-3" />
-                            {format(new Date(r.reminder_at), 'yyyy-MM-dd HH:mm')} 알림
-                          </p>
-                        )}
-
-                        {/* 매출 확인 링크 */}
-                        {r.sale_id && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <button
-                              className="text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/admin/sales?saleId=${r.sale_id}`);
-                              }}
-                              aria-label="연결된 매출 확인"
-                            >
-                              매출 확인 <ExternalLink className="w-3 h-3" />
-                            </button>
-                            {r.sale_date && (
-                              <span className="text-[10px] text-muted-foreground">
-                                결제 {format(new Date(r.sale_date), 'yy.MM.dd')}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* 같은 매출의 다른 픽업 날짜 */}
-                        {r.sale_id && (siblingReservations.get(r.sale_id) || []).length > 1 && (
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                            <span className="text-[10px] text-muted-foreground font-medium">다른 픽업:</span>
-                            {(siblingReservations.get(r.sale_id) || [])
-                              .filter(s => s.id !== r.id)
-                              .map(s => (
-                                <span
-                                  key={s.id}
-                                  className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                                >
-                                  {s.date} {s.time?.slice(0, 5) || ''}
-                                </span>
-                              ))}
-                          </div>
-                        )}
-
-                      </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        {/* 사진/수정/삭제 (가로, 위) */}
-                        <div className="flex gap-0.5">
-                          {r.sale_id && (
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className={saleIdsWithPhotos.has(r.sale_id) ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
-                              onClick={() => {
-                                const catLabel = r.product_category
-                                  ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
-                                  : r.title;
-                                const dateStr = format(new Date(r.date), 'yy/MM/dd');
-                                setPhotoModal({ saleId: r.sale_id!, defaultTitle: `${dateStr} ${catLabel}` });
-                              }}
-                              aria-label={saleIdsWithPhotos.has(r.sale_id) ? '사진 수정' : '사진 등록'}
-                            >
-                              <ImageIcon className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => startEdit(r)} aria-label="수정">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => setDeleteTarget(r)} aria-label="삭제">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                        {/* 제작/픽업 (일반 버튼, 아래) */}
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleCompletion(r); }}
-                            disabled={r.status === 'completed'}
-                            className={cn(
-                              'text-xs px-3 py-1.5 rounded-md border font-medium transition-colors shrink-0',
-                              r.status !== 'pending' ? 'bg-brand text-brand-foreground border-brand' : 'border-input text-muted-foreground hover:bg-muted',
-                              r.status === 'completed' && 'opacity-60 cursor-not-allowed'
-                            )}
-                            aria-label={r.status !== 'pending' ? '제작 완료 취소' : '제작 완료로 변경'}
-                          >
-                            제작
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); togglePickup(r); }}
-                            disabled={r.status === 'pending'}
-                            className={cn(
-                              'text-xs px-3 py-1.5 rounded-md border font-medium transition-colors shrink-0',
-                              r.status === 'completed' ? 'bg-success text-success-foreground border-success' : 'border-input text-muted-foreground hover:bg-muted',
-                              r.status === 'pending' && 'opacity-40 cursor-not-allowed'
-                            )}
-                            aria-label={r.status === 'completed' ? '픽업 완료 취소' : '픽업 완료로 변경'}
-                          >
-                            픽업
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ReservationCard
+                  r={r}
+                  siblingReservations={siblingReservations}
+                  saleIdsWithPhotos={saleIdsWithPhotos}
+                  saleCategories={saleCategories}
+                  onCustomerClick={(id) => router.push(`/admin/customers?customerId=${id}`)}
+                  onSaleClick={(id) => router.push(`/admin/sales?saleId=${id}`)}
+                  onPhotoClick={(saleId, defaultTitle) => setPhotoModal({ saleId, defaultTitle })}
+                  onEdit={startEdit}
+                  onDelete={setDeleteTarget}
+                  onToggleCompletion={toggleCompletion}
+                  onTogglePickup={togglePickup}
+                />
 
                 </div>
                 );
@@ -1726,116 +1563,45 @@ export function CalendarClient() {
       )}
 
       {/* Delete reservation confirmation */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>예약 삭제</DialogTitle>
-            <DialogDescription>
-              &quot;{deleteTarget?.title}&quot; 예약을 삭제하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteReservationDialog
+        open={!!deleteTarget}
+        reservationTitle={deleteTarget?.title}
+        isDeleting={isDeleting}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
 
       {/* Sale delete confirmation (after reservation deleted) */}
-      <Dialog open={!!saleDeleteInfo} onOpenChange={(open) => {
-        if (!open) {
+      <DeleteSaleDialog
+        open={!!saleDeleteInfo}
+        saleDate={saleDeleteInfo?.saleDate}
+        isDeleting={isDeleting}
+        onConfirm={handleSaleDelete}
+        onDismiss={() => {
           toast.success('예약이 삭제되었습니다');
           setSaleDeleteInfo(null);
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>매출도 삭제하시겠습니까?</DialogTitle>
-            <DialogDescription>
-              {saleDeleteInfo?.saleDate
-                ? `${format(new Date(saleDeleteInfo.saleDate), 'yyyy년 M월 d일', { locale: ko })}의 매출도 함께 삭제하시겠습니까?`
-                : '연결된 매출도 함께 삭제하시겠습니까?'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              toast.success('예약이 삭제되었습니다');
-              setSaleDeleteInfo(null);
-            }}>
-              아니요
-            </Button>
-            <Button variant="destructive" onClick={handleSaleDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              매출도 삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }}
+      />
 
       {/* Delete event confirmation */}
-      <Dialog open={!!deleteEventTarget} onOpenChange={() => setDeleteEventTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>일정 삭제</DialogTitle>
-            <DialogDescription>
-              &quot;{deleteEventTarget?.title}&quot; 일정을 삭제하시겠습니까?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteEventTarget(null)}>취소</Button>
-            <Button variant="destructive" onClick={handleDeleteEvent} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteEventDialog
+        open={!!deleteEventTarget}
+        eventTitle={deleteEventTarget?.title}
+        isDeleting={isDeleting}
+        onConfirm={handleDeleteEvent}
+        onClose={() => setDeleteEventTarget(null)}
+      />
 
       {/* 미수 결제 완료 dialog */}
-      <Dialog open={!!unpaidTarget} onOpenChange={(open) => { if (!open) setUnpaidTarget(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>결제방식 선택</DialogTitle>
-            <DialogDescription>
-              미수건의 최종 결제방식을 선택해주세요.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap gap-2 py-2">
-            {salePaymentMethods.filter(pm => pm.value !== 'unpaid').map(pm => (
-              <button
-                key={pm.id}
-                type="button"
-                className={cn(
-                  'text-sm py-2 px-4 rounded-lg border transition-colors',
-                  unpaidPaymentMethod === pm.value
-                    ? 'border-transparent font-medium'
-                    : 'border-input text-muted-foreground hover:bg-muted'
-                )}
-                style={unpaidPaymentMethod === pm.value
-                  ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color }
-                  : {}
-                }
-                onClick={() => setUnpaidPaymentMethod(pm.value)}
-              >
-                {pm.label}
-              </button>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUnpaidTarget(null)}>취소</Button>
-            <Button
-              onClick={handleUnpaidComplete}
-              disabled={!unpaidPaymentMethod || isCompletingUnpaid}
-            >
-              {isCompletingUnpaid && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              결제 완료
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UnpaidPaymentDialog
+        open={!!unpaidTarget}
+        paymentMethods={salePaymentMethods}
+        selectedMethod={unpaidPaymentMethod}
+        onSelectMethod={setUnpaidPaymentMethod}
+        isCompleting={isCompletingUnpaid}
+        onConfirm={handleUnpaidComplete}
+        onClose={() => setUnpaidTarget(null)}
+      />
     </div>
   );
 }

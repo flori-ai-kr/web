@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useTransition} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -36,7 +36,7 @@ export function SaleFormDialog({
   initialCustomer,
   onSuccess,
 }: SaleFormDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
   const [amountError, setAmountError] = useState<string | null>(null);
   const [saleSuggestions, setSaleSuggestions] = useState<{ notes: string[] }>({ notes: [] });
   const [paymentMethod, setPaymentMethod] = useState<string>(payments[0]?.value || 'card');
@@ -84,7 +84,7 @@ export function SaleFormDialog({
     }
   }, [open, sale, payments, initialCustomer]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
@@ -96,25 +96,24 @@ export function SaleFormDialog({
     }
     setAmountError(null);
 
-    setIsSubmitting(true);
-    try {
-      if (isEditMode) {
-        await updateSale(sale.id, formData);
-        onOpenChange(false);
-        toast.success('매출이 수정되었습니다');
-        onSuccess();
-      } else {
-        const newSale = await createSale(formData);
-        onOpenChange(false);
-        toast.success('매출이 등록되었습니다');
-        onSuccess(newSale);
+    startTransition(async () => {
+      try {
+        if (isEditMode) {
+          await updateSale(sale.id, formData);
+          onOpenChange(false);
+          toast.success('매출이 수정되었습니다');
+          onSuccess();
+        } else {
+          const newSale = await createSale(formData);
+          onOpenChange(false);
+          toast.success('매출이 등록되었습니다');
+          onSuccess(newSale);
+        }
+      } catch (error) {
+        console.error('Failed to save sale:', error);
+        toast.error(isEditMode ? '매출 수정에 실패했습니다' : '매출 등록에 실패했습니다');
       }
-    } catch (error) {
-      console.error('Failed to save sale:', error);
-      toast.error(isEditMode ? '매출 수정에 실패했습니다' : '매출 등록에 실패했습니다');
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   return (

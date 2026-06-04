@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   // Docker 배포용 독립 실행 번들(.next/standalone) — server.js + 최소 node_modules만 포함.
   output: 'standalone',
   images: {
+    // AVIF 우선(미지원 브라우저는 WebP 폴백) — 갤러리·인스타·공개 hero 등
+    // 최적화 대상 이미지 전송량 감소.
+    formats: ['image/avif', 'image/webp'],
     // Instagram signed URL은 며칠 뒤 만료. 최적화 캐시 30일 유지해서
     // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.
     minimumCacheTTL: 60 * 60 * 24 * 30,

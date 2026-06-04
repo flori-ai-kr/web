@@ -9,7 +9,7 @@ export function AuthHeader({ subtitle }: { subtitle: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="w-12 h-12 bg-brand-muted rounded-xl flex items-center justify-center">
-        <Image src="/flori-logo.png" alt="flori" width={38} height={38} className="object-contain" />
+        <Image src="/flori-logo.png" alt="flori" width={38} height={38} priority className="object-contain" />
       </div>
       <div className="text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">flori</h1>
