@@ -207,9 +207,9 @@ async function _createSale(formData: FormData) {
     }),
   });
 
-  revalidatePath('/sales');
-  revalidatePath('/customers');
-  revalidatePath('/');
+  revalidatePath('/admin/sales');
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
   return mapKotlinSale(created);
 }
 
@@ -267,9 +267,9 @@ async function _updateSale(id: string, formData: FormData) {
     body: JSON.stringify(body),
   });
 
-  revalidatePath('/sales');
-  revalidatePath('/customers');
-  revalidatePath('/');
+  revalidatePath('/admin/sales');
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
 }
 
 export const updateSale = withErrorLogging('updateSale', _updateSale);
@@ -291,9 +291,9 @@ async function _completeUnpaidSale(saleId: string, paymentMethod: string) {
     body: JSON.stringify({ paymentMethod: pmParsed.data }),
   });
 
-  revalidatePath('/sales');
-  revalidatePath('/calendar');
-  revalidatePath('/');
+  revalidatePath('/admin/sales');
+  revalidatePath('/admin/calendar');
+  revalidatePath('/admin');
 }
 
 export const completeUnpaidSale = withErrorLogging('completeUnpaidSale', _completeUnpaidSale);
@@ -311,9 +311,9 @@ async function _revertUnpaidSale(saleId: string) {
     method: 'POST',
   });
 
-  revalidatePath('/sales');
-  revalidatePath('/calendar');
-  revalidatePath('/');
+  revalidatePath('/admin/sales');
+  revalidatePath('/admin/calendar');
+  revalidatePath('/admin');
 }
 
 export const revertUnpaidSale = withErrorLogging('revertUnpaidSale', _revertUnpaidSale);
@@ -325,9 +325,9 @@ async function _deleteSale(id: string) {
 
   await apiFetch<void>(`/sales/${idParsed.data}`, { method: 'DELETE' });
 
-  revalidatePath('/sales');
-  revalidatePath('/customers');
-  revalidatePath('/');
+  revalidatePath('/admin/sales');
+  revalidatePath('/admin/customers');
+  revalidatePath('/admin');
 }
 
 export const deleteSale = withErrorLogging('deleteSale', _deleteSale);

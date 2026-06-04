@@ -119,7 +119,7 @@ async function _createExpenseCategory(label: string, color: string): Promise<Exp
     body: JSON.stringify({ label: parsed.data.label, color: parsed.data.color ?? color }),
   });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
   return mapLabelSetting(row);
 }
 
@@ -137,7 +137,7 @@ async function _updateExpenseCategory(id: string, label: string, color: string):
     body: JSON.stringify({ label: parsed.data.label, color: parsed.data.color ?? color }),
   });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
 }
 
 export const updateExpenseCategory = withErrorLogging('updateExpenseCategory', _updateExpenseCategory);
@@ -149,7 +149,7 @@ async function _deleteExpenseCategory(id: string): Promise<void> {
 
   await apiFetch<void>(`/settings/expense-categories/${id}`, { method: 'DELETE' });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
 }
 
 export const deleteExpenseCategory = withErrorLogging('deleteExpenseCategory', _deleteExpenseCategory);

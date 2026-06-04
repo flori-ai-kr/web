@@ -256,8 +256,8 @@ async function _convertReservationToSale(
     body: JSON.stringify(body),
   });
 
-  revalidatePath('/calendar');
-  revalidatePath('/');
+  revalidatePath('/admin/calendar');
+  revalidatePath('/admin');
   return mapKotlinSale(sale);
 }
 
@@ -310,7 +310,7 @@ async function _addPickupToSale(
     }),
   });
 
-  revalidatePath('/calendar');
+  revalidatePath('/admin/calendar');
   return mapKotlinReservation(created);
 }
 

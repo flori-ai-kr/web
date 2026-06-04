@@ -123,8 +123,8 @@ describe('convertReservationToSale', () => {
     expect(mockApiFetch).toHaveBeenCalledWith('/reservations/1/convert-to-sale', expect.objectContaining({ method: 'POST' }))
     expect(body(0)).toMatchObject({ amount: 30000, reservationChannel: 'other', paymentMethod: 'card' })
     expect(res.id).toBe('s1')
-    expect(mockRevalidate).toHaveBeenCalledWith('/calendar')
-    expect(mockRevalidate).toHaveBeenCalledWith('/')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/calendar')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin')
   })
 
   it('잘못된 예약 id는 거부한다', async () => {
@@ -137,7 +137,7 @@ describe('addPickupToSale', () => {
     mockApiFetch.mockResolvedValue(kRes)
     await addPickupToSale('5', { date: '2026-01-10', title: '픽업' })
     expect(mockApiFetch).toHaveBeenCalledWith('/reservations/add-pickup/5', expect.objectContaining({ method: 'POST' }))
-    expect(mockRevalidate).toHaveBeenCalledWith('/calendar')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/calendar')
   })
 
   it('잘못된 매출 id는 거부한다', async () => {

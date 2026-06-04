@@ -114,7 +114,7 @@ async function _createExpense(formData: FormData) {
     }),
   });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
   return mapKotlinExpense(row);
 }
 
@@ -157,7 +157,7 @@ async function _updateExpense(id: string, formData: FormData) {
     }),
   });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
 }
 
 export const updateExpense = withErrorLogging('updateExpense', _updateExpense);
@@ -166,7 +166,7 @@ async function _deleteExpense(id: string) {
   await requireAuth();
   await apiFetch<void>(`/expenses/${id}`, { method: 'DELETE' });
 
-  revalidatePath('/expenses');
+  revalidatePath('/admin/expenses');
 }
 
 export const deleteExpense = withErrorLogging('deleteExpense', _deleteExpense);

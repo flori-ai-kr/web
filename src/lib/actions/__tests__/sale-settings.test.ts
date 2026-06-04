@@ -48,7 +48,7 @@ describe('sale categories', () => {
     await createSaleCategory('장미', '#ff0000')
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
     expect(body).toEqual({ label: '장미', color: '#ff0000' })
-    expect(mockRevalidate).toHaveBeenCalledWith('/sales')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/sales')
   })
 
   it('생성 시 color 미지정은 null로 전송', async () => {
@@ -85,7 +85,7 @@ describe('payment methods', () => {
     await createPaymentMethod('네이버페이', '#00c73c', 'naverpay')
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
     expect(body).toEqual({ label: '네이버페이', color: '#00c73c', value: 'naverpay' })
-    expect(mockRevalidate).toHaveBeenCalledWith('/sales')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/sales')
   })
 
   it('수정 PUT + 잘못된 id 거부', async () => {

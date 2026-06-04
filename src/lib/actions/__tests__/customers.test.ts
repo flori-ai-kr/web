@@ -89,7 +89,7 @@ describe('createCustomer', () => {
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
     expect(body).toMatchObject({ name: '홍길동', phone: '010-1234-5678', grade: 'regular', gender: 'male' })
     expect(res.id).toBe('c1')
-    expect(mockRevalidate).toHaveBeenCalledWith('/customers')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
   })
 
   it('이름 누락은 VALIDATION 에러로 거부한다', async () => {
@@ -122,8 +122,8 @@ describe('updateCustomer', () => {
     mockApiFetch.mockResolvedValue(kCustomer)
     await updateCustomer('5', form({ name: '새이름' }))
     expect(mockApiFetch).toHaveBeenCalledWith('/customers/5', expect.objectContaining({ method: 'PATCH' }))
-    expect(mockRevalidate).toHaveBeenCalledWith('/customers')
-    expect(mockRevalidate).toHaveBeenCalledWith('/customers/5')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers/5')
   })
 })
 
@@ -146,7 +146,7 @@ describe('deleteCustomer', () => {
     mockApiFetch.mockResolvedValue(undefined)
     await deleteCustomer('7')
     expect(mockApiFetch).toHaveBeenCalledWith('/customers/7', { method: 'DELETE' })
-    expect(mockRevalidate).toHaveBeenCalledWith('/customers')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
   })
 
   it('잘못된 id는 거부한다', async () => {

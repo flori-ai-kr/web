@@ -81,7 +81,7 @@ describe('toggleScrap', () => {
       method: 'POST',
       body: JSON.stringify({ targetType: 'trend', targetId: '12' }),
     })
-    expect(mockRevalidate).toHaveBeenCalledWith('/insights', 'layout')
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/insights', 'layout')
   })
 
   it('잘못된 target_type은 거부하고 apiFetch를 호출하지 않는다', async () => {

@@ -76,7 +76,7 @@ async function _createSaleCategory(label: string, color?: string): Promise<SaleC
     body: JSON.stringify({ label, color: color ?? null }),
   });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
   return toSaleCategory(dto);
 }
 
@@ -93,7 +93,7 @@ async function _updateSaleCategory(id: string, label: string, color: string): Pr
     body: JSON.stringify({ label, color }),
   });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
 }
 
 export const updateSaleCategory = withErrorLogging('updateSaleCategory', _updateSaleCategory);
@@ -106,7 +106,7 @@ async function _deleteSaleCategory(id: string): Promise<void> {
 
   await apiFetch<void>(`/settings/sale-categories/${id}`, { method: 'DELETE' });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
 }
 
 export const deleteSaleCategory = withErrorLogging('deleteSaleCategory', _deleteSaleCategory);
@@ -129,7 +129,7 @@ async function _createPaymentMethod(label: string, color?: string, value?: strin
     body: JSON.stringify({ label, color: color ?? null, value: value ?? null }),
   });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
   return toPaymentMethod(dto);
 }
 
@@ -146,7 +146,7 @@ async function _updatePaymentMethod(id: string, label: string, color: string): P
     body: JSON.stringify({ label, color }),
   });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
 }
 
 export const updatePaymentMethod = withErrorLogging('updatePaymentMethod', _updatePaymentMethod);
@@ -159,7 +159,7 @@ async function _deletePaymentMethod(id: string): Promise<void> {
 
   await apiFetch<void>(`/settings/payment-methods/${id}`, { method: 'DELETE' });
 
-  revalidatePath('/sales');
+  revalidatePath('/admin/sales');
 }
 
 export const deletePaymentMethod = withErrorLogging('deletePaymentMethod', _deletePaymentMethod);

@@ -151,7 +151,7 @@ async function _createInstagramAccount(input: unknown): Promise<InstagramAccount
     }),
   });
 
-  revalidatePath('/insights/follows');
+  revalidatePath('/admin/insights/follows');
   return mapAccount(data);
 }
 
@@ -180,7 +180,7 @@ async function _updateInstagramAccount(
     { method: 'PUT', body: JSON.stringify(body) },
   );
 
-  revalidatePath('/insights/follows');
+  revalidatePath('/admin/insights/follows');
   return mapAccount(data);
 }
 
@@ -197,7 +197,7 @@ async function _deleteInstagramAccount(id: string): Promise<void> {
     { method: 'DELETE' },
   );
 
-  revalidatePath('/insights/follows');
+  revalidatePath('/admin/insights/follows');
 }
 
 export const deleteInstagramAccount = withErrorLogging(
