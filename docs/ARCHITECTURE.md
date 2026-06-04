@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-05-29 | 커뮤니티 BFF 연동 + 사업자 인증 게이트 + AWS S3/CloudFront 이관
+> 최종 업데이트: 2026-06-04 | UX 베스트프랙티스 패스: useOptimistic 삭제 + useTransition 폼 + 캘린더 컴포넌트 분리 + revalidatePath 경로 수정
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -351,7 +351,7 @@ flowchart LR
     end
 ```
 
-이 패턴의 장점: 데이터의 원천(source of truth)이 항상 서버이다. 클라이언트는 서버가 내려준 props를 표시하고, 변경이 필요하면 Server Action을 호출한 뒤 `router.refresh()`로 최신 데이터를 다시 가져온다. 클라이언트 캐시 무효화, 낙관적 업데이트 같은 복잡한 로직이 필요 없다.
+이 패턴의 장점: 데이터의 원천(source of truth)이 항상 서버이다. 클라이언트는 서버가 내려준 props를 표시하고, 변경이 필요하면 Server Action을 호출한 뒤 `router.refresh()`로 최신 데이터를 다시 가져온다. 삭제처럼 UX 체감이 중요한 경우에는 React 19 `useOptimistic`으로 즉시 목록에서 제거하고 서버 실패 시 자동 롤백한다(`sales-client`, `customers-client`, `expenses-client`). 폼 제출 pending 상태는 `useTransition`으로 관리한다.
 
 ---
 

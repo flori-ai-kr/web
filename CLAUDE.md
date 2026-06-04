@@ -65,7 +65,7 @@ src/
 │   ├── expenses/        # 지출 — expenses-client.tsx + components/(ExpensesList)
 │   ├── customers/       # 고객 — customers-client.tsx + components/(CustomerCard, CustomerFormDialog, CustomerDetailDialog)
 │   ├── gallery/         # 사진첩
-│   ├── calendar/        # 예약 캘린더
+│   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + components/(EventCard, ReservationCard, CalendarDialogs)
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
