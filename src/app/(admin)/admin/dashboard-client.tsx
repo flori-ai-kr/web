@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -21,7 +21,7 @@ import {ko} from '@/lib/date-locale';
 import Link from 'next/link';
 import type {Reservation, Sale} from '@/types/database';
 import {RESERVATION_STATUS} from '@/types/database';
-import type {DashboardSummary} from '@/lib/actions/dashboard';
+import type {DashboardSummary, DashboardTodayData} from '@/lib/actions/dashboard';
 import {getDashboardMonthData, getDashboardTodayData,} from '@/lib/actions/dashboard';
 import type {
     CategoryStat,
@@ -98,17 +98,19 @@ const paymentLabels: Record<string, string> = {
   naverpay: '네이버페이',
 };
 
-export function DashboardClient() {
+export function DashboardClient({ initialToday }: { initialToday?: DashboardTodayData }) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthOptions = useMemo(() => getMonthOptions(), []);
 
-  // Today data (doesn't change with month selector)
-  const [todaySummary, setTodaySummary] = useState<DashboardSummary | null>(null);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>({});
-  const [isTodayLoading, setIsTodayLoading] = useState(true);
+  // Today data (doesn't change with month selector) — 서버에서 미리 받은 initialToday로 초기화.
+  const [todaySummary, setTodaySummary] = useState<DashboardSummary | null>(initialToday?.summary ?? null);
+  const [reservations, setReservations] = useState<Reservation[]>(initialToday?.reservations ?? []);
+  const [recentSales, setRecentSales] = useState<Sale[]>(initialToday?.recentSales ?? []);
+  const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>(
+    initialToday ? Object.fromEntries(initialToday.saleCategories.map((c) => [c.value, c.label])) : {},
+  );
+  const [isTodayLoading, setIsTodayLoading] = useState(!initialToday);
 
   // Monthly data (changes with month selector)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -143,7 +145,11 @@ export function DashboardClient() {
   );
 
   // Fetch today data (once) - 단일 Server Action (기존 4개 → 1개 HTTP)
+  // 서버(page.tsx)에서 initialToday를 받았으면 재조회하지 않는다(첫 페인트 즉시 표시).
+  // 마운트 시점의 SSR 데이터 유무를 ref로 한 번만 확정(객체 의존성으로 인한 재실행 방지).
+  const hasInitialToday = useRef(!!initialToday);
   useEffect(() => {
+    if (hasInitialToday.current) return;
     async function fetchTodayData() {
       setIsTodayLoading(true);
       try {

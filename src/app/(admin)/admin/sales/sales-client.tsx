@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
+import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -372,19 +373,19 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   return (
     <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">매출 관리</h1>
-          <p className="text-sm text-muted-foreground mt-1">매출 내역을 등록하고 관리하세요</p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-          <Button onClick={handleOpenForm} className="flex-1 sm:flex-initial">
-            <Plus className="w-4 h-4 mr-2" />
-            매출 등록
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="매출 관리"
+        description="매출 내역을 등록하고 관리하세요"
+        actions={
+          <>
+            <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+            <Button onClick={handleOpenForm} className="flex-1 sm:flex-initial">
+              <Plus className="w-4 h-4 mr-2" />
+              매출 등록
+            </Button>
+          </>
+        }
+      />
 
       {/* Summary Cards */}
       <SalesSummary summary={summary} />
