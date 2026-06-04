@@ -82,6 +82,7 @@ src/
 ├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx
 ├── app/login/           # 로그인 (소셜 전용)
+├── app/offline/         # PWA 오프라인 폴백 (SW가 navigate 실패 시 서빙, 정적·인라인스타일·JS無)
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응)
