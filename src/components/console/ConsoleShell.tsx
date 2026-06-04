@@ -12,7 +12,7 @@ const META: Record<string, { title: string; subtitle: string }> = {
   '/console/verifications': { title: '사업자 인증', subtitle: '신청 심사 · 승인/거절' },
   '/console/users': { title: '유저 관리', subtitle: '가입자 조회 · 활성 토글' },
   '/console/subscriptions': { title: '구독 현황', subtitle: '구독 상태 목록' },
-  '/console/health': { title: 'AI 헬스', subtitle: 'ai-server / litellm 상태' },
+  // [AI 기능 비활성화] '/console/health': { title: 'AI 헬스', subtitle: 'ai-server / litellm 상태' },
 };
 
 function metaFor(pathname: string) {

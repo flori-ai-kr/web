@@ -1,5 +1,5 @@
 import { getAdminOverview, getTimeseries } from '@/lib/actions/admin-stats';
-import { getAiHealth } from '@/lib/actions/admin-health';
+// [AI 기능 비활성화] import { getAiHealth } from '@/lib/actions/admin-health';
 import type { StatRange } from '@/types/admin';
 import { OverviewClient } from './overview-client';
 
@@ -13,9 +13,9 @@ export default async function ConsoleOverviewPage({
   const { range: raw } = await searchParams;
   const range: StatRange = RANGES.includes(raw as StatRange) ? (raw as StatRange) : '30d';
 
-  const [overview, health, signups, sales] = await Promise.all([
+  const [overview, signups, sales] = await Promise.all([
     getAdminOverview(range),
-    getAiHealth(),
+    // [AI 기능 비활성화] getAiHealth(),
     getTimeseries('signups', range),
     getTimeseries('sales', range),
   ]);
@@ -23,7 +23,7 @@ export default async function ConsoleOverviewPage({
   return (
     <OverviewClient
       overview={overview}
-      health={health}
+      health={{ targets: [] }}
       signups={signups}
       sales={sales}
       range={range}

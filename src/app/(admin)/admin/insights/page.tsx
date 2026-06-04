@@ -1,3 +1,8 @@
+import { redirect } from 'next/navigation';
+
+// [AI 기능 비활성화] 인사이트 페이지 전체를 숨김 처리 — 대시보드로 리다이렉트.
+// 아래 원본 코드와 insights-client.tsx, trends/, follows/, scraps/ 는 보존.
+/*
 import {
     getInstagramPosts,
     getLatestInstagramTimestamp,
@@ -12,41 +17,8 @@ function getIsoDateDaysAgo(days: number): string {
   d.setDate(d.getDate() - days);
   return d.toISOString().slice(0, 10);
 }
+*/
 
 export default async function InsightsPage() {
-  const sinceDate = getIsoDateDaysAgo(7);
-
-  const [
-    counts,
-    trendsByCategory,
-    recentPosts,
-    latestScrapedAt,
-    scrapCounts,
-    trendScraps,
-    postScraps,
-  ] = await Promise.all([
-    getTrendCountsByCategory(sinceDate),
-    getRecentTrendsByCategory(3),
-    getInstagramPosts({ limit: 8, daysAgo: 14 }),
-    getLatestInstagramTimestamp(),
-    getScrapCounts(),
-    getTrendScraps(3),
-    getPostScraps(4),
-  ]);
-
-  const highlights = (['flower', 'inspiration', 'business', 'industry'] as const)
-    .flatMap((cat) => trendsByCategory[cat].slice(0, 1))
-    .slice(0, 3);
-
-  return (
-    <InsightsClient
-      counts={counts}
-      highlights={highlights}
-      recentPosts={recentPosts}
-      latestScrapedAt={latestScrapedAt}
-      scrapCounts={scrapCounts}
-      scrappedTrends={trendScraps}
-      scrappedPosts={postScraps}
-    />
-  );
+  redirect('/admin');
 }

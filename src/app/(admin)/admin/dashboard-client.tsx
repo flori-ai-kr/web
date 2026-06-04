@@ -36,7 +36,8 @@ import {formatCurrency, getTodayKST} from '@/lib/utils';
 // import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
 import {SectionHeader} from '@/components/dashboard/section-header';
-import {AiBriefingLive} from '@/components/ai/ai-briefing-live';
+// [AI 기능 비활성화] 출시 시 AI 브리핑 제거 — 컴포넌트는 보존
+// import {AiBriefingLive} from '@/components/ai/ai-briefing-live';
 
 const PAGE_SIZE = 5;
 
@@ -219,8 +220,8 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
         </Select>
       </div>
 
-      {/* flori AI 오늘의 브리핑 (선제 제안 + 질문) */}
-      <AiBriefingLive />
+      {/* [AI 기능 비활성화] flori AI 오늘의 브리핑 (선제 제안 + 질문)
+      <AiBriefingLive /> */}
 
       {/* Summary Cards */}
       {isTodayLoading || isMonthLoading ? (

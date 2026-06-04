@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import NextImage from 'next/image';
 import {usePathname} from 'next/navigation';
 import {
     CalendarDays,
@@ -10,6 +11,8 @@ import {
     LayoutDashboard,
     MessagesSquare,
     Receipt,
+    Settings,
+    User,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -57,6 +60,8 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   userEmail: string;
+  userName?: string;
+  userImage?: string;
 }
 
 function NavLink({
@@ -111,11 +116,12 @@ function NavLink({
   return link;
 }
 
-function getInitial(email: string): string {
-  return (email[0] || '?').toUpperCase();
+function getInitial(name?: string, email?: string): string {
+  const source = name || email || '?'
+  return source[0].toUpperCase()
 }
 
-export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, userImage }: SidebarProps) {
   const pathname = usePathname();
 
   // 가장 구체적으로 매칭되는 항목 하나만 활성화 (중첩 라우트 대응)
@@ -191,8 +197,12 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center justify-center py-1.5">
-                    <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground font-semibold text-sm flex items-center justify-center shrink-0">
-                      {getInitial(userEmail)}
+                    <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
+                      {userImage ? (
+                        <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                      ) : (
+                        <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
+                      )}
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -202,12 +212,34 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail }: SidebarPro
               </Tooltip>
             ) : (
               <div className="flex items-center gap-2.5 px-3 py-1.5">
-                <div className="w-8 h-8 rounded-full bg-brand text-brand-foreground font-semibold text-sm flex items-center justify-center shrink-0">
-                  {getInitial(userEmail)}
+                <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
+                  {userImage ? (
+                    <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                  ) : (
+                    <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
               </div>
             )}
+
+            {/* Profile & Settings links */}
+            <div className={cn('space-y-0.5 mt-2', isCollapsed ? 'px-0' : '')}>
+              <NavLink
+                href="/admin/profile"
+                icon={User}
+                label="프로필 정보"
+                isActive={pathname === '/admin/profile'}
+                isCollapsed={isCollapsed}
+              />
+              <NavLink
+                href="/admin/settings"
+                icon={Settings}
+                label="설정"
+                isActive={pathname === '/admin/settings' || pathname.startsWith('/admin/settings/')}
+                isCollapsed={isCollapsed}
+              />
+            </div>
 
             {/* Collapse toggle (desktop only) */}
             <button
