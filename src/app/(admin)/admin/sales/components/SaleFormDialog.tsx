@@ -37,6 +37,7 @@ export function SaleFormDialog({
   onSuccess,
 }: SaleFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [saleSuggestions, setSaleSuggestions] = useState<{ notes: string[] }>({ notes: [] });
   const [paymentMethod, setPaymentMethod] = useState<string>(payments[0]?.value || 'card');
   const [noteValue, setNoteValue] = useState('');
@@ -56,6 +57,7 @@ export function SaleFormDialog({
   // Initialize form state when dialog opens
   useEffect(() => {
     if (open) {
+      setAmountError(null);
       if (sale) {
         // Edit mode
         setPaymentMethod(sale.payment_method);
@@ -84,10 +86,18 @@ export function SaleFormDialog({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    // 인라인 검증: 금액은 native required로 빈 값만 막히므로(0은 통과) 직접 검사한다.
+    const amount = parseInt(formData.get('amount') as string) || 0;
+    if (amount <= 0) {
+      setAmountError('금액을 입력해주세요');
+      return;
+    }
+    setAmountError(null);
+
     setIsSubmitting(true);
     try {
-      const formData = new FormData(e.currentTarget);
-
       if (isEditMode) {
         await updateSale(sale.id, formData);
         onOpenChange(false);
@@ -135,8 +145,11 @@ export function SaleFormDialog({
                 value={sale?.amount}
                 placeholder="0"
                 required
-                className="bg-muted"
+                onChange={(v) => { if (v > 0 && amountError) setAmountError(null); }}
+                aria-invalid={!!amountError}
+                className={cn("bg-muted", amountError && "border-danger focus-visible:ring-danger")}
               />
+              {amountError && <p className="text-xs text-danger">{amountError}</p>}
             </div>
           </div>
           <div className="space-y-2">
