@@ -2,7 +2,7 @@
 
 import { apiFetch } from '@/lib/api/client'
 import { clearAuthTokens } from '@/lib/api/auth-cookies'
-import { withErrorLogging } from '@/lib/errors'
+import { AppError, ErrorCode, withErrorLogging } from '@/lib/errors'
 import { requireAuth } from '@/lib/auth-guard'
 
 // ─── Types ──────────────────────────────────────────────────────
