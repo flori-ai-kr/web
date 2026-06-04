@@ -19,6 +19,7 @@ import {
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import Link from 'next/link';
+import {toast} from 'sonner';
 import type {Reservation, Sale} from '@/types/database';
 import {RESERVATION_STATUS} from '@/types/database';
 import type {DashboardSummary, DashboardTodayData} from '@/lib/actions/dashboard';
@@ -160,6 +161,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
         setCategoryLabels(Object.fromEntries(data.saleCategories.map((c) => [c.value, c.label])));
       } catch (error) {
         console.error('Failed to fetch today data:', error);
+        toast.error('오늘 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
       } finally {
         setIsTodayLoading(false);
       }
@@ -182,6 +184,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
         setExpenseStats(data.expenseStats);
       } catch (error) {
         console.error('Failed to fetch month data:', error);
+        toast.error('월간 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
       } finally {
         setIsMonthLoading(false);
       }
