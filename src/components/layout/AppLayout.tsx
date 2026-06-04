@@ -12,10 +12,12 @@ const SIDEBAR_COLLAPSED_KEY = 'hazel-sidebar-collapsed';
 interface AppLayoutProps {
   children: React.ReactNode;
   userEmail: string;
+  userName?: string;
+  userImage?: string;
   bottomNavItems?: NavItemKey[];
 }
 
-export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProps) {
+export function AppLayout({ children, userEmail, userName, userImage, bottomNavItems }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -41,12 +43,14 @@ export function AppLayout({ children, userEmail, bottomNavItems }: AppLayoutProp
         본문으로 건너뛰기
       </a>
       {/* 전체 너비 1줄 헤더 (좌: 로고 → 대시보드, 우: 알림·테마·아바타) */}
-      <Header userEmail={userEmail} />
+      <Header userEmail={userEmail} userName={userName} userImage={userImage} />
 
       <Sidebar
         isCollapsed={isCollapsed}
         onToggleCollapse={handleToggleCollapse}
         userEmail={userEmail}
+        userName={userName}
+        userImage={userImage}
       />
 
       <div className={cn(

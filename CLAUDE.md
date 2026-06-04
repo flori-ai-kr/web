@@ -68,6 +68,7 @@ src/
 │   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + components/(EventCard, ReservationCard, CalendarDialogs)
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
+│   ├── profile/         # 내 프로필 (프로필 수정 + 아바타 업로드 + 탈퇴)
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리. 어드민 토큰 라이트 셸(테마 토글 존중)
@@ -164,6 +165,7 @@ src/
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`, RPC `get_sales_summary` 인자도 `text[]`
 - 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
+- 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
 
 ---
 
@@ -191,6 +193,7 @@ src/
 | 운영자 콘솔 가드 | `lib/admin-guard.ts` (requireAdmin — `/admin/me` is_admin 재검증), 액션 `lib/actions/admin-*.ts` |
 | BFF 클라이언트 | `lib/api/client.ts`, `lib/api/auth-cookies.ts` |
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
+| 프로필 관리 | `lib/actions/profile.ts` (프로필 CRUD + 아바타 업로드 + 탈퇴) |
 | 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
 | 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions) |
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |

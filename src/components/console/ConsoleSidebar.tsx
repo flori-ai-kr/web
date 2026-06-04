@@ -7,7 +7,7 @@ import {
   FileCheck,
   Users,
   CreditCard,
-  Activity,
+  // [AI 기능 비활성화] Activity,
   ArrowLeft,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -33,7 +33,8 @@ const GROUPS: NavGroup[] = [
       { href: '/console/subscriptions', label: '구독 현황', icon: CreditCard },
     ],
   },
-  { title: '시스템', items: [{ href: '/console/health', label: 'AI 헬스', icon: Activity }] },
+  // [AI 기능 비활성화] AI 헬스 네비 — 출시 시 제거
+  // { title: '시스템', items: [{ href: '/console/health', label: 'AI 헬스', icon: Activity }] },
 ];
 
 function isActive(pathname: string, href: string): boolean {

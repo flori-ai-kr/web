@@ -104,7 +104,7 @@ export function OverviewClient({
         </div>
       </section>
 
-      {/* AI 헬스 */}
+      {/* [AI 기능 비활성화] AI 헬스 섹션 — 출시 시 제거
       <section className="rounded-xl border border-border bg-card p-4">
         <h3 className="text-sm font-semibold text-foreground">AI 헬스</h3>
         <p className="mb-3 text-[11.5px] text-muted-foreground">ai-server / litellm 프록시 상태</p>
@@ -127,6 +127,7 @@ export function OverviewClient({
           )}
         </div>
       </section>
+      */}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
 import Image from 'next/image';
-import {Bell, CalendarDays, LogOut, Moon, Settings, ShieldCheck, Sun} from 'lucide-react';
+import {Bell, CalendarDays, LogOut, Moon, Settings, ShieldCheck, Sun, User} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -22,13 +22,16 @@ import type {Reservation} from '@/types/database';
 
 interface HeaderProps {
   userEmail: string;
+  userName?: string;
+  userImage?: string;
 }
 
-function getInitial(email: string): string {
-  return (email[0] || '?').toUpperCase();
+function getInitial(name?: string, email?: string): string {
+  const source = name || email || '?'
+  return source[0].toUpperCase()
 }
 
-export function Header({ userEmail }: HeaderProps) {
+export function Header({ userEmail, userName, userImage }: HeaderProps) {
   const { resolvedTheme, setTheme } = useTheme();
 
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
@@ -190,10 +193,14 @@ export function Header({ userEmail }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="w-8 h-8 rounded-full bg-brand text-brand-foreground font-semibold text-sm flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring overflow-hidden"
                 aria-label="사용자 메뉴"
               >
-                {getInitial(userEmail)}
+                {userImage ? (
+                  <Image src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                ) : (
+                  <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
@@ -201,6 +208,12 @@ export function Header({ userEmail }: HeaderProps) {
                 <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  프로필 정보
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/admin/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
