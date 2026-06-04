@@ -133,7 +133,6 @@ async function _updateCustomer(id: string, formData: FormData) {
   });
 
   revalidatePath('/admin/customers');
-  revalidatePath(`/admin/customers/${id}`);
 }
 
 export const updateCustomer = withErrorLogging('updateCustomer', _updateCustomer);
@@ -152,7 +151,6 @@ async function _updateCustomerGrade(id: string, grade: CustomerGrade) {
   });
 
   revalidatePath('/admin/customers');
-  revalidatePath(`/admin/customers/${id}`);
 }
 
 export const updateCustomerGrade = withErrorLogging('updateCustomerGrade', _updateCustomerGrade);

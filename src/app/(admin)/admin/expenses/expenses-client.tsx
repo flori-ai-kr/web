@@ -370,6 +370,12 @@ export function ExpensesClient({
     setSelectedExpense(null);
     startDeleteTransition(async () => {
       removeOptimisticExpense(target.id);
+      // '이후 모두 삭제'는 같은 고정비의 이후 날짜 인스턴스도 함께 사라지므로 낙관적으로 같이 제거
+      if (target.recurring_id && scope === 'future') {
+        optimisticExpenses
+          .filter((e) => e.recurring_id === target.recurring_id && e.date > target.date)
+          .forEach((e) => removeOptimisticExpense(e.id));
+      }
       try {
         if (target.recurring_id && scope === 'instance') {
           await deleteExpenseInstanceOnly(target.id);

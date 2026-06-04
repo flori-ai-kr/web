@@ -28,7 +28,7 @@ export function DeleteReservationDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>예약 삭제</DialogTitle>
@@ -102,7 +102,7 @@ export function DeleteEventDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>일정 삭제</DialogTitle>

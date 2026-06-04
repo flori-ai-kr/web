@@ -104,6 +104,7 @@ export function ReservationCard({
             {r.sale_id && (
               <div className="mt-2 flex items-center gap-2">
                 <button
+                  type="button"
                   className="text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();

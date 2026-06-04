@@ -195,7 +195,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, serverMonthParam, filtersKey, initialSales, initialHasMore]);
 
-  const filteredSales = allSales;
+  // 내보내기·렌더 모두 낙관적 목록을 기준으로 한다(삭제 진행 중 ghost 행 방지).
+  const filteredSales = optimisticSales;
 
   // 서버에서 필터 적용된 요약 (페이지네이션 무관)
   const summary = initialSummary;
@@ -498,7 +499,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
       {/* Sales List */}
       <SalesList
-        sales={optimisticSales}
+        sales={filteredSales}
         categoryLabels={categoryLabels}
         categoryColors={categoryColors}
         paymentLabels={paymentLabels}

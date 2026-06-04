@@ -118,12 +118,11 @@ describe('updateCustomer', () => {
     expect(mockApiFetch).not.toHaveBeenCalled()
   })
 
-  it('제공된 필드를 PATCH하고 두 경로를 revalidate한다', async () => {
+  it('제공된 필드를 PATCH하고 목록 경로를 revalidate한다', async () => {
     mockApiFetch.mockResolvedValue(kCustomer)
     await updateCustomer('5', form({ name: '새이름' }))
     expect(mockApiFetch).toHaveBeenCalledWith('/customers/5', expect.objectContaining({ method: 'PATCH' }))
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
-    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers/5')
   })
 })
 
