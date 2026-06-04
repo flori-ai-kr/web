@@ -9,6 +9,7 @@ import {PhotoUploadModal} from '@/components/gallery/PhotoUploadModal';
 import {PhotoCardDialog} from '@/components/gallery/PhotoCardDialog';
 import {TagManageModal} from '@/components/gallery/TagManageModal';
 import {Button} from '@/components/ui/button';
+import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
 import {getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
@@ -181,18 +182,17 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">사진첩</h1>
-          <p className="text-sm text-muted-foreground mt-1">완성한 꽃 작업물 사진을 저장하고 태그로 분류할 수 있어요</p>
-        </div>
-        <Button
-          onClick={() => setIsUploadModalOpen(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          새 카드 추가
-        </Button>
-      </div>
+      <PageHeader
+        className="gap-4"
+        title="사진첩"
+        description="완성한 꽃 작업물 사진을 저장하고 태그로 분류할 수 있어요"
+        actions={
+          <Button onClick={() => setIsUploadModalOpen(true)} className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            새 카드 추가
+          </Button>
+        }
+      />
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">

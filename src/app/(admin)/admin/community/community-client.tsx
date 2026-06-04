@@ -6,6 +6,7 @@ import {Lock, MessageSquare, MessagesSquare, PenSquare, Pin, Search} from 'lucid
 import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
+import {PageHeader} from '@/components/layout/PageHeader';
 import {cn} from '@/lib/utils';
 import {PostCard} from '@/components/community/post-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
@@ -36,19 +37,18 @@ export function CommunityClient({ initialPosts, activeCategory }: CommunityClien
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">커뮤니티</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            꽃집 사장님들과 노하우와 일상을 나눠보세요
-          </p>
-        </div>
-        <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
-          <Link href="/admin/community/write">
-            <PenSquare className="w-4 h-4" /> 글쓰기
-          </Link>
-        </Button>
-      </header>
+      <PageHeader
+        className="gap-4"
+        title="커뮤니티"
+        description="꽃집 사장님들과 노하우와 일상을 나눠보세요"
+        actions={
+          <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
+            <Link href="/admin/community/write">
+              <PenSquare className="w-4 h-4" /> 글쓰기
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Category tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
