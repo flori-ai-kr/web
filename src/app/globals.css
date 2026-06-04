@@ -52,7 +52,7 @@
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
   --color-danger-soft: var(--danger-soft);
-  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font-sans: var(--font-pretendard), "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   /* admin 디스플레이: Cormorant Garamond 우선, 공개사이트 Fraunces 폴백 유지 */
   --font-serif: var(--font-cormorant), var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -374,7 +374,7 @@
 }
 
 .site-public .font-sans {
-  font-family: 'Pretendard', -apple-system, system-ui, sans-serif;
+  font-family: var(--font-pretendard), 'Pretendard', -apple-system, system-ui, sans-serif;
 }
 
 /* Subtle reveal on scroll */
