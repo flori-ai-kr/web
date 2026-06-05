@@ -367,14 +367,15 @@ erDiagram
         uuid id PK
         uuid user_id FK
         date date
-        string product_category
+        uuid category_id FK "sale_categories.id"
         int amount
-        string payment_method
+        uuid payment_method_id FK "payment_methods.id, nullable"
+        uuid channel_id FK "sale_channels.id, nullable"
         string card_company
         int expected_deposit
         string deposit_status
         uuid customer_id FK
-        string note
+        text memo
         bool is_unpaid
     }
 
@@ -383,12 +384,13 @@ erDiagram
         uuid user_id FK
         date date
         string item_name
-        string category
+        uuid category_id FK "expense_categories.id"
         int unit_price
         int quantity
         int total_amount
-        string payment_method
+        uuid payment_method_id FK "expense_payment_methods.id"
         string vendor
+        text memo
         uuid recurring_id FK "nullable, recurring_expenses.id"
         bool is_recurring_modified "고정비 단건 수정 여부"
     }
@@ -397,10 +399,10 @@ erDiagram
         uuid id PK
         uuid user_id FK
         string item_name
-        string category
+        uuid category_id FK "expense_categories.id"
         int unit_price
         int quantity
-        string payment_method
+        uuid payment_method_id FK "expense_payment_methods.id"
         string vendor
         string frequency "weekly|monthly|yearly"
         int[] days "반복 일자 배열"
@@ -423,7 +425,7 @@ erDiagram
         string phone "UK(phone,user_id)"
         string grade
         string gender
-        string note
+        text memo
     }
 
     reservations {
@@ -434,7 +436,7 @@ erDiagram
         string title
         string customer_name
         string customer_phone
-        string description
+        text memo
         string status
         int estimated_amount
         timestamptz reminder_at
@@ -449,6 +451,7 @@ erDiagram
         string title
         jsonb photos
         text[] tags
+        text memo
         uuid sale_id FK
     }
 
@@ -472,7 +475,6 @@ erDiagram
         uuid user_id FK
         string value "UK(value,user_id)"
         string label
-        string color
         int sort_order
     }
 
@@ -481,7 +483,14 @@ erDiagram
         uuid user_id FK
         string value "UK(value,user_id)"
         string label
-        string color
+        int sort_order
+    }
+
+    sale_channels {
+        uuid id PK
+        uuid user_id FK
+        string value "UK(value,user_id)"
+        string label
         int sort_order
     }
 
@@ -518,14 +527,14 @@ erDiagram
         text value
     }
 
-    calendar_events {
+    schedules {
         uuid id PK
         uuid user_id FK
         string title
         date start_date
         date end_date
         string color "hex (#f43f5e 등 6색)"
-        text description
+        text memo
         timestamptz created_at
         timestamptz updated_at
     }
@@ -592,12 +601,12 @@ erDiagram
 |------|--------|------|
 | `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
 | `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
-| `/admin/sales` | 매출 관리 | 카드형 목록 (일자별 그룹) + 서버사이드 필터 + 무한 스크롤 + 사진 연동 |
-| `/admin/expenses` | 지출 관리 | CRUD + 카테고리/결제방식 설정 |
-| `/admin/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 |
+| `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
+| `/admin/expenses` | 지출 관리 | CRUD(id 기반 category_id/payment_method_id) + 카테고리/결제방식 설정 |
+| `/admin/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 (category_label 직접 표시) |
 | `/admin/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
-| `/admin/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 |
-| `/admin/calendar` | 예약 캘린더 | 예약 CRUD + 캘린더 이벤트 + 리마인더 + 매출 자동 생성 + 픽업 완료 토글 |
+| `/admin/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 + ?card= 딥링크 |
+| `/admin/calendar` | 예약 캘린더 | 예약 CRUD + 일정(schedules) + 리마인더 + 매출 자동 생성(id 기반) + 픽업 완료 토글 |
 | `/admin/insights` | 인사이트 | 랜딩 (트렌드/팔로우/스크랩 섹션 소개) |
 | `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
 | `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
@@ -637,12 +646,12 @@ erDiagram
 | `recurring-expenses.ts` | getRecurringExpenses, createRecurringExpense, updateRecurringExpense (mode: 'this'|'future'), deleteRecurringExpense (mode: 'this'|'future'|'all'), quickAddRecurringExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
 | `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
-| `calendar-events.ts` | getCalendarEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent |
+| `schedules.ts` | getSchedules, createSchedule, updateSchedule, deleteSchedule (BFF `/schedules?month=`) |
 | `dashboard.ts` | getDashboardTodayData, getDashboardMonthData, getTriggeredReminders, getUpcomingReservations |
 | `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
-| `photo-cards.ts` | CRUD + getPhotoCardBySaleId + createPhotoUploadTargets (presigned PUT URL 발급, 소유권 검증) |
+| `photo-cards.ts` | CRUD + getPhotoCardBySaleId + getPhotoCardById + createPhotoUploadTargets (presigned PUT URL 발급, 소유권 검증) |
 | `photo-tags.ts` | CRUD |
-| `sale-settings.ts` | getSaleCategories, getPaymentMethods |
+| `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels (`GET /settings/sale-channels`) |
 | `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
 | `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
@@ -654,23 +663,32 @@ erDiagram
 
 ```typescript
 // src/types/database.ts
-type PaymentMethod = 'cash' | 'card' | 'transfer' | 'naverpay' | 'unpaid'
+// ※ id 기반 계약 이후: PaymentMethod 문자열 enum 폐지, ProductCategory enum 폐지,
+//   ReservationChannel 문자열 enum 폐지. 카테고리·결제방식·채널은 모두 id(string) + label(string) 쌍으로 전달.
 type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist'
 type CustomerGender = 'male' | 'female'
 type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' // 제작 필요 | 픽업 필요 | 픽업 완료 | 취소
 type DepositStatus = 'pending' | 'completed' | 'not_applicable'
-type ProductCategory = 'mini_bouquet' | ... // 11종
-type ReservationChannel = 'phone' | 'kakaotalk' | 'naver_booking' | 'road' | 'other'
 
-// 2026-02-18 추가
-interface CalendarEvent {
-    id: string; user_id: string; title: string
-    start_date: string; end_date: string; color: string // 6색 프리셋
-    description: string | null
+// Sale: id 기반 계약 (product_category/payment_method/reservation_channel 필드 폐지)
+interface Sale {
+    id: string; user_id: string; date: string
+    category_id: string | null; category_label: string | null
+    payment_method_id: string | null; payment_method_label: string | null
+    channel_id: string | null; channel_label: string | null
+    is_unpaid: boolean; amount: number; memo?: string
+    // ... customer_name, customer_phone, customer_id, photos, has_review 등
 }
 
-interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분 → BFF 반복 쿼리 파라미터)
-// expenses 필터도 동일한 다중선택 패턴 적용 (category[], payment[])
+// Schedule (구 CalendarEvent — BFF /schedules 엔드포인트로 이전)
+interface Schedule {
+    id: string; user_id: string; title: string
+    start_date: string; end_date: string; color: string // 6색 프리셋
+    memo: string | null
+}
+
+interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string; startDate?: string; endDate?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분 → BFF 반복 쿼리 파라미터). startDate/endDate로 기간 범위 필터 추가
+// expenses 필터도 동일한 다중선택 패턴 적용 (category_id[], payment_method_id[])
 ```
 
 ---

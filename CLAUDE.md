@@ -158,12 +158,12 @@ src/
 - 지출 총액: `unit_price * quantity`
 - 사진: 5MB 초과 시 하드 거부(클라이언트 자동 압축 제거됨), 카드당 최대 10장, AWS S3 + CloudFront 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 BFF에서 presigned PUT URL 발급 → 브라우저가 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
 - 예약 리마인더: `reminder_at` 설정 → Cron 푸시 발송
-- 미수(외상): `payment_method='unpaid'` + `is_unpaid=true`, 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
+- 미수(외상): `is_unpaid=true` 플래그 별도 관리 (`payment_method='unpaid'` 폐지). 등록 시 `is_unpaid: true` + `payment_method_id: null`로 전송. 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
 - 인사이트 스크랩: `insight_scraps(user_id, target_type, target_id, memo)` 복합 unique. 트렌드/포스트 북마크 토글 + 상세 다이얼로그 메모 편집(blur 자동 저장). `/insights/scraps` + 목록 "스크랩만" 필터(`?scraped=1`)
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
-- 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`, RPC `get_sales_summary` 인자도 `text[]`
+- 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`)
 - 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
 - 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
 
@@ -199,7 +199,7 @@ src/
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |
 | 푸시 브로드캐스트 | `lib/push-broadcast.ts` |
 | 환경변수 검증 | `lib/env.ts` |
-| 공유 라벨 상수 | `lib/constants.ts` (PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS) |
+| 공유 라벨 상수 | `lib/constants.ts` (EXPENSE_LABELS — PAYMENT_LABELS·CHANNEL_LABELS는 id 기반 계약으로 제거됨) |
 | 공개 홈 SSOT | `lib/public-config.ts`, `lib/legal-config.ts`, `lib/onboarding-options.ts` |
 | 타입 정의 | `types/database.ts` |
 | Service Worker | `public/sw.js` |
