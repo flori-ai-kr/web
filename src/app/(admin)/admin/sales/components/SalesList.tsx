@@ -8,13 +8,10 @@ import {FileText, ImagePlus, Loader2, Search, TrendingUp, User} from 'lucide-rea
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
-import {CHANNEL_LABELS} from '@/lib/constants';
 import type {Sale} from '@/types/database';
 
 interface SalesListProps {
   sales: Sale[];
-  categoryLabels: Record<string, string>;
-  paymentLabels: Record<string, string>;
   hasActiveFilters: boolean;
   hasMore: boolean;
   isLoadingMore: boolean;
@@ -34,8 +31,6 @@ interface DateGroup {
 
 export function SalesList({
   sales,
-  categoryLabels,
-  paymentLabels,
   hasActiveFilters,
   hasMore,
   isLoadingMore,
@@ -76,7 +71,7 @@ export function SalesList({
       date,
       label: format(new Date(date), 'yyyy년 M월 d일 (EEE)', { locale: ko }),
       sales: dateSales,
-      total: dateSales.reduce((sum, s) => s.payment_method === 'unpaid' ? sum : sum + s.amount, 0),
+      total: dateSales.reduce((sum, s) => s.is_unpaid ? sum : sum + s.amount, 0),
     }));
   }, [sales]);
 
@@ -126,7 +121,7 @@ export function SalesList({
           {/* 미니멀 로우 리스트 */}
           <div className="divide-y divide-border/50">
             {group.sales.map((sale) => {
-              const isUnpaid = sale.payment_method === 'unpaid';
+              const isUnpaid = sale.is_unpaid;
 
               const hasPhotos = !!(sale.photos && sale.photos.length > 0);
 
@@ -174,12 +169,12 @@ export function SalesList({
                     type="button"
                     onClick={() => onSelectSale(sale)}
                     className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70 transition-opacity"
-                    aria-label={`${categoryLabels[sale.product_category] || sale.product_category} ${formatCurrency(sale.amount)} 상세 보기`}
+                    aria-label={`${sale.category_label ?? '미분류'} ${formatCurrency(sale.amount)} 상세 보기`}
                   >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">
-                        {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
+                        {sale.category_label ?? '미분류'}
                       </span>
                       {isUnpaid ? (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium dark:bg-amber-950 dark:text-amber-400">
@@ -187,14 +182,14 @@ export function SalesList({
                         </span>
                       ) : (
                         <span className="text-[11px] text-muted-foreground">
-                          {paymentLabels[sale.payment_method] || sale.payment_method}
+                          {sale.payment_method_label ?? ''}
                         </span>
                       )}
-                      {sale.reservation_channel && sale.reservation_channel !== 'other' && (
+                      {sale.channel_label && (
                         <>
                           <span className="text-[11px] text-muted-foreground">·</span>
                           <span className="text-[11px] text-muted-foreground">
-                            {CHANNEL_LABELS[sale.reservation_channel]}
+                            {sale.channel_label}
                           </span>
                         </>
                       )}

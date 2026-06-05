@@ -35,7 +35,7 @@ describe('sale categories', () => {
     mockApiFetch.mockResolvedValue([dto])
     const res = await getSaleCategories()
     expect(mockApiFetch).toHaveBeenCalledWith('/settings/sale-categories')
-    expect(res[0]).toEqual({ id: '1', value: 'rose', label: '장미', color: '#ff0000', sort_order: 2, created_at: '' })
+    expect(res[0]).toEqual({ id: '1', value: 'rose', label: '장미', sort_order: 2 })
   })
 
   it('null 응답은 빈 배열로 처리', async () => {
@@ -45,23 +45,23 @@ describe('sale categories', () => {
 
   it('생성은 label/color로 POST하고 revalidate', async () => {
     mockApiFetch.mockResolvedValue(dto)
-    await createSaleCategory('장미', '#ff0000')
+    await createSaleCategory('장미')
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body).toEqual({ label: '장미', color: '#ff0000' })
+    expect(body).toEqual({ label: '장미' })
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/sales')
   })
 
-  it('생성 시 color 미지정은 null로 전송', async () => {
+  it('생성 body는 label만 포함', async () => {
     mockApiFetch.mockResolvedValue(dto)
     await createSaleCategory('장미')
-    expect(JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string).color).toBeNull()
+    expect(JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)).toEqual({ label: '장미' })
   })
 
   it('수정은 PUT, 잘못된 id 거부', async () => {
     mockApiFetch.mockResolvedValue(dto)
-    await updateSaleCategory('1', '장미', '#ff0000')
+    await updateSaleCategory('1', '장미')
     expect(mockApiFetch).toHaveBeenCalledWith('/settings/sale-categories/1', expect.objectContaining({ method: 'PUT' }))
-    await expect(updateSaleCategory('x', 'a', '#fff')).rejects.toThrow('ID 형식')
+    await expect(updateSaleCategory('x', 'a')).rejects.toThrow('ID 형식')
   })
 
   it('삭제는 DELETE, 잘못된 id 거부', async () => {
@@ -82,17 +82,17 @@ describe('payment methods', () => {
 
   it('생성은 label/color/value POST', async () => {
     mockApiFetch.mockResolvedValue(dto)
-    await createPaymentMethod('네이버페이', '#00c73c', 'naverpay')
+    await createPaymentMethod('네이버페이', 'naverpay')
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body).toEqual({ label: '네이버페이', color: '#00c73c', value: 'naverpay' })
+    expect(body).toEqual({ label: '네이버페이', value: 'naverpay' })
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/sales')
   })
 
   it('수정 PUT + 잘못된 id 거부', async () => {
     mockApiFetch.mockResolvedValue(dto)
-    await updatePaymentMethod('1', '카드', '#3b82f6')
+    await updatePaymentMethod('1', '카드')
     expect(mockApiFetch).toHaveBeenCalledWith('/settings/payment-methods/1', expect.objectContaining({ method: 'PUT' }))
-    await expect(updatePaymentMethod('x', 'a', '#fff')).rejects.toThrow('ID 형식')
+    await expect(updatePaymentMethod('x', 'a')).rejects.toThrow('ID 형식')
   })
 
   it('삭제 DELETE + 잘못된 id 거부', async () => {

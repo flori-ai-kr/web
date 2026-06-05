@@ -60,12 +60,6 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     (list, deletedId: string) => list.filter((c) => c.id !== deletedId),
   );
 
-  // Category/Payment method label maps
-  const categoryLabels = useMemo(() =>
-    Object.fromEntries(initialCategories.map(c => [c.value, c.label])), [initialCategories]);
-  const categoryColors = useMemo(() =>
-    Object.fromEntries(initialCategories.map(c => [c.value, c.color])), [initialCategories]);
-
   // Sort function
   const sortCustomers = useCallback((customers: Customer[]) => {
     return [...customers].sort((a, b) => {
@@ -432,8 +426,6 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
         isLoadingMore={isLoadingMoreSales}
         hasMore={hasMoreSales}
         onLoadMore={handleLoadMoreSales}
-        categoryLabels={categoryLabels}
-        categoryColors={categoryColors}
         onClose={() => setSelectedCustomer(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}

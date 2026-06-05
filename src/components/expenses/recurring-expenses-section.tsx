@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DomainBadge } from '@/components/ui/domain-badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,10 +27,10 @@ const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 interface FormState {
   id?: string;
   item_name: string;
-  category: string;
+  category_id: string;
   unit_price: number;
   quantity: number;
-  payment_method: 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay';
+  payment_method_id: string;
   vendor: string;
   memo: string;
   frequency: RecurringFrequency;
@@ -49,14 +48,14 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function emptyForm(defaultCategory: string, defaultPayment: 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay'): FormState {
+function emptyForm(defaultCategory: string, defaultPayment: string): FormState {
   const t = new Date();
   return {
     item_name: '',
-    category: defaultCategory,
+    category_id: defaultCategory,
     unit_price: 0,
     quantity: 1,
-    payment_method: defaultPayment,
+    payment_method_id: defaultPayment,
     vendor: '',
     memo: '',
     frequency: 'monthly',
@@ -125,7 +124,7 @@ export function RecurringExpensesSection() {
   useEffect(() => { refresh(); }, []);
 
   const openCreate = () => {
-    setForm(emptyForm(categories[0]?.value ?? 'other', (payments[0]?.value as FormState['payment_method']) ?? 'transfer'));
+    setForm(emptyForm(categories[0]?.id ?? '', payments[0]?.id ?? ''));
     setDialogOpen(true);
   };
 
@@ -133,10 +132,10 @@ export function RecurringExpensesSection() {
     setForm({
       id: r.id,
       item_name: r.item_name,
-      category: r.category,
+      category_id: r.category_id ?? '',
       unit_price: r.unit_price,
       quantity: r.quantity,
-      payment_method: r.payment_method as FormState['payment_method'],
+      payment_method_id: r.payment_method_id ?? '',
       vendor: r.vendor ?? '',
       memo: r.memo ?? '',
       frequency: r.frequency,
@@ -162,10 +161,10 @@ export function RecurringExpensesSection() {
     try {
       const payload = {
         item_name: form.item_name.trim(),
-        category: form.category,
+        category_id: form.category_id,
         unit_price: form.unit_price,
         quantity: form.quantity,
-        payment_method: form.payment_method,
+        payment_method_id: form.payment_method_id,
         vendor: form.vendor.trim() || null,
         memo: form.memo.trim() || null,
         frequency: form.frequency,
@@ -215,9 +214,6 @@ export function RecurringExpensesSection() {
     }
   };
 
-  const categoryColor = (value: string) => categories.find(c => c.value === value)?.color ?? '#9ca3af';
-  const categoryLabel = (value: string) => categories.find(c => c.value === value)?.label ?? value;
-  const paymentLabel = (value: string) => payments.find(p => p.value === value)?.label ?? value;
 
   return (
     <Card>
@@ -242,13 +238,13 @@ export function RecurringExpensesSection() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm truncate">{r.item_name}</span>
-                      <DomainBadge color={categoryColor(r.category)} className="px-1.5">{categoryLabel(r.category)}</DomainBadge>
+                      <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted-foreground/10">{r.category_label ?? '미분류'}</span>
                       {!r.is_active && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">일시정지</span>}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                       <span>{ruleSummary(r)}</span>
                       <span>₩{(r.unit_price * r.quantity).toLocaleString()}</span>
-                      <span>{paymentLabel(r.payment_method)}</span>
+                      <span>{r.payment_method_label ?? ''}</span>
                       {r.vendor && <span>· {r.vendor}</span>}
                       {nextDates[r.id] && <span>다음: {nextDates[r.id]}</span>}
                     </div>
@@ -312,19 +308,19 @@ export function RecurringExpensesSection() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>카테고리 *</Label>
-                    <Select value={form.category} onValueChange={(v) => setForm(f => f && { ...f, category: v })}>
+                    <Select value={form.category_id} onValueChange={(v) => setForm(f => f && { ...f, category_id: v })}>
                       <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {categories.map(c => <SelectItem key={c.id} value={c.value}>{c.label}</SelectItem>)}
+                        {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>결제방식 *</Label>
-                    <Select value={form.payment_method} onValueChange={(v) => setForm(f => f && { ...f, payment_method: v as FormState['payment_method'] })}>
+                    <Select value={form.payment_method_id} onValueChange={(v) => setForm(f => f && { ...f, payment_method_id: v })}>
                       <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {payments.map(p => <SelectItem key={p.id} value={p.value}>{p.label}</SelectItem>)}
+                        {payments.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

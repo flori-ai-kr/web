@@ -4,11 +4,10 @@ import {
   parseAmountInput,
   filterNumericInput,
   filterSalesByYearMonth,
-  calculateSalesSummary,
   formatCurrency,
   formatPhoneNumber,
 } from '../utils'
-import type { Sale, PaymentMethod } from '@/types/database'
+import type { Sale } from '@/types/database'
 
 // Test fixtures - mock Sale objects with minimal required fields
 const createMockSale = (
@@ -18,8 +17,11 @@ const createMockSale = (
   date: '2026-01-15',
   customer_name: 'Test Customer',
   amount: 50000,
-  payment_method: 'card' as PaymentMethod,
-  product_category: 'standard_bouquet',
+  payment_method_id: '1',
+  payment_method_label: '카드',
+  category_id: '5',
+  category_label: '기본 꽃다발',
+  is_unpaid: false,
   ...overrides,
 } as Sale)
 
@@ -172,100 +174,6 @@ describe('filterSalesByYearMonth', () => {
     const result = filterSalesByYearMonth(sales, 2025, 12)
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('5')
-  })
-})
-
-describe('calculateSalesSummary', () => {
-  it('혼합된 결제 방법의 매출을 집계한다', () => {
-    const sales: Sale[] = [
-      createMockSale({ amount: 10000, payment_method: 'card' }),
-      createMockSale({ amount: 20000, payment_method: 'naverpay' }),
-      createMockSale({ amount: 30000, payment_method: 'transfer' }),
-      createMockSale({ amount: 40000, payment_method: 'cash' }),
-    ]
-
-    const result = calculateSalesSummary(sales)
-
-    expect(result.total).toBe(100000)
-    expect(result.card).toBe(10000)
-    expect(result.naverpay).toBe(20000)
-    expect(result.transfer).toBe(30000)
-    expect(result.cash).toBe(40000)
-    expect(result.count).toBe(4)
-  })
-
-  it('단일 결제 방법의 매출을 집계한다', () => {
-    const sales: Sale[] = [
-      createMockSale({ amount: 10000, payment_method: 'card' }),
-      createMockSale({ amount: 20000, payment_method: 'card' }),
-      createMockSale({ amount: 30000, payment_method: 'card' }),
-    ]
-
-    const result = calculateSalesSummary(sales)
-
-    expect(result.total).toBe(60000)
-    expect(result.card).toBe(60000)
-    expect(result.naverpay).toBe(0)
-    expect(result.transfer).toBe(0)
-    expect(result.cash).toBe(0)
-    expect(result.count).toBe(3)
-  })
-
-  it('빈 배열에 대해 0으로 초기화된 summary를 반환한다', () => {
-    const result = calculateSalesSummary([])
-
-    expect(result.total).toBe(0)
-    expect(result.card).toBe(0)
-    expect(result.naverpay).toBe(0)
-    expect(result.transfer).toBe(0)
-    expect(result.cash).toBe(0)
-    expect(result.count).toBe(0)
-  })
-
-  it('동일한 결제 방법의 매출을 누적한다', () => {
-    const sales: Sale[] = [
-      createMockSale({ amount: 5000, payment_method: 'cash' }),
-      createMockSale({ amount: 10000, payment_method: 'cash' }),
-      createMockSale({ amount: 15000, payment_method: 'cash' }),
-    ]
-
-    const result = calculateSalesSummary(sales)
-
-    expect(result.cash).toBe(30000)
-    expect(result.total).toBe(30000)
-  })
-
-  it('큰 금액의 매출을 정확히 집계한다', () => {
-    const sales: Sale[] = [
-      createMockSale({ amount: 1000000, payment_method: 'card' }),
-      createMockSale({ amount: 2000000, payment_method: 'transfer' }),
-      createMockSale({ amount: 3000000, payment_method: 'naverpay' }),
-    ]
-
-    const result = calculateSalesSummary(sales)
-
-    expect(result.total).toBe(6000000)
-    expect(result.count).toBe(3)
-  })
-
-  it('모든 결제 방법이 사용된 경우를 처리한다', () => {
-    const sales: Sale[] = [
-      createMockSale({ amount: 100, payment_method: 'card' }),
-      createMockSale({ amount: 200, payment_method: 'naverpay' }),
-      createMockSale({ amount: 300, payment_method: 'transfer' }),
-      createMockSale({ amount: 400, payment_method: 'cash' }),
-      createMockSale({ amount: 500, payment_method: 'card' }),
-      createMockSale({ amount: 600, payment_method: 'naverpay' }),
-    ]
-
-    const result = calculateSalesSummary(sales)
-
-    expect(result.total).toBe(2100)
-    expect(result.card).toBe(600)
-    expect(result.naverpay).toBe(800)
-    expect(result.transfer).toBe(300)
-    expect(result.cash).toBe(400)
-    expect(result.count).toBe(6)
   })
 })
 

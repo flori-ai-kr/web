@@ -38,17 +38,20 @@ interface KotlinReservation {
 interface KotlinSale {
   id: string;
   date: string;
-  productName: string;
-  productCategory: string | null;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   amount: number;
-  paymentMethod: string;
-  reservationChannel: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
+  channelId: number | string | null;
+  channelLabel: string | null;
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
   memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
+  photos: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,11 +85,13 @@ function mapKotlinSale(s: KotlinSale): Sale {
     id: s.id,
     user_id: '',
     date: s.date,
-    product_name: s.productName,
-    product_category: s.productCategory ?? s.productName,
+    category_id: s.categoryId != null ? String(s.categoryId) : null,
+    category_label: s.categoryLabel,
     amount: s.amount,
-    payment_method: s.paymentMethod as Sale['payment_method'],
-    reservation_channel: s.reservationChannel as Sale['reservation_channel'],
+    payment_method_id: s.paymentMethodId != null ? String(s.paymentMethodId) : null,
+    payment_method_label: s.paymentMethodLabel,
+    channel_id: s.channelId != null ? String(s.channelId) : null,
+    channel_label: s.channelLabel,
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
@@ -245,14 +250,19 @@ async function _convertReservationToSale(
   const idParsed = idSchema.safeParse(reservationId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  // FormData → SaleCreateRequest(camelCase) 매핑. 고객 해석/계산은 서버가 처리한다.
+  // FormData → SaleCreateRequest(camelCase, id 기반) 매핑. 고객 해석/계산은 서버가 처리한다.
   const customerId = (saleFormData.get('customer_id') as string) || null;
-  const body: Record<string, string | number | null> = {
+  const categoryId = saleFormData.get('category_id') as string | null;
+  const channelId = saleFormData.get('channel_id') as string | null;
+  const paymentMethodId = saleFormData.get('payment_method_id') as string | null;
+  const isUnpaid = saleFormData.get('is_unpaid') === 'true';
+  const body: Record<string, string | number | boolean | null> = {
     date: (saleFormData.get('date') as string) ?? null,
-    productCategory: (saleFormData.get('product_category') as string) ?? null,
+    categoryId: categoryId ? Number(categoryId) : null,
     amount: parseInt(saleFormData.get('amount') as string) || 0,
-    paymentMethod: (saleFormData.get('payment_method') as string) ?? null,
-    reservationChannel: (saleFormData.get('reservation_channel') as string) || 'other',
+    paymentMethodId: isUnpaid ? null : (paymentMethodId ? Number(paymentMethodId) : null),
+    isUnpaid,
+    channelId: channelId ? Number(channelId) : null,
     customerName: (saleFormData.get('customer_name') as string) || null,
     customerPhone: (saleFormData.get('customer_phone') as string) || null,
     customerId,

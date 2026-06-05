@@ -6,160 +6,155 @@ import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {idSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 
+// 라벨 설정(label_settings) — 카테고리/결제방식/채널 공통 모양. color는 서버에서 제거됨.
 export interface SaleCategory {
   id: string;
   value: string;
   label: string;
-  color: string;
   sort_order: number;
-  created_at: string;
 }
 
 export interface PaymentMethod {
   id: string;
   value: string;
   label: string;
-  color: string;
   sort_order: number;
-  created_at: string;
 }
 
-// ─── Kotlin DTO 미러 (camelCase) ───────────────────────────────
-// LabelSettingResponse는 created_at을 제공하지 않는다(서버 도메인 외 필드).
-// 웹 타입은 created_at을 요구하지만 모든 소비자가 무시하므로 안전한 기본값('')을 채운다.
-
-interface LabelSettingDto {
+export interface SaleChannel {
   id: string;
   value: string;
   label: string;
-  color: string;
+  sort_order: number;
+}
+
+// ─── Kotlin LabelSettingResponse 미러 (camelCase) ───────────────
+interface LabelSettingDto {
+  id: number | string;
+  value: string;
+  label: string;
   sortOrder: number;
 }
 
-function toSaleCategory(dto: LabelSettingDto): SaleCategory {
+function toLabel<T extends { id: string; value: string; label: string; sort_order: number }>(dto: LabelSettingDto): T {
   return {
-    id: dto.id,
+    id: String(dto.id),
     value: dto.value,
     label: dto.label,
-    color: dto.color,
     sort_order: dto.sortOrder,
-    created_at: '',
-  };
+  } as T;
 }
 
-function toPaymentMethod(dto: LabelSettingDto): PaymentMethod {
-  return {
-    id: dto.id,
-    value: dto.value,
-    label: dto.label,
-    color: dto.color,
-    sort_order: dto.sortOrder,
-    created_at: '',
-  };
-}
-
-// 카테고리 조회
+// ─── 카테고리 ────────────────────────────────────────────────
 async function _getSaleCategories(): Promise<SaleCategory[]> {
   await requireAuth();
   const dtos = await apiFetch<LabelSettingDto[]>('/settings/sale-categories');
-  return (dtos || []).map(toSaleCategory);
+  return (dtos || []).map((d) => toLabel<SaleCategory>(d));
 }
-
 export const getSaleCategories = withErrorLogging('getSaleCategories', _getSaleCategories);
 
-// 카테고리 생성 (value 슬러그 생성 · sort_order 계산 · 중복 검사는 서버가 처리)
-async function _createSaleCategory(label: string, color?: string): Promise<SaleCategory> {
+async function _createSaleCategory(label: string): Promise<SaleCategory> {
   await requireAuth();
-
   const dto = await apiFetch<LabelSettingDto>('/settings/sale-categories', {
     method: 'POST',
-    body: JSON.stringify({ label, color: color ?? null }),
+    body: JSON.stringify({ label }),
   });
-
   revalidatePath('/admin/sales');
-  return toSaleCategory(dto);
+  return toLabel<SaleCategory>(dto);
 }
-
 export const createSaleCategory = withErrorLogging('createSaleCategory', _createSaleCategory);
 
-// 카테고리 수정
-async function _updateSaleCategory(id: string, label: string, color: string): Promise<void> {
+async function _updateSaleCategory(id: string, label: string): Promise<void> {
   await requireAuth();
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   await apiFetch<LabelSettingDto>(`/settings/sale-categories/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ label, color }),
+    body: JSON.stringify({ label }),
   });
-
   revalidatePath('/admin/sales');
 }
-
 export const updateSaleCategory = withErrorLogging('updateSaleCategory', _updateSaleCategory);
 
-// 카테고리 삭제
 async function _deleteSaleCategory(id: string): Promise<void> {
   await requireAuth();
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   await apiFetch<void>(`/settings/sale-categories/${id}`, { method: 'DELETE' });
-
   revalidatePath('/admin/sales');
 }
-
 export const deleteSaleCategory = withErrorLogging('deleteSaleCategory', _deleteSaleCategory);
 
-// 결제방식 조회
+// ─── 결제방식 ────────────────────────────────────────────────
 async function _getPaymentMethods(): Promise<PaymentMethod[]> {
   await requireAuth();
   const dtos = await apiFetch<LabelSettingDto[]>('/settings/payment-methods');
-  return (dtos || []).map(toPaymentMethod);
+  return (dtos || []).map((d) => toLabel<PaymentMethod>(d));
 }
-
 export const getPaymentMethods = withErrorLogging('getPaymentMethods', _getPaymentMethods);
 
-// 결제방식 생성 (value 슬러그 생성 · sort_order 계산 · 중복 검사는 서버가 처리)
-async function _createPaymentMethod(label: string, color?: string, value?: string): Promise<PaymentMethod> {
+async function _createPaymentMethod(label: string, value?: string): Promise<PaymentMethod> {
   await requireAuth();
-
   const dto = await apiFetch<LabelSettingDto>('/settings/payment-methods', {
     method: 'POST',
-    body: JSON.stringify({ label, color: color ?? null, value: value ?? null }),
+    body: JSON.stringify({ label, value: value ?? null }),
   });
-
   revalidatePath('/admin/sales');
-  return toPaymentMethod(dto);
+  return toLabel<PaymentMethod>(dto);
 }
-
 export const createPaymentMethod = withErrorLogging('createPaymentMethod', _createPaymentMethod);
 
-// 결제방식 수정 (value는 수정 불가 - CHECK 제약조건 때문)
-async function _updatePaymentMethod(id: string, label: string, color: string): Promise<void> {
+async function _updatePaymentMethod(id: string, label: string): Promise<void> {
   await requireAuth();
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   await apiFetch<LabelSettingDto>(`/settings/payment-methods/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ label, color }),
+    body: JSON.stringify({ label }),
   });
-
   revalidatePath('/admin/sales');
 }
-
 export const updatePaymentMethod = withErrorLogging('updatePaymentMethod', _updatePaymentMethod);
 
-// 결제방식 삭제
 async function _deletePaymentMethod(id: string): Promise<void> {
   await requireAuth();
-  const parsed = idSchema.safeParse(id);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
-
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
   await apiFetch<void>(`/settings/payment-methods/${id}`, { method: 'DELETE' });
-
   revalidatePath('/admin/sales');
 }
-
 export const deletePaymentMethod = withErrorLogging('deletePaymentMethod', _deletePaymentMethod);
+
+// ─── 매출 채널 (신규: label_settings로 동적화) ─────────────────
+async function _getSaleChannels(): Promise<SaleChannel[]> {
+  await requireAuth();
+  const dtos = await apiFetch<LabelSettingDto[]>('/settings/sale-channels');
+  return (dtos || []).map((d) => toLabel<SaleChannel>(d));
+}
+export const getSaleChannels = withErrorLogging('getSaleChannels', _getSaleChannels);
+
+async function _createSaleChannel(label: string): Promise<SaleChannel> {
+  await requireAuth();
+  const dto = await apiFetch<LabelSettingDto>('/settings/sale-channels', {
+    method: 'POST',
+    body: JSON.stringify({ label }),
+  });
+  revalidatePath('/admin/sales');
+  return toLabel<SaleChannel>(dto);
+}
+export const createSaleChannel = withErrorLogging('createSaleChannel', _createSaleChannel);
+
+async function _updateSaleChannel(id: string, label: string): Promise<void> {
+  await requireAuth();
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  await apiFetch<LabelSettingDto>(`/settings/sale-channels/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ label }),
+  });
+  revalidatePath('/admin/sales');
+}
+export const updateSaleChannel = withErrorLogging('updateSaleChannel', _updateSaleChannel);
+
+async function _deleteSaleChannel(id: string): Promise<void> {
+  await requireAuth();
+  if (!idSchema.safeParse(id).success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  await apiFetch<void>(`/settings/sale-channels/${id}`, { method: 'DELETE' });
+  revalidatePath('/admin/sales');
+}
+export const deleteSaleChannel = withErrorLogging('deleteSaleChannel', _deleteSaleChannel);

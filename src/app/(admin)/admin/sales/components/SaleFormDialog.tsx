@@ -15,7 +15,7 @@ import {toast} from 'sonner';
 import {cn, formatPhoneNumber} from '@/lib/utils';
 import {createSale, getSaleSuggestions, updateSale} from '@/lib/actions/sales';
 import type {Sale} from '@/types/database';
-import type {PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
+import type {PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 
 interface SaleFormDialogProps {
   open: boolean;
@@ -23,6 +23,7 @@ interface SaleFormDialogProps {
   sale?: Sale | null;
   categories: SaleCategory[];
   payments: PaymentMethod[];
+  channels: SaleChannel[];
   initialCustomer?: { name: string; id: string | null; phone: string | null };
   onSuccess: (newSale?: Sale) => void;
 }
@@ -33,13 +34,17 @@ export function SaleFormDialog({
   sale,
   categories,
   payments,
+  channels,
   initialCustomer,
   onSuccess,
 }: SaleFormDialogProps) {
+  // '로드' 채널(있으면)의 id — 로드 구입 간편 모드에서 채널 고정에 사용
+  const roadChannelId = channels.find((c) => c.value === 'road')?.id ?? '';
   const [isSubmitting, startTransition] = useTransition();
   const [amountError, setAmountError] = useState<string | null>(null);
   const [saleSuggestions, setSaleSuggestions] = useState<{ memos: string[] }>({ memos: [] });
-  const [paymentMethod, setPaymentMethod] = useState<string>(payments[0]?.value || 'card');
+  const [paymentMethodId, setPaymentMethodId] = useState<string>(payments[0]?.id ?? '');
+  const [isUnpaid, setIsUnpaid] = useState(false);
   const [noteValue, setNoteValue] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -60,15 +65,17 @@ export function SaleFormDialog({
       setAmountError(null);
       if (sale) {
         // Edit mode
-        setPaymentMethod(sale.payment_method);
+        setPaymentMethodId(sale.payment_method_id ?? (payments[0]?.id ?? ''));
+        setIsUnpaid(sale.is_unpaid);
         setNoteValue(sale.memo || '');
         setCustomerName(sale.customer_name || '');
         setCustomerId(sale.customer_id || null);
         setCustomerPhone(sale.customer_phone || null);
-        setIsRoadPurchase(sale.reservation_channel === 'road');
+        setIsRoadPurchase(!!roadChannelId && sale.channel_id === roadChannelId);
       } else {
         // Create mode
-        setPaymentMethod(payments[0]?.value || 'card');
+        setPaymentMethodId(payments[0]?.id ?? '');
+        setIsUnpaid(false);
         setNoteValue('');
         setIsRoadPurchase(false);
         if (initialCustomer) {
@@ -82,7 +89,7 @@ export function SaleFormDialog({
         }
       }
     }
-  }, [open, sale, payments, initialCustomer]);
+  }, [open, sale, payments, initialCustomer, roadChannelId]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -172,56 +179,72 @@ export function SaleFormDialog({
                 로드 구입
               </button>
             </div>
-            <Select name="product_category" defaultValue={sale?.product_category} key={sale?.id ? `cat-${sale.id}` : 'cat-create'} required>
+            <Select name="category_id" defaultValue={sale?.category_id ?? undefined} key={sale?.id ? `cat-${sale.id}` : 'cat-create'} required>
               <SelectTrigger className="bg-muted">
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {/* 결제방식 - 항상 표시 */}
+          {/* 결제방식 - 미수 토글 + 결제수단 선택 */}
           <div className="space-y-2">
-            <Label>결제방식 *</Label>
-            <input type="hidden" name="payment_method" value={paymentMethod} />
-            <div className="flex flex-wrap gap-2">
-              {payments.map(pm => (
-                <button
-                  key={pm.id}
-                  type="button"
-                  className={cn(
-                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                    paymentMethod === pm.value
-                      ? "ring-2 ring-offset-1 ring-brand/50"
-                      : "border-border text-muted-foreground hover:border-foreground/30"
-                  )}
-                  style={paymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
-                  onClick={() => setPaymentMethod(pm.value)}
-                >
-                  {pm.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <Label>결제방식 *</Label>
+              <button
+                type="button"
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                  isUnpaid
+                    ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400"
+                    : "border-border text-muted-foreground hover:border-foreground/30"
+                )}
+                onClick={() => setIsUnpaid(!isUnpaid)}
+              >
+                미수(외상)
+              </button>
             </div>
+            <input type="hidden" name="payment_method_id" value={isUnpaid ? '' : paymentMethodId} />
+            <input type="hidden" name="is_unpaid" value={String(isUnpaid)} />
+            {isUnpaid ? (
+              <p className="text-xs text-muted-foreground">미수로 등록됩니다. 결제 완료 시 결제방식을 선택해주세요.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {payments.map(pm => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
+                      paymentMethodId === pm.id
+                        ? "bg-brand/10 text-brand border-brand ring-2 ring-offset-1 ring-brand/50"
+                        : "border-border text-muted-foreground hover:border-foreground/30"
+                    )}
+                    onClick={() => setPaymentMethodId(pm.id)}
+                  >
+                    {pm.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {/* 예약방식 - 로드 구입이면 road 고정, 아니면 선택 */}
+          {/* 예약방식 - 로드 구입이면 road 채널 고정, 아니면 선택 */}
           {isRoadPurchase ? (
-            <input type="hidden" name="reservation_channel" value="road" />
+            <input type="hidden" name="channel_id" value={roadChannelId} />
           ) : (
             <div className="space-y-2">
               <Label>예약방식</Label>
-              <Select name="reservation_channel" defaultValue={sale?.reservation_channel || 'naver_booking'} key={sale?.id ? `ch-${sale.id}` : 'ch-create'}>
+              <Select name="channel_id" defaultValue={sale?.channel_id ?? undefined} key={sale?.id ? `ch-${sale.id}` : 'ch-create'}>
                 <SelectTrigger className="bg-muted">
-                  <SelectValue />
+                  <SelectValue placeholder="예약방식 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="phone">전화</SelectItem>
-                  <SelectItem value="kakaotalk">카카오톡</SelectItem>
-                  <SelectItem value="naver_booking">네이버예약</SelectItem>
-                  <SelectItem value="road">로드</SelectItem>
-                  <SelectItem value="other">기타</SelectItem>
+                  {channels.map(ch => (
+                    <SelectItem key={ch.id} value={ch.id}>{ch.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

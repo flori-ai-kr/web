@@ -1,6 +1,6 @@
 import type {SalesFilters} from '@/lib/actions/sales';
 import {getSaleById, getSales, getSalesSummary} from '@/lib/actions/sales';
-import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
+import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import {SalesClient} from './sales-client';
 
 export default async function SalesPage({
@@ -89,12 +89,13 @@ export default async function SalesPage({
     prevDateRange = { startDate: fmt(prevDate), endDate: fmt(prevEnd) };
   }
 
-  const [salesResult, summary, prevSummary, categories, payments, initialSelectedSale] = await Promise.all([
+  const [salesResult, summary, prevSummary, categories, payments, channels, initialSelectedSale] = await Promise.all([
     getSales(monthParam, 0, 100, filters, dateRange),
     getSalesSummary(monthParam, filters, dateRange),
     prevDateRange ? getSalesSummary(undefined, undefined, prevDateRange) : Promise.resolve(null),
     getSaleCategories(),
     getPaymentMethods(),
+    getSaleChannels(),
     params.saleId ? getSaleById(params.saleId) : Promise.resolve(null),
   ]);
 
@@ -111,6 +112,7 @@ export default async function SalesPage({
       initialFilters={filters}
       initialCategories={categories}
       initialPayments={payments}
+      initialChannels={channels}
       initialSelectedSale={initialSelectedSale}
     />
   );

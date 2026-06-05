@@ -1,19 +1,19 @@
 'use server';
 
 import {requireAuth} from '@/lib/auth-guard';
-import type {ExpenseCategory, PaymentMethod, ReservationChannel} from '@/types/database';
 import {withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
 export interface CategoryStat {
-  name: string;
+  categoryId: string | null;
+  label: string;
   count: number;
   amount: number;
   percentage: number;
 }
 
 export interface PaymentMethodStat {
-  method: PaymentMethod;
+  paymentMethodId: string | null;
   label: string;
   count: number;
   amount: number;
@@ -21,7 +21,7 @@ export interface PaymentMethodStat {
 }
 
 export interface ChannelStat {
-  channel: ReservationChannel;
+  channelId: string | null;
   label: string;
   count: number;
   amount: number;
@@ -35,7 +35,7 @@ export interface CustomerStat {
 }
 
 export interface ExpenseCategoryStat {
-  category: ExpenseCategory;
+  categoryId: string | null;
   label: string;
   amount: number;
   percentage: number;
@@ -46,14 +46,15 @@ export interface ExpenseCategoryStat {
 // month 미지정 시 서버는 "이번 달"을 집계한다(서버 기본값).
 
 interface KotlinCategoryStat {
-  name: string;
+  categoryId: number | string | null;
+  label: string;
   count: number;
   amount: number;
   percentage: number;
 }
 
 interface KotlinPaymentMethodStat {
-  method: string;
+  paymentMethodId: number | string | null;
   label: string;
   count: number;
   amount: number;
@@ -61,7 +62,7 @@ interface KotlinPaymentMethodStat {
 }
 
 interface KotlinChannelStat {
-  channel: string;
+  channelId: number | string | null;
   label: string;
   count: number;
   amount: number;
@@ -69,7 +70,7 @@ interface KotlinChannelStat {
 }
 
 interface KotlinExpenseCategoryStat {
-  category: string;
+  categoryId: number | string | null;
   label: string;
   amount: number;
   percentage: number;
@@ -99,7 +100,8 @@ async function _getCategoryStats(month?: string): Promise<CategoryStat[]> {
   await requireAuth();
   const data = await fetchMonthDashboard(month);
   return data.categoryStats.map((st) => ({
-    name: st.name,
+    categoryId: st.categoryId != null ? String(st.categoryId) : null,
+    label: st.label,
     count: st.count,
     amount: st.amount,
     percentage: st.percentage,
@@ -112,7 +114,7 @@ async function _getPaymentMethodStats(month?: string): Promise<PaymentMethodStat
   await requireAuth();
   const data = await fetchMonthDashboard(month);
   return data.paymentStats.map((st) => ({
-    method: st.method as PaymentMethod,
+    paymentMethodId: st.paymentMethodId != null ? String(st.paymentMethodId) : null,
     label: st.label,
     count: st.count,
     amount: st.amount,
@@ -127,7 +129,7 @@ async function _getChannelStats(month?: string): Promise<ChannelStat[]> {
   await requireAuth();
   const data = await fetchMonthDashboard(month);
   return data.channelStats.map((st) => ({
-    channel: st.channel as ReservationChannel,
+    channelId: st.channelId != null ? String(st.channelId) : null,
     label: st.label,
     count: st.count,
     amount: st.amount,
@@ -154,7 +156,7 @@ async function _getExpenseCategoryStats(month?: string): Promise<ExpenseCategory
   await requireAuth();
   const data = await fetchMonthDashboard(month);
   return data.expenseStats.map((st) => ({
-    category: st.category as ExpenseCategory,
+    categoryId: st.categoryId != null ? String(st.categoryId) : null,
     label: st.label,
     amount: st.amount,
     percentage: st.percentage,

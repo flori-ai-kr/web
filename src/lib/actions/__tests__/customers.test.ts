@@ -164,10 +164,10 @@ describe('findOrCreateCustomer', () => {
 
 describe('getCustomerSales', () => {
   const kSale = {
-    id: 's1', date: '2026-01-01', productName: '꽃다발', productCategory: null,
-    amount: 50000, paymentMethod: 'card', reservationChannel: 'phone',
-    customerName: '홍', customerPhone: null, customerId: 'c1', note: null,
-    isUnpaid: false, hasReview: true, createdAt: '2026-01-01', updatedAt: '2026-01-01',
+    id: 's1', date: '2026-01-01', categoryId: 5, categoryLabel: '꽃다발',
+    amount: 50000, paymentMethod: 'card', channelId: 1, channelLabel: '전화',
+    customerName: '홍', customerPhone: null, customerId: 'c1', memo: null,
+    isUnpaid: false, hasReview: true, photos: null, createdAt: '2026-01-01', updatedAt: '2026-01-01',
   }
 
   it('페이지네이션 파라미터로 조회하고 매핑한다', async () => {
@@ -175,8 +175,7 @@ describe('getCustomerSales', () => {
     const res = await getCustomerSales('c1', 2, 20)
     expect(mockApiFetch).toHaveBeenCalledWith('/customers/c1/sales?page=2&size=20')
     expect(res.hasMore).toBe(true)
-    // productCategory가 null이면 productName으로 대체
-    expect(res.sales[0].product_category).toBe('꽃다발')
+    expect(res.sales[0].category_label).toBe('꽃다발')
   })
 
   it('기본 페이지는 0, 사이즈 10', async () => {

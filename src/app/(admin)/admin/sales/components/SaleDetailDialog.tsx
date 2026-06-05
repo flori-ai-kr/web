@@ -10,15 +10,12 @@ import Image from 'next/image';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
-import {CHANNEL_LABELS, PAYMENT_LABELS} from '@/lib/constants';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
 
 interface SaleDetailDialogProps {
   sale: Sale | null;
   photos: PhotoCard | null;
   reservations: Reservation[];
-  categoryLabels: Record<string, string>;
-  paymentLabels: Record<string, string>;
   onClose: () => void;
   onEdit: (sale: Sale) => void;
   onDelete: (sale: Sale) => void;
@@ -29,8 +26,6 @@ export function SaleDetailDialog({
   sale,
   photos,
   reservations,
-  categoryLabels,
-  paymentLabels,
   onClose,
   onEdit,
   onDelete,
@@ -60,16 +55,18 @@ export function SaleDetailDialog({
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">카테고리</p>
-                <p className="font-medium">{categoryLabels[sale.product_category] || sale.product_category || sale.product_name}</p>
+                <p className="font-medium">{sale.category_label ?? '미분류'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">결제방식</p>
-                <p className="font-medium">{paymentLabels[sale.payment_method] || PAYMENT_LABELS[sale.payment_method] || sale.payment_method}</p>
+                <p className="font-medium">{sale.is_unpaid ? '미수' : (sale.payment_method_label ?? '-')}</p>
               </div>
+              {sale.channel_label && (
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">예약방식</p>
-                <p className="font-medium">{CHANNEL_LABELS[sale.reservation_channel]}</p>
+                <p className="font-medium">{sale.channel_label}</p>
               </div>
+              )}
               {sale.customer_name && (
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">고객명</p>
@@ -235,7 +232,7 @@ export function SaleDetailDialog({
       index={lightboxIndex}
       onClose={() => setLightboxIndex(null)}
       onNavigate={setLightboxIndex}
-      caption={sale ? (categoryLabels[sale.product_category] || sale.product_category) : ''}
+      caption={sale?.category_label ?? ''}
     />
     </>
   );

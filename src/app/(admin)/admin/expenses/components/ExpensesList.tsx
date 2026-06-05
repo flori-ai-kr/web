@@ -3,7 +3,6 @@
 import {useMemo} from 'react';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
-import {DomainBadge} from '@/components/ui/domain-badge';
 import {Search, Wallet} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -12,10 +11,6 @@ import type {Expense} from '@/types/database';
 
 interface ExpensesListProps {
   expenses: Expense[];
-  categoryLabels: Record<string, string>;
-  categoryColors: Record<string, string>;
-  paymentLabels: Record<string, string>;
-  paymentColors: Record<string, string>;
   hasActiveFilters: boolean;
   onSelectExpense: (expense: Expense) => void;
   onResetFilters: () => void;
@@ -31,10 +26,6 @@ interface DateGroup {
 
 export function ExpensesList({
   expenses,
-  categoryLabels,
-  categoryColors,
-  paymentLabels,
-  paymentColors,
   hasActiveFilters,
   onSelectExpense,
   onResetFilters,
@@ -114,12 +105,12 @@ export function ExpensesList({
                   {/* 1줄: 카테고리 + 결제 + 물품명 + 금액 */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <DomainBadge color={categoryColors[expense.category]} className="shrink-0">
-                        {categoryLabels[expense.category] || expense.category}
-                      </DomainBadge>
-                      <DomainBadge color={paymentColors[expense.payment_method]} className="px-1.5 text-[10px] shrink-0">
-                        {paymentLabels[expense.payment_method] || expense.payment_method}
-                      </DomainBadge>
+                      <span className="text-sm font-semibold text-foreground shrink-0">
+                        {expense.category_label ?? '미분류'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {expense.payment_method_label ?? ''}
+                      </span>
                       <span className="text-xs text-muted-foreground truncate">{expense.item_name}</span>
                     </div>
                     <span className="font-semibold text-sm text-foreground whitespace-nowrap tabular-nums">

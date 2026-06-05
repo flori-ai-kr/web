@@ -113,10 +113,10 @@ describe('getFormInt', () => {
 
 const baseRecurring = {
   item_name: '장미 정기',
-  category: '꽃',
+  category_id: '5',
   unit_price: 10000,
   quantity: 1,
-  payment_method: 'card' as const,
+  payment_method_id: '3',
   start_date: '2026-01-01',
 }
 

@@ -150,21 +150,17 @@ export function UnpaidPaymentDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap gap-2 py-2">
-          {paymentMethods.filter(pm => pm.value !== 'unpaid').map(pm => (
+          {paymentMethods.map(pm => (
             <button
               key={pm.id}
               type="button"
               className={cn(
                 'text-sm py-2 px-4 rounded-lg border transition-colors',
-                selectedMethod === pm.value
-                  ? 'border-transparent font-medium'
+                selectedMethod === pm.id
+                  ? 'bg-brand/10 text-brand border-brand font-medium'
                   : 'border-input text-muted-foreground hover:bg-muted'
               )}
-              style={selectedMethod === pm.value
-                ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color }
-                : {}
-              }
-              onClick={() => onSelectMethod(pm.value)}
+              onClick={() => onSelectMethod(pm.id)}
             >
               {pm.label}
             </button>

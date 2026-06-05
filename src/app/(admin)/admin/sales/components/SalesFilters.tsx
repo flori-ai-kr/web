@@ -5,8 +5,7 @@ import {CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Search, RotateCcw,
 import {Input} from '@/components/ui/input';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Calendar} from '@/components/ui/calendar';
-import {CHANNEL_LABELS} from '@/lib/constants';
-import type {SaleCategory, PaymentMethod} from '@/lib/actions/sale-settings';
+import type {SaleCategory, PaymentMethod, SaleChannel} from '@/lib/actions/sale-settings';
 import {ko} from 'date-fns/locale';
 
 interface SalesFiltersProps {
@@ -19,6 +18,7 @@ interface SalesFiltersProps {
   searchQuery: string;
   categories: SaleCategory[];
   payments: PaymentMethod[];
+  channels: SaleChannel[];
   onMonthNav: (direction: -1 | 1) => void;
   onTodayOnly: () => void;
   onDateRangeApply: (startDate: string, endDate: string) => void;
@@ -179,6 +179,7 @@ export function SalesFiltersUI({
   searchQuery,
   categories,
   payments,
+  channels,
   onMonthNav,
   onTodayOnly,
   onDateRangeApply,
@@ -344,7 +345,7 @@ export function SalesFiltersUI({
         {categories.length > 0 && (
           <FilterDropdown
             label="카테고리"
-            options={categories.map(c => ({ value: c.value, label: c.label }))}
+            options={categories.map(c => ({ value: c.id, label: c.label }))}
             selected={categoryFilter}
             onChange={onCategoryChange}
           />
@@ -359,7 +360,7 @@ export function SalesFiltersUI({
         )}
         <FilterDropdown
           label="채널"
-          options={Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label }))}
+          options={channels.map(c => ({ value: c.id, label: c.label }))}
           selected={channelFilter}
           onChange={onChannelChange}
         />

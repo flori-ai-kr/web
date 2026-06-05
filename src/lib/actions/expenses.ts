@@ -2,7 +2,7 @@
 
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
-import type {Expense, ExpenseCategory, PaymentMethod} from '@/types/database';
+import type {Expense} from '@/types/database';
 import {expenseSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
@@ -12,11 +12,13 @@ interface KotlinExpense {
   id: string;
   date: string;
   itemName: string;
-  category: string;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   unitPrice: number;
   quantity: number;
   totalAmount: number;
-  paymentMethod: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
   cardCompany: string | null;
   vendor: string | null;
   memo: string | null;
@@ -34,11 +36,13 @@ function mapKotlinExpense(e: KotlinExpense): Expense {
     user_id: '',
     date: e.date,
     item_name: e.itemName,
-    category: e.category as ExpenseCategory,
+    category_id: e.categoryId != null ? String(e.categoryId) : null,
+    category_label: e.categoryLabel,
     unit_price: e.unitPrice,
     quantity: e.quantity,
     total_amount: e.totalAmount,
-    payment_method: e.paymentMethod as PaymentMethod,
+    payment_method_id: e.paymentMethodId != null ? String(e.paymentMethodId) : null,
+    payment_method_label: e.paymentMethodLabel,
     card_company: e.cardCompany ?? undefined,
     vendor: e.vendor ?? undefined,
     memo: e.memo ?? undefined,
@@ -86,10 +90,10 @@ async function _createExpense(formData: FormData) {
   const parsed = expenseSchema.safeParse({
     date: formData.get('date'),
     item_name: formData.get('item_name'),
-    category: formData.get('category'),
+    category_id: formData.get('category_id'),
     unit_price: unitPrice,
     quantity: quantity,
-    payment_method: formData.get('payment_method'),
+    payment_method_id: formData.get('payment_method_id'),
     card_company: formData.get('card_company') || null,
     vendor: formData.get('vendor') || null,
     memo: formData.get('memo') || null,
@@ -104,10 +108,10 @@ async function _createExpense(formData: FormData) {
     body: JSON.stringify({
       date: parsed.data.date,
       itemName: parsed.data.item_name,
-      category: parsed.data.category,
+      categoryId: Number(parsed.data.category_id),
       unitPrice: parsed.data.unit_price,
       quantity: parsed.data.quantity,
-      paymentMethod: parsed.data.payment_method,
+      paymentMethodId: Number(parsed.data.payment_method_id),
       cardCompany: parsed.data.card_company || null,
       vendor: parsed.data.vendor || null,
       memo: parsed.data.memo || null,
@@ -129,10 +133,10 @@ async function _updateExpense(id: string, formData: FormData) {
   const parsed = expenseSchema.safeParse({
     date: formData.get('date'),
     item_name: formData.get('item_name'),
-    category: formData.get('category'),
+    category_id: formData.get('category_id'),
     unit_price: unitPrice,
     quantity: quantity,
-    payment_method: formData.get('payment_method'),
+    payment_method_id: formData.get('payment_method_id'),
     card_company: formData.get('card_company') || null,
     vendor: formData.get('vendor') || null,
     memo: formData.get('memo') || null,
@@ -147,10 +151,10 @@ async function _updateExpense(id: string, formData: FormData) {
     body: JSON.stringify({
       date: parsed.data.date,
       itemName: parsed.data.item_name,
-      category: parsed.data.category,
+      categoryId: Number(parsed.data.category_id),
       unitPrice: parsed.data.unit_price,
       quantity: parsed.data.quantity,
-      paymentMethod: parsed.data.payment_method,
+      paymentMethodId: Number(parsed.data.payment_method_id),
       cardCompany: parsed.data.card_company || null,
       vendor: parsed.data.vendor || null,
       memo: parsed.data.memo || null,

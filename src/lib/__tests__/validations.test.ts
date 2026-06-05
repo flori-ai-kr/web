@@ -143,9 +143,9 @@ describe('Month Schema', () => {
 describe('Sale Schema (매출)', () => {
   const validSale = {
     date: '2024-01-15',
-    product_category: '미니 꽃다발',
+    category_id: '5',
     amount: 50000,
-    payment_method: 'card' as const,
+    payment_method_id: '3',
     note: '테스트',
   }
 
@@ -153,9 +153,9 @@ describe('Sale Schema (매출)', () => {
     expect(saleSchema.safeParse(validSale).success).toBe(true)
   })
 
-  it('결제방식 enum 외 값을 거부한다', () => {
+  it('잘못된 결제방식 id를 거부한다', () => {
     expect(
-      saleSchema.safeParse({ ...validSale, payment_method: 'bitcoin' }).success
+      saleSchema.safeParse({ ...validSale, payment_method_id: 'bitcoin' }).success
     ).toBe(false)
   })
 
@@ -173,7 +173,7 @@ describe('Sale Schema (매출)', () => {
 
   it('빈 상품 카테고리를 거부한다', () => {
     expect(
-      saleSchema.safeParse({ ...validSale, product_category: '' }).success
+      saleSchema.safeParse({ ...validSale, category_id: '' }).success
     ).toBe(false)
   })
 
@@ -187,15 +187,15 @@ describe('Sale Schema (매출)', () => {
     fc.assert(
       fc.property(
         arbitraryDate,
-        fc.string({ minLength: 1, maxLength: 100 }),
+        fc.integer({ min: 1, max: 100000 }),
         fc.integer({ min: 0, max: 100_000_000 }),
         fc.constantFrom('cash', 'card', 'transfer', 'naverpay', 'kakaopay'),
-        (date, category, amount, method) => {
+        (date, categoryId, amount, method) => {
           return saleSchema.safeParse({
             date,
-            product_category: category,
+            category_id: String(categoryId),
             amount,
-            payment_method: method,
+            payment_method_id: '3',
           }).success
         }
       ),
@@ -266,10 +266,10 @@ describe('Expense Schema (지출)', () => {
   const validExpense = {
     date: '2024-01-15',
     item_name: '장미 100송이',
-    category: 'flower_purchase',
+    category_id: '5',
     unit_price: 50000,
     quantity: 2,
-    payment_method: 'card' as const,
+    payment_method_id: '3',
   }
 
   it('유효한 지출 데이터를 통과한다', () => {
@@ -422,16 +422,16 @@ describe('Security: Input boundary tests', () => {
   it('매우 큰 문자열 입력을 거부한다', () => {
     const hugeString = 'x'.repeat(10000)
     expect(customerSchema.safeParse({ name: hugeString, phone: '010-1234-5678' }).success).toBe(false)
-    expect(saleSchema.safeParse({ date: '2024-01-01', product_category: hugeString, amount: 1000, payment_method: 'cash' }).success).toBe(false)
+    expect(saleSchema.safeParse({ date: '2024-01-01', category_id: hugeString, amount: 1000, payment_method_id: '3' }).success).toBe(false)
   })
 
   it('소수점 금액을 거부한다 (정수만 허용)', () => {
     expect(
       saleSchema.safeParse({
         date: '2024-01-01',
-        product_category: 'test',
+        category_id: '5',
         amount: 1000.5,
-        payment_method: 'cash',
+        payment_method_id: '3',
       }).success
     ).toBe(false)
   })

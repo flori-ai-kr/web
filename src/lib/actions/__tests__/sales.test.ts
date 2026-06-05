@@ -33,20 +33,19 @@ beforeEach(() => {
 })
 
 const kSale = {
-  id: 's1', date: '2026-01-01', productName: '꽃다발', productCategory: null,
-  amount: 50000, paymentMethod: 'card', cardCompany: '신한', fee: 750,
-  expectedDeposit: 49250, expectedDepositDate: '2026-01-03', depositStatus: 'pending',
-  depositedAt: null, reservationChannel: 'phone', customerName: '홍', customerPhone: null,
-  customerId: null, note: null, isUnpaid: false, hasReview: false,
+  id: 's1', date: '2026-01-01', categoryId: 5, categoryLabel: '꽃다발',
+  amount: 50000, paymentMethod: 'card', channelId: 1, channelLabel: '전화',
+  customerName: '홍', customerPhone: null,
+  customerId: null, memo: null, isUnpaid: false, hasReview: false, photos: null,
   createdAt: '2026-01-01', updatedAt: '2026-01-01',
 }
 
 const saleForm = (over: Record<string, string> = {}) => {
   const fd = new FormData()
   fd.set('date', '2026-01-01')
-  fd.set('product_category', '꽃다발')
+  fd.set('category_id', '5')
   fd.set('amount', '50000')
-  fd.set('payment_method', 'card')
+  fd.set('payment_method_id', '3')
   for (const [k, v] of Object.entries(over)) fd.set(k, v)
   return fd
 }
@@ -66,7 +65,7 @@ describe('getSales', () => {
     expect(url).toContain('payment=card')
     expect(url).toContain('channel=phone')
     expect(res.hasMore).toBe(true)
-    expect(res.sales[0].product_category).toBe('꽃다발') // null이면 productName
+    expect(res.sales[0].category_label).toBe('꽃다발')
   })
 
   it('기본 offset/limit', async () => {
@@ -125,15 +124,16 @@ describe('createSale', () => {
     expect(mockFindOrCreate).not.toHaveBeenCalled()
   })
 
-  it('필수값(payment_method) 누락은 거부', async () => {
-    await expect(createSale(saleForm({ payment_method: '' }))).rejects.toThrow()
+  it('필수값(category_id) 누락은 거부', async () => {
+    await expect(createSale(saleForm({ category_id: '' }))).rejects.toThrow()
     expect(mockApiFetch).not.toHaveBeenCalled()
   })
 
   it('성공 시 세 경로를 revalidate', async () => {
     mockApiFetch.mockResolvedValue(kSale)
     await createSale(saleForm())
-    expect(body().reservationChannel).toBe('other') // 기본값
+    expect(body().categoryId).toBe(5)
+    expect(body().channelId).toBeNull() // 채널 미지정 시 null
   })
 })
 
@@ -172,9 +172,9 @@ describe('updateSale', () => {
 describe('completeUnpaidSale', () => {
   it('id+결제방식 검증 후 POST', async () => {
     mockApiFetch.mockResolvedValue(kSale)
-    await completeUnpaidSale('1', 'card')
+    await completeUnpaidSale('1', '3')
     expect(mockApiFetch).toHaveBeenCalledWith('/sales/1/complete-unpaid', expect.objectContaining({ method: 'POST' }))
-    expect(body().paymentMethod).toBe('card')
+    expect(body().paymentMethodId).toBe(3)
   })
 
   it('잘못된 결제방식 거부', async () => {
@@ -182,7 +182,7 @@ describe('completeUnpaidSale', () => {
   })
 
   it('잘못된 id 거부', async () => {
-    await expect(completeUnpaidSale('x', 'card')).rejects.toThrow('올바르지 않은 ID')
+    await expect(completeUnpaidSale('x', '3')).rejects.toThrow('올바르지 않은 ID')
   })
 })
 

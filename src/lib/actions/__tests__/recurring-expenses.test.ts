@@ -34,8 +34,8 @@ beforeEach(() => {
 
 const rule = (over: Partial<RecurringExpense>): RecurringExpense =>
   ({
-    id: 'r1', user_id: '', item_name: '정기', category: '꽃', unit_price: 1000,
-    quantity: 1, payment_method: 'card', vendor: null, note: null,
+    id: 'r1', user_id: '', item_name: '정기', category_id: '5', category_label: '꽃', unit_price: 1000,
+    quantity: 1, payment_method: 'card', vendor: null, memo: null,
     frequency: 'weekly', interval_count: 1, days_of_week: [], days_of_month: [],
     yearly_dates: [], start_date: '2026-01-01', end_date: null, is_active: true,
     created_at: '', updated_at: '', ...over,
@@ -94,16 +94,16 @@ describe('nextOccurrenceISO — 연간', () => {
 })
 
 const kRecurring = {
-  id: 'r1', itemName: '정기', category: '꽃', unitPrice: 1000, quantity: 1,
-  paymentMethod: 'card', vendor: null, note: null, frequency: 'weekly',
+  id: 'r1', itemName: '정기', categoryId: 5, categoryLabel: '꽃', unitPrice: 1000, quantity: 1,
+  paymentMethod: 'card', vendor: null, memo: null, frequency: 'weekly',
   intervalCount: 1, daysOfWeek: [1], daysOfMonth: [], yearlyDates: [],
   startDate: '2026-01-01', endDate: null, isActive: true,
   createdAt: '2026-01-01', updatedAt: '2026-01-01',
 }
 
 const validInput = {
-  item_name: '정기', category: '꽃', unit_price: 1000, quantity: 1,
-  payment_method: 'card' as const, vendor: null, note: null,
+  item_name: '정기', category_id: '5', unit_price: 1000, quantity: 1,
+  payment_method_id: '3', vendor: null, memo: null,
   frequency: 'weekly' as const, interval_count: 1, days_of_week: [1],
   days_of_month: [], yearly_dates: [], start_date: '2026-01-01',
   end_date: null, is_active: true,

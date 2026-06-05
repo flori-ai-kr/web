@@ -3,7 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {findOrCreateCustomer} from './customers';
-import type {PaymentMethod, ReservationChannel, Sale} from '@/types/database';
+import type {Sale} from '@/types/database';
 import {z} from 'zod';
 import {idSchema, saleSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
@@ -45,20 +45,17 @@ export interface SalesFilters {
 }
 
 // Kotlin /sales 응답의 단일 매출 (camelCase). 서버 계약과 1:1.
+// 카테고리·채널은 id 기반 + 라벨 동봉(label_settings). 결제방식은 문자열 value 유지.
 interface KotlinSale {
   id: string;
   date: string;
-  productName: string;
-  productCategory: string | null;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   amount: number;
-  paymentMethod: string;
-  cardCompany: string | null;
-  fee: number | null;
-  expectedDeposit: number | null;
-  expectedDepositDate: string | null;
-  depositStatus: string;
-  depositedAt: string | null;
-  reservationChannel: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
+  channelId: number | string | null;
+  channelLabel: string | null;
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
@@ -83,11 +80,13 @@ function mapKotlinSale(s: KotlinSale): Sale {
     id: s.id,
     user_id: '',
     date: s.date,
-    product_name: s.productName,
-    product_category: s.productCategory ?? s.productName,
+    category_id: s.categoryId != null ? String(s.categoryId) : null,
+    category_label: s.categoryLabel,
     amount: s.amount,
-    payment_method: s.paymentMethod as PaymentMethod,
-    reservation_channel: s.reservationChannel as ReservationChannel,
+    payment_method_id: s.paymentMethodId != null ? String(s.paymentMethodId) : null,
+    payment_method_label: s.paymentMethodLabel,
+    channel_id: s.channelId != null ? String(s.channelId) : null,
+    channel_label: s.channelLabel,
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
@@ -177,19 +176,20 @@ export const getSalesSummary = withErrorLogging('getSalesSummary', _getSalesSumm
 async function _createSale(formData: FormData) {
   await requireAuth();
 
-  const productCategory = formData.get('product_category') as string;
   const customerName = formData.get('customer_name') as string || null;
   const customerPhone = formData.get('customer_phone') as string || null;
   const customerId = formData.get('customer_id') as string || null;
-  const cardCompany = formData.get('card_company') as string || null;
+
+  const isUnpaid = formData.get('is_unpaid') === 'true';
 
   // 입력 검증
   const parsed = saleSchema.safeParse({
     date: formData.get('date'),
-    product_category: productCategory,
+    category_id: formData.get('category_id'),
     amount: parseInt(formData.get('amount') as string) || 0,
-    payment_method: formData.get('payment_method'),
-    reservation_channel: formData.get('reservation_channel') || 'other',
+    payment_method_id: isUnpaid ? null : (formData.get('payment_method_id') || null),
+    is_unpaid: isUnpaid,
+    channel_id: formData.get('channel_id') || null,
     customer_name: customerName,
     customer_phone: customerPhone,
     memo: formData.get('memo') || null,
@@ -200,16 +200,16 @@ async function _createSale(formData: FormData) {
 
   const finalCustomerId = await resolveCustomerId(customerId, customerName, customerPhone);
 
-  // fee/expected_deposit/deposit_status/is_unpaid는 서버가 계산한다.
+  // 미수(isUnpaid=true)면 서버가 paymentMethodId를 무시하고 NULL 저장. 카테고리·채널·결제는 id로 전송.
   const created = await apiFetch<KotlinSale>('/sales', {
     method: 'POST',
     body: JSON.stringify({
       date: parsed.data.date,
-      productCategory,
+      categoryId: Number(parsed.data.category_id),
       amount: parsed.data.amount,
-      paymentMethod: parsed.data.payment_method,
-      cardCompany,
-      reservationChannel: parsed.data.reservation_channel || 'other',
+      paymentMethodId: parsed.data.payment_method_id ? Number(parsed.data.payment_method_id) : null,
+      isUnpaid,
+      channelId: parsed.data.channel_id ? Number(parsed.data.channel_id) : null,
       customerName,
       customerPhone,
       customerId: finalCustomerId,
@@ -236,12 +236,16 @@ async function _updateSale(id: string, formData: FormData) {
   const customerPhone = formData.has('customer_phone') ? (formData.get('customer_phone') as string || null) : undefined;
   const customerId = formData.get('customer_id') as string || null;
 
+  const unpaidProvided = formData.has('is_unpaid');
+  const isUnpaid = formData.get('is_unpaid') === 'true';
+
   const parsed = saleSchema.partial().safeParse({
     date: formData.get('date') || undefined,
-    product_category: formData.get('product_category') || undefined,
+    category_id: formData.get('category_id') || undefined,
     amount: formData.get('amount') ? parseInt(formData.get('amount') as string) : undefined,
-    payment_method: formData.get('payment_method') || undefined,
-    reservation_channel: formData.get('reservation_channel') || undefined,
+    payment_method_id: formData.has('payment_method_id') ? (formData.get('payment_method_id') as string || null) : undefined,
+    is_unpaid: unpaidProvided ? isUnpaid : undefined,
+    channel_id: formData.has('channel_id') ? (formData.get('channel_id') as string || null) : undefined,
     customer_name: customerName,
     customer_phone: customerPhone,
     memo: formData.has('memo') ? (formData.get('memo') as string || null) : undefined,
@@ -258,10 +262,15 @@ async function _updateSale(id: string, formData: FormData) {
   // 제공된 필드만 PATCH 본문에 포함 (서버가 non-null 필드만 반영)
   const body: Record<string, string | number | boolean | null> = {};
   if (parsed.data.date !== undefined) body.date = parsed.data.date;
-  if (parsed.data.product_category !== undefined) body.productCategory = parsed.data.product_category;
+  if (parsed.data.category_id !== undefined) body.categoryId = Number(parsed.data.category_id);
   if (parsed.data.amount !== undefined) body.amount = parsed.data.amount;
-  if (parsed.data.payment_method !== undefined) body.paymentMethod = parsed.data.payment_method;
-  if (parsed.data.reservation_channel !== undefined) body.reservationChannel = parsed.data.reservation_channel;
+  if (unpaidProvided) {
+    body.isUnpaid = isUnpaid;
+    body.paymentMethodId = isUnpaid ? null : (parsed.data.payment_method_id ? Number(parsed.data.payment_method_id) : null);
+  } else if (parsed.data.payment_method_id !== undefined) {
+    body.paymentMethodId = parsed.data.payment_method_id ? Number(parsed.data.payment_method_id) : null;
+  }
+  if (parsed.data.channel_id !== undefined) body.channelId = parsed.data.channel_id ? Number(parsed.data.channel_id) : null;
   if (parsed.data.customer_name !== undefined) body.customerName = parsed.data.customer_name;
   if (parsed.data.customer_phone !== undefined) body.customerPhone = parsed.data.customer_phone;
   if (parsed.data.memo !== undefined) body.memo = parsed.data.memo;
@@ -288,17 +297,17 @@ export const updateSale = withErrorLogging('updateSale', _updateSale);
  * 미수 매출의 결제를 완료한다.
  * payment_method를 실제 결제방식으로 변경한다.
  */
-async function _completeUnpaidSale(saleId: string, paymentMethod: string) {
+async function _completeUnpaidSale(saleId: string, paymentMethodId: string) {
   await requireAuth();
   const idParsed = idSchema.safeParse(saleId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  const pmParsed = z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']).safeParse(paymentMethod);
+  const pmParsed = idSchema.safeParse(paymentMethodId);
   if (!pmParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 결제방식입니다');
 
   await apiFetch<KotlinSale>(`/sales/${idParsed.data}/complete-unpaid`, {
     method: 'POST',
-    body: JSON.stringify({ paymentMethod: pmParsed.data }),
+    body: JSON.stringify({ paymentMethodId: Number(pmParsed.data) }),
   });
 
   revalidatePath('/admin/sales');

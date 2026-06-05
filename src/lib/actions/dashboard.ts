@@ -2,10 +2,7 @@
 
 import {requireAuth} from '@/lib/auth-guard';
 import type {
-    ExpenseCategory,
-    PaymentMethod,
     Reservation,
-    ReservationChannel,
     ReservationStatus,
     Sale,
 } from '@/types/database';
@@ -39,23 +36,20 @@ interface KotlinDashboardSummary {
 interface KotlinSale {
   id: string;
   date: string;
-  productName: string;
-  productCategory: string | null;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   amount: number;
-  paymentMethod: string;
-  cardCompany: string | null;
-  fee: number | null;
-  expectedDeposit: number | null;
-  expectedDepositDate: string | null;
-  depositStatus: string;
-  depositedAt: string | null;
-  reservationChannel: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
+  channelId: number | string | null;
+  channelLabel: string | null;
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
   memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
+  photos: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,14 +78,15 @@ interface KotlinCategoryOption {
 }
 
 interface KotlinCategoryStat {
-  name: string;
+  categoryId: number | string | null;
+  label: string;
   count: number;
   amount: number;
   percentage: number;
 }
 
 interface KotlinPaymentMethodStat {
-  method: string;
+  paymentMethodId: number | string | null;
   label: string;
   count: number;
   amount: number;
@@ -99,7 +94,7 @@ interface KotlinPaymentMethodStat {
 }
 
 interface KotlinChannelStat {
-  channel: string;
+  channelId: number | string | null;
   label: string;
   count: number;
   amount: number;
@@ -107,7 +102,7 @@ interface KotlinChannelStat {
 }
 
 interface KotlinExpenseCategoryStat {
-  category: string;
+  categoryId: number | string | null;
   label: string;
   amount: number;
   percentage: number;
@@ -148,24 +143,25 @@ function mapSummary(s: KotlinDashboardSummary): DashboardSummary {
   };
 }
 
-// photos는 Kotlin /dashboard가 반환하지 않으므로 undefined.
 function mapSale(s: KotlinSale): Sale {
   return {
     id: s.id,
     user_id: '',
     date: s.date,
-    product_name: s.productName,
-    product_category: s.productCategory ?? s.productName,
+    category_id: s.categoryId != null ? String(s.categoryId) : null,
+    category_label: s.categoryLabel,
     amount: s.amount,
-    payment_method: s.paymentMethod as PaymentMethod,
-    reservation_channel: s.reservationChannel as ReservationChannel,
+    payment_method_id: s.paymentMethodId != null ? String(s.paymentMethodId) : null,
+    payment_method_label: s.paymentMethodLabel,
+    channel_id: s.channelId != null ? String(s.channelId) : null,
+    channel_label: s.channelLabel,
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
     memo: s.memo ?? undefined,
     is_unpaid: s.isUnpaid,
     has_review: s.hasReview,
-    photos: undefined,
+    photos: s.photos && s.photos.length > 0 ? s.photos : undefined,
     created_at: s.createdAt,
     updated_at: s.updatedAt,
   };
@@ -194,7 +190,8 @@ function mapReservation(r: KotlinReservation): Reservation {
 
 function mapCategoryStats(stats: KotlinCategoryStat[]): CategoryStat[] {
   return stats.map((st) => ({
-    name: st.name,
+    categoryId: st.categoryId != null ? String(st.categoryId) : null,
+    label: st.label,
     count: st.count,
     amount: st.amount,
     percentage: st.percentage,
@@ -203,7 +200,7 @@ function mapCategoryStats(stats: KotlinCategoryStat[]): CategoryStat[] {
 
 function mapPaymentStats(stats: KotlinPaymentMethodStat[]): PaymentMethodStat[] {
   return stats.map((st) => ({
-    method: st.method as PaymentMethod,
+    paymentMethodId: st.paymentMethodId != null ? String(st.paymentMethodId) : null,
     label: st.label,
     count: st.count,
     amount: st.amount,
@@ -213,7 +210,7 @@ function mapPaymentStats(stats: KotlinPaymentMethodStat[]): PaymentMethodStat[] 
 
 function mapChannelStats(stats: KotlinChannelStat[]): ChannelStat[] {
   return stats.map((st) => ({
-    channel: st.channel as ReservationChannel,
+    channelId: st.channelId != null ? String(st.channelId) : null,
     label: st.label,
     count: st.count,
     amount: st.amount,
@@ -223,7 +220,7 @@ function mapChannelStats(stats: KotlinChannelStat[]): ChannelStat[] {
 
 function mapExpenseStats(stats: KotlinExpenseCategoryStat[]): ExpenseCategoryStat[] {
   return stats.map((st) => ({
-    category: st.category as ExpenseCategory,
+    categoryId: st.categoryId != null ? String(st.categoryId) : null,
     label: st.label,
     amount: st.amount,
     percentage: st.percentage,

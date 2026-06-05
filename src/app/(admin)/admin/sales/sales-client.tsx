@@ -18,10 +18,9 @@ import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {formatCurrency} from '@/lib/utils';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
-import {getPaymentMethods, getSaleCategories, PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
+import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
-import {CHANNEL_LABELS} from '@/lib/constants';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
@@ -51,11 +50,12 @@ interface Props {
   initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
+  initialChannels: SaleChannel[];
   initialSelectedSale?: Sale | null;
   prevTotal?: number | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialSelectedSale, prevTotal }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale, prevTotal }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -74,6 +74,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
+  const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
@@ -111,17 +112,14 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     }
   }, [initialSelectedSale]);
 
-  // 카테고리/결제방식 라벨 맵 생성 (value -> label)
-  const categoryLabels = useMemo(() =>
-    Object.fromEntries(categories.map(c => [c.value, c.label])), [categories]);
-  const paymentLabels = useMemo(() =>
-    Object.fromEntries(payments.map(p => [p.value, p.label])), [payments]);
+  // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
 
   // 설정 새로고침
   const refreshSettings = async () => {
-    const [cats, pays] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
+    const [cats, pays, chs] = await Promise.all([getSaleCategories(), getPaymentMethods(), getSaleChannels()]);
     setCategories(cats);
     setPayments(pays);
+    setChannels(chs);
   };
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
@@ -212,16 +210,16 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     title: `매출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
     columns: [
       { header: '날짜', accessor: (s) => String(s.date || '') },
-      { header: '카테고리', accessor: (s) => categoryLabels[s.product_category] || s.product_category || '' },
+      { header: '카테고리', accessor: (s) => s.category_label || '' },
       { header: '금액', accessor: (s) => Number(s.amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (s) => paymentLabels[s.payment_method] || s.payment_method || '' },
-      { header: '채널', accessor: (s) => CHANNEL_LABELS[s.reservation_channel] || '' },
+      { header: '결제방법', accessor: (s) => s.is_unpaid ? '미수' : (s.payment_method_label ?? '') },
+      { header: '채널', accessor: (s) => s.channel_label || '' },
       { header: '고객명', accessor: (s) => String(s.customer_name || '') },
       { header: '메모', accessor: (s) => String(s.memo || '') },
     ],
     data: filteredSales,
     });
-  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel, categoryLabels, paymentLabels]);
+  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
 
   // 매출 상세 선택 시 사진 + 연결 예약 로드
   const handleSelectSale = async (sale: Sale) => {
@@ -328,8 +326,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   };
 
   const getDefaultPhotoTitle = (sale: Sale) => {
-    const categoryLabel = categoryLabels[sale.product_category] || sale.product_category;
-    return `${format(new Date(sale.date), 'yy/MM/dd')} ${categoryLabel}`;
+    return `${format(new Date(sale.date), 'yy/MM/dd')} ${sale.category_label ?? ''}`.trim();
   };
 
   const handleEdit = (sale: Sale) => {
@@ -414,6 +411,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         searchQuery={searchQuery}
         categories={categories}
         payments={payments}
+        channels={channels}
         onMonthNav={handleMonthNav}
         onTodayOnly={handleTodayOnly}
         onDateRangeApply={handleDateRangeApply}
@@ -429,8 +427,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       {/* Sales List */}
       <SalesList
         sales={filteredSales}
-        categoryLabels={categoryLabels}
-        paymentLabels={paymentLabels}
         hasActiveFilters={hasActiveFilters}
         hasMore={hasMore}
         isLoadingMore={isLoadingMore || isSearching}
@@ -453,6 +449,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={editingSale}
         categories={categories}
         payments={payments}
+        channels={channels}
         initialCustomer={initialCustomer}
         onSuccess={handleFormSuccess}
       />
@@ -462,8 +459,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={selectedSale}
         photos={selectedSalePhotos}
         reservations={selectedSaleReservations}
-        categoryLabels={categoryLabels}
-        paymentLabels={paymentLabels}
         onClose={() => setSelectedSale(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}

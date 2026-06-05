@@ -422,13 +422,11 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
                       </span>
                       <div className="min-w-0 leading-tight">
                         <p className="text-sm font-medium text-foreground truncate">
-                          {categoryLabels[sale.product_category] ||
-                            categoryLabels[sale.product_name] ||
-                            sale.product_name}
+                          {sale.category_label ?? '미분류'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {paymentLabels[sale.payment_method] || sale.payment_method}
-                          {sale.reservation_channel === 'road' ? ' · 로드' : sale.customer_name ? ` · ${sale.customer_name}` : ''}
+                          {sale.is_unpaid ? '미수' : (sale.payment_method_label ?? '')}
+                          {sale.customer_name ? ` · ${sale.customer_name}` : (sale.channel_label ? ` · ${sale.channel_label}` : '')}
                         </p>
                       </div>
                     </div>
@@ -547,7 +545,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
                 <p className="text-[11px] text-muted-foreground mb-4">어떤 상품이 가장 많이 팔렸는지 보여줘요</p>
                 <BarList
                   items={categoryStats.map((c) => ({
-                    label: categoryLabels[c.name] || c.name,
+                    label: c.label,
                     amount: c.amount,
                     percentage: c.percentage,
                   }))}

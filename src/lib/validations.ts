@@ -18,10 +18,11 @@ export const colorSchema = z.string().regex(hexColorRegex, '색상 형식이 올
 // 매출 생성/수정
 export const saleSchema = z.object({
   date: dateSchema,
-  product_category: z.string().min(1).max(100),
+  category_id: idSchema,
   amount: z.number().int().min(0).max(100_000_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay', 'unpaid']),
-  reservation_channel: z.enum(['phone', 'kakaotalk', 'naver_booking', 'road', 'other']).optional(),
+  payment_method_id: idSchema.nullable().optional(),
+  is_unpaid: z.boolean().optional(),
+  channel_id: idSchema.nullable().optional(),
   customer_name: z.string().max(100).nullable().optional(),
   customer_phone: z.string().max(20).nullable().optional(),
   customer_id: idSchema.nullable().optional(),
@@ -41,10 +42,10 @@ export const customerSchema = z.object({
 export const expenseSchema = z.object({
   date: dateSchema,
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
-  category: z.string().min(1).max(30),
+  category_id: idSchema,
   unit_price: z.number().int().min(0).max(100_000_000),
   quantity: z.number().int().min(1).max(10_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method_id: idSchema,
   card_company: z.string().max(50).nullable().optional(),
   vendor: z.string().max(100).nullable().optional(),
   memo: z.string().max(1000).nullable().optional(),
@@ -58,10 +59,10 @@ export const yearlyDateSchema = z.object({
 
 export const recurringExpenseSchema = z.object({
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
-  category: z.string().min(1).max(30),
+  category_id: idSchema,
   unit_price: z.number().int().min(0).max(100_000_000),
   quantity: z.number().int().min(1).max(10_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method_id: idSchema,
   vendor: z.string().max(100).nullable().optional(),
   memo: z.string().max(1000).nullable().optional(),
   frequency: z.enum(['weekly', 'monthly', 'yearly']),

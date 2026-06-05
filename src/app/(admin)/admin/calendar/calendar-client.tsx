@@ -62,11 +62,10 @@ import {completeUnpaidSale, deleteSale, getSaleById, revertUnpaidSale, updateSal
 import {checkPhoneDuplicate} from '@/lib/actions/customers';
 import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
 import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
-import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';
-import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
+import type {PaymentMethod as PaymentMethodType, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
+import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import type {Schedule, Reservation, ReservationStatus} from '@/types/database';
 import {SCHEDULE_COLORS} from '@/types/database';
-import {CHANNEL_LABELS} from '@/lib/constants';
 import type {CalendarReservation} from './types';
 import {ScheduleCard} from './components/ScheduleCard';
 import {ReservationCard} from './components/ReservationCard';
@@ -154,7 +153,7 @@ export function CalendarClient() {
     memo: '',
     product_category: '',
     payment_method: '',
-    reservation_channel: 'other',
+    reservation_channel: '',
     sale_date: '',
   });
   const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', amount: '', reminder_date: '', reminder_time: '' }]);
@@ -164,6 +163,7 @@ export function CalendarClient() {
 
   // Sale settings
   const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
+  const [saleChannels, setSaleChannels] = useState<SaleChannel[]>([]);
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Delete dialog
@@ -259,9 +259,10 @@ export function CalendarClient() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [cats, payments] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
+        const [cats, payments, chs] = await Promise.all([getSaleCategories(), getPaymentMethods(), getSaleChannels()]);
         setSaleCategories(cats);
         setSalePaymentMethods(payments);
+        setSaleChannels(chs);
       } catch { /* ignore */ }
     };
     loadSettings();
@@ -296,7 +297,7 @@ export function CalendarClient() {
     const isCompleting = reservation.status === 'confirmed';
 
     // 미수건 픽업 완료 시 → 결제방식 선택 팝업
-    if (isCompleting && reservation.sale_id && reservation.sale_is_unpaid && reservation.sale_payment_method === 'unpaid') {
+    if (isCompleting && reservation.sale_id && reservation.sale_is_unpaid) {
       setUnpaidTarget(reservation as Reservation & { sale_id: string });
       setUnpaidPaymentMethod('');
       return;
@@ -441,7 +442,7 @@ export function CalendarClient() {
       memo: '',
       product_category: '',
       payment_method: '',
-      reservation_channel: 'other',
+      reservation_channel: '',
       sale_date: format(new Date(), 'yyyy-MM-dd'),
     });
     setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
@@ -482,20 +483,20 @@ export function CalendarClient() {
       });
     }
 
-    // 매출 연결 시 매출 상세를 조회해서 카테고리/결제방식/채널/결제일자를 채운다
+    // 매출 연결 시 매출 상세를 조회해서 카테고리/결제방식/채널/결제일자(id 기반)를 채운다
     let saleDate = reservation.sale_date || '';
-    let productCategory = reservation.product_category || '';
-    let paymentMethod = reservation.sale_payment_method || '';
-    let reservationChannel = reservation.sale_reservation_channel || 'other';
+    let categoryId = '';
+    let paymentMethodId = '';
+    let channelId = '';
 
     if (saleId) {
       try {
         const sale = await getSaleById(saleId);
         if (sale) {
           saleDate = sale.date || saleDate;
-          productCategory = sale.product_category || productCategory;
-          paymentMethod = sale.payment_method || paymentMethod;
-          reservationChannel = sale.reservation_channel || reservationChannel;
+          categoryId = sale.category_id || categoryId;
+          paymentMethodId = sale.payment_method_id || paymentMethodId;
+          channelId = sale.channel_id || channelId;
         }
       } catch { /* 조회 실패 시 기존 값 유지 */ }
     }
@@ -505,9 +506,9 @@ export function CalendarClient() {
       customer_phone: reservation.customer_phone || '',
       title: reservation.title,
       memo: reservation.memo || '',
-      product_category: productCategory,
-      payment_method: paymentMethod,
-      reservation_channel: reservationChannel,
+      product_category: categoryId,
+      payment_method: paymentMethodId,
+      reservation_channel: channelId,
       sale_date: saleDate,
     });
     setPickups(allPickups);
@@ -526,7 +527,7 @@ export function CalendarClient() {
       const updated = { ...p, [field]: value };
 
       // 미수 선택 시 첫 번째 픽업 날짜 변경하면 결제일자 동기화
-      if (field === 'date' && index === 0 && value && formData.payment_method === 'unpaid') {
+      if (field === 'date' && index === 0 && value && formData.payment_method === '__unpaid__') {
         setFormData(prev => ({ ...prev, sale_date: value }));
       }
 
@@ -694,9 +695,9 @@ export function CalendarClient() {
             if (formData.sale_date) saleFormData.set('date', formData.sale_date);
             saleFormData.set('amount', String(totalAmount));
             saleFormData.set('memo', formData.memo || '');
-            if (formData.product_category) saleFormData.set('product_category', formData.product_category);
-            if (formData.payment_method) saleFormData.set('payment_method', formData.payment_method);
-            if (formData.reservation_channel) saleFormData.set('reservation_channel', formData.reservation_channel);
+            if (formData.product_category) saleFormData.set('category_id', formData.product_category);
+            if (formData.payment_method === '__unpaid__') { saleFormData.set('is_unpaid', 'true'); } else if (formData.payment_method) { saleFormData.set('payment_method_id', formData.payment_method); }
+            if (formData.reservation_channel) saleFormData.set('channel_id', formData.reservation_channel);
             saleFormData.set('customer_name', formData.customer_name);
             if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
             await updateSale(editingSaleId, saleFormData);
@@ -725,10 +726,10 @@ export function CalendarClient() {
         // 2. 매출 생성
         const saleFormData = new FormData();
         saleFormData.set('date', formData.sale_date || dateStr);
-        saleFormData.set('product_category', formData.product_category);
+        saleFormData.set('category_id', formData.product_category);
         saleFormData.set('amount', String(totalAmount));
-        saleFormData.set('payment_method', formData.payment_method);
-        saleFormData.set('reservation_channel', formData.reservation_channel);
+        if (formData.payment_method === '__unpaid__') { saleFormData.set('is_unpaid', 'true'); } else { saleFormData.set('payment_method_id', formData.payment_method); }
+        saleFormData.set('channel_id', formData.reservation_channel);
         saleFormData.set('customer_name', formData.customer_name);
         saleFormData.set('customer_phone', formData.customer_phone);
         saleFormData.set('memo', formData.memo || '');
@@ -1071,7 +1072,7 @@ export function CalendarClient() {
                       memo: '',
                       product_category: '',
                       payment_method: '',
-                      reservation_channel: 'other',
+                      reservation_channel: '',
                       sale_date: format(new Date(), 'yyyy-MM-dd'),
                     });
                     setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
@@ -1263,7 +1264,7 @@ export function CalendarClient() {
                       <select
                         value={formData.product_category}
                         onChange={(e) => {
-                          const cat = saleCategories.find(c => c.value === e.target.value);
+                          const cat = saleCategories.find(c => c.id === e.target.value);
                           setFormData({
                             ...formData,
                             product_category: e.target.value,
@@ -1275,7 +1276,7 @@ export function CalendarClient() {
                       >
                         <option value="">선택</option>
                         {saleCategories.map((cat) => (
-                          <option key={cat.id} value={cat.value}>{cat.label}</option>
+                          <option key={cat.id} value={cat.id}>{cat.label}</option>
                         ))}
                       </select>
                     </div>
@@ -1302,8 +1303,9 @@ export function CalendarClient() {
                           className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
                           aria-label="예약 채널"
                         >
-                          {Object.entries(CHANNEL_LABELS).map(([val, label]) => (
-                            <option key={val} value={val}>{label}</option>
+                          <option value="">선택</option>
+                          {saleChannels.map((ch) => (
+                            <option key={ch.id} value={ch.id}>{ch.label}</option>
                           ))}
                         </select>
                       </div>
@@ -1315,7 +1317,7 @@ export function CalendarClient() {
                             const newMethod = e.target.value;
                             const updates: Partial<typeof formData> = { payment_method: newMethod };
                             // 미수 선택 시 결제일자를 첫 번째 픽업 일자로 동기화
-                            if (newMethod === 'unpaid' && pickups[0]?.date) {
+                            if (newMethod === '__unpaid__' && pickups[0]?.date) {
                               updates.sale_date = pickups[0].date;
                             }
                             setFormData({ ...formData, ...updates });
@@ -1325,8 +1327,9 @@ export function CalendarClient() {
                         >
                           <option value="">선택</option>
                           {salePaymentMethods.map((pm) => (
-                            <option key={pm.id} value={pm.value}>{pm.label}</option>
+                            <option key={pm.id} value={pm.id}>{pm.label}</option>
                           ))}
+                          <option value="__unpaid__">미수(외상)</option>
                         </select>
                       </div>
                     </div>
