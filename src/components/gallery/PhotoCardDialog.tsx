@@ -174,8 +174,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
               {isUpdated && <p>수정: {updatedDate}</p>}
             </div>
 
-            {card.description && (
-              <p className="text-foreground">{card.description}</p>
+            {card.memo && (
+              <p className="text-foreground">{card.memo}</p>
             )}
 
             {card.tags.length > 0 && (

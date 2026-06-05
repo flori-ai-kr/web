@@ -1,26 +1,25 @@
 'use server';
 
 import {requireAuth} from '@/lib/auth-guard';
-import type {CalendarEvent} from '@/types/database';
-import {calendarEventBaseSchema, calendarEventSchema, idSchema} from '@/lib/validations';
+import type {Schedule} from '@/types/database';
+import {scheduleBaseSchema, scheduleSchema, idSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
-// Kotlin /calendar-events 응답 (camelCase). 서버 계약과 1:1.
-interface KotlinCalendarEvent {
+interface KotlinSchedule {
   id: string;
   title: string;
   startDate: string;
   endDate: string;
   color: string;
-  description: string | null;
+  memo: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-// camelCase(Kotlin) → snake_case(웹 CalendarEvent 타입) 매핑.
+// camelCase(Kotlin) → snake_case(웹 Schedule 타입) 매핑.
 // 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
-function mapKotlinCalendarEvent(e: KotlinCalendarEvent): CalendarEvent {
+function mapKotlinSchedule(e: KotlinSchedule): Schedule {
   return {
     id: e.id,
     user_id: '',
@@ -28,63 +27,63 @@ function mapKotlinCalendarEvent(e: KotlinCalendarEvent): CalendarEvent {
     start_date: e.startDate,
     end_date: e.endDate,
     color: e.color,
-    description: e.description,
+    memo: e.memo,
     created_at: e.createdAt,
     updated_at: e.updatedAt,
   };
 }
 
-async function _getCalendarEvents(month: string): Promise<CalendarEvent[]> {
+async function _getSchedules(month: string): Promise<Schedule[]> {
   await requireAuth();
 
-  // 월 범위와 겹치는 이벤트 조회는 서버(/calendar-events?month=)가 처리한다.
+  // 월 범위와 겹치는 이벤트 조회는 서버(/schedules?month=)가 처리한다.
   const params = new URLSearchParams();
   params.set('month', month);
 
-  const events = await apiFetch<KotlinCalendarEvent[]>(`/calendar-events?${params.toString()}`);
-  return events.map(mapKotlinCalendarEvent);
+  const events = await apiFetch<KotlinSchedule[]>(`/schedules?${params.toString()}`);
+  return events.map(mapKotlinSchedule);
 }
 
-export const getCalendarEvents = withErrorLogging('getCalendarEvents', _getCalendarEvents);
+export const getSchedules = withErrorLogging('getSchedules', _getSchedules);
 
-async function _createCalendarEvent(formData: {
+async function _createSchedule(formData: {
   title: string;
   start_date: string;
   end_date: string;
   color?: string;
-  description?: string;
-}): Promise<CalendarEvent> {
+  memo?: string;
+}): Promise<Schedule> {
   await requireAuth();
 
-  const parsed = calendarEventSchema.safeParse(formData);
+  const parsed = scheduleSchema.safeParse(formData);
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const created = await apiFetch<KotlinCalendarEvent>('/calendar-events', {
+  const created = await apiFetch<KotlinSchedule>('/schedules', {
     method: 'POST',
     body: JSON.stringify({
       title: parsed.data.title,
       startDate: parsed.data.start_date,
       endDate: parsed.data.end_date,
       color: parsed.data.color || '#f43f5e',
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
     }),
   });
 
-  return mapKotlinCalendarEvent(created);
+  return mapKotlinSchedule(created);
 }
 
-export const createCalendarEvent = withErrorLogging('createCalendarEvent', _createCalendarEvent);
+export const createSchedule = withErrorLogging('createSchedule', _createSchedule);
 
-async function _updateCalendarEvent(
+async function _updateSchedule(
   id: string,
   formData: {
     title?: string;
     start_date?: string;
     end_date?: string;
     color?: string;
-    description?: string | null;
+    memo?: string | null;
   }
 ): Promise<void> {
   await requireAuth();
@@ -92,7 +91,7 @@ async function _updateCalendarEvent(
   const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  const parsed = calendarEventBaseSchema.partial().safeParse(formData);
+  const parsed = scheduleBaseSchema.partial().safeParse(formData);
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
@@ -108,21 +107,21 @@ async function _updateCalendarEvent(
   if (parsed.data.start_date !== undefined) body.startDate = parsed.data.start_date;
   if (parsed.data.end_date !== undefined) body.endDate = parsed.data.end_date;
   if (parsed.data.color !== undefined) body.color = parsed.data.color;
-  if (parsed.data.description !== undefined) body.description = parsed.data.description;
+  if (parsed.data.memo !== undefined) body.memo = parsed.data.memo;
 
-  await apiFetch<KotlinCalendarEvent>(`/calendar-events/${idParsed.data}`, {
+  await apiFetch<KotlinSchedule>(`/schedules/${idParsed.data}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
 }
 
-export const updateCalendarEvent = withErrorLogging('updateCalendarEvent', _updateCalendarEvent);
+export const updateSchedule = withErrorLogging('updateSchedule', _updateSchedule);
 
-async function _deleteCalendarEvent(id: string): Promise<void> {
+async function _deleteSchedule(id: string): Promise<void> {
   await requireAuth();
   const idParsed = idSchema.safeParse(id);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
-  await apiFetch<void>(`/calendar-events/${idParsed.data}`, { method: 'DELETE' });
+  await apiFetch<void>(`/schedules/${idParsed.data}`, { method: 'DELETE' });
 }
 
-export const deleteCalendarEvent = withErrorLogging('deleteCalendarEvent', _deleteCalendarEvent);
+export const deleteSchedule = withErrorLogging('deleteSchedule', _deleteSchedule);

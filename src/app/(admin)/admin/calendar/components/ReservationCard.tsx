@@ -90,8 +90,8 @@ export function ReservationCard({
             {r.amount > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(r.amount)}</p>
             )}
-            {r.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
+            {r.memo && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.memo}</p>
             )}
             {r.reminder_at && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
@@ -143,23 +143,26 @@ export function ReservationCard({
           <div className="flex flex-col items-end gap-2 shrink-0">
             {/* 사진/수정/삭제 (가로, 위) */}
             <div className="flex gap-0.5">
-              {r.sale_id && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className={saleIdsWithPhotos.has(r.sale_id) ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
-                  onClick={() => {
-                    const catLabel = r.product_category
-                      ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
-                      : r.title;
-                    const dateStr = format(new Date(r.date), 'yy/MM/dd');
-                    onPhotoClick(r.sale_id!, `${dateStr} ${catLabel}`);
-                  }}
-                  aria-label={saleIdsWithPhotos.has(r.sale_id) ? '사진 수정' : '사진 등록'}
-                >
-                  <ImageIcon className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              {(() => {
+                const hasPhoto = !!r.sale_id && saleIdsWithPhotos.has(r.sale_id);
+                return (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={hasPhoto ? 'text-brand hover:text-brand/80' : 'text-muted-foreground hover:text-foreground'}
+                    onClick={() => {
+                      const catLabel = r.product_category
+                        ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
+                        : r.title;
+                      const dateStr = format(new Date(r.date), 'yy/MM/dd');
+                      onPhotoClick(r.sale_id ?? '', `${dateStr} ${catLabel}`);
+                    }}
+                    aria-label={hasPhoto ? '사진 수정' : '사진 등록'}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </Button>
+                );
+              })()}
               <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => onEdit(r)} aria-label="수정">
                 <Pencil className="h-3.5 w-3.5" />
               </Button>

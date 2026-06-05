@@ -60,12 +60,6 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     (list, deletedId: string) => list.filter((c) => c.id !== deletedId),
   );
 
-  // Category/Payment method label maps
-  const categoryLabels = useMemo(() =>
-    Object.fromEntries(initialCategories.map(c => [c.value, c.label])), [initialCategories]);
-  const categoryColors = useMemo(() =>
-    Object.fromEntries(initialCategories.map(c => [c.value, c.color])), [initialCategories]);
-
   // Sort function
   const sortCustomers = useCallback((customers: Customer[]) => {
     return [...customers].sort((a, b) => {
@@ -139,7 +133,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
       { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
       { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },
       { header: '최근구매일', accessor: (c) => String(c.last_purchase_date || '') },
-      { header: '메모', accessor: (c) => String(c.note || '') },
+      { header: '메모', accessor: (c) => String(c.memo || '') },
     ],
     data: filteredCustomers,
   }), [filteredCustomers]);
@@ -238,21 +232,15 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   };
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      {/* Header */}
-      <PageHeader
-        title="고객 관리"
-        description="고객 정보와 구매 이력을 관리하세요"
-        actions={
-          <>
-            <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-            <Button onClick={handleOpenCreateForm} className="flex-1 sm:flex-initial">
-              <Plus className="w-4 h-4 mr-2" />
-              고객 등록
-            </Button>
-          </>
-        }
-      />
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-2">
+        <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+        <Button onClick={handleOpenCreateForm} className="flex-1 sm:flex-initial">
+          <Plus className="w-4 h-4 mr-2" />
+          고객 등록
+        </Button>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -438,8 +426,6 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
         isLoadingMore={isLoadingMoreSales}
         hasMore={hasMoreSales}
         onLoadMore={handleLoadMoreSales}
-        categoryLabels={categoryLabels}
-        categoryColors={categoryColors}
         onClose={() => setSelectedCustomer(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}

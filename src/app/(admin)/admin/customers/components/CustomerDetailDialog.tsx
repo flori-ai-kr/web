@@ -4,7 +4,6 @@ import {useRouter} from 'next/navigation';
 import {useCallback, useEffect, useRef} from 'react';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {DomainBadge} from '@/components/ui/domain-badge';
 import {Skeleton} from '@/components/ui/skeleton';
 import {
     ExternalLink,
@@ -30,8 +29,6 @@ interface CustomerDetailDialogProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
-  categoryLabels: Record<string, string>;
-  categoryColors: Record<string, string>;
   onClose: () => void;
   onEdit: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
@@ -45,8 +42,6 @@ export function CustomerDetailDialog({
   isLoadingMore,
   hasMore,
   onLoadMore,
-  categoryLabels,
-  categoryColors,
   onClose,
   onEdit,
   onDelete,
@@ -129,10 +124,10 @@ export function CustomerDetailDialog({
               </div>
             )}
 
-            {customer.note && (
+            {customer.memo && (
               <div className="space-y-1 pt-2 border-t">
                 <p className="text-sm text-muted-foreground">메모</p>
-                <p className="text-foreground">{customer.note}</p>
+                <p className="text-foreground">{customer.memo}</p>
               </div>
             )}
 
@@ -163,9 +158,9 @@ export function CustomerDetailDialog({
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">{format(new Date(sale.date), 'yy/MM/dd')}</span>
-                        <DomainBadge color={categoryColors[sale.product_category]} className="px-1.5">
-                          {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                        </DomainBadge>
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted-foreground/10">
+                          {sale.category_label ?? '미분류'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{formatCurrency(sale.amount)}</span>

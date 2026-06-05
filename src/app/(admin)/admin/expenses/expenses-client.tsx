@@ -5,7 +5,6 @@ import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
 import {Card, CardContent} from '@/components/ui/card';
-import {DomainBadge} from '@/components/ui/domain-badge';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
@@ -14,20 +13,13 @@ import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
 import {
     CalendarCheck,
-    Home,
     Loader2,
-    Megaphone,
-    Package,
     Pencil,
     Plus,
     RotateCcw,
     Search,
     Settings,
-    ShoppingCart,
     Trash2,
-    Truck,
-    Wallet,
-    Zap
 } from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
@@ -61,21 +53,6 @@ const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
-// 카테고리별 아이콘 컴포넌트 맵
-const CATEGORY_ICON_MAP: Record<string, typeof ShoppingCart> = {
-  flower_purchase: ShoppingCart,
-  delivery: Truck,
-  advertising: Megaphone,
-  rent: Home,
-  utilities: Zap,
-  supplies: Package,
-  other: Wallet,
-};
-
-function CategoryIcon({ category }: { category: string }) {
-  const Icon = CATEGORY_ICON_MAP[category] || Wallet;
-  return <Icon className="h-4 w-4" />;
-}
 
 interface Props {
   initialExpenses: Expense[];
@@ -109,7 +86,7 @@ export function ExpensesClient({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.value || 'card');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.id ?? '');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [, startDeleteTransition] = useTransition();
@@ -123,7 +100,7 @@ export function ExpensesClient({
   // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
   const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
   const [scopeBusy, startScopeTransition] = useTransition();
-  const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; notes: string[] }>({ itemNames: [], vendors: [], notes: [] });
+  const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; memos: string[] }>({ itemNames: [], vendors: [], memos: [] });
   const [createItemName, setCreateItemName] = useState('');
   const [createVendor, setCreateVendor] = useState('');
   const [editItemName, setEditItemName] = useState('');
@@ -150,19 +127,9 @@ export function ExpensesClient({
     if (editingExpense) {
       setEditItemName(editingExpense.item_name);
       setEditVendor(editingExpense.vendor || '');
-      setEditNoteValue(editingExpense.note || '');
+      setEditNoteValue(editingExpense.memo || '');
     }
   }, [editingExpense]);
-
-  // 카테고리/결제방식 라벨 및 색상 맵 생성
-  const categoryLabels = useMemo(() =>
-    Object.fromEntries(categories.map(c => [c.value, c.label])), [categories]);
-  const categoryColors = useMemo(() =>
-    Object.fromEntries(categories.map(c => [c.value, c.color])), [categories]);
-  const paymentLabels = useMemo(() =>
-    Object.fromEntries(payments.map(p => [p.value, p.label])), [payments]);
-  const paymentColors = useMemo(() =>
-    Object.fromEntries(payments.map(p => [p.value, p.color])), [payments]);
 
   // 설정 새로고침
   const refreshSettings = async () => {
@@ -175,11 +142,11 @@ export function ExpensesClient({
     let result = optimisticExpenses;
 
     if (paymentFilter.length > 0) {
-      result = result.filter(e => paymentFilter.includes(e.payment_method));
+      result = result.filter(e => e.payment_method_id != null && paymentFilter.includes(e.payment_method_id));
     }
 
     if (categoryFilter.length > 0) {
-      result = result.filter(e => categoryFilter.includes(e.category));
+      result = result.filter(e => e.category_id != null && categoryFilter.includes(e.category_id));
     }
 
     if (searchQuery) {
@@ -187,7 +154,7 @@ export function ExpensesClient({
       result = result.filter(e =>
         e.item_name.toLowerCase().includes(q) ||
         (e.vendor?.toLowerCase().includes(q)) ||
-        (e.note?.toLowerCase().includes(q))
+        (e.memo?.toLowerCase().includes(q))
       );
     }
 
@@ -199,7 +166,8 @@ export function ExpensesClient({
     let total = 0;
     filteredExpenses.forEach(e => {
       total += e.total_amount;
-      byCategory[e.category] = (byCategory[e.category] || 0) + e.total_amount;
+      const key = e.category_label ?? '미분류';
+      byCategory[key] = (byCategory[key] || 0) + e.total_amount;
     });
     return { total, byCategory };
   }, [filteredExpenses]);
@@ -217,17 +185,17 @@ export function ExpensesClient({
       title: `지출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
       columns: [
         { header: '날짜', accessor: (e) => String(e.date || '') },
-        { header: '카테고리', accessor: (e) => categoryLabels[e.category] || e.category || '' },
+        { header: '카테고리', accessor: (e) => e.category_label || '' },
         { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
-        { header: '결제방법', accessor: (e) => paymentLabels[e.payment_method] || e.payment_method || '' },
+        { header: '결제방법', accessor: (e) => e.payment_method_label ?? '' },
         { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
         { header: '품목명', accessor: (e) => String(e.item_name || '') },
         { header: '거래처', accessor: (e) => String(e.vendor || '') },
-        { header: '비고', accessor: (e) => String(e.note || '') },
+        { header: '메모', accessor: (e) => String(e.memo || '') },
       ],
       data: filteredExpenses,
     });
-  }, [filteredExpenses, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel, categoryLabels, paymentLabels]);
+  }, [filteredExpenses, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
 
   const handleSelectExpense = (expense: Expense) => {
     setSelectedExpense(expense);
@@ -304,10 +272,10 @@ export function ExpensesClient({
       const fields = {
         date: String(formData.get('date') ?? editingExpense.date),
         item_name: String(formData.get('item_name') ?? ''),
-        category: String(formData.get('category') ?? ''),
+        category_id: String(formData.get('category_id') ?? ''),
         unit_price: unitPrice,
         quantity,
-        payment_method: String(formData.get('payment_method') ?? '') as 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay',
+        payment_method_id: String(formData.get('payment_method_id') ?? ''),
         vendor: (formData.get('vendor') as string) || null,
         note: (formData.get('note') as string) || null,
       };
@@ -354,8 +322,8 @@ export function ExpensesClient({
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
-    setEditNoteValue(expense.note || '');
-    setEditPaymentMethod(expense.payment_method);
+    setEditNoteValue(expense.memo || '');
+    setEditPaymentMethod(expense.payment_method_id ?? '');
     setSelectedExpense(null);
   };
 
@@ -396,21 +364,15 @@ export function ExpensesClient({
   };
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      {/* Header */}
-      <PageHeader
-        title="지출 관리"
-        description="지출 내역을 등록하고 관리하세요"
-        actions={
-          <>
-            <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-            <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }} className="flex-1 sm:flex-initial">
-              <Plus className="w-4 h-4 mr-2" />
-              지출 등록
-            </Button>
-          </>
-        }
-      />
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-2">
+        <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
+        <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }} className="flex-1 sm:flex-initial">
+          <Plus className="w-4 h-4 mr-2" />
+          지출 등록
+        </Button>
+      </div>
 
       <Tabs defaultValue="list" className="w-full">
         <TabsList>
@@ -426,34 +388,15 @@ export function ExpensesClient({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <Card className="col-span-2 sm:col-span-1">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">총 지출</p>
-                <p className="text-lg font-bold text-foreground truncate">{formatCurrency(summary.total)}</p>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">총 지출</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(summary.total)}</p>
           </CardContent>
         </Card>
         {Object.entries(summary.byCategory).slice(0, 3).map(([cat, amount]) => (
           <Card key={cat}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${categoryColors[cat]}20` }}
-                >
-                  <span style={{ color: categoryColors[cat] }}>
-                    <CategoryIcon category={cat} />
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">{categoryLabels[cat]}</p>
-                  <p className="text-lg font-bold text-foreground truncate">{formatCurrency(amount)}</p>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">{cat}</p>
+              <p className="text-lg font-bold text-foreground">{formatCurrency(amount)}</p>
             </CardContent>
           </Card>
         ))}
@@ -495,13 +438,13 @@ export function ExpensesClient({
           </SelectContent>
         </Select>
         <CategoryMultiSelect
-          options={categories.map(c => ({ value: c.value, label: c.label, color: c.color }))}
+          options={categories.map(c => ({ value: c.id, label: c.label, color: c.color }))}
           selected={categoryFilter}
           onChange={setCategoryFilter}
           placeholder="카테고리"
         />
         <CategoryMultiSelect
-          options={payments.map(pm => ({ value: pm.value, label: pm.label, color: pm.color }))}
+          options={payments.map(pm => ({ value: pm.id, label: pm.label, color: pm.color }))}
           selected={paymentFilter}
           onChange={setPaymentFilter}
           placeholder="결제방식"
@@ -554,14 +497,10 @@ export function ExpensesClient({
       {/* Expenses List */}
       <ExpensesList
         expenses={filteredExpenses}
-        categoryLabels={categoryLabels}
-        categoryColors={categoryColors}
-        paymentLabels={paymentLabels}
-        paymentColors={paymentColors}
         hasActiveFilters={paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== ''}
         onSelectExpense={handleSelectExpense}
         onResetFilters={() => { setPaymentFilter([]); setCategoryFilter([]); setSearchQuery(''); }}
-        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
+        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }}
       />
         </TabsContent>
 
@@ -585,13 +524,13 @@ export function ExpensesClient({
               </div>
               <div className="space-y-2">
                 <Label>카테고리 *</Label>
-                <Select name="category" defaultValue={categories[0]?.value || 'flower_purchase'}>
+                <Select name="category_id" defaultValue={categories[0]?.id}>
                   <SelectTrigger className="bg-muted">
                     <SelectValue placeholder="카테고리 선택" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -621,7 +560,7 @@ export function ExpensesClient({
             </div>
             <div className="space-y-2">
               <Label>결제방식 *</Label>
-              <input type="hidden" name="payment_method" value={selectedPaymentMethod} />
+              <input type="hidden" name="payment_method_id" value={selectedPaymentMethod} />
               <div className="flex flex-wrap gap-2">
                 {payments.map(pm => (
                   <button
@@ -629,12 +568,11 @@ export function ExpensesClient({
                     type="button"
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                      selectedPaymentMethod === pm.value
-                        ? "ring-2 ring-offset-1 ring-brand/50"
+                      selectedPaymentMethod === pm.id
+                        ? "bg-brand/10 text-brand border-brand ring-2 ring-offset-1 ring-brand/50"
                         : "border-border text-muted-foreground hover:border-foreground/30"
                     )}
-                    style={selectedPaymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
-                    onClick={() => setSelectedPaymentMethod(pm.value)}
+                    onClick={() => setSelectedPaymentMethod(pm.id)}
                   >
                     {pm.label}
                   </button>
@@ -654,18 +592,19 @@ export function ExpensesClient({
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>비고</Label>
-                <span className={cn("text-xs", noteValue.length > 100 ? "text-danger" : "text-muted-foreground")}>
-                  {noteValue.length}/100
+                <Label>메모</Label>
+                <span className={cn("text-xs", noteValue.length > 200 ? "text-danger" : "text-muted-foreground")}>
+                  {noteValue.length}/200
                 </span>
               </div>
               <SuggestionInput
-                name="note"
+                name="memo"
                 value={noteValue}
                 onChange={setNoteValue}
-                suggestions={expenseSuggestions.notes}
-                placeholder="메모"
-                maxLength={100}
+                suggestions={expenseSuggestions.memos}
+                placeholder="메모를 입력하세요"
+                maxLength={200}
+                multiline
               />
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t">
@@ -702,15 +641,11 @@ export function ExpensesClient({
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">카테고리</p>
-                  <DomainBadge color={categoryColors[selectedExpense.category]} className="px-2 py-1">
-                    {categoryLabels[selectedExpense.category] || selectedExpense.category}
-                  </DomainBadge>
+                  <p className="font-medium">{selectedExpense.category_label ?? '미분류'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">결제방식</p>
-                  <DomainBadge color={paymentColors[selectedExpense.payment_method]} className="px-2 py-1">
-                    {paymentLabels[selectedExpense.payment_method] || selectedExpense.payment_method}
-                  </DomainBadge>
+                  <p className="font-medium">{selectedExpense.payment_method_label ?? ''}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">단가 x 수량 = 총액</p>
@@ -725,10 +660,10 @@ export function ExpensesClient({
                 </div>
               )}
 
-              {selectedExpense.note && (
+              {selectedExpense.memo && (
                 <div className="space-y-1 pt-2 border-t">
-                  <p className="text-sm text-muted-foreground">비고</p>
-                  <p className="text-foreground">{selectedExpense.note}</p>
+                  <p className="text-sm text-muted-foreground">메모</p>
+                  <p className="text-foreground">{selectedExpense.memo}</p>
                 </div>
               )}
 
@@ -771,13 +706,13 @@ export function ExpensesClient({
                 </div>
                 <div className="space-y-2">
                   <Label>카테고리 *</Label>
-                  <Select name="category" defaultValue={editingExpense.category} key={`cat-${editingExpense.id}`}>
+                  <Select name="category_id" defaultValue={editingExpense.category_id ?? undefined} key={`cat-${editingExpense.id}`}>
                     <SelectTrigger className="bg-muted">
                       <SelectValue placeholder="카테고리 선택" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.value}>{cat.label}</SelectItem>
+                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -806,7 +741,7 @@ export function ExpensesClient({
               </div>
               <div className="space-y-2">
                 <Label>결제방식 *</Label>
-                <input type="hidden" name="payment_method" value={editPaymentMethod} />
+                <input type="hidden" name="payment_method_id" value={editPaymentMethod} />
                 <div className="flex flex-wrap gap-2">
                   {payments.map(pm => (
                     <button
@@ -814,12 +749,11 @@ export function ExpensesClient({
                       type="button"
                       className={cn(
                         "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                        editPaymentMethod === pm.value
-                          ? "ring-2 ring-offset-1 ring-brand/50"
+                        editPaymentMethod === pm.id
+                          ? "bg-brand/10 text-brand border-brand ring-2 ring-offset-1 ring-brand/50"
                           : "border-border text-muted-foreground hover:border-foreground/30"
                       )}
-                      style={editPaymentMethod === pm.value ? { backgroundColor: `${pm.color}20`, color: pm.color, borderColor: pm.color } : {}}
-                      onClick={() => setEditPaymentMethod(pm.value)}
+                      onClick={() => setEditPaymentMethod(pm.id)}
                     >
                       {pm.label}
                     </button>
@@ -838,18 +772,19 @@ export function ExpensesClient({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label>비고</Label>
-                  <span className={cn("text-xs", editNoteValue.length > 100 ? "text-danger" : "text-muted-foreground")}>
-                    {editNoteValue.length}/100
+                  <Label>메모</Label>
+                  <span className={cn("text-xs", editNoteValue.length > 200 ? "text-danger" : "text-muted-foreground")}>
+                    {editNoteValue.length}/200
                   </span>
                 </div>
                 <SuggestionInput
-                  name="note"
+                  name="memo"
                   value={editNoteValue}
                   onChange={setEditNoteValue}
-                  suggestions={expenseSuggestions.notes}
-                  placeholder="메모"
-                  maxLength={100}
+                  suggestions={expenseSuggestions.memos}
+                  placeholder="메모를 입력하세요"
+                  maxLength={200}
+                  multiline
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">

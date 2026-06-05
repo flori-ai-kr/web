@@ -5,7 +5,7 @@ import {
   getFormString,
   getFormInt,
   recurringExpenseSchema,
-  calendarEventSchema,
+  scheduleSchema,
   bottomNavItemsSchema,
   photoCardSchema,
   trendArticleInputSchema,
@@ -113,10 +113,10 @@ describe('getFormInt', () => {
 
 const baseRecurring = {
   item_name: '장미 정기',
-  category: '꽃',
+  category_id: '5',
   unit_price: 10000,
   quantity: 1,
-  payment_method: 'card' as const,
+  payment_method_id: '3',
   start_date: '2026-01-01',
 }
 
@@ -147,13 +147,13 @@ describe('recurringExpenseSchema', () => {
 
 // ─── 캘린더 이벤트 refine ────────────────────────────────────
 
-describe('calendarEventSchema', () => {
+describe('scheduleSchema', () => {
   it('종료일이 시작일 이후면 통과한다', () => {
-    expect(calendarEventSchema.safeParse({ title: '행사', start_date: '2026-01-01', end_date: '2026-01-03' }).success).toBe(true)
+    expect(scheduleSchema.safeParse({ title: '행사', start_date: '2026-01-01', end_date: '2026-01-03' }).success).toBe(true)
   })
 
   it('종료일이 시작일보다 이전이면 실패한다', () => {
-    expect(calendarEventSchema.safeParse({ title: '행사', start_date: '2026-01-03', end_date: '2026-01-01' }).success).toBe(false)
+    expect(scheduleSchema.safeParse({ title: '행사', start_date: '2026-01-03', end_date: '2026-01-01' }).success).toBe(false)
   })
 })
 

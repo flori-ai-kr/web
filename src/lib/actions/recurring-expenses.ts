@@ -100,12 +100,14 @@ export async function nextOccurrenceISO(rule: RecurringExpense, fromISO?: string
 interface KotlinRecurringExpense {
   id: string;
   itemName: string;
-  category: string;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   unitPrice: number;
   quantity: number;
-  paymentMethod: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
   vendor: string | null;
-  note: string | null;
+  memo: string | null;
   frequency: string;
   intervalCount: number;
   daysOfWeek: number[];
@@ -124,12 +126,14 @@ function mapKotlinRecurring(r: KotlinRecurringExpense): RecurringExpense {
     id: r.id,
     user_id: '',
     item_name: r.itemName,
-    category: r.category,
+    category_id: r.categoryId != null ? String(r.categoryId) : null,
+    category_label: r.categoryLabel,
     unit_price: r.unitPrice,
     quantity: r.quantity,
-    payment_method: r.paymentMethod,
+    payment_method_id: r.paymentMethodId != null ? String(r.paymentMethodId) : null,
+    payment_method_label: r.paymentMethodLabel,
     vendor: r.vendor,
-    note: r.note,
+    memo: r.memo,
     frequency: r.frequency as RecurringFrequency,
     interval_count: r.intervalCount,
     days_of_week: r.daysOfWeek,
@@ -153,12 +157,12 @@ export const getRecurringExpenses = withErrorLogging('getRecurringExpenses', _ge
 
 type RecurringInput = {
   item_name: string;
-  category: string;
+  category_id: string;
   unit_price: number;
   quantity: number;
-  payment_method: 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay';
+  payment_method_id: string;
   vendor?: string | null;
-  note?: string | null;
+  memo?: string | null;
   frequency: RecurringFrequency;
   interval_count: number;
   days_of_week: number[];
@@ -173,12 +177,12 @@ type RecurringInput = {
 function toRecurringRequest(input: RecurringInput) {
   return {
     itemName: input.item_name,
-    category: input.category,
+    categoryId: Number(input.category_id),
     unitPrice: input.unit_price,
     quantity: input.quantity,
-    paymentMethod: input.payment_method,
+    paymentMethodId: Number(input.payment_method_id),
     vendor: input.vendor ?? null,
-    note: input.note ?? null,
+    memo: input.memo ?? null,
     frequency: input.frequency,
     intervalCount: input.interval_count,
     daysOfWeek: input.days_of_week,
@@ -270,12 +274,12 @@ function toInstanceRequest(fields: Partial<RecurringInput> & { date?: string }) 
   const body: Record<string, unknown> = {};
   if (fields.date !== undefined) body.date = fields.date;
   if (fields.item_name !== undefined) body.itemName = fields.item_name;
-  if (fields.category !== undefined) body.category = fields.category;
+  if (fields.category_id !== undefined) body.categoryId = Number(fields.category_id);
   if (fields.unit_price !== undefined) body.unitPrice = fields.unit_price;
   if (fields.quantity !== undefined) body.quantity = fields.quantity;
-  if (fields.payment_method !== undefined) body.paymentMethod = fields.payment_method;
+  if (fields.payment_method_id !== undefined) body.paymentMethodId = Number(fields.payment_method_id);
   if (fields.vendor !== undefined) body.vendor = fields.vendor;
-  if (fields.note !== undefined) body.note = fields.note;
+  if (fields.memo !== undefined) body.memo = fields.memo;
   return body;
 }
 

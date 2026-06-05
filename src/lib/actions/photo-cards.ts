@@ -19,7 +19,7 @@ interface PhotoFileDto {
 interface PhotoCardDto {
   id: string;
   title: string;
-  description: string | null;
+  memo: string | null;
   tags: string[];
   photos: PhotoFileDto[];
   saleId: string | null;
@@ -50,7 +50,7 @@ function toPhotoCard(dto: PhotoCardDto): PhotoCard {
     // user_id는 멀티테넌시상 서버에서만 사용되며 모든 클라이언트가 무시한다 (안전한 기본값)
     user_id: '',
     title: dto.title,
-    description: dto.description,
+    memo: dto.memo,
     tags: dto.tags || [],
     photos: dto.photos || [],
     sale_id: dto.saleId,
@@ -111,7 +111,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
   await requireAuth();
 
   const title = formData.get('title') as string;
-  const description = formData.get('description') as string | null;
+  const memo = formData.get('memo') as string | null;
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
@@ -127,7 +127,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
 
   const parsed = photoCardSchema.safeParse({
     title: title?.trim(),
-    description: description?.trim() || null,
+    memo: memo?.trim() || null,
     tags,
     photos,
   });
@@ -139,7 +139,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
     method: 'POST',
     body: JSON.stringify({
       title: parsed.data.title,
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
@@ -157,7 +157,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const title = formData.get('title') as string;
-  const description = formData.get('description') as string | null;
+  const memo = formData.get('memo') as string | null;
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
@@ -173,7 +173,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
 
   const parsed = photoCardSchema.safeParse({
     title: title?.trim(),
-    description: description?.trim() || null,
+    memo: memo?.trim() || null,
     tags,
     photos,
   });
@@ -185,7 +185,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
     method: 'PATCH',
     body: JSON.stringify({
       title: parsed.data.title,
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
@@ -394,7 +394,7 @@ async function _createOrUpdatePhotoCardForSale(
   saleId: string,
   title: string,
   photos: PhotoFile[],
-  description?: string | null,
+  memo?: string | null,
   tags?: string[]
 ): Promise<PhotoCard> {
   await requireAuth();
@@ -410,7 +410,7 @@ async function _createOrUpdatePhotoCardForSale(
       body: JSON.stringify({
         title,
         photos: photoPayload,
-        ...(description !== undefined && { description }),
+        ...(memo !== undefined && { memo }),
         ...(tags !== undefined && { tags }),
       }),
     });
@@ -421,7 +421,7 @@ async function _createOrUpdatePhotoCardForSale(
     method: 'POST',
     body: JSON.stringify({
       title,
-      description: description || null,
+      memo: memo || null,
       tags: tags || [],
       photos: photoPayload,
       saleId,

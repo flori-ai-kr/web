@@ -23,11 +23,11 @@ beforeEach(() => {
 })
 
 const payload = {
-  categoryStats: [{ name: '장미', count: 2, amount: 100, percentage: 50 }],
-  paymentStats: [{ method: 'card', label: '카드', count: 2, amount: 100, percentage: 50 }],
-  channelStats: [{ channel: 'phone', label: '전화', count: 1, amount: 50, percentage: 25 }],
+  categoryStats: [{ categoryId: 5, label: '장미', count: 2, amount: 100, percentage: 50 }],
+  paymentStats: [{ paymentMethodId: 3, label: '카드', count: 2, amount: 100, percentage: 50 }],
+  channelStats: [{ channelId: 1, label: '전화', count: 1, amount: 50, percentage: 25 }],
   customerStats: { totalCustomers: 10, returningCustomers: 4, newCustomers: 6 },
-  expenseStats: [{ category: 'rent', label: '임대료', amount: 300, percentage: 60 }],
+  expenseStats: [{ categoryId: 9, label: '임대료', amount: 300, percentage: 60 }],
 }
 
 describe('statistics actions', () => {
@@ -35,18 +35,18 @@ describe('statistics actions', () => {
     mockApiFetch.mockResolvedValue(payload)
     const res = await getCategoryStats('2026-01')
     expect(mockApiFetch).toHaveBeenCalledWith('/dashboard/month?month=2026-01')
-    expect(res[0]).toEqual({ name: '장미', count: 2, amount: 100, percentage: 50 })
+    expect(res[0]).toEqual({ categoryId: '5', label: '장미', count: 2, amount: 100, percentage: 50 })
   })
 
   it('getPaymentMethodStats', async () => {
     mockApiFetch.mockResolvedValue(payload)
-    expect((await getPaymentMethodStats())[0].method).toBe('card')
+    expect((await getPaymentMethodStats())[0].paymentMethodId).toBe('3')
     expect(mockApiFetch).toHaveBeenCalledWith('/dashboard/month?')
   })
 
   it('getChannelStats', async () => {
     mockApiFetch.mockResolvedValue(payload)
-    expect((await getChannelStats())[0].channel).toBe('phone')
+    expect((await getChannelStats())[0].channelId).toBe('1')
   })
 
   it('getCustomerStats', async () => {
@@ -56,6 +56,6 @@ describe('statistics actions', () => {
 
   it('getExpenseCategoryStats', async () => {
     mockApiFetch.mockResolvedValue(payload)
-    expect((await getExpenseCategoryStats())[0].category).toBe('rent')
+    expect((await getExpenseCategoryStats())[0].categoryId).toBe('9')
   })
 })

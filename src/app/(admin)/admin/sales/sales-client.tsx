@@ -4,10 +4,8 @@ import {useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTra
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
-import {Input} from '@/components/ui/input';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {CalendarCheck, Plus, RotateCcw, Search, Settings} from 'lucide-react';
+import {Plus, Settings} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
@@ -20,15 +18,14 @@ import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {formatCurrency} from '@/lib/utils';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
-import {getPaymentMethods, getSaleCategories, PaymentMethod, SaleCategory} from '@/lib/actions/sale-settings';
+import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {ExportButton} from '@/components/ui/export-button';
-import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
 import type {ExportConfig} from '@/lib/export';
-import {CHANNEL_LABELS, TODAY_FILTER_ACTIVE_CLASS} from '@/lib/constants';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
 import {SaleDetailDialog} from './components/SaleDetailDialog';
+import {SalesFiltersUI} from './components/SalesFilters';
 
 const SalePhotoModal = dynamic(
   () => import('@/components/sales/SalePhotoModal').then(mod => ({ default: mod.SalePhotoModal })),
@@ -53,10 +50,12 @@ interface Props {
   initialFilters: SalesFilters;
   initialCategories: SaleCategory[];
   initialPayments: PaymentMethod[];
+  initialChannels: SaleChannel[];
   initialSelectedSale?: Sale | null;
+  prevTotal?: number | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale, prevTotal }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -72,8 +71,10 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [selectedSalePhotos, setSelectedSalePhotos] = useState<PhotoCard | null>(null);
   const [selectedSaleReservations, setSelectedSaleReservations] = useState<Reservation[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
+  const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
@@ -111,21 +112,14 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     }
   }, [initialSelectedSale]);
 
-  // 카테고리/결제방식 라벨 및 색상 맵 생성 (value -> label/color)
-  const categoryLabels = useMemo(() =>
-    Object.fromEntries(categories.map(c => [c.value, c.label])), [categories]);
-  const categoryColors = useMemo(() =>
-    Object.fromEntries(categories.map(c => [c.value, c.color])), [categories]);
-  const paymentLabels = useMemo(() =>
-    Object.fromEntries(payments.map(p => [p.value, p.label])), [payments]);
-  const paymentColors = useMemo(() =>
-    Object.fromEntries(payments.map(p => [p.value, p.color])), [payments]);
+  // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
 
   // 설정 새로고침
   const refreshSettings = async () => {
-    const [cats, pays] = await Promise.all([getSaleCategories(), getPaymentMethods()]);
+    const [cats, pays, chs] = await Promise.all([getSaleCategories(), getPaymentMethods(), getSaleChannels()]);
     setCategories(cats);
     setPayments(pays);
+    setChannels(chs);
   };
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
@@ -216,16 +210,16 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     title: `매출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
     columns: [
       { header: '날짜', accessor: (s) => String(s.date || '') },
-      { header: '카테고리', accessor: (s) => categoryLabels[s.product_category] || s.product_category || '' },
+      { header: '카테고리', accessor: (s) => s.category_label || '' },
       { header: '금액', accessor: (s) => Number(s.amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (s) => paymentLabels[s.payment_method] || s.payment_method || '' },
-      { header: '채널', accessor: (s) => CHANNEL_LABELS[s.reservation_channel] || '' },
+      { header: '결제방법', accessor: (s) => s.is_unpaid ? '미수' : (s.payment_method_label ?? '') },
+      { header: '채널', accessor: (s) => s.channel_label || '' },
       { header: '고객명', accessor: (s) => String(s.customer_name || '') },
-      { header: '비고', accessor: (s) => String(s.note || '') },
+      { header: '메모', accessor: (s) => String(s.memo || '') },
     ],
     data: filteredSales,
     });
-  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel, categoryLabels, paymentLabels]);
+  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
 
   // 매출 상세 선택 시 사진 + 연결 예약 로드
   const handleSelectSale = async (sale: Sale) => {
@@ -288,7 +282,31 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     const y = now.getFullYear().toString();
     const m = (now.getMonth() + 1).toString();
     const d = now.getDate().toString();
-    router.push(buildUrl({ year: y, month: m, day: d }));
+    // 이미 오늘이면 해제 (이번 달 전체로)
+    if (currentDay === now.getDate() && currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear()) {
+      router.push(buildUrl({ day: 'all' }));
+    } else {
+      router.push(buildUrl({ year: y, month: m, day: d }));
+    }
+  };
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    let y = currentYear || new Date().getFullYear();
+    let m = currentMonth || new Date().getMonth() + 1;
+    m += direction;
+    if (m > 12) { m = 1; y += 1; }
+    if (m < 1) { m = 12; y -= 1; }
+    router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
+  };
+
+  const handleDateRangeApply = (startDate: string, endDate: string) => {
+    const params = new URLSearchParams();
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+    if (categoryFilter.length > 0) params.set('category', categoryFilter.join(','));
+    if (paymentFilter.length > 0) params.set('payment', paymentFilter.join(','));
+    if (channelFilter.length > 0) params.set('channel', channelFilter.join(','));
+    router.push(`/admin/sales?${params.toString()}`);
   };
 
   const handleCategoryChange = (category: string[]) => {
@@ -308,8 +326,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   };
 
   const getDefaultPhotoTitle = (sale: Sale) => {
-    const categoryLabel = categoryLabels[sale.product_category] || sale.product_category;
-    return `${format(new Date(sale.date), 'yy/MM/dd')} ${categoryLabel}`;
+    return `${format(new Date(sale.date), 'yy/MM/dd')} ${sale.category_label ?? ''}`.trim();
   };
 
   const handleEdit = (sale: Sale) => {
@@ -381,134 +398,41 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   };
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      {/* Header */}
-      <PageHeader
-        title="매출 관리"
-        description="매출 내역을 등록하고 관리하세요"
-        actions={
-          <>
-            <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-            <Button onClick={handleOpenForm} className="flex-1 sm:flex-initial">
-              <Plus className="w-4 h-4 mr-2" />
-              매출 등록
-            </Button>
-          </>
-        }
-      />
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 lg:-mx-6 xl:-mx-8">
 
-      {/* Summary Cards */}
-      <SalesSummary summary={summary} />
-
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <Select value={yearParam} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-[100px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {YEAR_OPTIONS.map(year => (
-              <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={monthParam} onValueChange={handleMonthChange}>
-          <SelectTrigger className="w-[80px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {MONTH_OPTIONS.map(month => (
-              <SelectItem key={month} value={month.toString()}>{month}월</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={dayParam} onValueChange={handleDayChange} disabled={isDayDisabled}>
-          <SelectTrigger className="w-[80px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {DAY_OPTIONS.map(day => (
-              <SelectItem key={day} value={day.toString()}>{day}일</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <CategoryMultiSelect
-          options={categories.map(c => ({ value: c.value, label: c.label, color: c.color }))}
-          selected={categoryFilter}
-          onChange={handleCategoryChange}
-          placeholder="카테고리"
-        />
-        <CategoryMultiSelect
-          options={payments.map(pm => ({ value: pm.value, label: pm.label, color: pm.color }))}
-          selected={paymentFilter}
-          onChange={handlePaymentChange}
-          placeholder="결제방식"
-        />
-        <CategoryMultiSelect
-          options={Object.entries(CHANNEL_LABELS).map(([value, label]) => ({ value, label, color: '#6b7280' }))}
-          selected={channelFilter}
-          onChange={handleChannelChange}
-          placeholder="예약방식"
-          plain
-        />
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => setIsSettingsOpen(true)}
-          aria-label="매출 설정"
-        >
-          <Settings className="w-4 h-4 text-muted-foreground" />
-        </Button>
-        <div className="relative flex-1 min-w-[150px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background"
-            aria-label="매출 검색"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className={TODAY_FILTER_ACTIVE_CLASS}
-          onClick={handleTodayOnly}
-          aria-label="오늘 매출만 보기"
-        >
-          <CalendarCheck className="w-3.5 h-3.5 mr-1.5" />
-          오늘만
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-9 shrink-0"
-          onClick={() => {
-            setSearchQuery('');
-            router.push('/admin/sales');
-          }}
-        >
-          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-          초기화
-        </Button>
-      </div>
+      {/* Filters (날짜 nav → 요약 → 드롭다운/검색) */}
+      <SalesFiltersUI
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        currentDay={currentDay}
+        categoryFilter={categoryFilter}
+        paymentFilter={paymentFilter}
+        channelFilter={channelFilter}
+        searchQuery={searchQuery}
+        categories={categories}
+        payments={payments}
+        channels={channels}
+        onMonthNav={handleMonthNav}
+        onTodayOnly={handleTodayOnly}
+        onDateRangeApply={handleDateRangeApply}
+        onCategoryChange={handleCategoryChange}
+        onPaymentChange={handlePaymentChange}
+        onChannelChange={handleChannelChange}
+        onSearchChange={setSearchQuery}
+        onReset={handleResetFilters}
+      >
+        <SalesSummary summary={summary} prevTotal={prevTotal ?? undefined} />
+      </SalesFiltersUI>
 
       {/* Sales List */}
       <SalesList
         sales={filteredSales}
-        categoryLabels={categoryLabels}
-        categoryColors={categoryColors}
-        paymentLabels={paymentLabels}
-        paymentColors={paymentColors}
         hasActiveFilters={hasActiveFilters}
         hasMore={hasMore}
         isLoadingMore={isLoadingMore || isSearching}
         onLoadMore={handleLoadMore}
         onSelectSale={handleSelectSale}
+        onOpenPhoto={handleOpenPhotoModal}
         onResetFilters={handleResetFilters}
         onOpenForm={handleOpenForm}
       />
@@ -525,6 +449,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={editingSale}
         categories={categories}
         payments={payments}
+        channels={channels}
         initialCustomer={initialCustomer}
         onSuccess={handleFormSuccess}
       />
@@ -534,10 +459,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         sale={selectedSale}
         photos={selectedSalePhotos}
         reservations={selectedSaleReservations}
-        categoryLabels={categoryLabels}
-        categoryColors={categoryColors}
-        paymentLabels={paymentLabels}
-        paymentColors={paymentColors}
         onClose={() => setSelectedSale(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -616,6 +537,44 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         categories={categories}
         onRefresh={refreshSettings}
       />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); handleOpenForm(); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              매출 등록
+            </button>
+            <ExportButton
+              getExportConfig={getExportConfig}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            />
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsSettingsOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }

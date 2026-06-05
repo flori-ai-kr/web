@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Sale, PaymentMethod, ProductCategory } from "@/types/database"
+import type { Sale } from "@/types/database"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -30,11 +30,6 @@ export function filterSalesByYearMonth(sales: Sale[], year: number, month: numbe
   });
 }
 
-export function filterSalesByCategory(sales: Sale[], category: ProductCategory | 'all'): Sale[] {
-  if (category === 'all') return sales;
-  return sales.filter(sale => sale.product_category === category);
-}
-
 export interface SalesSummary {
   total: number;
   card: number;
@@ -42,30 +37,6 @@ export interface SalesSummary {
   transfer: number;
   cash: number;
   count: number;
-}
-
-export function calculateSalesSummary(sales: Sale[]): SalesSummary {
-  return sales.reduce((acc, sale) => {
-    acc.total += sale.amount;
-    acc.count += 1;
-    
-    switch (sale.payment_method) {
-      case 'card':
-        acc.card += sale.amount;
-        break;
-      case 'naverpay':
-        acc.naverpay += sale.amount;
-        break;
-      case 'transfer':
-        acc.transfer += sale.amount;
-        break;
-      case 'cash':
-        acc.cash += sale.amount;
-        break;
-    }
-    
-    return acc;
-  }, { total: 0, card: 0, naverpay: 0, transfer: 0, cash: 0, count: 0 });
 }
 
 // 통화 포맷팅 (₩1,000,000 형태)

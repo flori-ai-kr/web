@@ -35,20 +35,15 @@ export function CommunityClient({ initialPosts, activeCategory }: CommunityClien
     cat ? `/admin/community?category=${cat}` : '/admin/community';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
-      {/* Header */}
-      <PageHeader
-        className="gap-4"
-        title="커뮤니티"
-        description="꽃집 사장님들과 노하우와 일상을 나눠보세요"
-        actions={
-          <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
-            <Link href="/admin/community/write">
-              <PenSquare className="w-4 h-4" /> 글쓰기
-            </Link>
-          </Button>
-        }
-      />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-6">
+      {/* Actions */}
+      <div className="flex items-center justify-end">
+        <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
+          <Link href="/admin/community/write">
+            <PenSquare className="w-4 h-4" /> 글쓰기
+          </Link>
+        </Button>
+      </div>
 
       {/* Category tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">

@@ -32,11 +32,9 @@ export function SalesSettingsModal({
   onRefresh,
 }: SalesSettingsModalProps) {
   const [newCatName, setNewCatName] = useState('');
-  const [newCatColor, setNewCatColor] = useState('#f43f5e');
   const [isAddingCat, setIsAddingCat] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editCatName, setEditCatName] = useState('');
-  const [editCatColor, setEditCatColor] = useState('');
   const [isSavingCat, setIsSavingCat] = useState(false);
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [isDeletingCat, setIsDeletingCat] = useState(false);
@@ -45,7 +43,7 @@ export function SalesSettingsModal({
     if (!newCatName.trim()) return;
     setIsAddingCat(true);
     try {
-      await createSaleCategory(newCatName.trim(), newCatColor);
+      await createSaleCategory(newCatName.trim());
       setNewCatName('');
       onRefresh();
       toast.success('카테고리가 추가되었습니다');
@@ -60,7 +58,7 @@ export function SalesSettingsModal({
     if (!editingCatId || !editCatName.trim()) return;
     setIsSavingCat(true);
     try {
-      await updateSaleCategory(editingCatId, editCatName.trim(), editCatColor);
+      await updateSaleCategory(editingCatId, editCatName.trim());
       setEditingCatId(null);
       onRefresh();
       toast.success('카테고리가 수정되었습니다');
@@ -102,13 +100,6 @@ export function SalesSettingsModal({
               onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
               className="flex-1"
             />
-            <input
-              type="color"
-              value={newCatColor}
-              onChange={(e) => setNewCatColor(e.target.value)}
-              className="w-10 h-9 rounded border cursor-pointer"
-              title="색상 선택"
-            />
             <Button
               onClick={handleAddCategory}
               size="icon"
@@ -130,12 +121,6 @@ export function SalesSettingsModal({
                 >
                   {editingCatId === cat.id ? (
                     <>
-                      <input
-                        type="color"
-                        value={editCatColor}
-                        onChange={(e) => setEditCatColor(e.target.value)}
-                        className="w-8 h-8 rounded border cursor-pointer"
-                      />
                       <Input
                         value={editCatName}
                         onChange={(e) => setEditCatName(e.target.value)}
@@ -185,10 +170,6 @@ export function SalesSettingsModal({
                     </div>
                   ) : (
                     <>
-                      <div
-                        className="w-6 h-6 rounded-full border flex-shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
                       <span className="flex-1 text-sm font-medium">{cat.label}</span>
                       <Button
                         size="icon"
@@ -197,7 +178,6 @@ export function SalesSettingsModal({
                         onClick={() => {
                           setEditingCatId(cat.id);
                           setEditCatName(cat.label);
-                          setEditCatColor(cat.color);
                         }}
                         aria-label="카테고리 수정"
                       >

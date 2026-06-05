@@ -4,33 +4,6 @@ export type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist';
 export type CustomerGender = 'male' | 'female';
 export type ReservationChannel = 'phone' | 'kakaotalk' | 'naver_booking' | 'road' | 'other';
 
-export type ProductCategory = 
-  | 'mini_bouquet' 
-  | 'basic_bouquet' 
-  | 'medium_bouquet' 
-  | 'large_bouquet' 
-  | 'special_bouquet' 
-  | 'proposal_bouquet' 
-  | 'basket' 
-  | 'vase' 
-  | 'group_bouquet' 
-  | 'reservation' 
-  | 'photo_bouquet';
-
-export const PRODUCT_CATEGORIES = [
-  { value: 'mini_bouquet', label: '미니 꽃다발' },
-  { value: 'basic_bouquet', label: '기본 꽃다발' },
-  { value: 'medium_bouquet', label: '중형 꽃다발' },
-  { value: 'large_bouquet', label: '대형 꽃다발' },
-  { value: 'special_bouquet', label: '스페셜 꽃다발' },
-  { value: 'proposal_bouquet', label: '프로포즈 꽃다발' },
-  { value: 'basket', label: '꽃바구니' },
-  { value: 'vase', label: '화병꽂이' },
-  { value: 'group_bouquet', label: '단체꽃다발' },
-  { value: 'reservation', label: '예약' },
-  { value: 'photo_bouquet', label: '촬영부케' },
-] as const;
-
 export const PAYMENT_METHODS = [
   { value: 'card', label: '카드' },
   { value: 'naverpay', label: '네이버페이' },
@@ -42,15 +15,17 @@ export interface Sale {
   id: string;
   user_id: string;
   date: string;
-  product_name: string;
-  product_category: string;
+  category_id: string | null;
+  category_label: string | null;
   amount: number;
-  payment_method: PaymentMethod;
-  reservation_channel: ReservationChannel;
+  payment_method_id: string | null;
+  payment_method_label: string | null;
+  channel_id: string | null;
+  channel_label: string | null;
   customer_name?: string;
   customer_phone?: string;
   customer_id?: string;
-  note?: string;
+  memo?: string;
   is_unpaid: boolean;
   has_review: boolean;
   photos?: string[];
@@ -63,14 +38,16 @@ export interface Expense {
   user_id: string;
   date: string;
   item_name: string;
-  category: ExpenseCategory;
+  category_id: string | null;
+  category_label: string | null;
   unit_price: number;
   quantity: number;
   total_amount: number;
-  payment_method: PaymentMethod;
+  payment_method_id: string | null;
+  payment_method_label: string | null;
   card_company?: string;
   vendor?: string;
-  note?: string;
+  memo?: string;
   recurring_id?: string | null;
   is_recurring_modified?: boolean;
   created_at: string;
@@ -84,12 +61,14 @@ export interface RecurringExpense {
   id: string;
   user_id: string;
   item_name: string;
-  category: string;
+  category_id: string | null;
+  category_label: string | null;
   unit_price: number;
   quantity: number;
-  payment_method: string;
+  payment_method_id: string | null;
+  payment_method_label: string | null;
   vendor?: string | null;
-  note?: string | null;
+  memo?: string | null;
   frequency: RecurringFrequency;
   interval_count: number;
   days_of_week: number[];       // weekly: 0(일)~6(토) 배열
@@ -113,7 +92,7 @@ export interface Customer {
   total_purchase_amount: number;
   first_purchase_date?: string;
   last_purchase_date?: string;
-  note?: string;
+  memo?: string;
   created_at: string;
   updated_at: string;
 }
@@ -155,7 +134,7 @@ export interface PhotoCard {
   id: string;
   user_id: string;
   title: string;
-  description: string | null;
+  memo: string | null;
   tags: string[];
   photos: PhotoFile[];
   sale_id: string | null;
@@ -174,7 +153,7 @@ export interface Reservation {
   customer_name: string;
   customer_phone: string | null;
   title: string;
-  description: string | null;
+  memo: string | null;
   status: ReservationStatus;
   sale_id: string | null;
   amount: number;
@@ -193,19 +172,19 @@ export const RESERVATION_STATUS = [
 ] as const;
 
 // Calendar Events (multi-day schedule)
-export interface CalendarEvent {
+export interface Schedule {
   id: string;
   user_id: string;
   title: string;
   start_date: string;
   end_date: string;
   color: string;
-  description: string | null;
+  memo: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export const CALENDAR_EVENT_COLORS = [
+export const SCHEDULE_COLORS = [
   { value: '#f43f5e', label: '로즈' },
   { value: '#a855f7', label: '퍼플' },
   { value: '#3b82f6', label: '블루' },
@@ -251,7 +230,7 @@ export interface InstagramAccount {
   region: InstagramRegion;
   sort_order: number;
   active: boolean;
-  notes: string | null;
+  memo: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -399,9 +378,9 @@ export interface UserPreferences {
 export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
   dashboard: '대시보드',
   calendar: '캘린더',
-  sales: '매출관리',
-  expenses: '지출관리',
-  customers: '고객관리',
+  sales: '매출',
+  expenses: '지출',
+  customers: '고객',
   gallery: '사진첩',
   community: '커뮤니티',
 };

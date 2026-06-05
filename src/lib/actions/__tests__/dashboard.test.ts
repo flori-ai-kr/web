@@ -28,11 +28,10 @@ const summary = {
 }
 
 const kSale = (id: string) => ({
-  id, date: '2026-01-01', productName: '꽃', productCategory: null, amount: 50,
-  paymentMethod: 'card', cardCompany: null, fee: null, expectedDeposit: null,
-  expectedDepositDate: null, depositStatus: 'pending', depositedAt: null,
-  reservationChannel: 'phone', customerName: null, customerPhone: null,
-  customerId: null, note: null, isUnpaid: false, hasReview: false,
+  id, date: '2026-01-01', categoryId: 1, categoryLabel: '꽃', amount: 50,
+  paymentMethod: 'card', channelId: 1, channelLabel: '전화',
+  customerName: null, customerPhone: null,
+  customerId: null, memo: null, isUnpaid: false, hasReview: false, photos: null,
   createdAt: '2026-01-01', updatedAt: '2026-01-01',
 })
 
@@ -73,7 +72,7 @@ describe('getRecentSales', () => {
     mockApiFetch.mockResolvedValue(todayPayload)
     const res = await getRecentSales(1)
     expect(res).toHaveLength(1)
-    expect(res[0].product_category).toBe('꽃')
+    expect(res[0].category_label).toBe('꽃')
   })
 })
 
@@ -92,19 +91,19 @@ describe('getDashboardMonthData', () => {
     mockApiFetch.mockResolvedValue({
       summary,
       expenseTotal: 500,
-      categoryStats: [{ name: '장미', count: 2, amount: 100, percentage: 50 }],
-      paymentStats: [{ method: 'card', label: '카드', count: 2, amount: 100, percentage: 50 }],
-      channelStats: [{ channel: 'phone', label: '전화', count: 1, amount: 50, percentage: 25 }],
+      categoryStats: [{ categoryId: 5, label: '장미', count: 2, amount: 100, percentage: 50 }],
+      paymentStats: [{ paymentMethodId: 3, label: '카드', count: 2, amount: 100, percentage: 50 }],
+      channelStats: [{ channelId: 1, label: '전화', count: 1, amount: 50, percentage: 25 }],
       customerStats: { totalCustomers: 10, returningCustomers: 4, newCustomers: 6 },
-      expenseStats: [{ category: 'rent', label: '임대료', amount: 300, percentage: 60 }],
+      expenseStats: [{ categoryId: 9, label: '임대료', amount: 300, percentage: 60 }],
     })
     const res = await getDashboardMonthData('2026-01')
     expect(res.expenseTotal).toBe(500)
-    expect(res.categoryStats[0]).toMatchObject({ name: '장미', percentage: 50 })
-    expect(res.paymentStats[0].method).toBe('card')
-    expect(res.channelStats[0].channel).toBe('phone')
+    expect(res.categoryStats[0]).toMatchObject({ label: '장미', percentage: 50 })
+    expect(res.paymentStats[0].paymentMethodId).toBe('3')
+    expect(res.channelStats[0].channelId).toBe('1')
     expect(res.customerStats).toEqual({ totalCustomers: 10, returningCustomers: 4, newCustomers: 6 })
-    expect(res.expenseStats[0].category).toBe('rent')
+    expect(res.expenseStats[0].categoryId).toBe('9')
   })
 
   it('month 없이도 조회 가능', async () => {

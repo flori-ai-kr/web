@@ -18,14 +18,15 @@ export const colorSchema = z.string().regex(hexColorRegex, '색상 형식이 올
 // 매출 생성/수정
 export const saleSchema = z.object({
   date: dateSchema,
-  product_category: z.string().min(1).max(100),
+  category_id: idSchema,
   amount: z.number().int().min(0).max(100_000_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay', 'unpaid']),
-  reservation_channel: z.enum(['phone', 'kakaotalk', 'naver_booking', 'road', 'other']).optional(),
+  payment_method_id: idSchema.nullable().optional(),
+  is_unpaid: z.boolean().optional(),
+  channel_id: idSchema.nullable().optional(),
   customer_name: z.string().max(100).nullable().optional(),
   customer_phone: z.string().max(20).nullable().optional(),
   customer_id: idSchema.nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
 // 고객 생성/수정
@@ -34,20 +35,20 @@ export const customerSchema = z.object({
   phone: z.string().min(10).max(20),
   grade: z.enum(['new', 'regular', 'vip', 'blacklist']).optional(),
   gender: z.enum(['male', 'female']).nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
 // 지출 생성/수정
 export const expenseSchema = z.object({
   date: dateSchema,
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
-  category: z.string().min(1).max(30),
+  category_id: idSchema,
   unit_price: z.number().int().min(0).max(100_000_000),
   quantity: z.number().int().min(1).max(10_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method_id: idSchema,
   card_company: z.string().max(50).nullable().optional(),
   vendor: z.string().max(100).nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
 // 고정비(반복 지출) 템플릿 — 다중값 지원
@@ -58,12 +59,12 @@ export const yearlyDateSchema = z.object({
 
 export const recurringExpenseSchema = z.object({
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
-  category: z.string().min(1).max(30),
+  category_id: idSchema,
   unit_price: z.number().int().min(0).max(100_000_000),
   quantity: z.number().int().min(1).max(10_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method_id: idSchema,
   vendor: z.string().max(100).nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
   frequency: z.enum(['weekly', 'monthly', 'yearly']),
   interval_count: z.number().int().min(1).max(99).default(1),
   days_of_week: z.array(z.number().int().min(0).max(6)).default([]),
@@ -93,22 +94,22 @@ export const reservationSchema = z.object({
   customer_name: z.string().min(1, '고객명을 입력해주세요').max(100),
   customer_phone: z.string().max(20).nullable().optional(),
   title: z.string().min(1, '제목을 입력해주세요').max(255),
-  description: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
   amount: z.number().int().min(0).max(100_000_000).optional(),
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
   reminder_at: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 // 캘린더 이벤트
-export const calendarEventBaseSchema = z.object({
+export const scheduleBaseSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(255),
   start_date: dateSchema,
   end_date: dateSchema,
   color: colorSchema.optional(),
-  description: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
-export const calendarEventSchema = calendarEventBaseSchema.refine(
+export const scheduleSchema = scheduleBaseSchema.refine(
   (data) => data.end_date >= data.start_date,
   { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
 );
@@ -129,7 +130,7 @@ export const cardCompanySettingSchema = z.object({
 // 사진 카드
 export const photoCardSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(255),
-  description: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   photos: z.array(z.object({
     url: z.string().url(),
@@ -243,7 +244,7 @@ export const instagramAccountCreateSchema = z.object({
   region: z.enum(['domestic', 'international']),
   sort_order: z.number().int().min(0).max(10_000).optional(),
   active: z.boolean().optional(),
-  notes: z.string().max(500).nullable().optional(),
+  memo: z.string().max(500).nullable().optional(),
 });
 
 export const instagramAccountUpdateSchema = instagramAccountCreateSchema.partial();

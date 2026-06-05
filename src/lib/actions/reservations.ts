@@ -15,13 +15,21 @@ interface KotlinReservation {
   customerName: string;
   customerPhone: string | null;
   title: string;
-  description: string | null;
+  memo: string | null;
   status: string;
   saleId: string | null;
   amount: number;
   reminderAt: string | null;
   reminderSent: boolean;
   pickupCompleted: boolean;
+  // 매출 조인 enrichment (매출 미연결 시 null)
+  saleDate: string | null;
+  productCategory: string | null;
+  customerId: string | null;
+  purchaseCount: number | null;
+  saleIsUnpaid: boolean | null;
+  salePaymentMethod: string | null;
+  saleReservationChannel: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,17 +38,20 @@ interface KotlinReservation {
 interface KotlinSale {
   id: string;
   date: string;
-  productName: string;
-  productCategory: string | null;
+  categoryId: number | string | null;
+  categoryLabel: string | null;
   amount: number;
-  paymentMethod: string;
-  reservationChannel: string;
+  paymentMethodId: number | string | null;
+  paymentMethodLabel: string | null;
+  channelId: number | string | null;
+  channelLabel: string | null;
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
-  note: string | null;
+  memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
+  photos: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,7 +67,7 @@ function mapKotlinReservation(r: KotlinReservation): Reservation {
     customer_name: r.customerName,
     customer_phone: r.customerPhone,
     title: r.title,
-    description: r.description,
+    memo: r.memo,
     status: r.status as ReservationStatus,
     sale_id: r.saleId,
     amount: r.amount,
@@ -74,15 +85,17 @@ function mapKotlinSale(s: KotlinSale): Sale {
     id: s.id,
     user_id: '',
     date: s.date,
-    product_name: s.productName,
-    product_category: s.productCategory ?? s.productName,
+    category_id: s.categoryId != null ? String(s.categoryId) : null,
+    category_label: s.categoryLabel,
     amount: s.amount,
-    payment_method: s.paymentMethod as Sale['payment_method'],
-    reservation_channel: s.reservationChannel as Sale['reservation_channel'],
+    payment_method_id: s.paymentMethodId != null ? String(s.paymentMethodId) : null,
+    payment_method_label: s.paymentMethodLabel,
+    channel_id: s.channelId != null ? String(s.channelId) : null,
+    channel_label: s.channelLabel,
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
-    note: s.note ?? undefined,
+    memo: s.memo ?? undefined,
     is_unpaid: s.isUnpaid,
     has_review: s.hasReview,
     photos: undefined,
@@ -92,21 +105,21 @@ function mapKotlinSale(s: KotlinSale): Sale {
 }
 
 // getReservations: Kotlin GET /reservations?month.
-// 매출 조인 부가필드(sale_date/product_category/purchase_count 등)는 Kotlin 기본 응답에 없어
-// undefined로 둔다 — sale 연결 예약의 부가 표시(상품 카테고리 칩/방문 횟수 뱃지)만 영향,
-// 예약 자체 표시·상태 관리는 정상. (전체 충실도 필요 시 Kotlin 측 조인 엔드포인트 보강)
+// 매출 조인 부가필드(sale_date/product_category/customer_id/purchase_count 등)는 서버가
+// 연결된 매출·고객을 조인해 채워준다(매출 미연결 시 null). 캘린더 카드의 고객 딥링크·결제일·
+// 방문 횟수 뱃지·미수 표시에 사용.
 async function _getReservations(month: string): Promise<(Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_is_unpaid?: boolean; sale_payment_method?: string; sale_reservation_channel?: string })[]> {
   await requireAuth();
   const list = await apiFetch<KotlinReservation[]>(`/reservations?month=${encodeURIComponent(month)}`);
   return list.map((r) => ({
     ...mapKotlinReservation(r),
-    sale_date: undefined,
-    product_category: undefined,
-    customer_id: undefined,
-    purchase_count: undefined,
-    sale_is_unpaid: undefined,
-    sale_payment_method: undefined,
-    sale_reservation_channel: undefined,
+    sale_date: r.saleDate ?? undefined,
+    product_category: r.productCategory ?? undefined,
+    customer_id: r.customerId ?? undefined,
+    purchase_count: r.purchaseCount ?? undefined,
+    sale_is_unpaid: r.saleIsUnpaid ?? undefined,
+    sale_payment_method: r.salePaymentMethod ?? undefined,
+    sale_reservation_channel: r.saleReservationChannel ?? undefined,
   }));
 }
 
@@ -118,7 +131,7 @@ async function _createReservation(formData: {
   customer_name: string;
   customer_phone?: string;
   title: string;
-  description?: string;
+  memo?: string;
   amount?: number;
   status?: ReservationStatus;
   reminder_at?: string | null;
@@ -138,7 +151,7 @@ async function _createReservation(formData: {
       customerName: parsed.data.customer_name,
       customerPhone: parsed.data.customer_phone || null,
       title: parsed.data.title,
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
       amount: parsed.data.amount ?? 0,
       status: parsed.data.status || 'pending',
       reminderAt: parsed.data.reminder_at || null,
@@ -158,7 +171,7 @@ async function _updateReservation(
     customer_name?: string;
     customer_phone?: string | null;
     title?: string;
-    description?: string | null;
+    memo?: string | null;
     amount?: number;
     status?: ReservationStatus;
     sale_id?: string | null;
@@ -177,7 +190,7 @@ async function _updateReservation(
     customer_name: formData.customer_name,
     customer_phone: formData.customer_phone,
     title: formData.title,
-    description: formData.description,
+    memo: formData.memo,
     amount: formData.amount,
     status: formData.status,
     reminder_at: formData.reminder_at,
@@ -194,7 +207,7 @@ async function _updateReservation(
   if (parsed.data.customer_name !== undefined) body.customerName = parsed.data.customer_name;
   if (parsed.data.customer_phone !== undefined) body.customerPhone = parsed.data.customer_phone;
   if (parsed.data.title !== undefined) body.title = parsed.data.title;
-  if (parsed.data.description !== undefined) body.description = parsed.data.description;
+  if (parsed.data.memo !== undefined) body.memo = parsed.data.memo;
   if (parsed.data.amount !== undefined) body.amount = parsed.data.amount;
   if (parsed.data.status !== undefined) body.status = parsed.data.status;
   if (formData.reminder_at !== undefined) body.reminderAt = formData.reminder_at;
@@ -237,18 +250,23 @@ async function _convertReservationToSale(
   const idParsed = idSchema.safeParse(reservationId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
 
-  // FormData → SaleCreateRequest(camelCase) 매핑. 고객 해석/계산은 서버가 처리한다.
+  // FormData → SaleCreateRequest(camelCase, id 기반) 매핑. 고객 해석/계산은 서버가 처리한다.
   const customerId = (saleFormData.get('customer_id') as string) || null;
-  const body: Record<string, string | number | null> = {
+  const categoryId = saleFormData.get('category_id') as string | null;
+  const channelId = saleFormData.get('channel_id') as string | null;
+  const paymentMethodId = saleFormData.get('payment_method_id') as string | null;
+  const isUnpaid = saleFormData.get('is_unpaid') === 'true';
+  const body: Record<string, string | number | boolean | null> = {
     date: (saleFormData.get('date') as string) ?? null,
-    productCategory: (saleFormData.get('product_category') as string) ?? null,
+    categoryId: categoryId ? Number(categoryId) : null,
     amount: parseInt(saleFormData.get('amount') as string) || 0,
-    paymentMethod: (saleFormData.get('payment_method') as string) ?? null,
-    reservationChannel: (saleFormData.get('reservation_channel') as string) || 'other',
+    paymentMethodId: isUnpaid ? null : (paymentMethodId ? Number(paymentMethodId) : null),
+    isUnpaid,
+    channelId: channelId ? Number(channelId) : null,
     customerName: (saleFormData.get('customer_name') as string) || null,
     customerPhone: (saleFormData.get('customer_phone') as string) || null,
     customerId,
-    note: (saleFormData.get('note') as string) || null,
+    memo: (saleFormData.get('memo') as string) || null,
   };
 
   const sale = await apiFetch<KotlinSale>(`/reservations/${idParsed.data}/convert-to-sale`, {
@@ -358,10 +376,10 @@ export const getUpcomingReservations = withErrorLogging('getUpcomingReservations
 /**
  * 예약 제목/메모 자동완성용 과거 값 조회
  */
-async function _getReservationSuggestions(): Promise<{ titles: string[]; descriptions: string[] }> {
+async function _getReservationSuggestions(): Promise<{ titles: string[]; memos: string[] }> {
   await requireAuth();
-  const res = await apiFetch<{ titles: string[]; descriptions: string[] }>('/reservations/suggestions');
-  return { titles: res.titles, descriptions: res.descriptions };
+  const res = await apiFetch<{ titles: string[]; memos: string[] }>('/reservations/suggestions');
+  return { titles: res.titles, memos: res.memos };
 }
 
 export const getReservationSuggestions = withErrorLogging('getReservationSuggestions', _getReservationSuggestions);

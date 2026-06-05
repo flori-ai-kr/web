@@ -37,14 +37,14 @@ const navSections: NavSection[] = [
     title: '매장 운영',
     items: [
       { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
-      { href: '/admin/sales', icon: Receipt, label: '매출관리' },
-      { href: '/admin/expenses', icon: Wallet, label: '지출관리' },
+      { href: '/admin/sales', icon: Receipt, label: '매출' },
+      { href: '/admin/expenses', icon: Wallet, label: '지출' },
     ],
   },
   {
     title: '고객 기록',
     items: [
-      { href: '/admin/customers', icon: Users, label: '고객관리' },
+      { href: '/admin/customers', icon: Users, label: '고객' },
       { href: '/admin/gallery', icon: Image, label: '사진첩' },
     ],
   },

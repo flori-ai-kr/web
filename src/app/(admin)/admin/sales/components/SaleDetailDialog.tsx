@@ -1,25 +1,21 @@
 'use client';
 
+import {useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {DomainBadge} from '@/components/ui/domain-badge';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 import {CalendarDays, Check, ExternalLink, ImageIcon, PackageCheck, Pencil, Trash2} from 'lucide-react';
 import Image from 'next/image';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
-import {CHANNEL_LABELS} from '@/lib/constants';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
 
 interface SaleDetailDialogProps {
   sale: Sale | null;
   photos: PhotoCard | null;
   reservations: Reservation[];
-  categoryLabels: Record<string, string>;
-  categoryColors: Record<string, string>;
-  paymentLabels: Record<string, string>;
-  paymentColors: Record<string, string>;
   onClose: () => void;
   onEdit: (sale: Sale) => void;
   onDelete: (sale: Sale) => void;
@@ -30,18 +26,17 @@ export function SaleDetailDialog({
   sale,
   photos,
   reservations,
-  categoryLabels,
-  categoryColors,
-  paymentLabels,
-  paymentColors,
   onClose,
   onEdit,
   onDelete,
   onPhotoModal,
 }: SaleDetailDialogProps) {
   const router = useRouter();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const photoUrls = photos?.photos.map((p) => p.url) ?? [];
 
   return (
+    <>
     <Dialog open={!!sale} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -60,20 +55,18 @@ export function SaleDetailDialog({
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">카테고리</p>
-                <DomainBadge color={categoryColors[sale.product_category]} className="px-2 py-1">
-                  {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                </DomainBadge>
+                <p className="font-medium">{sale.category_label ?? '미분류'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">결제방식</p>
-                <DomainBadge color={paymentColors[sale.payment_method]} className="px-2 py-1">
-                  {paymentLabels[sale.payment_method] || sale.payment_method}
-                </DomainBadge>
+                <p className="font-medium">{sale.is_unpaid ? '미수' : (sale.payment_method_label ?? '-')}</p>
               </div>
+              {sale.channel_label && (
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">예약방식</p>
-                <p className="font-medium">{CHANNEL_LABELS[sale.reservation_channel]}</p>
+                <p className="font-medium">{sale.channel_label}</p>
               </div>
+              )}
               {sale.customer_name && (
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">고객명</p>
@@ -104,32 +97,49 @@ export function SaleDetailDialog({
               </div>
             )}
 
-            {sale.note && (
+            {sale.memo && (
               <div className="space-y-1 pt-2 border-t">
-                <p className="text-sm text-muted-foreground">비고</p>
-                <p className="text-foreground">{sale.note}</p>
+                <p className="text-sm text-muted-foreground">메모</p>
+                <p className="text-foreground">{sale.memo}</p>
               </div>
             )}
 
             {photos && photos.photos.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
-                <p className="text-sm text-muted-foreground">사진</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">사진</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/admin/gallery?card=${photos.id}`)}
+                    className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand/80 transition-colors"
+                    aria-label="사진첩에서 이 포토카드 열기"
+                  >
+                    사진첩에서 보기
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {photos.photos.slice(0, 6).map((photo, index) => (
-                    <div key={photo.url} className="relative aspect-square">
+                    <button
+                      key={photo.url}
+                      type="button"
+                      onClick={() => setLightboxIndex(index)}
+                      className="relative aspect-square rounded-lg overflow-hidden group"
+                      aria-label={`사진 ${index + 1} 크게 보기`}
+                    >
                       <Image
                         src={photo.url}
                         alt={`사진 ${index + 1}`}
                         fill
                         sizes="(max-width: 768px) 33vw, 128px"
-                        className="object-cover rounded-lg"
+                        className="object-cover group-hover:scale-105 transition-transform"
                       />
                       {index === 5 && photos.photos.length > 6 && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                           <span className="text-white font-medium">+{photos.photos.length - 6}</span>
                         </div>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -216,5 +226,14 @@ export function SaleDetailDialog({
         )}
       </DialogContent>
     </Dialog>
+
+    <ImageLightbox
+      images={photoUrls}
+      index={lightboxIndex}
+      onClose={() => setLightboxIndex(null)}
+      onNavigate={setLightboxIndex}
+      caption={sale?.category_label ?? ''}
+    />
+    </>
   );
 }

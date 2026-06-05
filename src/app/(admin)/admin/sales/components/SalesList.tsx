@@ -1,27 +1,23 @@
 'use client';
 
 import {useEffect, useMemo, useRef} from 'react';
+import Image from 'next/image';
 import {Button} from '@/components/ui/button';
-import {Card, CardContent} from '@/components/ui/card';
-import {DomainBadge} from '@/components/ui/domain-badge';
-import {ImageIcon, Loader2, Search, TrendingUp} from 'lucide-react';
+import {Card} from '@/components/ui/card';
+import {FileText, ImagePlus, Loader2, Search, TrendingUp, User} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
-import {CHANNEL_LABELS} from '@/lib/constants';
 import type {Sale} from '@/types/database';
 
 interface SalesListProps {
   sales: Sale[];
-  categoryLabels: Record<string, string>;
-  categoryColors: Record<string, string>;
-  paymentLabels: Record<string, string>;
-  paymentColors: Record<string, string>;
   hasActiveFilters: boolean;
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
   onSelectSale: (sale: Sale) => void;
+  onOpenPhoto: (sale: Sale) => void;
   onResetFilters: () => void;
   onOpenForm: () => void;
 }
@@ -35,19 +31,15 @@ interface DateGroup {
 
 export function SalesList({
   sales,
-  categoryLabels,
-  categoryColors,
-  paymentLabels,
-  paymentColors,
   hasActiveFilters,
   hasMore,
   isLoadingMore,
   onLoadMore,
   onSelectSale,
+  onOpenPhoto,
   onResetFilters,
   onOpenForm,
 }: SalesListProps) {
-  // 무한스크롤 IntersectionObserver
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,7 +58,7 @@ export function SalesList({
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, onLoadMore]);
-  // 일자별 그룹핑
+
   const dateGroups: DateGroup[] = useMemo(() => {
     const map = new Map<string, Sale[]>();
     for (const sale of sales) {
@@ -79,11 +71,10 @@ export function SalesList({
       date,
       label: format(new Date(date), 'yyyy년 M월 d일 (EEE)', { locale: ko }),
       sales: dateSales,
-      total: dateSales.reduce((sum, s) => s.payment_method === 'unpaid' ? sum : sum + s.amount, 0),
+      total: dateSales.reduce((sum, s) => s.is_unpaid ? sum : sum + s.amount, 0),
     }));
   }, [sales]);
 
-  // 빈 상태
   if (sales.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -117,71 +108,118 @@ export function SalesList({
       {dateGroups.map((group) => (
         <div key={group.date}>
           {/* 날짜 헤더 */}
-          <div className="flex items-center gap-3 mb-3">
-            <h2 className="text-sm font-semibold text-foreground whitespace-nowrap">
+          <div className="flex items-center gap-3 mb-2">
+            <h2 className="text-[13px] font-semibold text-foreground whitespace-nowrap">
               {group.label}
             </h2>
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
               {group.sales.length}건 · {formatCurrency(group.total)}
             </span>
           </div>
 
-          {/* 카드 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {group.sales.map((sale) => (
-              <Card
-                key={sale.id}
-                role="button"
-                tabIndex={0}
-                className="cursor-pointer hover:bg-muted/30 active:bg-muted active:scale-[0.99] transition-colors touch-manipulation"
-                onClick={() => onSelectSale(sale)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectSale(sale); } }}
-                aria-label={`${categoryLabels[sale.product_category] || sale.product_category} ${formatCurrency(sale.amount)} 상세 보기`}
-              >
-                <CardContent className="px-4 py-3">
-                  {/* 1줄: 카테고리 + 결제 + 고객명 + 금액 */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <DomainBadge color={categoryColors[sale.product_category]} className="shrink-0">
-                        {categoryLabels[sale.product_category] || sale.product_category || sale.product_name}
-                      </DomainBadge>
-                      <DomainBadge color={paymentColors[sale.payment_method]} className="px-1.5 text-[10px] shrink-0">
-                        {paymentLabels[sale.payment_method] || sale.payment_method}
-                      </DomainBadge>
-                      {(sale.reservation_channel === 'road' || sale.customer_name) && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          {sale.reservation_channel === 'road' ? '로드' : sale.customer_name}
+          {/* 미니멀 로우 리스트 */}
+          <div className="divide-y divide-border/50">
+            {group.sales.map((sale) => {
+              const isUnpaid = sale.is_unpaid;
+
+              const hasPhotos = !!(sale.photos && sale.photos.length > 0);
+
+              return (
+                <div
+                  key={sale.id}
+                  className="w-full flex items-center gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors touch-manipulation"
+                >
+                  {/* 사진 셀: 있으면 썸네일, 없으면 등록 유도 버튼 */}
+                  {hasPhotos ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenPhoto(sale)}
+                      className="relative shrink-0 active:scale-95 transition-transform"
+                      aria-label="사진 수정"
+                    >
+                      <div className="relative w-[50px] h-[50px] rounded-lg overflow-hidden bg-muted">
+                        <Image
+                          src={sale.photos![0]}
+                          alt=""
+                          fill
+                          sizes="50px"
+                          className="object-cover"
+                        />
+                      </div>
+                      {sale.photos!.length > 1 && (
+                        <span className="absolute -bottom-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-background flex items-center justify-center text-[9px] font-bold text-brand shadow-sm ring-1 ring-border">
+                          {sale.photos!.length}
                         </span>
                       )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onOpenPhoto(sale)}
+                      className="shrink-0 w-[50px] h-[50px] rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-brand/50 hover:text-brand active:scale-95 transition-all"
+                      aria-label="사진 등록"
+                    >
+                      <ImagePlus className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {/* 내용 + 금액: 상세 열기 */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectSale(sale)}
+                    className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70 transition-opacity"
+                    aria-label={`${sale.category_label ?? '미분류'} ${formatCurrency(sale.amount)} 상세 보기`}
+                  >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {sale.category_label ?? '미분류'}
+                      </span>
+                      {isUnpaid ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium dark:bg-amber-950 dark:text-amber-400">
+                          미수
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">
+                          {sale.payment_method_label ?? ''}
+                        </span>
+                      )}
+                      {sale.channel_label && (
+                        <>
+                          <span className="text-[11px] text-muted-foreground">·</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {sale.channel_label}
+                          </span>
+                        </>
+                      )}
                     </div>
-                    <span className="font-semibold text-sm text-foreground whitespace-nowrap tabular-nums">
+                    {(sale.customer_name || sale.memo) && (
+                      <div className="flex items-center gap-2.5 mt-1">
+                        {sale.customer_name && (
+                          <span className="flex items-center gap-1 text-[11px] text-foreground/75 shrink-0">
+                            <User className="w-3 h-3 shrink-0 text-brand" aria-hidden />
+                            {sale.customer_name}
+                          </span>
+                        )}
+                        {sale.memo && (
+                          <span className="flex items-center gap-1 text-[11px] text-foreground/75 min-w-0">
+                            <FileText className="w-3 h-3 shrink-0 text-brand" aria-hidden />
+                            <span className="truncate">{sale.memo}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className={`text-sm font-semibold tabular-nums ${isUnpaid ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
                       {formatCurrency(sale.amount)}
                     </span>
                   </div>
-
-                  {/* 2줄: 채널 + 메모 + 사진 아이콘 */}
-                  {(sale.reservation_channel || sale.note || (sale.photos && sale.photos.length > 0)) && (
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1 text-xs text-muted-foreground">
-                        {sale.reservation_channel && sale.reservation_channel !== 'other' && (
-                          <span className="shrink-0">{CHANNEL_LABELS[sale.reservation_channel]}</span>
-                        )}
-                        {sale.reservation_channel && sale.reservation_channel !== 'other' && sale.note && (
-                          <span className="shrink-0">·</span>
-                        )}
-                        {sale.note && (
-                          <span className="truncate">{sale.note}</span>
-                        )}
-                      </div>
-                      {sale.photos && sale.photos.length > 0 && (
-                        <ImageIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}

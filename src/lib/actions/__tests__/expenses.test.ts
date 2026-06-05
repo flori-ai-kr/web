@@ -28,8 +28,8 @@ beforeEach(() => {
 })
 
 const kExpense = {
-  id: 'e1', date: '2026-01-01', itemName: '포장지', category: 'supplies',
-  unitPrice: 1000, quantity: 5, totalAmount: 5000, paymentMethod: 'card',
+  id: 'e1', date: '2026-01-01', itemName: '포장지', categoryId: 7, categoryLabel: '소모품',
+  unitPrice: 1000, quantity: 5, totalAmount: 5000, paymentMethodId: 3, paymentMethodLabel: '카드',
   cardCompany: '신한', vendor: '도매상', note: null, recurringId: null,
   isRecurringModified: false, createdAt: '2026-01-01', updatedAt: '2026-01-01',
 }
@@ -38,10 +38,10 @@ const expenseForm = (over: Record<string, string> = {}) => {
   const fd = new FormData()
   fd.set('date', '2026-01-01')
   fd.set('item_name', '포장지')
-  fd.set('category', 'supplies')
+  fd.set('category_id', '7')
   fd.set('unit_price', '1000')
   fd.set('quantity', '5')
-  fd.set('payment_method', 'card')
+  fd.set('payment_method_id', '3')
   for (const [k, v] of Object.entries(over)) fd.set(k, v)
   return fd
 }
@@ -86,7 +86,7 @@ describe('createExpense', () => {
     const [url, init] = mockApiFetch.mock.calls[0]
     expect(url).toBe('/expenses')
     const body = JSON.parse(init!.body as string)
-    expect(body).toMatchObject({ itemName: '포장지', unitPrice: 1000, quantity: 5, paymentMethod: 'card' })
+    expect(body).toMatchObject({ itemName: '포장지', unitPrice: 1000, quantity: 5, paymentMethodId: 3 })
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/expenses')
   })
 
@@ -112,7 +112,7 @@ describe('updateExpense', () => {
   })
 
   it('검증 실패 시 호출하지 않는다', async () => {
-    await expect(updateExpense('e1', expenseForm({ payment_method: 'invalid' }))).rejects.toThrow()
+    await expect(updateExpense('e1', expenseForm({ payment_method_id: 'invalid' }))).rejects.toThrow()
     expect(mockApiFetch).not.toHaveBeenCalled()
   })
 })

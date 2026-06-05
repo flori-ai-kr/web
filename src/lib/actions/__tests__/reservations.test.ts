@@ -112,8 +112,9 @@ describe('convertReservationToSale', () => {
   const saleForm = () => {
     const fd = new FormData()
     fd.set('date', '2026-01-10')
+    fd.set('category_id', '5')
     fd.set('amount', '30000')
-    fd.set('payment_method', 'card')
+    fd.set('payment_method_id', '3')
     return fd
   }
 
@@ -121,7 +122,7 @@ describe('convertReservationToSale', () => {
     mockApiFetch.mockResolvedValue(kSale)
     const res = await convertReservationToSale('1', saleForm())
     expect(mockApiFetch).toHaveBeenCalledWith('/reservations/1/convert-to-sale', expect.objectContaining({ method: 'POST' }))
-    expect(body(0)).toMatchObject({ amount: 30000, reservationChannel: 'other', paymentMethod: 'card' })
+    expect(body(0)).toMatchObject({ amount: 30000, categoryId: 5, paymentMethodId: 3, isUnpaid: false })
     expect(res.id).toBe('s1')
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/calendar')
     expect(mockRevalidate).toHaveBeenCalledWith('/admin')
@@ -173,8 +174,8 @@ describe('단순 조회 액션', () => {
   })
 
   it('getReservationSuggestions', async () => {
-    mockApiFetch.mockResolvedValue({ titles: ['픽업'], descriptions: [] })
-    expect(await getReservationSuggestions()).toEqual({ titles: ['픽업'], descriptions: [] })
+    mockApiFetch.mockResolvedValue({ titles: ['픽업'], memos: [] })
+    expect(await getReservationSuggestions()).toEqual({ titles: ['픽업'], memos: [] })
     expect(mockApiFetch).toHaveBeenCalledWith('/reservations/suggestions')
   })
 })

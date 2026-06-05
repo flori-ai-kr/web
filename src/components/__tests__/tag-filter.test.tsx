@@ -46,7 +46,7 @@ describe('PhotoCardGrid', () => {
   it('카드가 있으면 제목을 렌더한다', () => {
     const cards: PhotoCard[] = [
       {
-        id: 'pc1', user_id: '', title: '봄 부케', description: null, tags: ['봄'],
+        id: 'pc1', user_id: '', title: '봄 부케', memo: null, tags: ['봄'],
         photos: [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }],
         sale_id: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
       } as PhotoCard,

@@ -42,7 +42,7 @@ export function PhotoUploadModal({
   onTagsChange,
 }: PhotoUploadModalProps) {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [memo, setMemo] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
@@ -64,12 +64,12 @@ export function PhotoUploadModal({
   useEffect(() => {
     if (editingCard) {
       setTitle(editingCard.title);
-      setDescription(editingCard.description || '');
+      setMemo(editingCard.memo || '');
       setSelectedTags(editingCard.tags);
       setPhotoItems(editingCard.photos.map(photo => ({ type: 'existing', photo })));
     } else {
       setTitle('');
-      setDescription('');
+      setMemo('');
       setSelectedTags([]);
       setPhotoItems([]);
     }
@@ -212,7 +212,7 @@ export function PhotoUploadModal({
 
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('description', description);
+      formData.append('memo', memo);
       formData.append('tags', JSON.stringify(selectedTags));
       formData.append('photos', JSON.stringify(existingPhotos));
 
@@ -289,18 +289,18 @@ export function PhotoUploadModal({
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="description">설명</Label>
+              <Label htmlFor="memo">설명</Label>
               <span className={cn(
                 "text-xs",
-                description.length > 200 ? "text-danger" : "text-muted-foreground"
+                memo.length > 200 ? "text-danger" : "text-muted-foreground"
               )}>
-                {description.length}/200
+                {memo.length}/200
               </span>
             </div>
             <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 200))}
+              id="memo"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value.slice(0, 200))}
               placeholder="설명을 입력하세요 (선택)"
               className="min-h-[100px] resize-none"
               maxLength={200}

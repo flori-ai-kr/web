@@ -110,9 +110,9 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
         </div>
 
         {/* Note preview */}
-        {customer.note && (
-          <p className="text-xs text-muted-foreground mt-2 truncate" title={customer.note}>
-            {customer.note}
+        {customer.memo && (
+          <p className="text-xs text-muted-foreground mt-2 truncate" title={customer.memo}>
+            {customer.memo}
           </p>
         )}
       </CardContent>
