@@ -368,7 +368,7 @@ export function ExpensesClient({
       {/* Actions */}
       <div className="flex items-center justify-end gap-2">
         <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-        <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }} className="flex-1 sm:flex-initial">
+        <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }} className="flex-1 sm:flex-initial">
           <Plus className="w-4 h-4 mr-2" />
           지출 등록
         </Button>
@@ -500,7 +500,7 @@ export function ExpensesClient({
         hasActiveFilters={paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== ''}
         onSelectExpense={handleSelectExpense}
         onResetFilters={() => { setPaymentFilter([]); setCategoryFilter([]); setSearchQuery(''); }}
-        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.value || 'card'); }}
+        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }}
       />
         </TabsContent>
 

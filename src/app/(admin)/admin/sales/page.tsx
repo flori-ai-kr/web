@@ -35,9 +35,12 @@ export default async function SalesPage({
     ? 0
     : parsedDay;
 
-  // 기간 범위 모드 (startDate/endDate URL 파라미터)
-  const hasDateRange = !!(params.startDate && params.endDate);
-  const dateRange = hasDateRange ? { startDate: params.startDate!, endDate: params.endDate! } : undefined;
+  // 기간 범위 모드 (startDate/endDate URL 파라미터) — 형식 검증 후 사용(YYYY-MM-DD)
+  const isValidDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const rangeStart = isValidDate(params.startDate) ? params.startDate! : null;
+  const rangeEnd = isValidDate(params.endDate) ? params.endDate! : null;
+  const hasDateRange = !!(rangeStart && rangeEnd && rangeEnd >= rangeStart);
+  const dateRange = hasDateRange ? { startDate: rangeStart!, endDate: rangeEnd! } : undefined;
 
   // getSales 파라미터: "YYYY-MM-DD" (특정일), "YYYY-MM" (특정월), "YYYY" (1년), undefined (전체)
   let monthParam: string | undefined;

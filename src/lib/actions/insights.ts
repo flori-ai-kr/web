@@ -173,7 +173,7 @@ async function _updateInstagramAccount(
   if (parsed.region !== undefined) body.region = parsed.region;
   if (parsed.sort_order !== undefined) body.sortOrder = parsed.sort_order;
   if (parsed.active !== undefined) body.active = parsed.active;
-  if (parsed.memo !== undefined) body.memo = parsed.memo;
+  if (parsed.memo !== undefined) body.notes = parsed.memo;
 
   const data = await apiFetchInternal<KotlinInstagramAccount>(
     `/internal/instagram-accounts/${encodeURIComponent(id)}`,

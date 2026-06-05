@@ -353,7 +353,7 @@ export function SalesFiltersUI({
         {payments.length > 0 && (
           <FilterDropdown
             label="결제방식"
-            options={payments.map(p => ({ value: p.value, label: p.label }))}
+            options={payments.map(p => ({ value: p.id, label: p.label }))}
             selected={paymentFilter}
             onChange={onPaymentChange}
           />
