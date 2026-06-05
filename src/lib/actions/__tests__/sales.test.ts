@@ -223,9 +223,9 @@ describe('getSaleById', () => {
 })
 
 describe('getSaleSuggestions', () => {
-  it('notes를 반환', async () => {
-    mockApiFetch.mockResolvedValue({ notes: ['리본 포장'] })
-    expect(await getSaleSuggestions()).toEqual({ notes: ['리본 포장'] })
+  it('memos를 반환', async () => {
+    mockApiFetch.mockResolvedValue({ memos: ['리본 포장'] })
+    expect(await getSaleSuggestions()).toEqual({ memos: ['리본 포장'] })
     expect(mockApiFetch).toHaveBeenCalledWith('/sales/suggestions')
   })
 })

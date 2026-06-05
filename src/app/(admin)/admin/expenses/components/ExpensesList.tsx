@@ -128,22 +128,22 @@ export function ExpensesList({
                   </div>
 
                   {/* 2줄: 거래처 + 수량 + 메모 */}
-                  {(expense.vendor || expense.quantity > 1 || expense.note) && (
+                  {(expense.vendor || expense.quantity > 1 || expense.memo) && (
                     <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
                       {expense.vendor && (
                         <span className="shrink-0">{expense.vendor}</span>
                       )}
-                      {expense.vendor && (expense.quantity > 1 || expense.note) && (
+                      {expense.vendor && (expense.quantity > 1 || expense.memo) && (
                         <span className="shrink-0">·</span>
                       )}
                       {expense.quantity > 1 && (
                         <span className="shrink-0">{formatCurrency(expense.unit_price)} x {expense.quantity}</span>
                       )}
-                      {expense.quantity > 1 && expense.note && (
+                      {expense.quantity > 1 && expense.memo && (
                         <span className="shrink-0">·</span>
                       )}
-                      {expense.note && (
-                        <span className="truncate">{expense.note}</span>
+                      {expense.memo && (
+                        <span className="truncate">{expense.memo}</span>
                       )}
                     </div>
                   )}

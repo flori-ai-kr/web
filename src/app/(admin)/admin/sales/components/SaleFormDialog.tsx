@@ -38,7 +38,7 @@ export function SaleFormDialog({
 }: SaleFormDialogProps) {
   const [isSubmitting, startTransition] = useTransition();
   const [amountError, setAmountError] = useState<string | null>(null);
-  const [saleSuggestions, setSaleSuggestions] = useState<{ notes: string[] }>({ notes: [] });
+  const [saleSuggestions, setSaleSuggestions] = useState<{ memos: string[] }>({ memos: [] });
   const [paymentMethod, setPaymentMethod] = useState<string>(payments[0]?.value || 'card');
   const [noteValue, setNoteValue] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -61,7 +61,7 @@ export function SaleFormDialog({
       if (sale) {
         // Edit mode
         setPaymentMethod(sale.payment_method);
-        setNoteValue(sale.note || '');
+        setNoteValue(sale.memo || '');
         setCustomerName(sale.customer_name || '');
         setCustomerId(sale.customer_id || null);
         setCustomerPhone(sale.customer_phone || null);
@@ -121,9 +121,6 @@ export function SaleFormDialog({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl">{isEditMode ? '매출 수정' : '매출 등록'}</DialogTitle>
-          {!isEditMode && (
-            <p className="text-sm text-muted-foreground">오늘 판매한 내역을 입력해주세요. * 표시는 필수 항목이에요.</p>
-          )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           <div className="grid grid-cols-[3fr_2fr] gap-4">
@@ -243,9 +240,6 @@ export function SaleFormDialog({
                   }}
                   placeholder="고객명 검색 또는 입력"
                 />
-                {!isEditMode && (
-                  <p className="text-[11px] text-muted-foreground">이름을 입력하면 기존 고객이 자동 검색돼요</p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>연락처</Label>
@@ -263,18 +257,19 @@ export function SaleFormDialog({
           )}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label>비고</Label>
-              <span className={cn("text-xs", noteValue.length > 100 ? "text-destructive" : "text-muted-foreground")}>
-                {noteValue.length}/100
+              <Label>메모</Label>
+              <span className={cn("text-xs", noteValue.length > 200 ? "text-destructive" : "text-muted-foreground")}>
+                {noteValue.length}/200
               </span>
             </div>
             <SuggestionInput
-              name="note"
+              name="memo"
               value={noteValue}
               onChange={(val) => setNoteValue(val)}
-              suggestions={saleSuggestions.notes}
-              placeholder="추가 정보를 입력하세요"
-              maxLength={100}
+              suggestions={saleSuggestions.memos}
+              placeholder="메모를 입력하세요"
+              maxLength={200}
+              multiline
             />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">

@@ -53,7 +53,7 @@ interface KotlinSale {
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
-  note: string | null;
+  memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
   createdAt: string;
@@ -67,7 +67,7 @@ interface KotlinReservation {
   customerName: string;
   customerPhone: string | null;
   title: string;
-  description: string | null;
+  memo: string | null;
   status: string;
   saleId: string | null;
   amount: number;
@@ -162,7 +162,7 @@ function mapSale(s: KotlinSale): Sale {
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
-    note: s.note ?? undefined,
+    memo: s.memo ?? undefined,
     is_unpaid: s.isUnpaid,
     has_review: s.hasReview,
     photos: undefined,
@@ -180,7 +180,7 @@ function mapReservation(r: KotlinReservation): Reservation {
     customer_name: r.customerName,
     customer_phone: r.customerPhone ?? null,
     title: r.title,
-    description: r.description ?? null,
+    memo: r.memo ?? null,
     status: r.status as ReservationStatus,
     sale_id: r.saleId ?? null,
     amount: r.amount,

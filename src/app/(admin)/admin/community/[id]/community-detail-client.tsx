@@ -67,7 +67,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
   const activeCount = comments.filter((c) => !c.is_deleted).length;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-6">
       <Link
         href="/admin/community"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"

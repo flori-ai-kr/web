@@ -88,15 +88,15 @@ export function DeleteSaleDialog({
 }
 
 /** 일정 삭제 확인 */
-export function DeleteEventDialog({
+export function DeleteScheduleDialog({
   open,
-  eventTitle,
+  scheduleTitle,
   isDeleting,
   onConfirm,
   onClose,
 }: {
   open: boolean;
-  eventTitle?: string;
+  scheduleTitle?: string;
   isDeleting: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -107,7 +107,7 @@ export function DeleteEventDialog({
         <DialogHeader>
           <DialogTitle>일정 삭제</DialogTitle>
           <DialogDescription>
-            &quot;{eventTitle}&quot; 일정을 삭제하시겠습니까?
+            &quot;{scheduleTitle}&quot; 일정을 삭제하시겠습니까?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

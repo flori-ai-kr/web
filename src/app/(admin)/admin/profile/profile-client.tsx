@@ -253,7 +253,7 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7 max-w-lg mx-auto">
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link

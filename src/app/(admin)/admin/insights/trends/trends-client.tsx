@@ -107,7 +107,7 @@ export function TrendsClient({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-6">
       {/* Header */}
       <header>
         <Link
@@ -119,7 +119,6 @@ export function TrendsClient({
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">트렌드</h1>
             <p className="text-sm text-muted-foreground mt-1">
               주 2회 자동 수집 · 월·금 08:00 KST
             </p>

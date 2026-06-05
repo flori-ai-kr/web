@@ -60,7 +60,7 @@ export function ScrapsClient({
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-6">
       <header>
         <Link
           href="/admin/insights"
@@ -69,10 +69,6 @@ export function ScrapsClient({
           <ArrowLeft className="w-4 h-4" />
           인사이트
         </Link>
-        <h1 className="text-xl font-semibold text-foreground tracking-tight flex items-center gap-2">
-          <Bookmark className="w-6 h-6 text-brand fill-current" />
-          내 스크랩
-        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           트렌드 {initialTrendScraps.length}건 · 팔로우 포스트 {initialPostScraps.length}건
         </p>

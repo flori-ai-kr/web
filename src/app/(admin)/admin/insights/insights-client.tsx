@@ -43,7 +43,7 @@ export function InsightsClient({
   const totalScrapCount = scrapCounts.trend + scrapCounts.post;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-8">
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
@@ -51,7 +51,6 @@ export function InsightsClient({
             <Sparkles className="w-3.5 h-3.5" />
             <span className="tracking-wider">INSIGHTS</span>
           </div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">이번 주 인사이트</h1>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             {updateLabel}

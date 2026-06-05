@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { searchCustomersByName } from '@/lib/actions/customers';
 import { cn, formatPhoneNumber } from '@/lib/utils';
-import { User, Plus, Loader2 } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
 
 interface CustomerOption {
   id: string;
@@ -104,12 +104,6 @@ export function CustomerAutocomplete({
     onChange(customer.name, customer.id, formatPhoneNumber(customer.phone));
   };
 
-  const handleNewCustomer = () => {
-    setIsOpen(false);
-    setSelectedId(null);
-    onChange(inputValue, null, null);
-  };
-
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
@@ -163,16 +157,6 @@ export function CustomerAutocomplete({
                 );
               })}
 
-              {inputValue && (
-                <button
-                  type="button"
-                  className="w-full px-3 py-2 text-left hover:bg-brand-muted flex items-center gap-2 text-brand"
-                  onClick={handleNewCustomer}
-                >
-                  <Plus className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm font-medium">&ldquo;{inputValue}&rdquo; 새 고객으로 등록</span>
-                </button>
-              )}
             </>
           )}
         </div>

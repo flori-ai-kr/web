@@ -251,12 +251,12 @@ describe('Customer Schema (고객)', () => {
     expect(result.success).toBe(true)
   })
 
-  it('1000자 초과 노트를 거부한다', () => {
+  it('1000자 초과 메모를 거부한다', () => {
     expect(
       customerSchema.safeParse({
         name: '홍길동',
         phone: '010-1234-5678',
-        note: 'a'.repeat(1001),
+        memo: 'a'.repeat(1001),
       }).success
     ).toBe(false)
   })

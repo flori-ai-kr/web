@@ -33,7 +33,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
     if (open) {
       if (customer) {
         setPhoneValue(formatPhoneNumber(customer.phone || ''));
-        setNoteValue(customer.note || '');
+        setNoteValue(customer.memo || '');
       } else {
         setPhoneValue('');
         setNoteValue('');
@@ -163,7 +163,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
               </span>
             </div>
             <Textarea
-              name="note"
+              name="memo"
               value={noteValue}
               onChange={(e) => setNoteValue(e.target.value.slice(0, 200))}
               placeholder="고객에 대한 메모를 입력하세요..."

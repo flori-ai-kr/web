@@ -18,10 +18,8 @@ import {
 import {ko} from '@/lib/date-locale';
 import {
     BellRing,
-    CalendarDays,
     ChevronLeft,
     ChevronRight,
-    List,
     Loader2,
     Plus,
     Trash2,
@@ -30,7 +28,7 @@ import {
 import {toast} from 'sonner';
 
 import {Button} from '@/components/ui/button';
-import {OcrReservationButton} from '@/components/ai/ocr-reservation-dialog';
+// [AI 기능 비활성화] import {OcrReservationButton} from '@/components/ai/ocr-reservation-dialog';
 import {Card, CardContent} from '@/components/ui/card';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Input} from '@/components/ui/input';
@@ -55,25 +53,25 @@ import {
     updateReservation,
 } from '@/lib/actions/reservations';
 import {
-    createCalendarEvent,
-    deleteCalendarEvent,
-    getCalendarEvents,
-    updateCalendarEvent,
-} from '@/lib/actions/calendar-events';
-import {completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions/sales';
+    createSchedule,
+    deleteSchedule,
+    getSchedules,
+    updateSchedule,
+} from '@/lib/actions/schedules';
+import {completeUnpaidSale, deleteSale, getSaleById, revertUnpaidSale, updateSale} from '@/lib/actions/sales';
 import {checkPhoneDuplicate} from '@/lib/actions/customers';
 import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
 import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
 import type {PaymentMethod as PaymentMethodType, SaleCategory} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories} from '@/lib/actions/sale-settings';
-import type {CalendarEvent, Reservation, ReservationStatus} from '@/types/database';
-import {CALENDAR_EVENT_COLORS} from '@/types/database';
+import type {Schedule, Reservation, ReservationStatus} from '@/types/database';
+import {SCHEDULE_COLORS} from '@/types/database';
 import {CHANNEL_LABELS} from '@/lib/constants';
 import type {CalendarReservation} from './types';
-import {EventCard} from './components/EventCard';
+import {ScheduleCard} from './components/ScheduleCard';
 import {ReservationCard} from './components/ReservationCard';
 import {
-    DeleteEventDialog,
+    DeleteScheduleDialog,
     DeleteReservationDialog,
     DeleteSaleDialog,
     UnpaidPaymentDialog,
@@ -136,8 +134,9 @@ export function CalendarClient() {
     }
     return new Date();
   });
-  const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
-  const [dayTab, setDayTab] = useState<'reservation' | 'event'>('reservation');
+  // viewMode 제거 — 캘린더 항상 표시
+
+  const [dayTab, setDayTab] = useState<'reservation' | 'schedule'>('reservation');
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
   const [reservations, setReservations] = useState<CalendarReservation[]>([]);
   const [saleIdsWithPhotos, setSaleIdsWithPhotos] = useState<Set<string>>(new Set());
@@ -152,7 +151,7 @@ export function CalendarClient() {
     customer_name: '',
     customer_phone: '',
     title: '',
-    description: '',
+    memo: '',
     product_category: '',
     payment_method: '',
     reservation_channel: 'other',
@@ -161,7 +160,7 @@ export function CalendarClient() {
   const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', amount: '', reminder_date: '', reminder_time: '' }]);
   const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [suggestions, setSuggestions] = useState<{ titles: string[]; descriptions: string[] }>({ titles: [], descriptions: [] });
+  const [suggestions, setSuggestions] = useState<{ titles: string[]; memos: string[] }>({ titles: [], memos: [] });
 
   // Sale settings
   const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
@@ -181,17 +180,17 @@ export function CalendarClient() {
   const [photoModal, setPhotoModal] = useState<{ saleId: string; defaultTitle: string } | null>(null);
 
   // Calendar events
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [showEventForm, setShowEventForm] = useState(false);
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [eventFormData, setEventFormData] = useState({
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({
     title: '',
     start_date: '',
     end_date: '',
     color: '#f43f5e',
-    description: '',
+    memo: '',
   });
-  const [deleteEventTarget, setDeleteEventTarget] = useState<CalendarEvent | null>(null);
+  const [deleteScheduleTarget, setDeleteScheduleTarget] = useState<Schedule | null>(null);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -200,8 +199,8 @@ export function CalendarClient() {
     setSelectedDate(date);
     setShowForm(false);
     setEditingId(null);
-    setShowEventForm(false);
-    setEditingEventId(null);
+    setShowScheduleForm(false);
+    setEditingScheduleId(null);
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
@@ -223,12 +222,12 @@ export function CalendarClient() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [reservationsData, eventsData] = await Promise.all([
+      const [reservationsData, schedulesData] = await Promise.all([
         getReservations(monthStr),
-        getCalendarEvents(monthStr),
+        getSchedules(monthStr),
       ]);
       setReservations(reservationsData);
-      setCalendarEvents(eventsData);
+      setSchedules(schedulesData);
       fetchPhotoStatus(reservationsData);
     } catch {
       toast.error('데이터를 불러오지 못했습니다');
@@ -239,12 +238,12 @@ export function CalendarClient() {
   // 로딩 표시 없이 데이터만 조용히 갱신 (토글 등 간단한 변경용)
   const refreshData = useCallback(async () => {
     try {
-      const [reservationsData, eventsData] = await Promise.all([
+      const [reservationsData, schedulesData] = await Promise.all([
         getReservations(monthStr),
-        getCalendarEvents(monthStr),
+        getSchedules(monthStr),
       ]);
       setReservations(reservationsData);
-      setCalendarEvents(eventsData);
+      setSchedules(schedulesData);
       fetchPhotoStatus(reservationsData);
     } catch {
       // 조용히 실패
@@ -373,37 +372,37 @@ export function CalendarClient() {
   }, [selectedDate, reservationsByDate]);
 
   // Compute event lanes for consistent vertical positioning across days
-  const { eventsByDate, eventLaneMap } = useMemo(() => {
+  const { schedulesByDate, scheduleLaneMap } = useMemo(() => {
     // 1. 레인 할당: 시작일 빠른 순 → 기간 긴 순 → id 순
-    const sorted = [...calendarEvents].sort((a, b) => {
+    const sorted = [...schedules].sort((a, b) => {
       const startCmp = a.start_date.localeCompare(b.start_date);
       if (startCmp !== 0) return startCmp;
       const endCmp = b.end_date.localeCompare(a.end_date);
       if (endCmp !== 0) return endCmp;
-      return a.id.localeCompare(b.id);
+      return String(a.id).localeCompare(String(b.id));
     });
 
     const laneMap = new Map<string, number>();
     const occupied: { start: string; end: string; lane: number }[] = [];
 
-    for (const event of sorted) {
+    for (const schedule of sorted) {
       let lane = 0;
-      while (occupied.some(o => o.lane === lane && o.start <= event.end_date && o.end >= event.start_date)) {
+      while (occupied.some(o => o.lane === lane && o.start <= schedule.end_date && o.end >= schedule.start_date)) {
         lane++;
       }
-      laneMap.set(event.id, lane);
-      occupied.push({ start: event.start_date, end: event.end_date, lane });
+      laneMap.set(schedule.id, lane);
+      occupied.push({ start: schedule.start_date, end: schedule.end_date, lane });
     }
 
     // 2. 날짜별 일정 맵 (멀티데이 일정 펼치기)
-    const map = new Map<string, CalendarEvent[]>();
-    for (const event of calendarEvents) {
-      let current = new Date(event.start_date);
-      const end = new Date(event.end_date);
+    const map = new Map<string, Schedule[]>();
+    for (const schedule of schedules) {
+      let current = new Date(schedule.start_date);
+      const end = new Date(schedule.end_date);
       while (current <= end) {
         const key = format(current, 'yyyy-MM-dd');
         if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(event);
+        map.get(key)!.push(schedule);
         current = addDays(current, 1);
       }
     }
@@ -412,14 +411,14 @@ export function CalendarClient() {
       events.sort((a, b) => (laneMap.get(a.id) ?? 0) - (laneMap.get(b.id) ?? 0));
     }
 
-    return { eventsByDate: map, eventLaneMap: laneMap };
-  }, [calendarEvents]);
+    return { schedulesByDate: map, scheduleLaneMap: laneMap };
+  }, [schedules]);
 
   // Events overlapping selected date
-  const selectedDateEvents = useMemo(() => {
+  const selectedDateSchedules = useMemo(() => {
     const key = format(selectedDate, 'yyyy-MM-dd');
-    return eventsByDate.get(key) || [];
-  }, [selectedDate, eventsByDate]);
+    return schedulesByDate.get(key) || [];
+  }, [selectedDate, schedulesByDate]);
 
   // sale_id로 같은 매출의 모든 예약 찾기 (다른 날짜 포함)
   const siblingReservations = useMemo(() => {
@@ -439,7 +438,7 @@ export function CalendarClient() {
       customer_name: '',
       customer_phone: '',
       title: '',
-      description: '',
+      memo: '',
       product_category: '',
       payment_method: '',
       reservation_channel: 'other',
@@ -452,7 +451,7 @@ export function CalendarClient() {
     setShowForm(false);
   }
 
-  function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_payment_method?: string; sale_reservation_channel?: string }) {
+  async function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_payment_method?: string; sale_reservation_channel?: string }) {
     const saleId = reservation.sale_id;
     setEditingId(reservation.id);
     setEditingSaleId(saleId || null);
@@ -483,15 +482,33 @@ export function CalendarClient() {
       });
     }
 
+    // 매출 연결 시 매출 상세를 조회해서 카테고리/결제방식/채널/결제일자를 채운다
+    let saleDate = reservation.sale_date || '';
+    let productCategory = reservation.product_category || '';
+    let paymentMethod = reservation.sale_payment_method || '';
+    let reservationChannel = reservation.sale_reservation_channel || 'other';
+
+    if (saleId) {
+      try {
+        const sale = await getSaleById(saleId);
+        if (sale) {
+          saleDate = sale.date || saleDate;
+          productCategory = sale.product_category || productCategory;
+          paymentMethod = sale.payment_method || paymentMethod;
+          reservationChannel = sale.reservation_channel || reservationChannel;
+        }
+      } catch { /* 조회 실패 시 기존 값 유지 */ }
+    }
+
     setFormData({
       customer_name: reservation.customer_name,
       customer_phone: reservation.customer_phone || '',
       title: reservation.title,
-      description: reservation.description || '',
-      product_category: reservation.product_category || '',
-      payment_method: reservation.sale_payment_method || '',
-      reservation_channel: reservation.sale_reservation_channel || 'other',
-      sale_date: reservation.sale_date || '',
+      memo: reservation.memo || '',
+      product_category: productCategory,
+      payment_method: paymentMethod,
+      reservation_channel: reservationChannel,
+      sale_date: saleDate,
     });
     setPickups(allPickups);
     setDeletedPickupIds([]);
@@ -644,7 +661,7 @@ export function CalendarClient() {
               amount: parseInt(p.amount) || 0,
               customer_name: formData.customer_name,
               customer_phone: formData.customer_phone || null,
-              description: formData.description || null,
+              memo: formData.memo || null,
               reminder_at: pickupReminderAt(p),
             });
           }
@@ -676,7 +693,7 @@ export function CalendarClient() {
             const saleFormData = new FormData();
             if (formData.sale_date) saleFormData.set('date', formData.sale_date);
             saleFormData.set('amount', String(totalAmount));
-            saleFormData.set('note', formData.description || '');
+            saleFormData.set('memo', formData.memo || '');
             if (formData.product_category) saleFormData.set('product_category', formData.product_category);
             if (formData.payment_method) saleFormData.set('payment_method', formData.payment_method);
             if (formData.reservation_channel) saleFormData.set('reservation_channel', formData.reservation_channel);
@@ -699,7 +716,7 @@ export function CalendarClient() {
           time: cleanTime(first.time) || undefined,
           customer_name: formData.customer_name,
           title: formData.title,
-          description: formData.description || undefined,
+          memo: formData.memo || undefined,
           amount: parseInt(first.amount) || 0,
           customer_phone: formData.customer_phone || undefined,
           reminder_at: pickupReminderAt(first),
@@ -714,7 +731,7 @@ export function CalendarClient() {
         saleFormData.set('reservation_channel', formData.reservation_channel);
         saleFormData.set('customer_name', formData.customer_name);
         saleFormData.set('customer_phone', formData.customer_phone);
-        saleFormData.set('note', formData.description || '');
+        saleFormData.set('memo', formData.memo || '');
 
         const sale = await convertReservationToSale(reservation.id, saleFormData);
 
@@ -791,69 +808,69 @@ export function CalendarClient() {
   }
 
   // === Calendar Event handlers ===
-  function resetEventForm() {
-    setEventFormData({ title: '', start_date: '', end_date: '', color: '#f43f5e', description: '' });
-    setEditingEventId(null);
-    setShowEventForm(false);
+  function resetScheduleForm() {
+    setScheduleForm({ title: '', start_date: '', end_date: '', color: '#f43f5e', memo: '' });
+    setEditingScheduleId(null);
+    setShowScheduleForm(false);
   }
 
-  function startEditEvent(event: CalendarEvent) {
-    setEditingEventId(event.id);
-    setEventFormData({
-      title: event.title,
-      start_date: event.start_date,
-      end_date: event.end_date,
-      color: event.color,
-      description: event.description || '',
+  function startEditSchedule(s: Schedule) {
+    setEditingScheduleId(s.id);
+    setScheduleForm({
+      title: s.title,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      color: s.color,
+      memo: s.memo || '',
     });
-    setShowEventForm(true);
+    setShowScheduleForm(true);
     // 일정 폼 열 때 예약 폼은 닫기
     setShowForm(false);
   }
 
-  async function handleEventSubmit(e: React.FormEvent) {
+  async function handleScheduleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!eventFormData.title.trim()) { toast.error('제목을 입력해주세요'); return; }
-    if (!eventFormData.start_date || !eventFormData.end_date) { toast.error('시작일과 종료일을 입력해주세요'); return; }
-    if (eventFormData.end_date < eventFormData.start_date) { toast.error('종료일은 시작일보다 이전일 수 없습니다'); return; }
+    if (!scheduleForm.title.trim()) { toast.error('제목을 입력해주세요'); return; }
+    if (!scheduleForm.start_date || !scheduleForm.end_date) { toast.error('시작일과 종료일을 입력해주세요'); return; }
+    if (scheduleForm.end_date < scheduleForm.start_date) { toast.error('종료일은 시작일보다 이전일 수 없습니다'); return; }
 
     setIsSaving(true);
     try {
-      if (editingEventId) {
-        await updateCalendarEvent(editingEventId, {
-          title: eventFormData.title,
-          start_date: eventFormData.start_date,
-          end_date: eventFormData.end_date,
-          color: eventFormData.color,
-          description: eventFormData.description || null,
+      if (editingScheduleId) {
+        await updateSchedule(editingScheduleId, {
+          title: scheduleForm.title,
+          start_date: scheduleForm.start_date,
+          end_date: scheduleForm.end_date,
+          color: scheduleForm.color,
+          memo: scheduleForm.memo || null,
         });
         toast.success('일정이 수정되었습니다');
       } else {
-        await createCalendarEvent({
-          title: eventFormData.title,
-          start_date: eventFormData.start_date,
-          end_date: eventFormData.end_date,
-          color: eventFormData.color,
-          description: eventFormData.description || undefined,
+        await createSchedule({
+          title: scheduleForm.title,
+          start_date: scheduleForm.start_date,
+          end_date: scheduleForm.end_date,
+          color: scheduleForm.color,
+          memo: scheduleForm.memo || undefined,
         });
         toast.success('일정이 등록되었습니다');
       }
-      resetEventForm();
+      resetScheduleForm();
       fetchData();
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : (editingEventId ? '수정 실패' : '등록 실패'));
+      toast.error(error instanceof Error ? error.message : (editingScheduleId ? '수정 실패' : '등록 실패'));
     }
     setIsSaving(false);
   }
 
-  async function handleDeleteEvent() {
-    if (!deleteEventTarget) return;
+  async function handleDeleteSchedule() {
+    if (!deleteScheduleTarget) return;
     setIsDeleting(true);
     try {
-      await deleteCalendarEvent(deleteEventTarget.id);
+      await deleteSchedule(deleteScheduleTarget.id);
       toast.success('일정이 삭제되었습니다');
-      setDeleteEventTarget(null);
-      resetEventForm();
+      setDeleteScheduleTarget(null);
+      resetScheduleForm();
       fetchData();
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : '삭제 실패');
@@ -864,45 +881,19 @@ export function CalendarClient() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">캘린더</h1>
-          <p className="text-sm text-muted-foreground mt-1">날짜를 눌러서 예약을 추가하고, 상태를 관리할 수 있어요</p>
-          {/* OCR→예약 (이미지에서 예약 초안 추출 → 확인 후 생성) */}
+          {/* [AI 기능 비활성화] OCR→예약 (이미지에서 예약 초안 추출 → 확인 후 생성)
           <div className="mt-2.5">
             <OcrReservationButton onCreated={() => router.refresh()} />
-          </div>
-        </div>
-        <div className="flex bg-muted rounded-lg p-0.5 shrink-0 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setViewMode('day')}
-            aria-label="일간 리스트"
-            className={cn(
-              'p-1.5 rounded-md transition-colors',
-              viewMode === 'day' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <List className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('month')}
-            aria-label="월간 캘린더"
-            className={cn(
-              'p-1.5 rounded-md transition-colors',
-              viewMode === 'month' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <CalendarDays className="h-4 w-4" />
-          </button>
+          </div> */}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
         {/* 캘린더(월간) — 모바일은 토글, lg+는 항상 좌측 */}
-        <div className={cn('min-w-0', 'lg:block', viewMode === 'month' ? 'block' : 'hidden')}>
+        <div className="min-w-0">
         <Card className="-mx-8 sm:mx-0 rounded-none sm:rounded-lg border-x-0 sm:border-x lg:sticky lg:top-4">
           <CardContent className="p-2 sm:p-4">
             {/* Navigation */}
@@ -963,7 +954,7 @@ export function CalendarClient() {
                   {calendarDays.map((day) => {
                     const dateKey = format(day, 'yyyy-MM-dd');
                     const dayReservations = reservationsByDate.get(dateKey) || [];
-                    const dayEvents = eventsByDate.get(dateKey) || [];
+                    const daySchedules = schedulesByDate.get(dateKey) || [];
                     const isSelected = isSameDay(day, selectedDate);
                     const isCurrentMonth = isSameMonth(day, currentMonth);
                     const isTodayDate = isToday(day);
@@ -973,7 +964,7 @@ export function CalendarClient() {
                       <button
                         key={dateKey}
                         onClick={() => selectDate(day)}
-                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${dayEvents.length > 0 ? ` 일정 ${dayEvents.length}건` : ''}`}
+                        aria-label={`${format(day, 'M월 d일', { locale: ko })}${dayReservations.length > 0 ? ` 예약 ${dayReservations.length}건` : ''}${daySchedules.length > 0 ? ` 일정 ${daySchedules.length}건` : ''}`}
                         className={cn(
                           'relative min-h-[88px] sm:min-h-[130px] p-1 border-b border-r border-border text-left transition-colors hover:bg-muted/50 [&:nth-child(7n)]:border-r-0 flex flex-col overflow-visible',
                           !isCurrentMonth && 'opacity-30',
@@ -990,36 +981,36 @@ export function CalendarClient() {
                           {format(day, 'd')}
                         </span>
                         {/* Event bars (lane-based positioning) — 그대로 유지 */}
-                        {dayEvents.length > 0 && (() => {
-                          const maxLane = Math.max(...dayEvents.map(e => eventLaneMap.get(e.id) ?? 0));
-                          const lanes: (CalendarEvent | null)[] = Array(maxLane + 1).fill(null);
-                          for (const event of dayEvents) {
-                            const lane = eventLaneMap.get(event.id) ?? 0;
-                            lanes[lane] = event;
+                        {daySchedules.length > 0 && (() => {
+                          const maxLane = Math.max(...daySchedules.map(e => scheduleLaneMap.get(e.id) ?? 0));
+                          const lanes: (Schedule | null)[] = Array(maxLane + 1).fill(null);
+                          for (const s of daySchedules) {
+                            const lane = scheduleLaneMap.get(s.id) ?? 0;
+                            lanes[lane] = s;
                           }
                           return (
                             <div className="flex flex-col gap-px mb-0.5">
-                              {lanes.map((event, lane) => {
-                                if (!event) {
+                              {lanes.map((s, lane) => {
+                                if (!s) {
                                   return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{' '}</div>;
                                 }
-                                const isStart = event.start_date === dateKey;
-                                const isEnd = event.end_date === dateKey;
+                                const isStart = s.start_date === dateKey;
+                                const isEnd = s.end_date === dateKey;
                                 const isSingle = isStart && isEnd;
                                 return (
                                   <div
-                                    key={event.id}
+                                    key={s.id}
                                     className={cn(
                                       'text-[10px] leading-tight px-1 py-px font-medium -mx-1',
                                       isStart && !isSingle ? 'whitespace-nowrap overflow-visible relative z-10' : 'truncate',
                                     )}
                                     style={{
-                                      backgroundColor: `${event.color}30`,
-                                      color: event.color,
+                                      backgroundColor: `${s.color}30`,
+                                      color: s.color,
                                       borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
                                     }}
                                   >
-                                    {isStart ? event.title : ' '}
+                                    {isStart ? s.title : ' '}
                                   </div>
                                 );
                               })}
@@ -1049,10 +1040,26 @@ export function CalendarClient() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {format(selectedDate, 'M월 d일 (EEE)', { locale: ko })}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => selectDate(addDays(selectedDate, -1))}
+                    aria-label="이전 날"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors shrink-0"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <p className="text-sm font-semibold text-foreground whitespace-nowrap">
+                    {format(selectedDate, 'M/d (EEE)', { locale: ko })}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => selectDate(addDays(selectedDate, 1))}
+                    aria-label="다음 날"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors shrink-0"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button size="sm" onClick={() => {
@@ -1061,7 +1068,7 @@ export function CalendarClient() {
                       customer_name: '',
                       customer_phone: '',
                       title: '',
-                      description: '',
+                      memo: '',
                       product_category: '',
                       payment_method: '',
                       reservation_channel: 'other',
@@ -1071,21 +1078,21 @@ export function CalendarClient() {
                     setDeletedPickupIds([]);
                     setEditingId(null);
                     setEditingSaleId(null);
-                    setShowEventForm(false);
+                    setShowScheduleForm(false);
                     setShowForm(true);
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     예약
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
-                    resetEventForm();
-                    setEventFormData(prev => ({
+                    resetScheduleForm();
+                    setScheduleForm(prev => ({
                       ...prev,
                       start_date: format(selectedDate, 'yyyy-MM-dd'),
                       end_date: format(selectedDate, 'yyyy-MM-dd'),
                     }));
                     setShowForm(false);
-                    setShowEventForm(true);
+                    setShowScheduleForm(true);
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     일정
@@ -1109,33 +1116,33 @@ export function CalendarClient() {
             </button>
             <button
               type="button"
-              onClick={() => setDayTab('event')}
+              onClick={() => setDayTab('schedule')}
               className={cn(
                 'flex-1 text-sm font-medium py-2 border-b-2 -mb-px transition-colors',
-                dayTab === 'event' ? 'border-brand text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+                dayTab === 'schedule' ? 'border-brand text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
-              일정{selectedDateEvents.length > 0 ? ` ${selectedDateEvents.length}` : ''}
+              일정{selectedDateSchedules.length > 0 ? ` ${selectedDateSchedules.length}` : ''}
             </button>
           </div>
           </>
           )}
 
           {/* 일정 Form (modal) */}
-          <Dialog open={showEventForm} onOpenChange={(open) => { if (!open) resetEventForm(); }}>
+          <Dialog open={showScheduleForm} onOpenChange={(open) => { if (!open) resetScheduleForm(); }}>
             <DialogContent
               className="sm:max-w-md max-h-[90vh] overflow-y-auto"
               onInteractOutside={(e) => e.preventDefault()}
             >
               <DialogHeader>
-                <DialogTitle>{editingEventId ? '일정 수정' : '새 일정'}</DialogTitle>
+                <DialogTitle>{editingScheduleId ? '일정 수정' : '새 일정'}</DialogTitle>
               </DialogHeader>
-                <form onSubmit={handleEventSubmit} className="space-y-3">
+                <form onSubmit={handleScheduleSubmit} className="space-y-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
                     <Input
-                      value={eventFormData.title}
-                      onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
+                      value={scheduleForm.title}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
                       placeholder="졸업 시즌"
                       className="h-8"
                     />
@@ -1145,8 +1152,8 @@ export function CalendarClient() {
                       <Label className="text-xs text-muted-foreground">시작일 <span className="text-brand">*</span></Label>
                       <Input
                         type="date"
-                        value={eventFormData.start_date}
-                        onChange={(e) => setEventFormData({ ...eventFormData, start_date: e.target.value })}
+                        value={scheduleForm.start_date}
+                        onChange={(e) => setScheduleForm({ ...scheduleForm, start_date: e.target.value })}
                         className="h-8"
                       />
                     </div>
@@ -1154,8 +1161,8 @@ export function CalendarClient() {
                       <Label className="text-xs text-muted-foreground">종료일 <span className="text-brand">*</span></Label>
                       <Input
                         type="date"
-                        value={eventFormData.end_date}
-                        onChange={(e) => setEventFormData({ ...eventFormData, end_date: e.target.value })}
+                        value={scheduleForm.end_date}
+                        onChange={(e) => setScheduleForm({ ...scheduleForm, end_date: e.target.value })}
                         className="h-8"
                       />
                     </div>
@@ -1163,14 +1170,14 @@ export function CalendarClient() {
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">색상</Label>
                     <div className="flex gap-2">
-                      {CALENDAR_EVENT_COLORS.map((c) => (
+                      {SCHEDULE_COLORS.map((c) => (
                         <button
                           key={c.value}
                           type="button"
-                          onClick={() => setEventFormData({ ...eventFormData, color: c.value })}
+                          onClick={() => setScheduleForm({ ...scheduleForm, color: c.value })}
                           className={cn(
                             'w-7 h-7 rounded-full border-2 transition-transform',
-                            eventFormData.color === c.value ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'
+                            scheduleForm.color === c.value ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'
                           )}
                           style={{ backgroundColor: c.value }}
                           aria-label={c.label}
@@ -1180,36 +1187,30 @@ export function CalendarClient() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">메모</Label>
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs text-muted-foreground">메모</Label>
+                      <span className="text-[11px] text-muted-foreground">
+                        {scheduleForm.memo.length}/200
+                      </span>
+                    </div>
                     <textarea
-                      value={eventFormData.description}
-                      onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
+                      value={scheduleForm.memo}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, memo: e.target.value })}
                       placeholder="메모를 입력하세요"
+                      maxLength={200}
                       rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring field-sizing-content min-h-[60px] max-h-[160px]"
                       aria-label="일정 메모"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
-                    <Button type="button" variant="outline" size="sm" className="flex-1 h-9" onClick={resetEventForm}>
+                    <Button type="button" variant="outline" size="sm" className="flex-1 h-9" onClick={resetScheduleForm}>
                       취소
                     </Button>
                     <Button type="submit" size="sm" className="flex-1 h-9" disabled={isSaving}>
                       {isSaving && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
-                      {editingEventId ? '수정' : '등록'}
+                      {editingScheduleId ? '수정' : '등록'}
                     </Button>
-                    {editingEventId && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="h-9 px-3"
-                        onClick={() => setDeleteEventTarget(calendarEvents.find(e => e.id === editingEventId) || null)}
-                        aria-label="일정 삭제"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
                   </div>
                 </form>
             </DialogContent>
@@ -1457,12 +1458,19 @@ export function CalendarClient() {
 
                   {/* 메모 */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">메모</Label>
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs text-muted-foreground">메모</Label>
+                      <span className="text-[11px] text-muted-foreground">
+                        {formData.memo.length}/200
+                      </span>
+                    </div>
                     <SuggestionInput
-                      value={formData.description}
-                      onChange={(val) => setFormData({ ...formData, description: val })}
-                      suggestions={suggestions.descriptions}
+                      value={formData.memo}
+                      onChange={(val) => setFormData({ ...formData, memo: val })}
+                      suggestions={suggestions.memos}
                       placeholder="메모를 입력하세요"
+                      maxLength={200}
+                      multiline
                       aria-label="메모"
                     />
                   </div>
@@ -1480,15 +1488,15 @@ export function CalendarClient() {
           </Dialog>
 
           {/* 탭 콘텐츠 */}
-          {dayTab === 'event' ? (
-            selectedDateEvents.length > 0 ? (
+          {dayTab === 'schedule' ? (
+            selectedDateSchedules.length > 0 ? (
               <div className="space-y-1.5">
-                {selectedDateEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onEdit={startEditEvent}
-                    onDelete={setDeleteEventTarget}
+                {selectedDateSchedules.map((s) => (
+                  <ScheduleCard
+                    key={s.id}
+                    schedule={s}
+                    onEdit={startEditSchedule}
+                    onDelete={setDeleteScheduleTarget}
                   />
                 ))}
               </div>
@@ -1583,13 +1591,13 @@ export function CalendarClient() {
         }}
       />
 
-      {/* Delete event confirmation */}
-      <DeleteEventDialog
-        open={!!deleteEventTarget}
-        eventTitle={deleteEventTarget?.title}
+      {/* Delete schedule confirmation */}
+      <DeleteScheduleDialog
+        open={!!deleteScheduleTarget}
+        scheduleTitle={deleteScheduleTarget?.title}
         isDeleting={isDeleting}
-        onConfirm={handleDeleteEvent}
-        onClose={() => setDeleteEventTarget(null)}
+        onConfirm={handleDeleteSchedule}
+        onClose={() => setDeleteScheduleTarget(null)}
       />
 
       {/* 미수 결제 완료 dialog */}

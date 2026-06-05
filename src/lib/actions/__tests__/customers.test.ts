@@ -76,7 +76,7 @@ describe('getCustomers / getCustomerById', () => {
     mockApiFetch.mockResolvedValue({ ...kCustomer, gender: null, note: null, firstPurchaseDate: null })
     const res = await getCustomerById('c1')
     expect(res.gender).toBeNull()
-    expect(res.note).toBeUndefined()
+    expect(res.memo).toBeUndefined()
     expect(res.first_purchase_date).toBeUndefined()
   })
 })

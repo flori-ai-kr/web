@@ -12,7 +12,7 @@ import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
-import {getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
+import {getPhotoCardById, getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
 import {toast} from 'sonner';
 
@@ -75,6 +75,21 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 딥링크(?card=<id>)로 진입 시 해당 포토카드 바로 열기 (매출 상세 등에서 연결)
+  useEffect(() => {
+    const cardId = searchParams.get('card');
+    if (!cardId) return;
+    getPhotoCardById(cardId)
+      .then((card) => { if (card) setSelectedCard(card); })
+      .catch(() => {});
+    // URL 정리(뒤로가기 시 재오픈 방지)
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('card');
+    const qs = params.toString();
+    router.replace(qs ? `/admin/gallery?${qs}` : '/admin/gallery', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMore = useCallback(async () => {
@@ -181,18 +196,13 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
-      <PageHeader
-        className="gap-4"
-        title="사진첩"
-        description="완성한 꽃 작업물 사진을 저장하고 태그로 분류할 수 있어요"
-        actions={
-          <Button onClick={() => setIsUploadModalOpen(true)} className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            새 카드 추가
-          </Button>
-        }
-      />
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
+      <div className="flex items-center justify-end">
+        <Button onClick={() => setIsUploadModalOpen(true)} className="w-full sm:w-auto">
+          <Plus className="w-4 h-4 mr-2" />
+          새 카드 추가
+        </Button>
+      </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">

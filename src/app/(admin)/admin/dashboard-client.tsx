@@ -72,7 +72,7 @@ function BarList({
     return <p className="text-sm text-muted-foreground py-6 text-center">{emptyMessage}</p>;
   }
   return (
-    <div className="space-y-3 px-4 sm:px-6 py-5 sm:py-7">
+    <div className="space-y-3 px-4 sm:px-6 py-1 sm:py-2">
       {items.map((item, i) => (
         <div key={i} className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
@@ -197,7 +197,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
   const netProfit = totalSales - monthExpenseTotal;
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

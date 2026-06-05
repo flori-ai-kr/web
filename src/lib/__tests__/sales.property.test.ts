@@ -3,18 +3,16 @@ import * as fc from 'fast-check'
 import {
     calculateSalesSummary,
     filterNumericInput,
-    filterSalesByCategory,
     filterSalesByYearMonth,
     formatAmountInput,
     parseAmountInput,
 } from '../utils'
-import type {PaymentMethod, ProductCategory, Sale} from '@/types/database'
-import {PRODUCT_CATEGORIES} from '@/types/database'
+import type {PaymentMethod, Sale} from '@/types/database'
 
 // Helper to generate arbitrary Sale objects
 const arbitrarySale = (): fc.Arbitrary<Sale> => {
   const paymentMethods: PaymentMethod[] = ['card', 'naverpay', 'transfer', 'cash']
-  const categories: ProductCategory[] = PRODUCT_CATEGORIES.map(c => c.value as ProductCategory)
+  const categories: string[] = ['mini_bouquet', 'basic_bouquet', 'medium_bouquet', 'large_bouquet', 'basket', 'vase']
   
   // Generate date as YYYY-MM-DD string directly
   const arbitraryDateString = fc.tuple(
@@ -175,51 +173,3 @@ describe('Year/Month Filtering', () => {
   })
 })
 
-describe('Category Filtering', () => {
-  // **Feature: sales-page-improvements, Property 6: Category filtering correctness**
-  it('Property 6: filtered sales should only contain records with selected category', () => {
-    const categories: ProductCategory[] = PRODUCT_CATEGORIES.map(c => c.value as ProductCategory)
-    
-    fc.assert(
-      fc.property(
-        fc.array(arbitrarySale(), { minLength: 0, maxLength: 50 }),
-        fc.constantFrom(...categories),
-        (sales, category) => {
-          const filtered = filterSalesByCategory(sales, category)
-          return filtered.every(sale => sale.product_category === category)
-        }
-      ),
-      { numRuns: 100 }
-    )
-  })
-
-  it('Property 6 (all filter): selecting "all" should return all sales', () => {
-    fc.assert(
-      fc.property(
-        fc.array(arbitrarySale(), { minLength: 0, maxLength: 50 }),
-        (sales) => {
-          const filtered = filterSalesByCategory(sales, 'all')
-          return filtered.length === sales.length
-        }
-      ),
-      { numRuns: 100 }
-    )
-  })
-
-  it('Property 6 (completeness): all matching sales should be included', () => {
-    const categories: ProductCategory[] = PRODUCT_CATEGORIES.map(c => c.value as ProductCategory)
-    
-    fc.assert(
-      fc.property(
-        fc.array(arbitrarySale(), { minLength: 0, maxLength: 50 }),
-        fc.constantFrom(...categories),
-        (sales, category) => {
-          const filtered = filterSalesByCategory(sales, category)
-          const expectedCount = sales.filter(s => s.product_category === category).length
-          return filtered.length === expectedCount
-        }
-      ),
-      { numRuns: 100 }
-    )
-  })
-})

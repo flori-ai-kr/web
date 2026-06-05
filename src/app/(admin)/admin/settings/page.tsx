@@ -139,10 +139,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-5 sm:py-7">
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       <div>
         <h1 className="text-xl font-semibold text-foreground tracking-tight">설정</h1>
-        <p className="text-sm text-muted-foreground mt-1">알림과 하단바 구성을 관리할 수 있어요</p>
       </div>
 
       {/* 푸시 알림 설정 */}

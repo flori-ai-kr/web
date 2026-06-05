@@ -62,9 +62,10 @@ interface KotlinSale {
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
-  note: string | null;
+  memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
+  photos: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,7 +77,7 @@ interface KotlinSalesPage {
 
 // camelCase(Kotlin) → snake_case(웹 Sale 타입) 매핑.
 // 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
-// photos는 Kotlin /sales가 반환하지 않으므로 undefined.
+// photos는 목록 응답에 연결된 사진 URL 목록(없으면 빈 배열). 리스트 썸네일 표시에 사용.
 function mapKotlinSale(s: KotlinSale): Sale {
   return {
     id: s.id,
@@ -90,24 +91,27 @@ function mapKotlinSale(s: KotlinSale): Sale {
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
-    note: s.note ?? undefined,
+    memo: s.memo ?? undefined,
     is_unpaid: s.isUnpaid,
     has_review: s.hasReview,
-    photos: undefined,
+    photos: s.photos && s.photos.length > 0 ? s.photos : undefined,
     created_at: s.createdAt,
     updated_at: s.updatedAt,
   };
 }
 
-async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters) {
+async function _getSales(month?: string, offset: number = 0, limit: number = SALES_PAGE_SIZE, filters?: SalesFilters, dateRange?: { startDate: string; endDate: string }) {
   await requireAuth();
 
-  // 쿼리 파라미터 구성. 다중값(category/payment/channel)은 반복 파라미터로
-  // 보내 Spring List<String> 바인딩과 일치시킨다.
   const params = new URLSearchParams();
   params.set('offset', String(offset));
   params.set('limit', String(limit));
-  if (month) params.set('month', month);
+  if (dateRange) {
+    params.set('startDate', dateRange.startDate);
+    params.set('endDate', dateRange.endDate);
+  } else if (month) {
+    params.set('month', month);
+  }
   for (const c of filters?.category ?? []) params.append('category', c);
   for (const p of filters?.payment ?? []) params.append('payment', p);
   for (const ch of filters?.channel ?? []) params.append('channel', ch);
@@ -140,11 +144,17 @@ interface KotlinSalesSummary {
 
 // 요약 집계: 페이지네이션과 무관하게 필터 적용 전체를 서버가 집계한다.
 // month 파싱(연/특정일/월 범위)과 필터 적용은 서버 `/sales/summary`가 담당한다.
-async function _getSalesSummary(month?: string, filters?: SalesFilters) {
+// startDate/endDate 가 있으면 month 무시하고 범위 조회.
+async function _getSalesSummary(month?: string, filters?: SalesFilters, dateRange?: { startDate: string; endDate: string }) {
   await requireAuth();
 
   const params = new URLSearchParams();
-  if (month) params.set('month', month);
+  if (dateRange) {
+    params.set('startDate', dateRange.startDate);
+    params.set('endDate', dateRange.endDate);
+  } else if (month) {
+    params.set('month', month);
+  }
   for (const c of filters?.category ?? []) params.append('category', c);
   for (const p of filters?.payment ?? []) params.append('payment', p);
   for (const ch of filters?.channel ?? []) params.append('channel', ch);
@@ -182,7 +192,7 @@ async function _createSale(formData: FormData) {
     reservation_channel: formData.get('reservation_channel') || 'other',
     customer_name: customerName,
     customer_phone: customerPhone,
-    note: formData.get('note') || null,
+    memo: formData.get('memo') || null,
   });
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
@@ -203,7 +213,7 @@ async function _createSale(formData: FormData) {
       customerName,
       customerPhone,
       customerId: finalCustomerId,
-      note: parsed.data.note || null,
+      memo: parsed.data.memo || null,
     }),
   });
 
@@ -234,7 +244,7 @@ async function _updateSale(id: string, formData: FormData) {
     reservation_channel: formData.get('reservation_channel') || undefined,
     customer_name: customerName,
     customer_phone: customerPhone,
-    note: formData.has('note') ? (formData.get('note') as string || null) : undefined,
+    memo: formData.has('memo') ? (formData.get('memo') as string || null) : undefined,
   });
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
@@ -254,7 +264,7 @@ async function _updateSale(id: string, formData: FormData) {
   if (parsed.data.reservation_channel !== undefined) body.reservationChannel = parsed.data.reservation_channel;
   if (parsed.data.customer_name !== undefined) body.customerName = parsed.data.customer_name;
   if (parsed.data.customer_phone !== undefined) body.customerPhone = parsed.data.customer_phone;
-  if (parsed.data.note !== undefined) body.note = parsed.data.note;
+  if (parsed.data.memo !== undefined) body.memo = parsed.data.memo;
   if (shouldResolveCustomer) body.customerId = finalCustomerId ?? null;
 
   const hasReview = formData.get('has_review');
@@ -348,13 +358,12 @@ async function _getSaleById(id: string): Promise<Sale | null> {
 export const getSaleById = withErrorLogging('getSaleById', _getSaleById);
 
 /**
- * 매출 비고 자동완성용 과거 값 조회
+ * 매출 메모 자동완성용 과거 값 조회
  */
-async function _getSaleSuggestions(): Promise<{ notes: string[] }> {
+async function _getSaleSuggestions(): Promise<{ memos: string[] }> {
   await requireAuth();
-  // 서버가 빈도순 정렬된 note 목록을 반환한다.
-  const { notes } = await apiFetch<{ notes: string[] }>('/sales/suggestions');
-  return { notes };
+  const { memos } = await apiFetch<{ memos: string[] }>('/sales/suggestions');
+  return { memos };
 }
 
 export const getSaleSuggestions = withErrorLogging('getSaleSuggestions', _getSaleSuggestions);

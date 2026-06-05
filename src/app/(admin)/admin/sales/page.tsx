@@ -10,6 +10,8 @@ export default async function SalesPage({
     year?: string;
     month?: string;
     day?: string;
+    startDate?: string;
+    endDate?: string;
     saleId?: string;
     category?: string;
     payment?: string;
@@ -33,9 +35,15 @@ export default async function SalesPage({
     ? 0
     : parsedDay;
 
+  // 기간 범위 모드 (startDate/endDate URL 파라미터)
+  const hasDateRange = !!(params.startDate && params.endDate);
+  const dateRange = hasDateRange ? { startDate: params.startDate!, endDate: params.endDate! } : undefined;
+
   // getSales 파라미터: "YYYY-MM-DD" (특정일), "YYYY-MM" (특정월), "YYYY" (1년), undefined (전체)
   let monthParam: string | undefined;
-  if (isAllYear) {
+  if (hasDateRange) {
+    monthParam = undefined; // dateRange 모드에서는 month 사용 안 함
+  } else if (isAllYear) {
     monthParam = undefined; // 전체
   } else if (isAllMonth) {
     monthParam = currentYear.toString(); // 년도만 (1년치)
@@ -57,9 +65,34 @@ export default async function SalesPage({
     channel: channelParam.length > 0 ? channelParam : undefined,
   };
 
-  const [salesResult, summary, categories, payments, initialSelectedSale] = await Promise.all([
-    getSales(monthParam, 0, 100, filters),
-    getSalesSummary(monthParam, filters),
+  // 이전 동일 길이 기간 비교
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  let prevDateRange: { startDate: string; endDate: string } | undefined;
+
+  if (hasDateRange) {
+    // 기간 범위 모드: 선택 기간과 동일 길이의 직전 기간
+    const start = new Date(params.startDate!);
+    const end = new Date(params.endDate!);
+    const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1);
+    prevDateRange = { startDate: fmt(prevStart), endDate: fmt(prevEnd) };
+  } else if (!isAllYear && !isAllMonth && currentDay > 0) {
+    // 특정 일자 → 전일 비교
+    const target = new Date(currentYear, currentMonth - 1, currentDay);
+    const prev = new Date(target); prev.setDate(prev.getDate() - 1);
+    prevDateRange = { startDate: fmt(prev), endDate: fmt(prev) };
+  } else if (!isAllYear && !isAllMonth) {
+    // 월 조회 → 이전 달 비교
+    const prevDate = new Date(currentYear, currentMonth - 2, 1);
+    const prevEnd = new Date(currentYear, currentMonth - 1, 0);
+    prevDateRange = { startDate: fmt(prevDate), endDate: fmt(prevEnd) };
+  }
+
+  const [salesResult, summary, prevSummary, categories, payments, initialSelectedSale] = await Promise.all([
+    getSales(monthParam, 0, 100, filters, dateRange),
+    getSalesSummary(monthParam, filters, dateRange),
+    prevDateRange ? getSalesSummary(undefined, undefined, prevDateRange) : Promise.resolve(null),
     getSaleCategories(),
     getPaymentMethods(),
     params.saleId ? getSaleById(params.saleId) : Promise.resolve(null),
@@ -70,6 +103,7 @@ export default async function SalesPage({
       initialSales={salesResult.sales}
       initialHasMore={salesResult.hasMore}
       initialSummary={summary}
+      prevTotal={prevSummary?.total ?? null}
       monthParam={monthParam ?? null}
       currentYear={currentYear}
       currentMonth={currentMonth}

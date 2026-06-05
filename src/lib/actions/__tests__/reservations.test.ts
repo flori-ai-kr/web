@@ -173,8 +173,8 @@ describe('단순 조회 액션', () => {
   })
 
   it('getReservationSuggestions', async () => {
-    mockApiFetch.mockResolvedValue({ titles: ['픽업'], descriptions: [] })
-    expect(await getReservationSuggestions()).toEqual({ titles: ['픽업'], descriptions: [] })
+    mockApiFetch.mockResolvedValue({ titles: ['픽업'], memos: [] })
+    expect(await getReservationSuggestions()).toEqual({ titles: ['픽업'], memos: [] })
     expect(mockApiFetch).toHaveBeenCalledWith('/reservations/suggestions')
   })
 })

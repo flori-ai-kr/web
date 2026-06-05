@@ -13,6 +13,7 @@ interface SuggestionInputProps {
   maxLength?: number;
   name?: string;
   required?: boolean;
+  multiline?: boolean;
   'aria-label'?: string;
 }
 
@@ -25,6 +26,7 @@ export function SuggestionInput({
   maxLength,
   name,
   required,
+  multiline,
   'aria-label': ariaLabel,
 }: SuggestionInputProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,7 +54,7 @@ export function SuggestionInput({
     setIsOpen(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newValue = maxLength ? e.target.value.slice(0, maxLength) : e.target.value;
     onChange(newValue);
     setIsOpen(true);
@@ -62,18 +64,36 @@ export function SuggestionInput({
 
   return (
     <div ref={wrapperRef} className="relative">
-      <Input
-        value={value}
-        onChange={handleChange}
-        onFocus={() => setIsOpen(true)}
-        placeholder={placeholder}
-        className={cn('bg-muted', className)}
-        autoComplete="off"
-        maxLength={maxLength}
-        name={name}
-        required={required}
-        aria-label={ariaLabel}
-      />
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={handleChange}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          className={cn(
+            'flex w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring field-sizing-content min-h-[60px] max-h-[160px] overflow-y-auto',
+            className
+          )}
+          autoComplete="off"
+          maxLength={maxLength}
+          name={name}
+          required={required}
+          aria-label={ariaLabel}
+        />
+      ) : (
+        <Input
+          value={value}
+          onChange={handleChange}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          className={cn('bg-muted', className)}
+          autoComplete="off"
+          maxLength={maxLength}
+          name={name}
+          required={required}
+          aria-label={ariaLabel}
+        />
+      )}
 
       {showDropdown && (
         <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-auto">

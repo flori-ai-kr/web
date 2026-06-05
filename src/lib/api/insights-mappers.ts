@@ -40,7 +40,7 @@ export interface KotlinInstagramAccount {
   region: InstagramRegion;
   sortOrder: number;
   active: boolean;
-  notes: string | null;
+  memo: string | null;
 }
 
 export interface KotlinInstagramPost {
@@ -91,7 +91,7 @@ export function mapAccount(a: KotlinInstagramAccount): InstagramAccount {
     region: a.region,
     sort_order: a.sortOrder,
     active: a.active,
-    notes: a.notes ?? null,
+    memo: a.memo ?? null,
     created_at: '',
     updated_at: '',
   };

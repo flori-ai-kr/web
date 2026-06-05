@@ -14,7 +14,7 @@ interface KotlinCustomer {
   phone: string;
   grade: string;
   gender: string | null;
-  note: string | null;
+  memo: string | null;
   totalPurchaseCount: number;
   totalPurchaseAmount: number;
   firstPurchaseDate: string | null;
@@ -44,7 +44,7 @@ function mapKotlinCustomer(c: KotlinCustomer): Customer {
     total_purchase_amount: c.totalPurchaseAmount,
     first_purchase_date: c.firstPurchaseDate ?? undefined,
     last_purchase_date: c.lastPurchaseDate ?? undefined,
-    note: c.note ?? undefined,
+    memo: c.memo ?? undefined,
     created_at: c.createdAt,
     updated_at: c.updatedAt,
   };
@@ -80,7 +80,7 @@ async function _createCustomer(formData: FormData) {
     phone: formData.get('phone'),
     grade: formData.get('grade') || 'new',
     gender: parseGender(formData),
-    note: formData.get('note') || null,
+    memo: formData.get('memo') || null,
   });
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
@@ -93,7 +93,7 @@ async function _createCustomer(formData: FormData) {
       phone: parsed.data.phone,
       grade: parsed.data.grade || 'new',
       gender: parsed.data.gender ?? null,
-      note: parsed.data.note || null,
+      memo: parsed.data.memo || null,
     }),
   });
 
@@ -114,7 +114,7 @@ async function _updateCustomer(id: string, formData: FormData) {
     phone: formData.get('phone') || undefined,
     grade: formData.get('grade') || undefined,
     gender: parseGender(formData),
-    note: formData.get('note') || null,
+    memo: formData.get('memo') || null,
   });
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
@@ -128,7 +128,7 @@ async function _updateCustomer(id: string, formData: FormData) {
       phone: parsed.data.phone ?? null,
       grade: parsed.data.grade ?? null,
       gender: parsed.data.gender ?? null,
-      note: parsed.data.note ?? null,
+      memo: parsed.data.memo ?? null,
     }),
   });
 
@@ -192,7 +192,7 @@ interface KotlinCustomerSale {
   customerName: string | null;
   customerPhone: string | null;
   customerId: string | null;
-  note: string | null;
+  memo: string | null;
   isUnpaid: boolean;
   hasReview: boolean;
   createdAt: string;
@@ -217,7 +217,7 @@ function mapCustomerSale(s: KotlinCustomerSale): Sale {
     customer_name: s.customerName ?? undefined,
     customer_phone: s.customerPhone ?? undefined,
     customer_id: s.customerId ?? undefined,
-    note: s.note ?? undefined,
+    memo: s.memo ?? undefined,
     is_unpaid: s.isUnpaid,
     has_review: s.hasReview,
     photos: undefined,

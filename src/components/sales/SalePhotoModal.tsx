@@ -44,7 +44,7 @@ export function SalePhotoModal({
   onSuccess,
 }: SalePhotoModalProps) {
   const [title, setTitle] = useState(defaultTitle);
-  const [description, setDescription] = useState('');
+  const [memo, setMemo] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
@@ -60,7 +60,7 @@ export function SalePhotoModal({
 
   // 초기 데이터 로드
   useEffect(() => {
-    if (open && saleId) {
+    if (open) {
       loadData();
     }
   }, [open, saleId]);
@@ -70,7 +70,7 @@ export function SalePhotoModal({
     try {
       const [tags, card] = await Promise.all([
         getPhotoTags(),
-        getPhotoCardBySaleId(saleId),
+        saleId ? getPhotoCardBySaleId(saleId) : Promise.resolve(null),
       ]);
 
       setAvailableTags(tags);
@@ -78,13 +78,13 @@ export function SalePhotoModal({
       if (card) {
         setExistingCard(card);
         setTitle(card.title);
-        setDescription(card.description || '');
+        setMemo(card.memo || '');
         setSelectedTags(card.tags);
         setPhotoItems(card.photos.map(photo => ({ type: 'existing', photo })));
       } else {
         setExistingCard(null);
         setTitle(defaultTitle);
-        setDescription('');
+        setMemo('');
         setSelectedTags([]);
         setPhotoItems([]);
       }
@@ -231,7 +231,7 @@ export function SalePhotoModal({
         saleId,
         title.trim(),
         existingPhotos,
-        description.trim() || null,
+        memo.trim() || null,
         selectedTags
       );
 
@@ -303,18 +303,18 @@ export function SalePhotoModal({
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="description">설명</Label>
+                <Label htmlFor="memo">설명</Label>
                 <span className={cn(
                   "text-xs",
-                  description.length > 200 ? "text-danger" : "text-muted-foreground"
+                  memo.length > 200 ? "text-danger" : "text-muted-foreground"
                 )}>
-                  {description.length}/200
+                  {memo.length}/200
                 </span>
               </div>
               <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value.slice(0, 200))}
+                id="memo"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value.slice(0, 200))}
                 placeholder="설명을 입력하세요 (선택)"
                 className="min-h-[100px] resize-none"
                 maxLength={200}

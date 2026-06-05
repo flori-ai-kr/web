@@ -105,7 +105,7 @@ interface KotlinRecurringExpense {
   quantity: number;
   paymentMethod: string;
   vendor: string | null;
-  note: string | null;
+  memo: string | null;
   frequency: string;
   intervalCount: number;
   daysOfWeek: number[];
@@ -129,7 +129,7 @@ function mapKotlinRecurring(r: KotlinRecurringExpense): RecurringExpense {
     quantity: r.quantity,
     payment_method: r.paymentMethod,
     vendor: r.vendor,
-    note: r.note,
+    memo: r.memo,
     frequency: r.frequency as RecurringFrequency,
     interval_count: r.intervalCount,
     days_of_week: r.daysOfWeek,
@@ -158,7 +158,7 @@ type RecurringInput = {
   quantity: number;
   payment_method: 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay';
   vendor?: string | null;
-  note?: string | null;
+  memo?: string | null;
   frequency: RecurringFrequency;
   interval_count: number;
   days_of_week: number[];
@@ -178,7 +178,7 @@ function toRecurringRequest(input: RecurringInput) {
     quantity: input.quantity,
     paymentMethod: input.payment_method,
     vendor: input.vendor ?? null,
-    note: input.note ?? null,
+    memo: input.memo ?? null,
     frequency: input.frequency,
     intervalCount: input.interval_count,
     daysOfWeek: input.days_of_week,
@@ -275,7 +275,7 @@ function toInstanceRequest(fields: Partial<RecurringInput> & { date?: string }) 
   if (fields.quantity !== undefined) body.quantity = fields.quantity;
   if (fields.payment_method !== undefined) body.paymentMethod = fields.payment_method;
   if (fields.vendor !== undefined) body.vendor = fields.vendor;
-  if (fields.note !== undefined) body.note = fields.note;
+  if (fields.memo !== undefined) body.memo = fields.memo;
   return body;
 }
 

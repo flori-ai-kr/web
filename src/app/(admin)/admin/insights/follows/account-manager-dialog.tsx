@@ -197,8 +197,8 @@ function AccountRow({
             {account.display_name}
           </div>
         )}
-        {account.notes && (
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.notes}</p>
+        {account.memo && (
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.memo}</p>
         )}
       </div>
 
@@ -264,7 +264,7 @@ function AccountFormDialog({
       username: rawUsername,
       display_name: ((data.get('display_name') as string) || '').trim() || null,
       region: data.get('region') as InstagramRegion,
-      notes: ((data.get('notes') as string) || '').trim() || null,
+      memo: ((data.get('memo') as string) || '').trim() || null,
       sort_order: parseInt(((data.get('sort_order') as string) || '0').trim(), 10) || 0,
     };
 
@@ -361,11 +361,11 @@ function AccountFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="notes">메모</Label>
+            <Label htmlFor="memo">메모</Label>
             <Input
-              id="notes"
-              name="notes"
-              defaultValue={editTarget?.notes ?? ''}
+              id="memo"
+              name="memo"
+              defaultValue={editTarget?.memo ?? ''}
               placeholder="선택 사항"
               autoComplete="off"
             />

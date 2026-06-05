@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { Sale, PaymentMethod, ProductCategory } from "@/types/database"
+import type { Sale, PaymentMethod } from "@/types/database"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -28,11 +28,6 @@ export function filterSalesByYearMonth(sales: Sale[], year: number, month: numbe
     const saleDate = new Date(sale.date);
     return saleDate.getFullYear() === year && saleDate.getMonth() + 1 === month;
   });
-}
-
-export function filterSalesByCategory(sales: Sale[], category: ProductCategory | 'all'): Sale[] {
-  if (category === 'all') return sales;
-  return sales.filter(sale => sale.product_category === category);
 }
 
 export interface SalesSummary {

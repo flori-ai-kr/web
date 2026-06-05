@@ -4,12 +4,11 @@ import {
   parseAmountInput,
   filterNumericInput,
   filterSalesByYearMonth,
-  filterSalesByCategory,
   calculateSalesSummary,
   formatCurrency,
   formatPhoneNumber,
 } from '../utils'
-import type { Sale, PaymentMethod, ProductCategory } from '@/types/database'
+import type { Sale, PaymentMethod } from '@/types/database'
 
 // Test fixtures - mock Sale objects with minimal required fields
 const createMockSale = (
@@ -20,7 +19,7 @@ const createMockSale = (
   customer_name: 'Test Customer',
   amount: 50000,
   payment_method: 'card' as PaymentMethod,
-  product_category: 'standard_bouquet' as ProductCategory,
+  product_category: 'standard_bouquet',
   ...overrides,
 } as Sale)
 
@@ -173,49 +172,6 @@ describe('filterSalesByYearMonth', () => {
     const result = filterSalesByYearMonth(sales, 2025, 12)
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('5')
-  })
-})
-
-describe('filterSalesByCategory', () => {
-  const sales: Sale[] = [
-    createMockSale({ id: '1', product_category: 'standard_bouquet' as ProductCategory }),
-    createMockSale({ id: '2', product_category: 'mini_bouquet' as ProductCategory }),
-    createMockSale({ id: '3', product_category: 'standard_bouquet' as ProductCategory }),
-    createMockSale({ id: '4', product_category: 'arrangement' as ProductCategory }),
-  ]
-
-  it('특정 카테고리의 매출만 필터링한다', () => {
-    const result = filterSalesByCategory(sales, 'standard_bouquet' as ProductCategory)
-    expect(result).toHaveLength(2)
-    expect(result[0].id).toBe('1')
-    expect(result[1].id).toBe('3')
-  })
-
-  it('다른 카테고리를 필터링한다', () => {
-    const result = filterSalesByCategory(sales, 'mini_bouquet' as ProductCategory)
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('2')
-  })
-
-  it('"all" 카테고리는 모든 매출을 반환한다', () => {
-    const result = filterSalesByCategory(sales, 'all')
-    expect(result).toHaveLength(4)
-    expect(result).toEqual(sales)
-  })
-
-  it('일치하는 매출이 없으면 빈 배열을 반환한다', () => {
-    const result = filterSalesByCategory(sales, 'wreath' as ProductCategory)
-    expect(result).toHaveLength(0)
-  })
-
-  it('빈 배열에 대해 빈 배열을 반환한다', () => {
-    const result = filterSalesByCategory([], 'standard_bouquet' as ProductCategory)
-    expect(result).toHaveLength(0)
-  })
-
-  it('빈 배열에 "all"을 적용하면 빈 배열을 반환한다', () => {
-    const result = filterSalesByCategory([], 'all')
-    expect(result).toHaveLength(0)
   })
 })
 

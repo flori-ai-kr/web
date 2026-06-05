@@ -147,7 +147,7 @@ async function _createInstagramAccount(input: unknown): Promise<InstagramAccount
       region: parsed.region,
       sortOrder: parsed.sort_order ?? 0,
       active: parsed.active ?? true,
-      notes: parsed.notes ?? null,
+      notes: parsed.memo ?? null,
     }),
   });
 
@@ -173,7 +173,7 @@ async function _updateInstagramAccount(
   if (parsed.region !== undefined) body.region = parsed.region;
   if (parsed.sort_order !== undefined) body.sortOrder = parsed.sort_order;
   if (parsed.active !== undefined) body.active = parsed.active;
-  if (parsed.notes !== undefined) body.notes = parsed.notes;
+  if (parsed.memo !== undefined) body.memo = parsed.memo;
 
   const data = await apiFetchInternal<KotlinInstagramAccount>(
     `/internal/instagram-accounts/${encodeURIComponent(id)}`,

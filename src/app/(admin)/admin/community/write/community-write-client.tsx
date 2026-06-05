@@ -77,7 +77,7 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
   const cancelHref = isEdit ? `/admin/community/${post.id}` : '/admin/community';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-5">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-5">
       {/* Header */}
       <header className="flex items-center gap-2">
         <Link

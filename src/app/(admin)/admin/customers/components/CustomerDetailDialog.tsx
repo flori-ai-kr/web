@@ -129,10 +129,10 @@ export function CustomerDetailDialog({
               </div>
             )}
 
-            {customer.note && (
+            {customer.memo && (
               <div className="space-y-1 pt-2 border-t">
                 <p className="text-sm text-muted-foreground">메모</p>
-                <p className="text-foreground">{customer.note}</p>
+                <p className="text-foreground">{customer.memo}</p>
               </div>
             )}
 

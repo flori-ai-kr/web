@@ -33,7 +33,7 @@ interface FormState {
   quantity: number;
   payment_method: 'cash' | 'card' | 'transfer' | 'naverpay' | 'kakaopay';
   vendor: string;
-  note: string;
+  memo: string;
   frequency: RecurringFrequency;
   interval_count: number;
   days_of_week: number[];
@@ -58,7 +58,7 @@ function emptyForm(defaultCategory: string, defaultPayment: 'cash' | 'card' | 't
     quantity: 1,
     payment_method: defaultPayment,
     vendor: '',
-    note: '',
+    memo: '',
     frequency: 'monthly',
     interval_count: 1,
     days_of_week: [],
@@ -138,7 +138,7 @@ export function RecurringExpensesSection() {
       quantity: r.quantity,
       payment_method: r.payment_method as FormState['payment_method'],
       vendor: r.vendor ?? '',
-      note: r.note ?? '',
+      memo: r.memo ?? '',
       frequency: r.frequency,
       interval_count: r.interval_count,
       days_of_week: r.days_of_week ?? [],
@@ -167,7 +167,7 @@ export function RecurringExpensesSection() {
         quantity: form.quantity,
         payment_method: form.payment_method,
         vendor: form.vendor.trim() || null,
-        note: form.note.trim() || null,
+        memo: form.memo.trim() || null,
         frequency: form.frequency,
         interval_count: form.interval_count,
         days_of_week: form.frequency === 'weekly' ? form.days_of_week : [],
@@ -252,8 +252,8 @@ export function RecurringExpensesSection() {
                       {r.vendor && <span>· {r.vendor}</span>}
                       {nextDates[r.id] && <span>다음: {nextDates[r.id]}</span>}
                     </div>
-                    {r.note && (
-                      <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2">{r.note}</p>
+                    {r.memo && (
+                      <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2">{r.memo}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -530,8 +530,8 @@ export function RecurringExpensesSection() {
                 <div className="space-y-2">
                   <Label>비고</Label>
                   <Input
-                    value={form.note}
-                    onChange={e => setForm(f => f && { ...f, note: e.target.value })}
+                    value={form.memo}
+                    onChange={e => setForm(f => f && { ...f, memo: e.target.value })}
                     placeholder="메모"
                     maxLength={100}
                     className="bg-muted"
