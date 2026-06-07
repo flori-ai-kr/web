@@ -1,8 +1,32 @@
 'use client';
 
+import {useState} from 'react';
 import {formatCurrency} from '@/lib/utils';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {TrendingUp, TrendingDown} from 'lucide-react';
+
+/** breakdown 막대 한 칸 — 데스크탑 호버 + 모바일 탭(클릭 토글) 모두 지원. */
+function BarSegment({ widthPct, color, label, value, pct }: {
+  widthPct: number; color: string; label: string; value: string; pct: number;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="h-full rounded-full hover:opacity-80 transition-opacity"
+          style={{ width: `${widthPct}%`, backgroundColor: color }}
+          aria-label={`${label} ${value} (${pct}%)`}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        {label} {value} ({pct}%)
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface SalesSummaryProps {
   summary: {
@@ -79,22 +103,16 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
       </div>
       {segments.length > 0 && (
         <TooltipProvider delayDuration={0}>
-          <div className="flex w-full h-3 rounded-full overflow-hidden gap-0.5">
+          <div className="flex w-full h-3 rounded-full overflow-hidden gap-0.5 mt-3">
             {segments.map(seg => (
-              <Tooltip key={seg.key}>
-                <TooltipTrigger asChild>
-                  <div
-                    className="h-full rounded-full cursor-default hover:opacity-80 transition-opacity"
-                    style={{
-                      width: `${Math.max((seg.value / total) * 100, 2)}%`,
-                      backgroundColor: seg.color,
-                    }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  {seg.label} {formatCurrency(seg.value)} ({Math.round((seg.value / total) * 100)}%)
-                </TooltipContent>
-              </Tooltip>
+              <BarSegment
+                key={seg.key}
+                widthPct={Math.max((seg.value / total) * 100, 2)}
+                color={seg.color}
+                label={seg.label}
+                value={formatCurrency(seg.value)}
+                pct={Math.round((seg.value / total) * 100)}
+              />
             ))}
           </div>
           <div className="flex gap-3 mt-2 flex-wrap">

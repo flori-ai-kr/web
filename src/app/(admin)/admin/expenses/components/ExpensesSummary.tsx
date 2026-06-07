@@ -1,10 +1,34 @@
 'use client';
 
+import {useState, type ReactNode} from 'react';
 import {formatCurrency} from '@/lib/utils';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {TrendingUp, TrendingDown} from 'lucide-react';
 import type {ExpenseCategorySlice} from '@/lib/actions/expenses';
 import type {ExpenseCategory} from '@/lib/actions/expense-settings';
+
+/** breakdown 막대 한 칸 — 데스크탑 호버 + 모바일 탭(클릭 토글) 모두 지원. */
+function BarSegment({ widthPct, color, label, value, pct }: {
+  widthPct: number; color: string; label: string; value: string; pct: number;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="h-full rounded-full hover:opacity-80 transition-opacity"
+          style={{ width: `${widthPct}%`, backgroundColor: color }}
+          aria-label={`${label} ${value} (${pct}%)`}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        {label} {value} ({pct}%)
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface ExpensesSummaryProps {
   summary: {
@@ -15,6 +39,7 @@ interface ExpensesSummaryProps {
   categories: ExpenseCategory[];
   prevTotal?: number;
   prevPeriod?: { startDate: string; endDate: string };
+  rightSlot?: ReactNode;
 }
 
 /** "2026-06-06" → "2026.06.06" */
@@ -25,7 +50,7 @@ function fmtDot(d: string): string {
 // 카테고리 색이 없을 때 쓰는 폴백 팔레트(지출 톤).
 const FALLBACK_COLORS = ['#C2683F', '#D89A6A', '#E0B894', '#9AA0A6', '#7C8590', '#B0894F'];
 
-export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod }: ExpensesSummaryProps) {
+export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod, rightSlot }: ExpensesSummaryProps) {
   const colorById = new Map(categories.map(c => [c.id, c.color]));
 
   const segments = summary.byCategory
@@ -48,8 +73,9 @@ export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod }: 
 
   return (
     <div>
-      {/* 데스크탑: 금액·증감%·기간 한 줄 / 모바일: 금액만 위, 증감%·기간은 아래 줄로 */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+      {/* 금액 줄 — 오른쪽에 탭 세그먼트(rightSlot) */}
+      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 min-w-0">
         <p className="text-[28px] font-bold tracking-tight text-brand">{formatCurrency(summary.total)}</p>
         {showComparison && (
           <div className="flex items-center gap-3 mt-1 sm:mt-0">
@@ -79,24 +105,20 @@ export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod }: 
           </div>
         )}
       </div>
+        {rightSlot && <div className="shrink-0">{rightSlot}</div>}
+      </div>
       {segments.length > 0 && (
         <TooltipProvider delayDuration={0}>
           <div className="flex w-full h-3 rounded-full overflow-hidden gap-0.5 mt-3">
             {segments.map(seg => (
-              <Tooltip key={seg.key}>
-                <TooltipTrigger asChild>
-                  <div
-                    className="h-full rounded-full cursor-default hover:opacity-80 transition-opacity"
-                    style={{
-                      width: `${Math.max((seg.value / total) * 100, 2)}%`,
-                      backgroundColor: seg.color,
-                    }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  {seg.label} {formatCurrency(seg.value)} ({Math.round((seg.value / total) * 100)}%)
-                </TooltipContent>
-              </Tooltip>
+              <BarSegment
+                key={seg.key}
+                widthPct={Math.max((seg.value / total) * 100, 2)}
+                color={seg.color}
+                label={seg.label}
+                value={formatCurrency(seg.value)}
+                pct={Math.round((seg.value / total) * 100)}
+              />
             ))}
           </div>
           <div className="flex gap-3 mt-2 flex-wrap">

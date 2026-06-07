@@ -86,7 +86,7 @@ function ruleSummary(r: RecurringExpense): string {
   return `${prefix} ${dates.map(d => `${d.m}/${d.d}`).join(', ')}`;
 }
 
-export function RecurringExpensesSection() {
+export function RecurringExpensesSection({ embedded = false }: { embedded?: boolean } = {}) {
   const [items, setItems] = useState<RecurringExpense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>([]);
@@ -216,10 +216,10 @@ export function RecurringExpensesSection() {
 
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-medium text-foreground">고정비 관리</h3>
+    <Card className={embedded ? 'border-0 shadow-none bg-transparent' : undefined}>
+      <CardContent className={embedded ? 'p-0' : 'p-4'}>
+        <div className={`flex items-center mb-1 ${embedded ? 'justify-end' : 'justify-between'}`}>
+          {!embedded && <h3 className="text-sm font-medium text-foreground">고정비 관리</h3>}
           <Button size="sm" variant="outline" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5 mr-1" />추가
           </Button>

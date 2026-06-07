@@ -9,13 +9,12 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
-import {Loader2, Pencil, Plus, Settings, Trash2} from 'lucide-react';
+import {Loader2, Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {ExpensesFiltersUI} from './components/ExpensesFilters';
 import {ExpensesSummary} from './components/ExpensesSummary';
 import {QuickAddRecurring} from '@/components/expenses/quick-add-recurring';
 import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
-import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {
   deleteExpenseInstanceOnly,
   deleteRecurringFromInstance,
@@ -83,6 +82,7 @@ export function ExpensesClient({
   initialSelectedExpense,
 }: Props) {
   const router = useRouter();
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -435,59 +435,54 @@ export function ExpensesClient({
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 lg:-mx-6 xl:-mx-8">
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList>
-          <TabsTrigger value="list">내역</TabsTrigger>
-          <TabsTrigger value="recurring">고정비</TabsTrigger>
-        </TabsList>
+      {/* 고정비 자동등록 안내 */}
+      <QuickAddRecurring />
 
-        <TabsContent value="list" className="space-y-6 mt-4">
-          {/* Quick Add (고정비 자동등록 안내) */}
-          <QuickAddRecurring />
+      {/* 필터(월네비+기간) → 요약 → 드롭다운/검색 — 매출과 동일 */}
+      <ExpensesFiltersUI
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        currentDay={currentDay}
+        categoryFilter={categoryFilter}
+        paymentFilter={paymentFilter}
+        searchQuery={searchQuery}
+        categories={categories}
+        payments={payments}
+        onMonthNav={handleMonthNav}
+        onDateRangeApply={handleDateRangeApply}
+        onCategoryChange={handleCategoryChange}
+        onPaymentChange={handlePaymentChange}
+        onSearchChange={setSearchQuery}
+        onReset={handleResetFilters}
+      >
+        <ExpensesSummary
+          summary={summary}
+          categories={categories}
+          prevTotal={prevTotal ?? undefined}
+          prevPeriod={prevPeriod ?? undefined}
+        />
+      </ExpensesFiltersUI>
 
-          {/* Filters (월 nav → 요약 → 드롭다운/검색) */}
-          <ExpensesFiltersUI
-            currentYear={currentYear}
-            currentMonth={currentMonth}
-            currentDay={currentDay}
-            categoryFilter={categoryFilter}
-            paymentFilter={paymentFilter}
-            searchQuery={searchQuery}
-            categories={categories}
-            payments={payments}
-            onMonthNav={handleMonthNav}
-            onDateRangeApply={handleDateRangeApply}
-            onCategoryChange={handleCategoryChange}
-            onPaymentChange={handlePaymentChange}
-            onSearchChange={setSearchQuery}
-            onReset={handleResetFilters}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-          >
-            <ExpensesSummary
-              summary={summary}
-              categories={categories}
-              prevTotal={prevTotal ?? undefined}
-              prevPeriod={prevPeriod ?? undefined}
-            />
-          </ExpensesFiltersUI>
+      <ExpensesList
+        expenses={filteredExpenses}
+        hasActiveFilters={hasActiveFilters}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore || isSearching}
+        onLoadMore={handleLoadMore}
+        onSelectExpense={handleSelectExpense}
+        onResetFilters={handleResetFilters}
+        onOpenForm={handleOpenForm}
+      />
 
-          {/* Expenses List */}
-          <ExpensesList
-            expenses={filteredExpenses}
-            hasActiveFilters={hasActiveFilters}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore || isSearching}
-            onLoadMore={handleLoadMore}
-            onSelectExpense={handleSelectExpense}
-            onResetFilters={handleResetFilters}
-            onOpenForm={handleOpenForm}
-          />
-        </TabsContent>
-
-        <TabsContent value="recurring" className="mt-4">
-          <RecurringExpensesSection />
-        </TabsContent>
-      </Tabs>
+      {/* 고정비 관리 모달 (FAB에서 진입) */}
+      <Dialog open={isRecurringOpen} onOpenChange={setIsRecurringOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">고정비 관리</DialogTitle>
+          </DialogHeader>
+          <RecurringExpensesSection embedded />
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -859,6 +854,14 @@ export function ExpensesClient({
             >
               <Plus className="w-4 h-4" />
               지출 등록
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsRecurringOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Repeat className="w-4 h-4" />
+              고정비
             </button>
             <ExportButton
               getExportConfig={getExportConfig}
