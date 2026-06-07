@@ -48,16 +48,17 @@ const expenseForm = (over: Record<string, string> = {}) => {
 
 describe('getExpenses', () => {
   it('month 없이 조회', async () => {
-    mockApiFetch.mockResolvedValue([kExpense])
+    mockApiFetch.mockResolvedValue({ expenses: [kExpense], hasMore: false })
     const res = await getExpenses()
-    expect(mockApiFetch).toHaveBeenCalledWith('/expenses')
-    expect(res[0]).toMatchObject({ id: 'e1', item_name: '포장지', total_amount: 5000, card_company: '신한' })
+    expect(mockApiFetch).toHaveBeenCalledWith('/expenses?offset=0&limit=100')
+    expect(res.expenses[0]).toMatchObject({ id: 'e1', item_name: '포장지', total_amount: 5000, card_company: '신한' })
+    expect(res.hasMore).toBe(false)
   })
 
   it('month가 있으면 쿼리로 전달', async () => {
-    mockApiFetch.mockResolvedValue([])
+    mockApiFetch.mockResolvedValue({ expenses: [], hasMore: false })
     await getExpenses('2026-01')
-    expect(mockApiFetch).toHaveBeenCalledWith('/expenses?month=2026-01')
+    expect(mockApiFetch).toHaveBeenCalledWith('/expenses?offset=0&limit=100&month=2026-01')
   })
 })
 
