@@ -330,8 +330,9 @@ export function SalesFiltersUI({
               <button
                 type="button"
                 onClick={handleResetRange}
-                className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
+                className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors whitespace-nowrap"
               >
+                <RotateCcw className="w-3 h-3" />
                 초기화
               </button>
             )}
@@ -382,7 +383,7 @@ export function SalesFiltersUI({
           <button
             type="button"
             onClick={onReset}
-            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground shrink-0"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-brand/30 bg-brand-muted text-brand text-xs font-semibold shrink-0 hover:bg-brand-muted/70 transition-colors"
           >
             <RotateCcw className="w-3 h-3" />
             초기화
