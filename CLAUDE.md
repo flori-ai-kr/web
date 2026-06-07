@@ -108,7 +108,7 @@ src/
 
 ### 인증 흐름
 
-- middleware.ts → Kotlin BFF JWT 쿠키(`flori_access`/`flori_refresh`) → `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`)
+- `src/middleware.ts` → Kotlin BFF JWT 쿠키(`flori_access`/`flori_refresh`) 존재 여부 검사 → `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`). `requireAuth()` 내부 `fetchAuthUser`: access 쿠키 없이 refresh 쿠키만 있으면 `/login` 즉시 리다이렉트 없이 `apiFetch(/me)` 진행 → 401 시 자동 refresh. access·refresh 둘 다 없을 때만 `/login`.
 - `/admin/*`·`/console/*` 경로만 인증 강제. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 는 공개 라우트
 - 운영자 콘솔: `/console/*` 는 `requireAdmin()`(`lib/admin-guard.ts` — `/me` 인증 후 BFF `GET /admin/me`로 is_admin 재검증, 비운영자면 `/admin` redirect)로 게이트. 진짜 방어선은 BFF `@RequiresAdmin`(cross-tenant `/admin/**`)
 - 소셜 OAuth: `/auth/login/[provider]` → 공급자 redirect → `/auth/callback/[provider]` → BFF `POST /auth/oauth/{provider}` → registered=true이면 `/admin`, false이면 `registerToken` 쿠키(`flori_register`) → `/onboarding`

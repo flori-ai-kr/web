@@ -173,7 +173,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Components, Server Actions, Middleware, ISR)이 zero-config로 동작한다.
 
 1. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
-2. **Edge Middleware**: `middleware.ts`가 `/admin/*` 요청에서 refresh 쿠키(`flori_refresh`) 존재 여부를 검사한다. 없으면 `/login`으로 리다이렉트. 토큰 갱신은 미들웨어에서 하지 않고 API 클라이언트가 처리한다. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다.
+2. **Edge Middleware**: `src/middleware.ts`가 `/admin/*` 요청에서 refresh 쿠키(`flori_refresh`) 존재 여부를 검사한다. 없으면 `/login`으로 리다이렉트. 토큰 갱신은 미들웨어에서 하지 않고 API 클라이언트가 처리한다. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다. (파일 위치: 루트가 아닌 `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
 
 ---
 

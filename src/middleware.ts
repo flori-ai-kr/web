@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/api/cookie-names'
 
 // JWT payload에서 exp를 디코딩 (Edge Runtime 호환 — jsonwebtoken 사용 불가)
+// 주의: 여기서는 서명을 검증하지 않는다(만료 시점 판단용 디코딩일 뿐).
+// 토큰의 진위/서명 검증은 BFF(@RequiresAuth)가 최종 방어선으로 수행한다.
+// middleware는 "refresh 쿠키 존재" 게이트 + 선제 갱신만 담당한다.
 function getJwtExp(token: string): number | null {
   try {
     const payload = token.split('.')[1]

@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { apiFetch } from '@/lib/api/client';
-import { getAccessToken } from '@/lib/api/auth-cookies';
+import { getAccessToken, getRefreshToken } from '@/lib/api/auth-cookies';
 import { AppError, ErrorCode } from '@/lib/errors';
 
 export interface AuthUser {
@@ -18,14 +18,23 @@ export interface AuthUser {
 
 /**
  * 인증된 사용자를 /me로 조회한다.
- * - access 쿠키가 없으면 즉시 /login으로 redirect
- * - 인증 불가(UNAUTHORIZED)면 /login으로 redirect (만료 시 apiFetch가 refresh 자동 처리)
+ * - access·refresh 쿠키가 둘 다 없으면 즉시 /login으로 redirect
+ * - access만 만료(없음)되고 refresh가 있으면 apiFetch(/me)의 401→refresh 자동 처리에 맡긴다
+ * - 인증 불가(UNAUTHORIZED)면 /login으로 redirect
  * 온보딩 게이트는 적용하지 않는다.
  */
 async function fetchAuthUser(): Promise<AuthUser> {
   const access = await getAccessToken();
+  // access가 없어도 refresh 쿠키가 있으면 apiFetch가 401→refresh로 살려낸다.
+  // 둘 다 없을 때만 진짜 미인증으로 보고 즉시 로그인으로 보낸다.
+  // 주의: GET 네비게이션은 middleware가 먼저 선제 refresh(쿠키 영속)하므로 보통 이 경로까지 오지 않는다.
+  //   Server Component 렌더 중 refresh가 일어나면 setAuthTokens가 쿠키를 못 써(false) 회전 토큰이
+  //   브라우저에 영속되지 않을 수 있는데, 이는 BFF의 refresh 멱등 윈도가 흡수한다(같은 토큰 재사용 허용).
   if (!access) {
-    redirect('/login');
+    const refresh = await getRefreshToken();
+    if (!refresh) {
+      redirect('/login');
+    }
   }
 
   try {
