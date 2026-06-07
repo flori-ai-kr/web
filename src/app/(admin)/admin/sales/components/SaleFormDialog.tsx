@@ -3,6 +3,7 @@
 import {useEffect, useState, useTransition} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
+import {DatePicker} from '@/components/ui/date-picker';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -133,8 +134,7 @@ export function SaleFormDialog({
           <div className="grid grid-cols-[3fr_2fr] gap-4">
             <div className="space-y-2">
               <Label>날짜 *</Label>
-              <Input
-                type="date"
+              <DatePicker
                 name="date"
                 defaultValue={sale?.date || format(new Date(), 'yyyy-MM-dd')}
                 required

@@ -32,6 +32,7 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Input} from '@/components/ui/input';
+import {DatePicker} from '@/components/ui/date-picker';
 import {Label} from '@/components/ui/label';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
 import {
@@ -1151,20 +1152,16 @@ export function CalendarClient() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">시작일 <span className="text-brand">*</span></Label>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={scheduleForm.start_date}
-                        onChange={(e) => setScheduleForm({ ...scheduleForm, start_date: e.target.value })}
-                        className="h-8"
+                        onChange={(d) => setScheduleForm({ ...scheduleForm, start_date: d })}
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">종료일 <span className="text-brand">*</span></Label>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={scheduleForm.end_date}
-                        onChange={(e) => setScheduleForm({ ...scheduleForm, end_date: e.target.value })}
-                        className="h-8"
+                        onChange={(d) => setScheduleForm({ ...scheduleForm, end_date: d })}
                       />
                     </div>
                   </div>
@@ -1339,11 +1336,9 @@ export function CalendarClient() {
                   <div className="grid grid-cols-[3fr_2fr] gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">결제일자</Label>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={formData.sale_date}
-                        onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                        className="h-8"
+                        onChange={(d) => setFormData({ ...formData, sale_date: d })}
                         aria-label="결제일자"
                       />
                     </div>
@@ -1386,11 +1381,9 @@ export function CalendarClient() {
                             <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 시간' : '시간'}</Label>
                           </div>
                           <div className="grid grid-cols-[3fr_2fr] gap-2">
-                            <Input
-                              type="date"
+                            <DatePicker
                               value={pickup.date}
-                              onChange={(e) => updatePickup(idx, 'date', e.target.value)}
-                              className="h-8"
+                              onChange={(d) => updatePickup(idx, 'date', d)}
                               aria-label={`픽업 ${idx + 1} 날짜`}
                             />
                             <TimeSelect
@@ -1420,11 +1413,10 @@ export function CalendarClient() {
                             리마인더
                           </Label>
                           <div className="grid grid-cols-[3fr_2fr] gap-2">
-                            <Input
-                              type="date"
+                            <DatePicker
                               value={pickup.reminder_date}
-                              onChange={(e) => updatePickup(idx, 'reminder_date', e.target.value)}
-                              className="h-8"
+                              onChange={(d) => updatePickup(idx, 'reminder_date', d)}
+                              placeholder="없음"
                               aria-label={`픽업 ${idx + 1} 리마인더 날짜`}
                             />
                             <TimeSelect

@@ -9,6 +9,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
+import {DatePicker} from '@/components/ui/date-picker';
 import {Loader2, Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {ExpensesFiltersUI} from './components/ExpensesFilters';
@@ -495,7 +496,7 @@ export function ExpensesClient({
             <div className="grid grid-cols-[3fr_2fr] gap-4">
               <div className="space-y-2">
                 <Label>날짜 *</Label>
-                <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required />
+                <DatePicker name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required />
               </div>
               <div className="space-y-2">
                 <Label>카테고리 *</Label>
@@ -672,7 +673,7 @@ export function ExpensesClient({
               <div className="grid grid-cols-[3fr_2fr] gap-4">
                 <div className="space-y-2">
                   <Label>날짜 *</Label>
-                  <Input type="date" name="date" defaultValue={editingExpense.date} required />
+                  <DatePicker name="date" defaultValue={editingExpense.date} required />
                 </div>
                 <div className="space-y-2">
                   <Label>카테고리 *</Label>

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { AmountInput } from '@/components/ui/amount-input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -498,20 +499,17 @@ export function RecurringExpensesSection({ embedded = false }: { embedded?: bool
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">시작일</Label>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={form.start_date}
-                        onChange={e => setForm(f => f && { ...f, start_date: e.target.value })}
-                        className="bg-background"
+                        onChange={d => setForm(f => f && { ...f, start_date: d })}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">종료일 (선택)</Label>
-                      <Input
-                        type="date"
+                      <DatePicker
                         value={form.end_date}
-                        onChange={e => setForm(f => f && { ...f, end_date: e.target.value })}
-                        className="bg-background"
+                        placeholder="없음"
+                        onChange={d => setForm(f => f && { ...f, end_date: d })}
                       />
                     </div>
                   </div>
