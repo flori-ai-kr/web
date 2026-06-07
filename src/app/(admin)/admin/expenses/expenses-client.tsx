@@ -303,6 +303,7 @@ export function ExpensesClient({
       setHasMore(result.hasMore);
     } catch (error) {
       console.error('Failed to load more expenses:', error);
+      toast.error('더 불러오기에 실패했습니다');
     } finally {
       if (version === dataVersionRef.current) setIsLoadingMore(false);
     }

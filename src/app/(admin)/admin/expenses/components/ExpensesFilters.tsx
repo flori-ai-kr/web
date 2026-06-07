@@ -356,6 +356,7 @@ export function ExpensesFiltersUI({
               placeholder="물품명, 거래처, 메모 검색..."
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
+              maxLength={100}
               className="pl-9 h-8 text-sm bg-background rounded-full"
               aria-label="지출 검색"
             />

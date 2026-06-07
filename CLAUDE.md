@@ -62,7 +62,7 @@ src/
 │   ├── page.tsx              # 대시보드
 │   ├── dashboard-client.tsx
 │   ├── sales/           # 매출 — sales-client.tsx + components/(SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog)
-│   ├── expenses/        # 지출 — expenses-client.tsx + components/(ExpensesList)
+│   ├── expenses/        # 지출 — expenses-client.tsx + components/(ExpensesFilters, ExpensesList, ExpensesSummary)
 │   ├── customers/       # 고객 — customers-client.tsx + components/(CustomerCard, CustomerFormDialog, CustomerDetailDialog)
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + components/(EventCard, ReservationCard, CalendarDialogs)
@@ -86,7 +86,7 @@ src/
 ├── app/offline/         # PWA 오프라인 폴백 (SW가 navigate 실패 시 서빙, 정적·인라인스타일·JS無)
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
-├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응)
+├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응, date-picker.tsx 공용 날짜 선택기 — 네이티브 `<input type="date">` 전면 대체)
 ├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
 ├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card 등)
 ├── components/theme-provider.tsx
@@ -158,12 +158,13 @@ src/
 - 지출 총액: `unit_price * quantity`
 - 사진: 5MB 초과 시 하드 거부(클라이언트 자동 압축 제거됨), 카드당 최대 10장, AWS S3 + CloudFront 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 BFF에서 presigned PUT URL 발급 → 브라우저가 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
 - 예약 리마인더: `reminder_at` 설정 → Cron 푸시 발송
-- 미수(외상): `is_unpaid=true` 플래그 별도 관리 (`payment_method='unpaid'` 폐지). 등록 시 `is_unpaid: true` + `payment_method_id: null`로 전송. 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`
+- 미수(외상): `is_unpaid=true` 플래그 별도 관리 (`payment_method='unpaid'` 폐지). 등록 시 `is_unpaid: true` + `payment_method_id: null`로 전송. 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`. **미수 판정 헬퍼**: `isUnsettledUnpaid(sale)` (`lib/utils.ts`) = `is_unpaid && payment_method_id == null`. `is_unpaid`는 '외상이었음'을 나타내는 영구 마커이고 결제 후에도 BFF가 유지하므로, 실제 '미수 중'은 payment_method_id가 null인 경우만이다. UI 전체(매출 리스트/상세/대시보드/캘린더)에서 직접 `sale.is_unpaid` 비교 금지 — 반드시 이 헬퍼를 사용
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
 - 인사이트 스크랩: `insight_scraps(user_id, target_type, target_id, memo)` 복합 unique. 트렌드/포스트 북마크 토글 + 상세 다이얼로그 메모 편집(blur 자동 저장). `/insights/scraps` + 목록 "스크랩만" 필터(`?scraped=1`)
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
-- 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 `[내역|고정비]` 탭. 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
-- 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`)
+- 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 FAB → **고정비 관리 모달**(탭 구조 폐지, `RecurringExpensesSection embedded`). 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
+- 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`). `ExpenseFilters.category`/`payment`도 동일한 id 기반 다중선택 패턴 적용
+- 지출 서버 페이지네이션: `getExpenses(month, offset, limit, filters, dateRange)` → BFF `GET /expenses?offset=&limit=&month=&category=&payment=&search=` (페이지 단위 100건). 무한스크롤은 `loadMoreExpenses` 클라이언트 액션으로 추가 로드. 검색어는 300ms 디바운스 후 별도 loadMore 호출. 집계는 `getExpensesSummary(month, filters, dateRange)` → BFF `GET /expenses/summary` (카테고리별 금액 슬라이스 `ExpenseCategorySlice[]` + 이전 기간 비교). 이전의 클라이언트 집계(useMemo 합산) 방식은 폐지됨
 - 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
 - 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
 
@@ -171,7 +172,7 @@ src/
 
 ## 컬러 시스템
 
-- **어드민 브랜드**: Dusty Rose (`--brand: #A85475`, 다크 `#DB8FA9`) + Warm Taupe Sage (`--sage: #A09080`) — Jardin v2 Rose 리뉴얼 반영 (구 Warm Coral `#E5614E` 폐기)
+- **어드민 브랜드**: Dusty Rose (`--brand: #A85475`, 다크 `#DB8FA9`) + Cool Slate Sage (`--sage: #8A929E`, 다크 `#8B95A2`) — Cool slate 리스킨 반영 (구 Warm Taupe `#A09080` 폐기). 배경: 라이트 `--background: #EEF1F5`(cool 캔버스), 다크 `#101317`. 카드는 순백(`#FFFFFF`) / 다크 `#1E242C` — elevation 구분
 - **공개 홈페이지 v2 팔레트** (Sage & Wood, `.site-public` 스코프):
   - `--site-paper: #FAF7EF` / `--site-paper-soft: #FFFCF5` (베이스)
   - `--site-ink: #2D2418` / `--site-ink-soft: rgba(45,36,24,0.66)` (잉크 다크 브라운)
@@ -203,6 +204,9 @@ src/
 | 공개 홈 SSOT | `lib/public-config.ts`, `lib/legal-config.ts`, `lib/onboarding-options.ts` |
 | 타입 정의 | `types/database.ts` |
 | Service Worker | `public/sw.js` |
+| 날짜 선택 UI | `components/ui/date-picker.tsx` (shadcn Calendar 팝오버 — `name` prop으로 FormData 제출 지원, 모든 네이티브 `<input type="date">` 대체) |
+| 미수 판정 | `lib/utils.ts` `isUnsettledUnpaid(sale)` — `is_unpaid && payment_method_id == null` |
+| 지출 서버 액션 | `lib/actions/expenses.ts` — `getExpenses`(페이징), `loadMoreExpenses`(무한스크롤), `getExpensesSummary`(카테고리 슬라이스 집계) |
 
 ---
 

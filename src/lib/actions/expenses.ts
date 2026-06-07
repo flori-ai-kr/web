@@ -92,7 +92,7 @@ async function _getExpenses(
   }
   for (const c of filters?.category ?? []) params.append('category', c);
   for (const p of filters?.payment ?? []) params.append('payment', p);
-  if (filters?.search) params.set('search', filters.search);
+  if (filters?.search) params.set('search', filters.search.slice(0, 100));
 
   const page = await apiFetch<KotlinExpensePage>(`/expenses?${params.toString()}`);
   return {
@@ -103,6 +103,7 @@ async function _getExpenses(
 
 export const getExpenses = withErrorLogging('getExpenses', _getExpenses);
 
+// 인증은 위임된 _getExpenses 내부 requireAuth()로 보장된다(중복 /me 방지). 분리 리팩터 시 여기 가드 추가 필요.
 async function _loadMoreExpenses(month: string | null, offset: number, filters?: ExpenseFilters) {
   return _getExpenses(month ?? undefined, offset, EXPENSES_PAGE_SIZE, filters);
 }
@@ -131,7 +132,7 @@ async function _getExpensesSummary(
   }
   for (const c of filters?.category ?? []) params.append('category', c);
   for (const p of filters?.payment ?? []) params.append('payment', p);
-  if (filters?.search) params.set('search', filters.search);
+  if (filters?.search) params.set('search', filters.search.slice(0, 100));
 
   const data = await apiFetch<KotlinExpensesSummary>(`/expenses/summary?${params.toString()}`);
 

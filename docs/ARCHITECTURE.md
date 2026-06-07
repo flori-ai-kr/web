@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-04 | UX 베스트프랙티스 패스: useOptimistic 삭제 + useTransition 폼 + 캘린더 컴포넌트 분리 + revalidatePath 경로 수정
+> 최종 업데이트: 2026-06-08 | UX/UI 리스킨 패스: 지출 서버 페이지네이션·요약 API + cool slate 팔레트 + 공용 DatePicker + isUnsettledUnpaid 헬퍼 + 지출 FAB Speed Dial(고정비 탭→모달)
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -602,7 +602,7 @@ erDiagram
 | `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
 | `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
-| `/admin/expenses` | 지출 관리 | CRUD(id 기반 category_id/payment_method_id) + 카테고리/결제방식 설정 |
+| `/admin/expenses` | 지출 관리 | 서버 페이지네이션(100건 단위 무한스크롤) + getExpensesSummary(카테고리별 비율 바) + 기간 범위 필터 + 다중선택 필터(id 기반) + FAB Speed Dial(지출 등록/고정비 관리 모달/내보내기/설정) |
 | `/admin/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 (category_label 직접 표시) |
 | `/admin/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/admin/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 + ?card= 딥링크 |
@@ -642,7 +642,7 @@ erDiagram
 | `auth.ts` | login, logout |
 | `sales.ts` | createSale, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
-| `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성) |
+| `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성), getExpenses(offset·limit·filters·dateRange → BFF `GET /expenses`), loadMoreExpenses(무한스크롤), getExpensesSummary(카테고리 슬라이스 → BFF `GET /expenses/summary`) |
 | `recurring-expenses.ts` | getRecurringExpenses, createRecurringExpense, updateRecurringExpense (mode: 'this'|'future'), deleteRecurringExpense (mode: 'this'|'future'|'all'), quickAddRecurringExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
 | `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
@@ -688,7 +688,7 @@ interface Schedule {
 }
 
 interface SalesFilters { category?: string[]; payment?: string[]; channel?: string[]; search?: string; startDate?: string; endDate?: string } // 다중선택 서버사이드 필터 (URL 쉼표 구분 → BFF 반복 쿼리 파라미터). startDate/endDate로 기간 범위 필터 추가
-// expenses 필터도 동일한 다중선택 패턴 적용 (category_id[], payment_method_id[])
+interface ExpenseFilters { category?: string[]; payment?: string[]; search?: string } // 다중선택 서버사이드 필터 + 검색어. URL 쉼표 구분. startDate/endDate 범위는 page.tsx에서 dateRange 객체로 별도 전달
 ```
 
 ---
@@ -759,9 +759,9 @@ export const createSale = withErrorLogging('createSale', async (data) => {
 
 - **폰트**: Pretendard (시스템 폰트 폴백)
 - **컬러**: CSS 변수 기반 (`:root` + `.dark`)
-  - 브랜드: Warm Coral `#E5614E` -- 꽃집의 따뜻한 이미지
-  - 서브: Sage Green `#8B9D83` -- 자연/식물 연상
-  - 배경: Warm Cream `#FAFAF8` / Dark `#1A1A19`
+  - 브랜드: Dusty Rose `#A85475` (다크 `#DB8FA9`) — Jardin v2 Rose
+  - 서브: Cool Slate `#8A929E` (다크 `#8B95A2`) — cool 팔레트 리스킨 (구 Warm Taupe `#A09080` 폐기)
+  - 배경: Cool Canvas `#EEF1F5` / Dark `#101317`. 카드: 순백 `#FFFFFF` / 다크 `#1E242C` (elevation 구분)
 - **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
 - **라운딩**: `--radius: 0.75rem`
 - **접근성**: icon button `aria-label`, 클릭 가능 Card `role="button"` + 키보드 핸들러, 의미 있는 이미지 alt, `inputMode`, `autoComplete`, `prefers-reduced-motion`

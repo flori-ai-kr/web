@@ -53,8 +53,9 @@ export default async function ExpensesPage({
     monthParam = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
   }
 
+  // 쉼표 분리 + 양수 정수 id만 통과(URL 조작 방어; 테넌트 격리는 BFF가 최종 수행)
   const parseMulti = (raw?: string) =>
-    raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+    raw ? raw.split(',').map(s => s.trim()).filter(v => /^[1-9]\d*$/.test(v)) : [];
   const categoryParam = parseMulti(params.category);
   const paymentParam = parseMulti(params.payment);
   const filters: ExpenseFilters = {
@@ -68,8 +69,8 @@ export default async function ExpensesPage({
   let prevDateRange: { startDate: string; endDate: string } | undefined;
 
   if (hasDateRange) {
-    const start = new Date(params.startDate!);
-    const end = new Date(params.endDate!);
+    const start = new Date(params.startDate! + 'T00:00:00');
+    const end = new Date(params.endDate! + 'T00:00:00');
     const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1);
     const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1);
