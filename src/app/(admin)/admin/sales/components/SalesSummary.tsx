@@ -14,6 +14,12 @@ interface SalesSummaryProps {
   };
   label?: string;
   prevTotal?: number;
+  prevPeriod?: { startDate: string; endDate: string };
+}
+
+/** "2026-06-06" → "2026.06.06" */
+function fmtDot(d: string): string {
+  return d.replaceAll('-', '.');
 }
 
 const BREAKDOWN_CONFIG = [
@@ -23,7 +29,7 @@ const BREAKDOWN_CONFIG = [
   { key: 'cash' as const, label: '현금', color: '#fcd34d' },
 ];
 
-export function SalesSummary({ summary, label = '이번 달 매출', prevTotal }: SalesSummaryProps) {
+export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, prevPeriod }: SalesSummaryProps) {
   const segments = BREAKDOWN_CONFIG
     .map(cfg => ({ ...cfg, value: summary[cfg.key] }))
     .filter(s => s.value > 0);
@@ -46,6 +52,13 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal }
               <TrendingDown className="w-4 h-4" />
             )}
             {changePercent >= 0 ? '+' : ''}{changePercent}%
+          </span>
+        )}
+        {changePercent !== null && prevPeriod && (
+          <span className="text-[11px] text-muted-foreground">
+            {prevPeriod.startDate === prevPeriod.endDate
+              ? `${fmtDot(prevPeriod.startDate)} 대비`
+              : `${fmtDot(prevPeriod.startDate)} ~ ${fmtDot(prevPeriod.endDate)} 대비`}
           </span>
         )}
       </div>

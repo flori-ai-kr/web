@@ -108,6 +108,7 @@ export default async function SalesPage({
       initialHasMore={salesResult.hasMore}
       initialSummary={summary}
       prevTotal={prevSummary?.total ?? null}
+      prevPeriod={prevDateRange ?? null}
       monthParam={monthParam ?? null}
       currentYear={currentYear}
       currentMonth={currentMonth}
