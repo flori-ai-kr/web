@@ -1,4 +1,5 @@
 import {Button} from '@/components/ui/button';
+import {Card, CardContent} from '@/components/ui/card';
 import {Pencil, Trash2} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -17,32 +18,35 @@ export function ScheduleCard({
   onDelete: (schedule: Schedule) => void;
 }) {
   return (
-    <div className="p-3 rounded-lg border border-border">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: schedule.color }} />
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{schedule.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {schedule.start_date === schedule.end_date
-                ? format(new Date(schedule.start_date), 'M월 d일', { locale: ko })
-                : `${format(new Date(schedule.start_date), 'M.d', { locale: ko })} - ${format(new Date(schedule.end_date), 'M.d', { locale: ko })}`
-              }
-            </p>
-            {schedule.memo && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{schedule.memo}</p>
-            )}
+    <Card className="group overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-stretch">
+          {/* 일정 색상 띠 — '일정' 카드 식별 + 색 의미 활용 */}
+          <div className="w-1.5 shrink-0" style={{ backgroundColor: schedule.color }} aria-hidden />
+          <div className="flex items-start justify-between gap-2 p-3 flex-1 min-w-0">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{schedule.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+                {schedule.start_date === schedule.end_date
+                  ? format(new Date(schedule.start_date), 'M월 d일', { locale: ko })
+                  : `${format(new Date(schedule.start_date), 'M.d', { locale: ko })} - ${format(new Date(schedule.end_date), 'M.d', { locale: ko })}`
+                }
+              </p>
+              {schedule.memo && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{schedule.memo}</p>
+              )}
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => onEdit(schedule)} aria-label="일정 수정">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => onDelete(schedule)} aria-label="일정 삭제">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex gap-1 shrink-0">
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground" onClick={() => onEdit(schedule)} aria-label="일정 수정">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-danger" onClick={() => onDelete(schedule)} aria-label="일정 삭제">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

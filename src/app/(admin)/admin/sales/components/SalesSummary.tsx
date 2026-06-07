@@ -36,9 +36,13 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
 
   const total = summary.total || 1;
 
-  const changePercent = prevTotal != null && prevTotal > 0
-    ? Math.round(((summary.total - prevTotal) / prevTotal) * 100)
+  const hasPrev = prevTotal != null;
+  const changePercent = hasPrev && prevTotal! > 0
+    ? Math.round(((summary.total - prevTotal!) / prevTotal!) * 100)
     : null;
+  // 전일/전기간 매출이 0인데 이번엔 매출이 있으면 % 대신 '신규'로 표기(0으로 나눌 수 없음)
+  const isNew = hasPrev && prevTotal === 0 && summary.total > 0;
+  const showComparison = changePercent !== null || isNew;
 
   return (
     <div>
@@ -54,7 +58,13 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
             {changePercent >= 0 ? '+' : ''}{changePercent}%
           </span>
         )}
-        {changePercent !== null && prevPeriod && (
+        {isNew && (
+          <span className="inline-flex items-center gap-0.5 text-sm font-semibold text-red-500">
+            <TrendingUp className="w-4 h-4" />
+            신규
+          </span>
+        )}
+        {showComparison && prevPeriod && (
           <span className="text-[11px] text-muted-foreground">
             {prevPeriod.startDate === prevPeriod.endDate
               ? `${fmtDot(prevPeriod.startDate)} 대비`

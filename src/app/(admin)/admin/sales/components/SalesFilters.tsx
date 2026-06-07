@@ -38,7 +38,8 @@ const PRESETS = [
 ];
 
 function formatDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  // 로컬(KST) 기준. toISOString()은 UTC라 새벽 시간대에 하루 밀리므로 사용 금지.
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function formatDisplayDate(dateStr: string): string {

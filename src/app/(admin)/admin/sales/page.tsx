@@ -69,7 +69,9 @@ export default async function SalesPage({
   };
 
   // 이전 동일 길이 기간 비교
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  // 로컬(KST) 기준 yyyy-MM-dd. toISOString()은 UTC라 KST에서 하루 밀리므로 사용 금지.
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   let prevDateRange: { startDate: string; endDate: string } | undefined;
 
   if (hasDateRange) {
