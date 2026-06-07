@@ -5,26 +5,22 @@ import {CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Search, RotateCcw,
 import {Input} from '@/components/ui/input';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Calendar} from '@/components/ui/calendar';
-import type {SaleCategory, PaymentMethod, SaleChannel} from '@/lib/actions/sale-settings';
+import type {ExpenseCategory, ExpensePaymentMethod} from '@/lib/actions/expense-settings';
 import {ko} from 'date-fns/locale';
 
-interface SalesFiltersProps {
+interface ExpensesFiltersProps {
   currentYear: number;
   currentMonth: number;
   currentDay: number;
   categoryFilter: string[];
   paymentFilter: string[];
-  channelFilter: string[];
   searchQuery: string;
-  categories: SaleCategory[];
-  payments: PaymentMethod[];
-  channels: SaleChannel[];
+  categories: ExpenseCategory[];
+  payments: ExpensePaymentMethod[];
   onMonthNav: (direction: -1 | 1) => void;
-  onTodayOnly: () => void;
   onDateRangeApply: (startDate: string, endDate: string) => void;
   onCategoryChange: (category: string[]) => void;
   onPaymentChange: (payment: string[]) => void;
-  onChannelChange: (channel: string[]) => void;
   onSearchChange: (query: string) => void;
   onReset: () => void;
   children?: React.ReactNode;
@@ -170,27 +166,22 @@ function FilterDropdown({
   );
 }
 
-export function SalesFiltersUI({
+export function ExpensesFiltersUI({
   currentYear,
   currentMonth,
-  currentDay,
   categoryFilter,
   paymentFilter,
-  channelFilter,
   searchQuery,
   categories,
   payments,
-  channels,
   onMonthNav,
-  onTodayOnly,
   onDateRangeApply,
   onCategoryChange,
   onPaymentChange,
-  onChannelChange,
   onSearchChange,
   onReset,
   children,
-}: SalesFiltersProps) {
+}: ExpensesFiltersProps) {
   const [showDateRange, setShowDateRange] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -241,7 +232,7 @@ export function SalesFiltersUI({
 
   return (
     <div className="space-y-3">
-      {/* Row 1: 월 네비 (중앙) + 기간 버튼 (우측) */}
+      {/* Row 1: 월 네비 (중앙) + 기간 버튼 (우측) — 매출과 동일 */}
       <div className="flex flex-col sm:relative sm:flex-row items-center gap-2 sm:justify-center">
         <div className="flex items-center gap-1">
           <button
@@ -287,7 +278,6 @@ export function SalesFiltersUI({
       {/* 기간 셀렉터 — date input + 프리셋 */}
       {showDateRange && (
         <div className="bg-card border border-border rounded-xl p-3 space-y-3">
-          {/* 프리셋 퀵 버튼 */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {PRESETS.map(preset => (
               <button
@@ -300,7 +290,6 @@ export function SalesFiltersUI({
               </button>
             ))}
           </div>
-          {/* 날짜 선택 */}
           <div className="flex items-center gap-2">
             <DatePickerButton
               value={startDate}
@@ -316,7 +305,6 @@ export function SalesFiltersUI({
               minDate={startDate || undefined}
             />
           </div>
-          {/* 적용/초기화 — 모바일에서 아래줄 */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -345,50 +333,45 @@ export function SalesFiltersUI({
       {/* 필터 드롭다운 + 검색 */}
       <div className="flex items-center gap-2 flex-wrap">
         {categories.length > 0 && (
-          <FilterDropdown
-            label="카테고리"
-            options={categories.map(c => ({ value: c.id, label: c.label }))}
-            selected={categoryFilter}
-            onChange={onCategoryChange}
-          />
-        )}
-        {payments.length > 0 && (
-          <FilterDropdown
-            label="결제방식"
-            options={payments.map(p => ({ value: p.id, label: p.label }))}
-            selected={paymentFilter}
-            onChange={onPaymentChange}
-          />
-        )}
-        <FilterDropdown
-          label="채널"
-          options={channels.map(c => ({ value: c.id, label: c.label }))}
-          selected={channelFilter}
-          onChange={onChannelChange}
-        />
+            <FilterDropdown
+              label="카테고리"
+              options={categories.map(c => ({ value: c.id, label: c.label }))}
+              selected={categoryFilter}
+              onChange={onCategoryChange}
+            />
+          )}
+          {payments.length > 0 && (
+            <FilterDropdown
+              label="결제방식"
+              options={payments.map(p => ({ value: p.id, label: p.label }))}
+              selected={paymentFilter}
+              onChange={onPaymentChange}
+            />
+          )}
 
-        {/* 검색 — 모바일에서 풀 너비 */}
-        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="고객명, 메모 검색..."
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            className="pl-9 h-8 text-sm bg-background rounded-full"
-            aria-label="매출 검색"
-          />
-        </div>
+          {/* 검색 — 모바일에서 풀 너비 */}
+          <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="물품명, 거래처, 메모 검색..."
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              maxLength={100}
+              className="pl-9 h-8 text-sm bg-background rounded-full"
+              aria-label="지출 검색"
+            />
+          </div>
 
-        {(categoryFilter.length > 0 || paymentFilter.length > 0 || channelFilter.length > 0 || searchQuery) && (
-          <button
-            type="button"
-            onClick={onReset}
-            className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium shrink-0 hover:bg-muted transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" />
-            초기화
-          </button>
-        )}
+          {(categoryFilter.length > 0 || paymentFilter.length > 0 || searchQuery) && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium shrink-0 hover:bg-muted transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              초기화
+            </button>
+          )}
       </div>
     </div>
   );

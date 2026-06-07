@@ -96,7 +96,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>태그 관리</DialogTitle>
         </DialogHeader>

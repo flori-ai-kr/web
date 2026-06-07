@@ -434,7 +434,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>고객 삭제</DialogTitle>
           </DialogHeader>

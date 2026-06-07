@@ -52,8 +52,8 @@ export function ReservationCard({
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <p className={cn('text-sm font-medium truncate', r.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground')}>{r.title}</p>
-              {r.sale_is_unpaid && r.sale_payment_method === 'unpaid' && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-destructive/10 text-destructive">
+              {r.sale_is_unpaid && !r.sale_payment_method && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-warning-soft text-warning">
                   미수
                 </span>
               )}

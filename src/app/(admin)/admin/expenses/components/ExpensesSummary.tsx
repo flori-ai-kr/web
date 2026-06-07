@@ -1,9 +1,11 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {formatCurrency} from '@/lib/utils';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {TrendingUp, TrendingDown} from 'lucide-react';
+import type {ExpenseCategorySlice} from '@/lib/actions/expenses';
+import type {ExpenseCategory} from '@/lib/actions/expense-settings';
 
 /** breakdown 막대 한 칸 — 데스크탑 호버 + 모바일 탭(클릭 토글) 모두 지원. */
 function BarSegment({ widthPct, color, label, value, pct }: {
@@ -28,17 +30,16 @@ function BarSegment({ widthPct, color, label, value, pct }: {
   );
 }
 
-interface SalesSummaryProps {
+interface ExpensesSummaryProps {
   summary: {
     total: number;
-    card: number;
-    naverpay: number;
-    transfer: number;
-    cash: number;
+    count: number;
+    byCategory: ExpenseCategorySlice[];
   };
-  label?: string;
+  categories: ExpenseCategory[];
   prevTotal?: number;
   prevPeriod?: { startDate: string; endDate: string };
+  rightSlot?: ReactNode;
 }
 
 /** "2026-06-06" → "2026.06.06" */
@@ -46,17 +47,20 @@ function fmtDot(d: string): string {
   return d.replaceAll('-', '.');
 }
 
-const BREAKDOWN_CONFIG = [
-  { key: 'card' as const, label: '카드', color: '#93c5fd' },
-  { key: 'naverpay' as const, label: '네이버페이', color: '#86efac' },
-  { key: 'transfer' as const, label: '계좌이체', color: '#c4b5fd' },
-  { key: 'cash' as const, label: '현금', color: '#fcd34d' },
-];
+// 카테고리 색이 없을 때 쓰는 폴백 팔레트(지출 톤).
+const FALLBACK_COLORS = ['#C2683F', '#D89A6A', '#E0B894', '#9AA0A6', '#7C8590', '#B0894F'];
 
-export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, prevPeriod }: SalesSummaryProps) {
-  const segments = BREAKDOWN_CONFIG
-    .map(cfg => ({ ...cfg, value: summary[cfg.key] }))
-    .filter(s => s.value > 0);
+export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod, rightSlot }: ExpensesSummaryProps) {
+  const colorById = new Map(categories.map(c => [c.id, c.color]));
+
+  const segments = summary.byCategory
+    .filter(s => s.amount > 0)
+    .map((s, i) => ({
+      key: s.category_id ?? `none-${i}`,
+      label: s.category_label,
+      value: s.amount,
+      color: (s.category_id && colorById.get(s.category_id)) || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+    }));
 
   const total = summary.total || 1;
 
@@ -64,23 +68,23 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
   const changePercent = hasPrev && prevTotal! > 0
     ? Math.round(((summary.total - prevTotal!) / prevTotal!) * 100)
     : null;
-  // 전일/전기간 매출이 0인데 이번엔 매출이 있으면 % 대신 '신규'로 표기(0으로 나눌 수 없음)
   const isNew = hasPrev && prevTotal === 0 && summary.total > 0;
   const showComparison = changePercent !== null || isNew;
 
   return (
     <div>
-      {/* 데스크탑: 금액·증감%·기간 한 줄 / 모바일: 금액만 위, 증감%·기간은 아래 줄로 */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+      {/* 금액 줄 — 오른쪽에 탭 세그먼트(rightSlot) */}
+      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 min-w-0">
         <p className="text-[28px] font-bold tracking-tight text-brand">{formatCurrency(summary.total)}</p>
         {showComparison && (
           <div className="flex items-center gap-3 mt-1 sm:mt-0">
             {changePercent !== null && (
-              <span className={`inline-flex items-center gap-0.5 text-sm font-semibold whitespace-nowrap shrink-0 ${changePercent >= 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                {changePercent >= 0 ? (
-                  <TrendingUp className="w-4 h-4 shrink-0" />
-                ) : (
+              <span className={`inline-flex items-center gap-0.5 text-sm font-semibold whitespace-nowrap shrink-0 ${changePercent <= 0 ? 'text-blue-500' : 'text-red-500'}`}>
+                {changePercent <= 0 ? (
                   <TrendingDown className="w-4 h-4 shrink-0" />
+                ) : (
+                  <TrendingUp className="w-4 h-4 shrink-0" />
                 )}
                 {changePercent >= 0 ? '+' : ''}{changePercent}%
               </span>
@@ -101,6 +105,8 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
           </div>
         )}
       </div>
+        {rightSlot && <div className="shrink-0">{rightSlot}</div>}
+      </div>
       {segments.length > 0 && (
         <TooltipProvider delayDuration={0}>
           <div className="flex w-full h-3 rounded-full overflow-hidden gap-0.5 mt-3">
@@ -116,7 +122,7 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
             ))}
           </div>
           <div className="flex gap-3 mt-2 flex-wrap">
-            {segments.map(seg => (
+            {segments.slice(0, 6).map(seg => (
               <span key={seg.key} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
                 {seg.label}

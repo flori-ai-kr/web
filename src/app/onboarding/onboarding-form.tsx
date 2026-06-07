@@ -226,7 +226,6 @@ export function OnboardingForm({
                 autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-muted"
               />
             </div>
 
@@ -246,7 +245,7 @@ export function OnboardingForm({
                     setNicknameStatus('idle')
                     if (nicknameError) setNicknameError(null)
                   }}
-                  className="bg-muted flex-1"
+                  className="flex-1"
                   aria-invalid={nicknameStatus === 'taken' ? true : undefined}
                 />
                 <Button
@@ -288,7 +287,6 @@ export function OnboardingForm({
                   setEmail(e.target.value)
                   if (emailError) setEmailError(null)
                 }}
-                className="bg-muted"
                 aria-invalid={emailError ? true : undefined}
               />
               {emailError && (
@@ -301,7 +299,7 @@ export function OnboardingForm({
             <div className="space-y-2">
               <Label htmlFor="regionSido">지역 (시/도)</Label>
               <Select value={regionSido} onValueChange={setRegionSido}>
-                <SelectTrigger id="regionSido" className="w-full bg-muted">
+                <SelectTrigger id="regionSido" className="w-full">
                   <SelectValue placeholder="시/도를 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
@@ -325,7 +323,6 @@ export function OnboardingForm({
                 placeholder="예: 강남구"
                 value={regionSigungu}
                 onChange={(e) => setRegionSigungu(e.target.value)}
-                className="bg-muted"
               />
             </div>
 

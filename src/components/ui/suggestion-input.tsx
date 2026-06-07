@@ -71,7 +71,7 @@ export function SuggestionInput({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           className={cn(
-            'flex w-full rounded-md border border-input bg-muted px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring field-sizing-content min-h-[60px] max-h-[160px] overflow-y-auto',
+            'flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring field-sizing-content min-h-[60px] max-h-[160px] overflow-y-auto',
             className
           )}
           autoComplete="off"
@@ -86,7 +86,7 @@ export function SuggestionInput({
           onChange={handleChange}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
-          className={cn('bg-muted', className)}
+          className={className}
           autoComplete="off"
           maxLength={maxLength}
           name={name}

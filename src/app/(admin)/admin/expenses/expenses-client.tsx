@@ -1,31 +1,21 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition} from 'react';
+import {useCallback, useEffect, useOptimistic, useRef, useState, useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
-import {Card, CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
-import {
-    CalendarCheck,
-    Loader2,
-    Pencil,
-    Plus,
-    RotateCcw,
-    Search,
-    Settings,
-    Trash2,
-} from 'lucide-react';
+import {DatePicker} from '@/components/ui/date-picker';
+import {Loader2, Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
-import {CategoryMultiSelect} from '@/components/ui/category-multi-select';
+import {ExpensesFiltersUI} from './components/ExpensesFilters';
+import {ExpensesSummary} from './components/ExpensesSummary';
 import {QuickAddRecurring} from '@/components/expenses/quick-add-recurring';
 import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
-import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
 import {
   deleteExpenseInstanceOnly,
   deleteRecurringFromInstance,
@@ -35,67 +25,83 @@ import {
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
-import {createExpense, deleteExpense, getExpenseSuggestions, updateExpense} from '@/lib/actions/expenses';
 import {
-    ExpenseCategory,
-    ExpensePaymentMethod,
-    getExpenseCategories,
-    getExpensePaymentMethods
+  createExpense,
+  deleteExpense,
+  getExpenseSuggestions,
+  loadMoreExpenses,
+  updateExpense,
+} from '@/lib/actions/expenses';
+import type {ExpenseCategorySlice, ExpenseFilters} from '@/lib/actions/expenses';
+import {
+  ExpenseCategory,
+  ExpensePaymentMethod,
+  getExpenseCategories,
+  getExpensePaymentMethods,
 } from '@/lib/actions/expense-settings';
 import {ExpenseSettingsModal} from '@/components/expenses/ExpenseSettingsModal';
 import {cn, formatCurrency} from '@/lib/utils';
-import {TODAY_FILTER_ACTIVE_CLASS} from '@/lib/constants';
 import type {Expense} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 
-const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
-const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
-
+interface ExpensesSummaryData {
+  total: number;
+  count: number;
+  byCategory: ExpenseCategorySlice[];
+}
 
 interface Props {
   initialExpenses: Expense[];
+  initialHasMore: boolean;
+  initialSummary: ExpensesSummaryData;
+  prevTotal?: number | null;
+  prevPeriod?: { startDate: string; endDate: string } | null;
+  monthParam: string | null;
   currentYear: number;
   currentMonth: number;
   currentDay: number;
   initialCategories: ExpenseCategory[];
   initialPayments: ExpensePaymentMethod[];
+  initialFilters: ExpenseFilters;
   initialSelectedExpense?: Expense | null;
 }
 
 export function ExpensesClient({
   initialExpenses,
+  initialHasMore,
+  initialSummary,
+  prevTotal,
+  prevPeriod,
+  monthParam: serverMonthParam,
   currentYear,
   currentMonth,
   currentDay,
   initialCategories,
   initialPayments,
-  initialSelectedExpense
+  initialFilters,
+  initialSelectedExpense,
 }: Props) {
   const router = useRouter();
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  // 필터는 URL 파라미터 기반(서버 쿼리에 반영)
+  const categoryFilter: string[] = initialFilters.category ?? [];
+  const paymentFilter: string[] = initialFilters.payment ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [noteValue, setNoteValue] = useState('');
   const [editNoteValue, setEditNoteValue] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.id ?? '');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [, startDeleteTransition] = useTransition();
-
-  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
-  const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
-    initialExpenses,
-    (list, deletedId: string) => list.filter((e) => e.id !== deletedId),
-  );
 
   // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
   const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
@@ -105,6 +111,28 @@ export function ExpensesClient({
   const [createVendor, setCreateVendor] = useState('');
   const [editItemName, setEditItemName] = useState('');
   const [editVendor, setEditVendor] = useState('');
+
+  // 무한스크롤 상태
+  const [allExpenses, setAllExpenses] = useState<Expense[]>(initialExpenses);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const dataVersionRef = useRef(0);
+
+  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
+  const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
+    allExpenses,
+    (list, deletedId: string) => list.filter((e) => e.id !== deletedId),
+  );
+
+  const summary = initialSummary;
+
+  // initialExpenses 변경(년/월/필터) 시 리셋
+  useEffect(() => {
+    dataVersionRef.current += 1;
+    setAllExpenses(initialExpenses);
+    setHasMore(initialHasMore);
+    setIsLoadingMore(false);
+  }, [initialExpenses, initialHasMore]);
 
   // 폼/수정 다이얼로그 열릴 때 자동완성 데이터 로드
   useEffect(() => {
@@ -131,50 +159,56 @@ export function ExpensesClient({
     }
   }, [editingExpense]);
 
-  // 설정 새로고침
+  // 검색어 디바운스 → 서버사이드 검색
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const searchVersionRef = useRef(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${(initialFilters.payment ?? []).join(',')}`;
+
+  useEffect(() => {
+    if (debouncedSearch === '') {
+      setIsSearching(false);
+      dataVersionRef.current += 1;
+      setAllExpenses(initialExpenses);
+      setHasMore(initialHasMore);
+      return;
+    }
+    const version = ++searchVersionRef.current;
+    setIsSearching(true);
+    loadMoreExpenses(serverMonthParam, 0, { ...initialFilters, search: debouncedSearch })
+      .then(result => {
+        if (version !== searchVersionRef.current) return;
+        dataVersionRef.current += 1;
+        setAllExpenses(result.expenses);
+        setHasMore(result.hasMore);
+      })
+      .catch(() => {
+        toast.error('검색에 실패했습니다');
+      })
+      .finally(() => {
+        if (version === searchVersionRef.current) setIsSearching(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, serverMonthParam, filtersKey, initialExpenses, initialHasMore]);
+
+  const filteredExpenses = optimisticExpenses;
+  const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== '';
+
+  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
+  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
+  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
+
   const refreshSettings = async () => {
     const [cats, pays] = await Promise.all([getExpenseCategories(), getExpensePaymentMethods()]);
     setCategories(cats);
     setPayments(pays);
   };
-
-  const filteredExpenses = useMemo(() => {
-    let result = optimisticExpenses;
-
-    if (paymentFilter.length > 0) {
-      result = result.filter(e => e.payment_method_id != null && paymentFilter.includes(e.payment_method_id));
-    }
-
-    if (categoryFilter.length > 0) {
-      result = result.filter(e => e.category_id != null && categoryFilter.includes(e.category_id));
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(e =>
-        e.item_name.toLowerCase().includes(q) ||
-        (e.vendor?.toLowerCase().includes(q)) ||
-        (e.memo?.toLowerCase().includes(q))
-      );
-    }
-
-    return result;
-  }, [optimisticExpenses, paymentFilter, categoryFilter, searchQuery]);
-
-  const summary = useMemo(() => {
-    const byCategory: Record<string, number> = {};
-    let total = 0;
-    filteredExpenses.forEach(e => {
-      total += e.total_amount;
-      const key = e.category_label ?? '미분류';
-      byCategory[key] = (byCategory[key] || 0) + e.total_amount;
-    });
-    return { total, byCategory };
-  }, [filteredExpenses]);
-
-  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
-  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
-  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
 
   const getExportConfig = useCallback((): ExportConfig<Expense> => {
     const isAll = currentYear === 0 || currentMonth === 0;
@@ -204,13 +238,16 @@ export function ExpensesClient({
   const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
   const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
-  const isDayDisabled = yearParam === 'all' || monthParam === 'all';
 
-  const buildUrl = useCallback((overrides: Record<string, string> = {}) => {
+  const buildUrl = useCallback((overrides: {
+    year?: string; month?: string; day?: string; category?: string[]; payment?: string[];
+  } = {}) => {
     const p = {
       year: yearParam,
       month: monthParam,
       day: dayParam,
+      category: categoryFilter,
+      payment: paymentFilter,
       ...overrides,
     };
     if (p.year === 'all' || p.month === 'all') p.day = 'all';
@@ -218,27 +255,64 @@ export function ExpensesClient({
     params.set('year', p.year);
     params.set('month', p.month);
     if (p.day !== 'all') params.set('day', p.day);
+    if (p.category.length > 0) params.set('category', p.category.join(','));
+    if (p.payment.length > 0) params.set('payment', p.payment.join(','));
     return `/admin/expenses?${params.toString()}`;
-  }, [yearParam, monthParam, dayParam]);
+  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter]);
 
-  const handleYearChange = (year: string) => {
-    router.push(buildUrl({ year, day: 'all' }));
+  const handleMonthNav = (direction: -1 | 1) => {
+    let y = currentYear || new Date().getFullYear();
+    let m = currentMonth || new Date().getMonth() + 1;
+    m += direction;
+    if (m > 12) { m = 1; y += 1; }
+    if (m < 1) { m = 12; y -= 1; }
+    router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
   };
 
-  const handleMonthChange = (month: string) => {
-    router.push(buildUrl({ month, day: 'all' }));
+  const handleDateRangeApply = (startDate: string, endDate: string) => {
+    const params = new URLSearchParams();
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+    if (categoryFilter.length > 0) params.set('category', categoryFilter.join(','));
+    if (paymentFilter.length > 0) params.set('payment', paymentFilter.join(','));
+    router.push(`/admin/expenses?${params.toString()}`);
   };
 
-  const handleDayChange = (day: string) => {
-    router.push(buildUrl({ day }));
+  const handleCategoryChange = (category: string[]) => {
+    router.push(buildUrl({ category }));
   };
 
-  const handleTodayOnly = () => {
-    const now = new Date();
-    const y = now.getFullYear().toString();
-    const m = (now.getMonth() + 1).toString();
-    const d = now.getDate().toString();
-    router.push(buildUrl({ year: y, month: m, day: d }));
+  const handlePaymentChange = (payment: string[]) => {
+    router.push(buildUrl({ payment }));
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    router.push(buildUrl({ category: [], payment: [] }));
+  };
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const version = dataVersionRef.current;
+    const filters = debouncedSearch ? { ...initialFilters, search: debouncedSearch } : initialFilters;
+    try {
+      const result = await loadMoreExpenses(serverMonthParam, allExpenses.length, filters);
+      if (version !== dataVersionRef.current) return;
+      setAllExpenses(prev => [...prev, ...result.expenses]);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Failed to load more expenses:', error);
+      toast.error('더 불러오기에 실패했습니다');
+    } finally {
+      if (version === dataVersionRef.current) setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, serverMonthParam, allExpenses.length, initialFilters, debouncedSearch]);
+
+  const handleOpenForm = () => {
+    setIsFormOpen(true);
+    setNoteValue('');
+    setSelectedPaymentMethod(payments[0]?.id ?? '');
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -247,7 +321,6 @@ export function ExpensesClient({
     startSubmitTransition(async () => {
       try {
         await createExpense(formData);
-
         setIsFormOpen(false);
         router.refresh();
         toast.success('지출이 등록되었습니다');
@@ -266,7 +339,6 @@ export function ExpensesClient({
     const isRecurringInstance = !!editingExpense.recurring_id;
 
     if (isRecurringInstance) {
-      // 분기 다이얼로그를 위해 필드를 stash
       const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
       const quantity = parseInt(formData.get('quantity') as string) || 1;
       const fields = {
@@ -277,7 +349,7 @@ export function ExpensesClient({
         quantity,
         payment_method_id: String(formData.get('payment_method_id') ?? ''),
         vendor: (formData.get('vendor') as string) || null,
-        note: (formData.get('note') as string) || null,
+        note: (formData.get('memo') as string) || null,
       };
       setPendingScopeEdit({ expenseId: editingExpense.id, fields });
       return;
@@ -338,9 +410,8 @@ export function ExpensesClient({
     setSelectedExpense(null);
     startDeleteTransition(async () => {
       removeOptimisticExpense(target.id);
-      // '이후 모두 삭제'는 같은 고정비의 이후 날짜 인스턴스도 함께 사라지므로 낙관적으로 같이 제거
       if (target.recurring_id && scope === 'future') {
-        optimisticExpenses
+        allExpenses
           .filter((e) => e.recurring_id === target.recurring_id && e.date > target.date)
           .forEach((e) => removeOptimisticExpense(e.id));
       }
@@ -355,6 +426,7 @@ export function ExpensesClient({
           await deleteExpense(target.id);
           toast.success('지출이 삭제되었습니다');
         }
+        setAllExpenses((prev) => prev.filter((e) => e.id !== target.id));
         router.refresh();
       } catch (error) {
         console.error('Failed to delete expense:', error);
@@ -364,168 +436,72 @@ export function ExpensesClient({
   };
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-        <Button onClick={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }} className="flex-1 sm:flex-initial">
-          <Plus className="w-4 h-4 mr-2" />
-          지출 등록
-        </Button>
-      </div>
+    <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 lg:-mx-6 xl:-mx-8">
+      {/* 고정비 자동등록 안내 */}
+      <QuickAddRecurring />
 
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList>
-          <TabsTrigger value="list">내역</TabsTrigger>
-          <TabsTrigger value="recurring">고정비</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="list" className="space-y-6 mt-4">
-          {/* Quick Add (고정비) */}
-          <QuickAddRecurring />
-
-          {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <Card className="col-span-2 sm:col-span-1">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">총 지출</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(summary.total)}</p>
-          </CardContent>
-        </Card>
-        {Object.entries(summary.byCategory).slice(0, 3).map(([cat, amount]) => (
-          <Card key={cat}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{cat}</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(amount)}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <Select value={yearParam} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-[100px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {YEAR_OPTIONS.map(year => (
-              <SelectItem key={year} value={year.toString()}>{year}년</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={monthParam} onValueChange={handleMonthChange}>
-          <SelectTrigger className="w-[80px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {MONTH_OPTIONS.map(month => (
-              <SelectItem key={month} value={month.toString()}>{month}월</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={dayParam} onValueChange={handleDayChange} disabled={isDayDisabled}>
-          <SelectTrigger className="w-[80px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            {DAY_OPTIONS.map(day => (
-              <SelectItem key={day} value={day.toString()}>{day}일</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <CategoryMultiSelect
-          options={categories.map(c => ({ value: c.id, label: c.label, color: c.color }))}
-          selected={categoryFilter}
-          onChange={setCategoryFilter}
-          placeholder="카테고리"
+      {/* 필터(월네비+기간) → 요약 → 드롭다운/검색 — 매출과 동일 */}
+      <ExpensesFiltersUI
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        currentDay={currentDay}
+        categoryFilter={categoryFilter}
+        paymentFilter={paymentFilter}
+        searchQuery={searchQuery}
+        categories={categories}
+        payments={payments}
+        onMonthNav={handleMonthNav}
+        onDateRangeApply={handleDateRangeApply}
+        onCategoryChange={handleCategoryChange}
+        onPaymentChange={handlePaymentChange}
+        onSearchChange={setSearchQuery}
+        onReset={handleResetFilters}
+      >
+        <ExpensesSummary
+          summary={summary}
+          categories={categories}
+          prevTotal={prevTotal ?? undefined}
+          prevPeriod={prevPeriod ?? undefined}
         />
-        <CategoryMultiSelect
-          options={payments.map(pm => ({ value: pm.id, label: pm.label, color: pm.color }))}
-          selected={paymentFilter}
-          onChange={setPaymentFilter}
-          placeholder="결제방식"
-        />
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => setIsSettingsOpen(true)}
-          aria-label="지출 설정"
-        >
-          <Settings className="w-4 h-4 text-muted-foreground" />
-        </Button>
-        <div className="relative flex-1 min-w-[150px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background"
-            aria-label="지출 검색"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className={TODAY_FILTER_ACTIVE_CLASS}
-          onClick={handleTodayOnly}
-          aria-label="오늘 지출만 보기"
-        >
-          <CalendarCheck className="w-3.5 h-3.5 mr-1.5" />
-          오늘만
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-9 shrink-0"
-          onClick={() => {
-            setSearchQuery('');
-            setPaymentFilter([]);
-            setCategoryFilter([]);
-            router.push('/admin/expenses');
-          }}
-        >
-          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-          초기화
-        </Button>
-      </div>
+      </ExpensesFiltersUI>
 
-      {/* Expenses List */}
       <ExpensesList
         expenses={filteredExpenses}
-        hasActiveFilters={paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== ''}
+        hasActiveFilters={hasActiveFilters}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore || isSearching}
+        onLoadMore={handleLoadMore}
         onSelectExpense={handleSelectExpense}
-        onResetFilters={() => { setPaymentFilter([]); setCategoryFilter([]); setSearchQuery(''); }}
-        onOpenForm={() => { setIsFormOpen(true); setNoteValue(''); setSelectedPaymentMethod(payments[0]?.id ?? ''); }}
+        onResetFilters={handleResetFilters}
+        onOpenForm={handleOpenForm}
       />
-        </TabsContent>
 
-        <TabsContent value="recurring" className="mt-4">
-          <RecurringExpensesSection />
-        </TabsContent>
-      </Tabs>
+      {/* 고정비 관리 모달 (FAB에서 진입) */}
+      <Dialog open={isRecurringOpen} onOpenChange={setIsRecurringOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">고정비 관리</DialogTitle>
+          </DialogHeader>
+          <RecurringExpensesSection embedded />
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">지출 등록</DialogTitle>
-            <p className="text-sm text-muted-foreground">꽃 구매, 배달비 등 지출 내역을 입력해주세요. 총액은 단가 x 수량으로 자동 계산돼요.</p>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5 pt-2">
             <div className="grid grid-cols-[3fr_2fr] gap-4">
               <div className="space-y-2">
                 <Label>날짜 *</Label>
-                <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="bg-muted" />
+                <DatePicker name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required />
               </div>
               <div className="space-y-2">
                 <Label>카테고리 *</Label>
                 <Select name="category_id" defaultValue={categories[0]?.id}>
-                  <SelectTrigger className="bg-muted">
+                  <SelectTrigger>
                     <SelectValue placeholder="카테고리 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -546,18 +522,18 @@ export function ExpensesClient({
                 placeholder="예: 장미 50송이, 배달비"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">어디서 뭘 샀는지 적어주세요</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>단가 *</Label>
-                <AmountInput name="unit_price" placeholder="0" required className="bg-muted" />
+                <AmountInput name="unit_price" placeholder="0" required />
               </div>
               <div className="space-y-2">
                 <Label>수량</Label>
-                <Input type="number" name="quantity" defaultValue="1" min="1" className="bg-muted" />
+                <Input type="number" name="quantity" defaultValue="1" min="1" />
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
             <div className="space-y-2">
               <Label>결제방식 *</Label>
               <input type="hidden" name="payment_method_id" value={selectedPaymentMethod} />
@@ -588,7 +564,6 @@ export function ExpensesClient({
                 suggestions={expenseSuggestions.vendors}
                 placeholder="예: 고속터미널 꽃시장"
               />
-              <p className="text-[11px] text-muted-foreground">어디서 구매했는지 적어두면 나중에 찾기 편해요</p>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -620,7 +595,7 @@ export function ExpensesClient({
 
       {/* Expense Detail Dialog */}
       <Dialog open={!!selectedExpense} onOpenChange={(open) => !open && setSelectedExpense(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl">지출 상세</DialogTitle>
           </DialogHeader>
@@ -667,23 +642,18 @@ export function ExpensesClient({
                 </div>
               )}
 
-              <div className="flex justify-between pt-4 border-t">
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleEdit(selectedExpense)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    수정
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-danger hover:text-danger hover:bg-danger/10"
-                    onClick={() => handleDelete(selectedExpense)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    삭제
-                  </Button>
-                </div>
-                <Button variant="outline" onClick={() => setSelectedExpense(null)}>
-                  닫기
+              <div className="flex gap-2 pt-4 border-t">
+                <Button variant="outline" className="flex-1" onClick={() => handleEdit(selectedExpense)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  수정
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 text-danger hover:text-danger hover:bg-danger/10"
+                  onClick={() => handleDelete(selectedExpense)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  삭제
                 </Button>
               </div>
             </div>
@@ -693,7 +663,7 @@ export function ExpensesClient({
 
       {/* Edit Dialog */}
       <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">지출 수정</DialogTitle>
           </DialogHeader>
@@ -702,12 +672,12 @@ export function ExpensesClient({
               <div className="grid grid-cols-[3fr_2fr] gap-4">
                 <div className="space-y-2">
                   <Label>날짜 *</Label>
-                  <Input type="date" name="date" defaultValue={editingExpense.date} required className="bg-muted" />
+                  <DatePicker name="date" defaultValue={editingExpense.date} required />
                 </div>
                 <div className="space-y-2">
                   <Label>카테고리 *</Label>
                   <Select name="category_id" defaultValue={editingExpense.category_id ?? undefined} key={`cat-${editingExpense.id}`}>
-                    <SelectTrigger className="bg-muted">
+                    <SelectTrigger>
                       <SelectValue placeholder="카테고리 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -732,13 +702,14 @@ export function ExpensesClient({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>단가 *</Label>
-                  <AmountInput name="unit_price" value={editingExpense.unit_price} required className="bg-muted" />
+                  <AmountInput name="unit_price" value={editingExpense.unit_price} required />
                 </div>
                 <div className="space-y-2">
                   <Label>수량</Label>
-                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" className="bg-muted" />
+                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" />
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
               <div className="space-y-2">
                 <Label>결제방식 *</Label>
                 <input type="hidden" name="payment_method_id" value={editPaymentMethod} />
@@ -801,7 +772,7 @@ export function ExpensesClient({
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{deleteTarget?.recurring_id ? '반복되는 지출입니다' : '지출 삭제'}</DialogTitle>
           </DialogHeader>
@@ -842,7 +813,7 @@ export function ExpensesClient({
 
       {/* 자동생성된 지출 수정 — 이것만 / 이후 모두 분기 */}
       <Dialog open={!!pendingScopeEdit} onOpenChange={(open) => !open && setPendingScopeEdit(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>반복되는 지출입니다</DialogTitle>
           </DialogHeader>
@@ -872,6 +843,52 @@ export function ExpensesClient({
         categories={categories}
         onRefresh={refreshSettings}
       />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); handleOpenForm(); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              지출 등록
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsRecurringOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Repeat className="w-4 h-4" />
+              고정비
+            </button>
+            <ExportButton
+              getExportConfig={getExportConfig}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            />
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsSettingsOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }

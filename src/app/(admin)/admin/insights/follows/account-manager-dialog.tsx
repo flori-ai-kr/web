@@ -75,7 +75,7 @@ export function AccountManagerDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Instagram 계정 관리</DialogTitle>
             <DialogDescription>
@@ -134,7 +134,7 @@ export function AccountManagerDialog({
         open={!!deleteTarget}
         onOpenChange={(o) => !o && !isDeleting && setDeleteTarget(null)}
       >
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>계정 삭제</DialogTitle>
             <DialogDescription>

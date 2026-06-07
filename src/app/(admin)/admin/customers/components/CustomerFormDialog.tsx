@@ -86,7 +86,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl">{isEditMode ? '고객 수정' : '고객 등록'}</DialogTitle>
           {!isEditMode && (
@@ -100,7 +100,6 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
               name="name"
               placeholder="홍길동"
               required
-              className="bg-muted"
               autoComplete="name"
               defaultValue={customer?.name || ''}
             />
@@ -115,7 +114,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
               required
               inputMode="tel"
               autoComplete="tel"
-              className={cn("bg-muted", phoneDuplicate && "border-danger focus-visible:ring-danger")}
+              className={cn(phoneDuplicate && "border-danger focus-visible:ring-danger")}
             />
             {phoneDuplicate && (
               <p className="text-xs text-danger">
@@ -130,7 +129,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
             <div className="space-y-2">
               <Label>등급</Label>
               <Select name="grade" defaultValue={customer?.grade || 'new'}>
-                <SelectTrigger className="bg-muted">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,7 +143,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
             <div className="space-y-2">
               <Label>성별</Label>
               <Select name="gender" defaultValue={customer?.gender || 'none'}>
-                <SelectTrigger className="bg-muted">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,7 +166,7 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
               value={noteValue}
               onChange={(e) => setNoteValue(e.target.value.slice(0, 200))}
               placeholder="고객에 대한 메모를 입력하세요..."
-              className="bg-muted min-h-[80px] resize-none"
+              className="min-h-[80px] resize-none"
               maxLength={200}
             />
           </div>

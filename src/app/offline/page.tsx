@@ -11,18 +11,18 @@ const STYLES = `
 .flori-offline { min-height: 100dvh; display: flex; flex-direction: column;
   align-items: center; justify-content: center; padding: 2rem; text-align: center;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  background-color: #FBF8F3; color: #241F22; }
+  background-color: #EEF1F5; color: #1C2024; }
 .flori-offline__badge { width: 56px; height: 56px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
-  font-size: 26px; background-color: #FBEFF3; color: #A85475; }
-.flori-offline__desc { font-size: 14px; color: rgba(36,31,34,0.6); margin: 6px 0 20px; max-width: 320px; line-height: 1.5; }
+  font-size: 26px; background-color: #F7E9EF; color: #A85475; }
+.flori-offline__desc { font-size: 14px; color: rgba(28,32,36,0.6); margin: 6px 0 20px; max-width: 320px; line-height: 1.5; }
 .flori-offline__btn { display: inline-block; padding: 10px 20px; border-radius: 10px;
   text-decoration: none; font-size: 14px; font-weight: 600; background-color: #A85475; color: #fff; }
 @media (prefers-color-scheme: dark) {
-  .flori-offline { background-color: #1C1819; color: #EDE8E6; }
+  .flori-offline { background-color: #101317; color: #E7EBF0; }
   .flori-offline__badge { background-color: #3A2430; color: #DB8FA9; }
-  .flori-offline__desc { color: #a89c98; }
-  .flori-offline__btn { background-color: #DB8FA9; color: #1C1819; }
+  .flori-offline__desc { color: #8B95A2; }
+  .flori-offline__btn { background-color: #DB8FA9; color: #101317; }
 }
 `;
 

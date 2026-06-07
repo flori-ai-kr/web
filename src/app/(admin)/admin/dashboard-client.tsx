@@ -31,7 +31,7 @@ import type {
     ExpenseCategoryStat,
     PaymentMethodStat,
 } from '@/lib/actions/statistics';
-import {formatCurrency, getTodayKST} from '@/lib/utils';
+import {formatCurrency, getTodayKST, isUnsettledUnpaid} from '@/lib/utils';
 // 랜딩페이지 재사용 예정 — 대시보드에서 일단 제거 (ai-briefing-card.tsx는 보존)
 // import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
@@ -425,7 +425,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
                           {sale.category_label ?? '미분류'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {sale.is_unpaid ? '미수' : (sale.payment_method_label ?? '')}
+                          {isUnsettledUnpaid(sale) ? '미수' : (sale.payment_method_label ?? '')}
                           {sale.customer_name ? ` · ${sale.customer_name}` : (sale.channel_label ? ` · ${sale.channel_label}` : '')}
                         </p>
                       </div>

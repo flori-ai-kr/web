@@ -25,22 +25,24 @@ export interface ExpensePaymentMethod {
 }
 
 // Kotlin /settings/* 공통 응답 (LabelSettingResponse, camelCase).
+// id는 Long(JSON 숫자)으로 내려오므로 받는 쪽에서 String으로 통일한다.
 interface KotlinLabelSetting {
-  id: string;
+  id: number | string;
   value: string;
   label: string;
-  color: string;
+  color?: string;
   sortOrder: number;
 }
 
 // camelCase(Kotlin) → snake_case(웹 설정 타입).
 // created_at은 Kotlin 응답에 없어 뷰에서 미사용이므로 현재 시각으로 채운다.
+// id는 반드시 String으로 — 지출 category_id(String 변환)와 비교/매칭되어야 한다.
 function mapLabelSetting(s: KotlinLabelSetting): ExpenseCategory {
   return {
-    id: s.id,
+    id: String(s.id),
     value: s.value,
     label: s.label,
-    color: s.color,
+    color: s.color ?? '#9ca3af',
     sort_order: s.sortOrder,
     created_at: new Date().toISOString(),
   };

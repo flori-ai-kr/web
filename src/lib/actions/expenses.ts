@@ -7,6 +7,20 @@ import {expenseSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
+const EXPENSES_PAGE_SIZE = 100;
+
+export interface ExpenseFilters {
+  category?: string[];
+  payment?: string[];
+  search?: string;
+}
+
+export interface ExpenseCategorySlice {
+  category_id: string | null;
+  category_label: string;
+  amount: number;
+}
+
 // Kotlin /expenses 응답의 단일 지출 (camelCase). 서버 계약(ExpenseResponse)과 1:1.
 interface KotlinExpense {
   id: string;
@@ -53,19 +67,87 @@ function mapKotlinExpense(e: KotlinExpense): Expense {
   };
 }
 
-async function _getExpenses(month?: string): Promise<Expense[]> {
+interface KotlinExpensePage {
+  expenses: KotlinExpense[];
+  hasMore: boolean;
+}
+
+async function _getExpenses(
+  month?: string,
+  offset: number = 0,
+  limit: number = EXPENSES_PAGE_SIZE,
+  filters?: ExpenseFilters,
+  dateRange?: { startDate: string; endDate: string },
+) {
   await requireAuth();
 
-  // Kotlin monthRange가 "YYYY" / "YYYY-MM-DD" / "YYYY-MM" 세 형식을 모두 해석한다.
   const params = new URLSearchParams();
-  if (month) params.set('month', month);
-  const qs = params.toString();
+  params.set('offset', String(offset));
+  params.set('limit', String(limit));
+  if (dateRange) {
+    params.set('startDate', dateRange.startDate);
+    params.set('endDate', dateRange.endDate);
+  } else if (month) {
+    params.set('month', month);
+  }
+  for (const c of filters?.category ?? []) params.append('category', c);
+  for (const p of filters?.payment ?? []) params.append('payment', p);
+  if (filters?.search) params.set('search', filters.search.slice(0, 100));
 
-  const rows = await apiFetch<KotlinExpense[]>(`/expenses${qs ? `?${qs}` : ''}`);
-  return rows.map(mapKotlinExpense);
+  const page = await apiFetch<KotlinExpensePage>(`/expenses?${params.toString()}`);
+  return {
+    expenses: page.expenses.map(mapKotlinExpense),
+    hasMore: page.hasMore,
+  };
 }
 
 export const getExpenses = withErrorLogging('getExpenses', _getExpenses);
+
+// 인증은 위임된 _getExpenses 내부 requireAuth()로 보장된다(중복 /me 방지). 분리 리팩터 시 여기 가드 추가 필요.
+async function _loadMoreExpenses(month: string | null, offset: number, filters?: ExpenseFilters) {
+  return _getExpenses(month ?? undefined, offset, EXPENSES_PAGE_SIZE, filters);
+}
+
+export const loadMoreExpenses = withErrorLogging('loadMoreExpenses', _loadMoreExpenses);
+
+interface KotlinExpensesSummary {
+  total: number;
+  count: number;
+  byCategory: { categoryId: number | string | null; categoryLabel: string; amount: number }[];
+}
+
+async function _getExpensesSummary(
+  month?: string,
+  filters?: ExpenseFilters,
+  dateRange?: { startDate: string; endDate: string },
+) {
+  await requireAuth();
+
+  const params = new URLSearchParams();
+  if (dateRange) {
+    params.set('startDate', dateRange.startDate);
+    params.set('endDate', dateRange.endDate);
+  } else if (month) {
+    params.set('month', month);
+  }
+  for (const c of filters?.category ?? []) params.append('category', c);
+  for (const p of filters?.payment ?? []) params.append('payment', p);
+  if (filters?.search) params.set('search', filters.search.slice(0, 100));
+
+  const data = await apiFetch<KotlinExpensesSummary>(`/expenses/summary?${params.toString()}`);
+
+  return {
+    total: data?.total ?? 0,
+    count: data?.count ?? 0,
+    byCategory: (data?.byCategory ?? []).map((s): ExpenseCategorySlice => ({
+      category_id: s.categoryId != null ? String(s.categoryId) : null,
+      category_label: s.categoryLabel,
+      amount: s.amount,
+    })),
+  };
+}
+
+export const getExpensesSummary = withErrorLogging('getExpensesSummary', _getExpensesSummary);
 
 async function _getExpenseById(id: string): Promise<Expense | null> {
   await requireAuth();

@@ -88,7 +88,7 @@ export function ExpenseSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>지출 카테고리 관리</DialogTitle>
         </DialogHeader>

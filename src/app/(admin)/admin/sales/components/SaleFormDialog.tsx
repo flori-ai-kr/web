@@ -3,6 +3,7 @@
 import {useEffect, useState, useTransition} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
+import {DatePicker} from '@/components/ui/date-picker';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -125,7 +126,7 @@ export function SaleFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-xl">{isEditMode ? '매출 수정' : '매출 등록'}</DialogTitle>
         </DialogHeader>
@@ -133,12 +134,10 @@ export function SaleFormDialog({
           <div className="grid grid-cols-[3fr_2fr] gap-4">
             <div className="space-y-2">
               <Label>날짜 *</Label>
-              <Input
-                type="date"
+              <DatePicker
                 name="date"
                 defaultValue={sale?.date || format(new Date(), 'yyyy-MM-dd')}
                 required
-                className="bg-muted"
               />
             </div>
             <div className="space-y-2">
@@ -151,7 +150,7 @@ export function SaleFormDialog({
                 onChange={(v) => { if (v > 0 && amountError) setAmountError(null); }}
                 aria-invalid={!!amountError}
                 aria-describedby={amountError ? 'sale-amount-error' : undefined}
-                className={cn("bg-muted", amountError && "border-danger focus-visible:ring-danger")}
+                className={cn(amountError && "border-danger focus-visible:ring-danger")}
               />
               {amountError && <p id="sale-amount-error" className="text-xs text-danger">{amountError}</p>}
             </div>
@@ -180,7 +179,7 @@ export function SaleFormDialog({
               </button>
             </div>
             <Select name="category_id" defaultValue={sale?.category_id ?? undefined} key={sale?.id ? `cat-${sale.id}` : 'cat-create'} required>
-              <SelectTrigger className="bg-muted">
+              <SelectTrigger>
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
@@ -238,7 +237,7 @@ export function SaleFormDialog({
             <div className="space-y-2">
               <Label>예약방식</Label>
               <Select name="channel_id" defaultValue={sale?.channel_id ?? undefined} key={sale?.id ? `ch-${sale.id}` : 'ch-create'}>
-                <SelectTrigger className="bg-muted">
+                <SelectTrigger>
                   <SelectValue placeholder="예약방식 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,7 +270,6 @@ export function SaleFormDialog({
                   value={customerPhone || ''}
                   onChange={(e) => setCustomerPhone(formatPhoneNumber(e.target.value))}
                   placeholder="010-0000-0000"
-                  className="bg-muted"
                   inputMode="tel"
                   autoComplete="tel"
                 />

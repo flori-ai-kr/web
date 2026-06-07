@@ -86,7 +86,7 @@ export function SalesSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>카테고리 관리</DialogTitle>
         </DialogHeader>

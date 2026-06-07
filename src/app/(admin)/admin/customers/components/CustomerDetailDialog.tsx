@@ -69,7 +69,7 @@ export function CustomerDetailDialog({
 
   return (
     <Dialog open={!!customer} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">고객 상세</DialogTitle>
         </DialogHeader>
