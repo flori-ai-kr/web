@@ -490,7 +490,6 @@ export function ExpensesClient({
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">지출 등록</DialogTitle>
-            <p className="text-sm text-muted-foreground">꽃 구매, 배달비 등 지출 내역을 입력해주세요. 총액은 단가 x 수량으로 자동 계산돼요.</p>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5 pt-2">
             <div className="grid grid-cols-[3fr_2fr] gap-4">
@@ -522,7 +521,6 @@ export function ExpensesClient({
                 placeholder="예: 장미 50송이, 배달비"
                 required
               />
-              <p className="text-[11px] text-muted-foreground">어디서 뭘 샀는지 적어주세요</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -534,6 +532,7 @@ export function ExpensesClient({
                 <Input type="number" name="quantity" defaultValue="1" min="1" />
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
             <div className="space-y-2">
               <Label>결제방식 *</Label>
               <input type="hidden" name="payment_method_id" value={selectedPaymentMethod} />
@@ -564,7 +563,6 @@ export function ExpensesClient({
                 suggestions={expenseSuggestions.vendors}
                 placeholder="예: 고속터미널 꽃시장"
               />
-              <p className="text-[11px] text-muted-foreground">어디서 구매했는지 적어두면 나중에 찾기 편해요</p>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
@@ -710,6 +708,7 @@ export function ExpensesClient({
                   <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" />
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
               <div className="space-y-2">
                 <Label>결제방식 *</Label>
                 <input type="hidden" name="payment_method_id" value={editPaymentMethod} />

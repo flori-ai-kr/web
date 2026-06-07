@@ -27,7 +27,7 @@ interface DatePickerProps {
 function display(value: string): string {
   const [y, m, d] = value.split('-');
   if (!y || !m || !d) return value;
-  return `${y}. ${m}. ${d}.`;
+  return `${y}.${m}.${d}`;
 }
 
 /**
@@ -70,13 +70,13 @@ export function DatePicker({
             disabled={disabled}
             aria-label={ariaLabel}
             className={cn(
-              'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-xs transition-[color,box-shadow] outline-none',
+              'flex h-9 w-full min-w-0 items-center justify-between gap-1.5 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none',
               'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50',
               current ? 'text-foreground' : 'text-muted-foreground',
               className,
             )}
           >
-            <span>{current ? display(current) : placeholder}</span>
+            <span className="truncate">{current ? display(current) : placeholder}</span>
             <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
         </PopoverTrigger>

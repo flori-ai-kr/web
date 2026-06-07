@@ -225,7 +225,7 @@ export function RecurringExpensesSection({ embedded = false }: { embedded?: bool
             <Plus className="w-3.5 h-3.5 mr-1" />추가
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mb-4">월세·인터넷·구독료처럼 반복되는 지출을 등록해두면 매월 자동으로 추가되거나 한 번에 빠르게 등록할 수 있어요</p>
+        <p className="text-xs text-muted-foreground mb-4">월세·인터넷·구독료처럼 반복되는 지출을 등록해보세요.</p>
 
         {loading ? (
           <div className="space-y-2">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
