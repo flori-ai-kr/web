@@ -60,7 +60,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-y-0 left-[50%] z-50 my-auto flex h-fit w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col gap-4 rounded-lg border p-6 shadow-lg duration-100 sm:max-w-lg",
+          "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-y-0 left-[50%] z-50 my-auto flex h-fit w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col gap-4 rounded-lg border p-6 shadow-lg duration-100 sm:max-w-lg",
           className
         )}
         style={{ WebkitOverflowScrolling: 'touch' }}

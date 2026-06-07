@@ -284,7 +284,7 @@ export function RecurringExpensesSection() {
 
         {/* 등록/수정 다이얼로그 */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{form?.id ? '고정비 수정' : '고정비 등록'}</DialogTitle>
             </DialogHeader>
@@ -300,7 +300,6 @@ export function RecurringExpensesSection() {
                     value={form.item_name}
                     onChange={e => setForm(f => f && { ...f, item_name: e.target.value })}
                     placeholder="예: 월세, 인터넷, 넷플릭스"
-                    className="bg-muted"
                     required
                   />
                 </div>
@@ -309,7 +308,7 @@ export function RecurringExpensesSection() {
                   <div className="space-y-2">
                     <Label>카테고리 *</Label>
                     <Select value={form.category_id} onValueChange={(v) => setForm(f => f && { ...f, category_id: v })}>
-                      <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
                       </SelectContent>
@@ -318,7 +317,7 @@ export function RecurringExpensesSection() {
                   <div className="space-y-2">
                     <Label>결제방식 *</Label>
                     <Select value={form.payment_method_id} onValueChange={(v) => setForm(f => f && { ...f, payment_method_id: v })}>
-                      <SelectTrigger className="bg-muted"><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {payments.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
                       </SelectContent>
@@ -334,7 +333,6 @@ export function RecurringExpensesSection() {
                       value={form.unit_price}
                       onChange={(v) => setForm(f => f && { ...f, unit_price: v })}
                       placeholder="0"
-                      className="bg-muted"
                     />
                   </div>
                   <div className="space-y-2">
@@ -345,7 +343,6 @@ export function RecurringExpensesSection() {
                       value={form.quantity}
                       min={1}
                       onChange={e => setForm(f => f && { ...f, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className="bg-muted"
                     />
                   </div>
                 </div>
@@ -356,7 +353,6 @@ export function RecurringExpensesSection() {
                     value={form.vendor}
                     onChange={e => setForm(f => f && { ...f, vendor: e.target.value })}
                     placeholder="예: 강남구청 관리실"
-                    className="bg-muted"
                   />
                 </div>
 
@@ -530,7 +526,6 @@ export function RecurringExpensesSection() {
                     onChange={e => setForm(f => f && { ...f, memo: e.target.value })}
                     placeholder="메모"
                     maxLength={100}
-                    className="bg-muted"
                   />
                 </div>
 
@@ -545,7 +540,7 @@ export function RecurringExpensesSection() {
 
         {/* 삭제 확인 */}
         <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>고정비 삭제</DialogTitle>
             </DialogHeader>

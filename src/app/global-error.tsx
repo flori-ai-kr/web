@@ -25,10 +25,10 @@ const STYLES = `
   font-size: 14px; font-weight: 500; background-color: #A85475; color: #fff;
 }
 @media (prefers-color-scheme: dark) {
-  .flori-global-error { background-color: #1c1819; color: #f5efe9; }
+  .flori-global-error { background-color: #101317; color: #E7EBF0; }
   .flori-global-error__badge { background-color: #3a2630; color: #DB8FA9; }
-  .flori-global-error__desc { color: #a89c98; }
-  .flori-global-error__btn { background-color: #DB8FA9; color: #1c1819; }
+  .flori-global-error__desc { color: #8B95A2; }
+  .flori-global-error__btn { background-color: #DB8FA9; color: #101317; }
 }
 `;
 

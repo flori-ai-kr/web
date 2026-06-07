@@ -16,7 +16,7 @@ import {getPhotoCardBySaleId} from '@/lib/actions/photo-cards';
 import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
-import {formatCurrency} from '@/lib/utils';
+import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {ExportButton} from '@/components/ui/export-button';
@@ -212,7 +212,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       { header: '날짜', accessor: (s) => String(s.date || '') },
       { header: '카테고리', accessor: (s) => s.category_label || '' },
       { header: '금액', accessor: (s) => Number(s.amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (s) => s.is_unpaid ? '미수' : (s.payment_method_label ?? '') },
+      { header: '결제방법', accessor: (s) => isUnsettledUnpaid(s) ? '미수' : (s.payment_method_label ?? '') },
       { header: '채널', accessor: (s) => s.channel_label || '' },
       { header: '고객명', accessor: (s) => String(s.customer_name || '') },
       { header: '메모', accessor: (s) => String(s.memo || '') },
@@ -467,7 +467,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
       {/* Photo Prompt Dialog */}
       <Dialog open={!!showPhotoPrompt} onOpenChange={(open) => !open && setShowPhotoPrompt(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>사진 추가</DialogTitle>
           </DialogHeader>
@@ -505,7 +505,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>매출 삭제</DialogTitle>
           </DialogHeader>
@@ -539,7 +539,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       />
 
       {/* FAB — Speed Dial */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
         {fabOpen && (
           <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <button

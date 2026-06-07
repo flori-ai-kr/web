@@ -511,7 +511,7 @@ export function ExpensesClient({
 
       {/* Create Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">지출 등록</DialogTitle>
             <p className="text-sm text-muted-foreground">꽃 구매, 배달비 등 지출 내역을 입력해주세요. 총액은 단가 x 수량으로 자동 계산돼요.</p>
@@ -520,12 +520,12 @@ export function ExpensesClient({
             <div className="grid grid-cols-[3fr_2fr] gap-4">
               <div className="space-y-2">
                 <Label>날짜 *</Label>
-                <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="bg-muted" />
+                <Input type="date" name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required />
               </div>
               <div className="space-y-2">
                 <Label>카테고리 *</Label>
                 <Select name="category_id" defaultValue={categories[0]?.id}>
-                  <SelectTrigger className="bg-muted">
+                  <SelectTrigger>
                     <SelectValue placeholder="카테고리 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -551,11 +551,11 @@ export function ExpensesClient({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>단가 *</Label>
-                <AmountInput name="unit_price" placeholder="0" required className="bg-muted" />
+                <AmountInput name="unit_price" placeholder="0" required />
               </div>
               <div className="space-y-2">
                 <Label>수량</Label>
-                <Input type="number" name="quantity" defaultValue="1" min="1" className="bg-muted" />
+                <Input type="number" name="quantity" defaultValue="1" min="1" />
               </div>
             </div>
             <div className="space-y-2">
@@ -620,7 +620,7 @@ export function ExpensesClient({
 
       {/* Expense Detail Dialog */}
       <Dialog open={!!selectedExpense} onOpenChange={(open) => !open && setSelectedExpense(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl">지출 상세</DialogTitle>
           </DialogHeader>
@@ -693,7 +693,7 @@ export function ExpensesClient({
 
       {/* Edit Dialog */}
       <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">지출 수정</DialogTitle>
           </DialogHeader>
@@ -702,12 +702,12 @@ export function ExpensesClient({
               <div className="grid grid-cols-[3fr_2fr] gap-4">
                 <div className="space-y-2">
                   <Label>날짜 *</Label>
-                  <Input type="date" name="date" defaultValue={editingExpense.date} required className="bg-muted" />
+                  <Input type="date" name="date" defaultValue={editingExpense.date} required />
                 </div>
                 <div className="space-y-2">
                   <Label>카테고리 *</Label>
                   <Select name="category_id" defaultValue={editingExpense.category_id ?? undefined} key={`cat-${editingExpense.id}`}>
-                    <SelectTrigger className="bg-muted">
+                    <SelectTrigger>
                       <SelectValue placeholder="카테고리 선택" />
                     </SelectTrigger>
                     <SelectContent>
@@ -732,11 +732,11 @@ export function ExpensesClient({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>단가 *</Label>
-                  <AmountInput name="unit_price" value={editingExpense.unit_price} required className="bg-muted" />
+                  <AmountInput name="unit_price" value={editingExpense.unit_price} required />
                 </div>
                 <div className="space-y-2">
                   <Label>수량</Label>
-                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" className="bg-muted" />
+                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -801,7 +801,7 @@ export function ExpensesClient({
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{deleteTarget?.recurring_id ? '반복되는 지출입니다' : '지출 삭제'}</DialogTitle>
           </DialogHeader>
@@ -842,7 +842,7 @@ export function ExpensesClient({
 
       {/* 자동생성된 지출 수정 — 이것만 / 이후 모두 분기 */}
       <Dialog open={!!pendingScopeEdit} onOpenChange={(open) => !open && setPendingScopeEdit(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>반복되는 지출입니다</DialogTitle>
           </DialogHeader>

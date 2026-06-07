@@ -42,7 +42,7 @@ function PostDetailDialogInner({ post, open, onClose, scrapMap }: PostDetailDial
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
         <DialogContent
           showCloseButton={false}
-          className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0"
+          className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0"
         >
           <DialogHeader className="px-5 pt-5 pb-3 text-left">
             <div className="flex items-center justify-between gap-3">

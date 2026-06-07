@@ -317,7 +317,6 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="예: 헤이즐 플라워"
-              className="bg-muted"
             />
           </div>
 
@@ -333,7 +332,7 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
                   if (nicknameError) setNicknameError(null)
                 }}
                 placeholder="예: 헤이즐 사장님"
-                className="bg-muted flex-1"
+                className="flex-1"
                 aria-invalid={nicknameStatus === 'taken' ? true : undefined}
               />
               {nicknameChanged && (
@@ -372,14 +371,13 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@example.com"
-              className="bg-muted"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="profile-sido">지역 (시/도)</Label>
             <Select value={regionSido} onValueChange={setRegionSido}>
-              <SelectTrigger id="profile-sido" className="w-full bg-muted">
+              <SelectTrigger id="profile-sido" className="w-full">
                 <SelectValue placeholder="시/도를 선택하세요" />
               </SelectTrigger>
               <SelectContent>
@@ -401,7 +399,6 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
               value={regionSigungu}
               onChange={(e) => setRegionSigungu(e.target.value)}
               placeholder="예: 강남구"
-              className="bg-muted"
             />
           </div>
         </fieldset>
@@ -535,7 +532,6 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
                     value={withdrawDetail}
                     onChange={(e) => setWithdrawDetail(e.target.value)}
                     placeholder="이유를 적어주세요 (선택)"
-                    className="bg-muted"
                   />
                 )}
               </div>

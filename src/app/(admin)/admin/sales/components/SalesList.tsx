@@ -4,10 +4,10 @@ import {useEffect, useMemo, useRef} from 'react';
 import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
-import {FileText, ImagePlus, Loader2, Search, TrendingUp, User} from 'lucide-react';
+import {CreditCard, FileText, ImagePlus, Loader2, Phone, Search, ShoppingBag, TrendingUp, User} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
-import {formatCurrency} from '@/lib/utils';
+import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
 import type {Sale} from '@/types/database';
 
 interface SalesListProps {
@@ -71,7 +71,7 @@ export function SalesList({
       date,
       label: format(new Date(date), 'yyyy년 M월 d일 (EEE)', { locale: ko }),
       sales: dateSales,
-      total: dateSales.reduce((sum, s) => s.is_unpaid ? sum : sum + s.amount, 0),
+      total: dateSales.reduce((sum, s) => isUnsettledUnpaid(s) ? sum : sum + s.amount, 0),
     }));
   }, [sales]);
 
@@ -118,37 +118,36 @@ export function SalesList({
             </span>
           </div>
 
-          {/* 미니멀 로우 리스트 */}
-          <div className="divide-y divide-border/50">
+          {/* 카드 그리드 (데스크탑 2열) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {group.sales.map((sale) => {
-              const isUnpaid = sale.is_unpaid;
-
+              const isUnpaid = isUnsettledUnpaid(sale);
               const hasPhotos = !!(sale.photos && sale.photos.length > 0);
 
               return (
                 <div
                   key={sale.id}
-                  className="w-full flex items-center gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors touch-manipulation"
+                  className="flex gap-3 p-3 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* 사진 셀: 있으면 썸네일, 없으면 등록 유도 버튼 */}
+                  {/* 썸네일: 있으면 사진, 없으면 등록 유도 */}
                   {hasPhotos ? (
                     <button
                       type="button"
                       onClick={() => onOpenPhoto(sale)}
-                      className="relative shrink-0 active:scale-95 transition-transform"
+                      className="relative shrink-0 self-start active:scale-95 transition-transform"
                       aria-label="사진 수정"
                     >
-                      <div className="relative w-[50px] h-[50px] rounded-lg overflow-hidden bg-muted">
+                      <div className="relative w-[84px] h-[84px] rounded-lg overflow-hidden bg-muted">
                         <Image
                           src={sale.photos![0]}
                           alt=""
                           fill
-                          sizes="50px"
+                          sizes="84px"
                           className="object-cover"
                         />
                       </div>
                       {sale.photos!.length > 1 && (
-                        <span className="absolute -bottom-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-background flex items-center justify-center text-[9px] font-bold text-brand shadow-sm ring-1 ring-border">
+                        <span className="absolute bottom-1 right-1 px-1.5 h-4 rounded-full bg-black/60 flex items-center justify-center text-[9px] font-bold text-white">
                           {sale.photos!.length}
                         </span>
                       )}
@@ -157,65 +156,78 @@ export function SalesList({
                     <button
                       type="button"
                       onClick={() => onOpenPhoto(sale)}
-                      className="shrink-0 w-[50px] h-[50px] rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-brand/50 hover:text-brand active:scale-95 transition-all"
+                      className="shrink-0 self-start w-[84px] h-[84px] rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-brand/50 hover:text-brand active:scale-95 transition-colors"
                       aria-label="사진 등록"
                     >
-                      <ImagePlus className="w-5 h-5" />
+                      <ImagePlus className="w-6 h-6" />
                     </button>
                   )}
 
-                  {/* 내용 + 금액: 상세 열기 */}
+                  {/* 내용: 상세 열기 */}
                   <button
                     type="button"
                     onClick={() => onSelectSale(sale)}
-                    className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70 transition-opacity"
+                    className="flex-1 min-w-0 flex flex-col text-left active:opacity-70 transition-opacity"
                     aria-label={`${sale.category_label ?? '미분류'} ${formatCurrency(sale.amount)} 상세 보기`}
                   >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        {sale.category_label ?? '미분류'}
-                      </span>
-                      {isUnpaid ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium dark:bg-amber-950 dark:text-amber-400">
-                          미수
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">
-                          {sale.payment_method_label ?? ''}
-                        </span>
-                      )}
-                      {sale.channel_label && (
-                        <>
-                          <span className="text-[11px] text-muted-foreground">·</span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {sale.channel_label}
+                    {/* 상단: 카테고리 + 금액 */}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1.5 flex-wrap min-w-0">
+                        <span className="truncate">{sale.category_label ?? '미분류'}</span>
+                        {isUnpaid && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning-soft text-warning font-medium">
+                            미수
                           </span>
-                        </>
+                        )}
+                      </span>
+                      <span className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${isUnpaid ? 'text-warning' : 'text-foreground'}`}>
+                        {formatCurrency(sale.amount)}
+                      </span>
+                    </div>
+
+                    {/* 메타: 결제·채널 / 고객·연락처 (루시드 아이콘) */}
+                    <div className="flex flex-col gap-1 mt-2">
+                      {(!isUnpaid && sale.payment_method_label) || sale.channel_label ? (
+                        <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11.5px] text-muted-foreground">
+                          {!isUnpaid && sale.payment_method_label && (
+                            <span className="flex items-center gap-1 min-w-0">
+                              <CreditCard className="w-3.5 h-3.5 shrink-0 text-brand/85" aria-hidden />
+                              <span className="text-foreground/80 truncate">{sale.payment_method_label}</span>
+                            </span>
+                          )}
+                          {sale.channel_label && (
+                            <span className="flex items-center gap-1 min-w-0">
+                              <ShoppingBag className="w-3.5 h-3.5 shrink-0 text-brand/85" aria-hidden />
+                              <span className="text-foreground/80 truncate">{sale.channel_label}</span>
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                      {(sale.customer_name || sale.customer_phone) && (
+                        <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11.5px] text-muted-foreground">
+                          {sale.customer_name && (
+                            <span className="flex items-center gap-1 min-w-0">
+                              <User className="w-3.5 h-3.5 shrink-0 text-brand/85" aria-hidden />
+                              <span className="text-foreground/80 truncate">{sale.customer_name}</span>
+                            </span>
+                          )}
+                          {sale.customer_phone && (
+                            <span className="flex items-center gap-1 min-w-0">
+                              <Phone className="w-3.5 h-3.5 shrink-0 text-brand/85" aria-hidden />
+                              <span className="text-foreground/80 truncate">{sale.customer_phone}</span>
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
-                    {(sale.customer_name || sale.memo) && (
-                      <div className="flex items-center gap-2.5 mt-1">
-                        {sale.customer_name && (
-                          <span className="flex items-center gap-1 text-[11px] text-foreground/75 shrink-0">
-                            <User className="w-3 h-3 shrink-0 text-brand" aria-hidden />
-                            {sale.customer_name}
-                          </span>
-                        )}
-                        {sale.memo && (
-                          <span className="flex items-center gap-1 text-[11px] text-foreground/75 min-w-0">
-                            <FileText className="w-3 h-3 shrink-0 text-brand" aria-hidden />
-                            <span className="truncate">{sale.memo}</span>
-                          </span>
-                        )}
+
+                    {/* 메모: 2줄까지 */}
+                    {sale.memo && (
+                      <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-border text-[11.5px] text-muted-foreground">
+                        <FileText className="w-3.5 h-3.5 shrink-0 text-brand/85 mt-0.5" aria-hidden />
+                        <span className="text-foreground/80 leading-snug line-clamp-2">{sale.memo}</span>
                       </div>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <span className={`text-sm font-semibold tabular-nums ${isUnpaid ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
-                      {formatCurrency(sale.amount)}
-                    </span>
-                  </div>
                   </button>
                 </div>
               );

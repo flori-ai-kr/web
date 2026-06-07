@@ -9,7 +9,7 @@ import {CalendarDays, Check, ExternalLink, ImageIcon, PackageCheck, Pencil, Tras
 import Image from 'next/image';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
-import {formatCurrency} from '@/lib/utils';
+import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
 import type {PhotoCard, Reservation, Sale} from '@/types/database';
 
 interface SaleDetailDialogProps {
@@ -38,7 +38,7 @@ export function SaleDetailDialog({
   return (
     <>
     <Dialog open={!!sale} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">매출 상세</DialogTitle>
         </DialogHeader>
@@ -59,7 +59,10 @@ export function SaleDetailDialog({
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">결제방식</p>
-                <p className="font-medium">{sale.is_unpaid ? '미수' : (sale.payment_method_label ?? '-')}</p>
+                <p className="font-medium">
+                  {isUnsettledUnpaid(sale) ? '미수' : (sale.payment_method_label ?? '-')}
+                  {sale.is_unpaid && sale.payment_method_id ? <span className="text-xs text-muted-foreground font-normal"> · 외상 결제완료</span> : null}
+                </p>
               </div>
               {sale.channel_label && (
               <div className="space-y-1">
@@ -193,33 +196,29 @@ export function SaleDetailDialog({
               </div>
             )}
 
-            <div className="flex justify-between pt-4 border-t">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onPhotoModal(sale);
-                    onClose();
-                  }}
-                >
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  사진
-                </Button>
-                <Button variant="outline" onClick={() => onEdit(sale)}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  수정
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-danger hover:text-danger hover:bg-danger/10"
-                  onClick={() => onDelete(sale)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  삭제
-                </Button>
-              </div>
-              <Button variant="outline" onClick={onClose}>
-                닫기
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  onPhotoModal(sale);
+                  onClose();
+                }}
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                사진
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => onEdit(sale)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                수정
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 text-danger hover:text-danger hover:bg-danger/10"
+                onClick={() => onDelete(sale)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                삭제
               </Button>
             </div>
           </div>

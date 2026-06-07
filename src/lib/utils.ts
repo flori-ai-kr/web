@@ -82,6 +82,15 @@ export function formatPhoneNumber(value: string): string {
 }
 
 /**
+ * 아직 입금 안 된 미수(외상)인지 판정.
+ * `is_unpaid`는 '외상이었음'을 나타내는 영구 마커라(결제 완료해도 BFF가 유지),
+ * 실제 '미수(아직 안 받음)'는 결제수단이 아직 안 정해진(payment_method_id == null) 경우만이다.
+ */
+export function isUnsettledUnpaid(sale: { is_unpaid?: boolean; payment_method_id?: string | null }): boolean {
+  return !!sale.is_unpaid && !sale.payment_method_id;
+}
+
+/**
  * 문자열 배열을 빈도순(내림차순)으로 정렬하여 중복 제거된 배열 반환
  */
 export function sortByFrequency(values: string[]): string[] {

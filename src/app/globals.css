@@ -108,22 +108,22 @@
   --rose-800: #6B344C;
   --rose-900: #4C2536;
 
-  /* --- Tier 1: Neutral (warm stone) primitive scale -----------
-     Warm taupe-stone ramp. Anchored on existing semantics:
-       --neutral-50  ≈ --background     (#FBF8F3 paper)
-       --neutral-200 == --border         (#ECE3DD)
-       --neutral-500 == --muted-foreground (#9E8F89)
-       --neutral-900 == --foreground      (#241F22 ink) */
-  --neutral-50:  #FBF8F3;
-  --neutral-100: #F3ECE6;
-  --neutral-200: #ECE3DD;
-  --neutral-300: #D9CCC3;
-  --neutral-400: #BCAAA0;
-  --neutral-500: #9E8F89;
-  --neutral-600: #7C6F6A;
-  --neutral-700: #5C524F;
-  --neutral-800: #3D3539;
-  --neutral-900: #241F22; /* = --foreground */
+  /* --- Tier 1: Neutral (cool slate) primitive scale -----------
+     Cool slate-gray ramp. Anchored on existing semantics:
+       --neutral-50  ≈ --background     (#EEF1F5 cool canvas)
+       --neutral-200 == --border         (#DDE2E9)
+       --neutral-500 == --muted-foreground (#717B88)
+       --neutral-900 == --foreground      (#1C2024 ink) */
+  --neutral-50:  #F4F6F9;
+  --neutral-100: #E8ECF1;
+  --neutral-200: #DDE2E9;
+  --neutral-300: #C7CDD6;
+  --neutral-400: #A4ADB9;
+  --neutral-500: #717B88;
+  --neutral-600: #58616D;
+  --neutral-700: #424A54;
+  --neutral-800: #2C333D;
+  --neutral-900: #1C2024; /* = --foreground */
 
   /* --- Tier 1 + Tier 2: Status hues ---------------------------
      Each base verified AA on cream (#FBF8F3) for text AND
@@ -200,49 +200,49 @@
      --chart-1      : #A85475  (rose peak)
      --chart-2..5   : ink opacity ladder (monochrome)
   */
-  /* 밝은 크림 배경 */
-  --background: #FBF8F3;
-  --foreground: #241F22;
+  /* Cool 캔버스 (slate 오프화이트 — 흰 카드가 떠오르는 elevation) */
+  --background: #EEF1F5;
+  --foreground: #1C2024;
   /* 카드: 순백 */
   --card: #FFFFFF;
-  --card-foreground: #241F22;
+  --card-foreground: #1C2024;
   --popover: #FFFFFF;
-  --popover-foreground: #241F22;
-  /* 프라이머리: 웜 near-black */
-  --primary: #241F22;
-  --primary-foreground: #FBF8F3;
-  --secondary: #F3ECE6;
-  --secondary-foreground: #241F22;
-  /* 뮤트: 따뜻한 크림 회색 */
-  --muted: #F3ECE6;
-  --muted-foreground: #9E8F89;
-  --accent: #F3ECE6;
-  --accent-foreground: #241F22;
+  --popover-foreground: #1C2024;
+  /* 프라이머리: cool near-black */
+  --primary: #1C2024;
+  --primary-foreground: #F6F8FA;
+  --secondary: #E8ECF1;
+  --secondary-foreground: #1C2024;
+  /* 뮤트: cool slate 회색 */
+  --muted: #E8ECF1;
+  --muted-foreground: #717B88;
+  --accent: #E8ECF1;
+  --accent-foreground: #1C2024;
   --destructive: #E5484D;
-  --border: #ECE3DD;
-  --input: #ECE3DD;
+  --border: #DDE2E9;
+  --input: #DDE2E9;
   --ring: #A85475;
-  /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1, brand-on-cream ~4.83:1 */
+  /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1 (유지) */
   --brand: #A85475;
   --brand-foreground: #FFFFFF;
-  --brand-muted: #FBEFF3;
-  /* 서브: Warm Taupe (올리브 대체 — 그린 색조 제거, 크림 위 조용한 중립) */
-  --sage: #A09080;
-  --sage-muted: #F2EDE8;
-  /* 차트: 로즈 피크 + 잉크 불투명도 사다리 */
+  --brand-muted: #F7E9EF;
+  /* 서브: cool slate 중립 (cool 베이스 위 조용한 보조) */
+  --sage: #8A929E;
+  --sage-muted: #E8ECF1;
+  /* 차트: 로즈 피크 + cool 잉크 불투명도 사다리 */
   --chart-1: #A85475;
-  --chart-2: rgba(36, 31, 34, 0.55);
-  --chart-3: rgba(36, 31, 34, 0.38);
-  --chart-4: rgba(36, 31, 34, 0.22);
-  --chart-5: rgba(36, 31, 34, 0.12);
+  --chart-2: rgba(28, 32, 36, 0.55);
+  --chart-3: rgba(28, 32, 36, 0.38);
+  --chart-4: rgba(28, 32, 36, 0.22);
+  --chart-5: rgba(28, 32, 36, 0.12);
   /* 사이드바 */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #6B5F5C;
-  --sidebar-primary: #241F22;
-  --sidebar-primary-foreground: #FBF8F3;
-  --sidebar-accent: #F3ECE6;
-  --sidebar-accent-foreground: #241F22;
-  --sidebar-border: #ECE3DD;
+  --sidebar-foreground: #5C636E;
+  --sidebar-primary: #1C2024;
+  --sidebar-primary-foreground: #F6F8FA;
+  --sidebar-accent: #E8ECF1;
+  --sidebar-accent-foreground: #1C2024;
+  --sidebar-border: #DDE2E9;
   --sidebar-ring: #A85475;
   /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
   --ai-grad-from: #E89BB6;
@@ -250,20 +250,20 @@
 }
 
 .dark {
-  --background: #1C1819;
-  --foreground: #EDE8E6;
-  --card: #262022;
-  --card-foreground: #EDE8E6;
-  --popover: #262022;
-  --popover-foreground: #EDE8E6;
-  --primary: #EDE8E6;
-  --primary-foreground: #1C1819;
-  --secondary: #332B2E;
-  --secondary-foreground: #EDE8E6;
-  --muted: #332B2E;
-  --muted-foreground: #9E8F89;
-  --accent: #332B2E;
-  --accent-foreground: #EDE8E6;
+  --background: #101317;
+  --foreground: #E7EBF0;
+  --card: #1E242C;
+  --card-foreground: #E7EBF0;
+  --popover: #1E242C;
+  --popover-foreground: #E7EBF0;
+  --primary: #E7EBF0;
+  --primary-foreground: #101317;
+  --secondary: #252C35;
+  --secondary-foreground: #E7EBF0;
+  --muted: #252C35;
+  --muted-foreground: #8B95A2;
+  --accent: #252C35;
+  --accent-foreground: #E7EBF0;
   --destructive: #E5484D;
   /* Tier 2 status — dark overrides: brighter base for AA on dark
      surfaces (#1C1819), soft = low-alpha tint of the base. */
@@ -279,31 +279,31 @@
   --danger: #F0686C;
   --danger-foreground: #2A0A0B;
   --danger-soft: rgba(240, 104, 108, 0.16);
-  --border: #3D3336;
-  --input: #3D3336;
+  --border: #2C333D;
+  --input: #2C333D;
   --ring: #DB8FA9;
   /* 다크 브랜드: 라이트 더스티 로즈 (어두운 배경 위 — white-on-brand 불필요, 버튼 bg-brand 대비 확인:
      #DB8FA9 on #1C1819: bg가 어두움→ 텍스트는 dark bg 위 light rose, 버튼은 rose bg 위 dark text 권장.
      dark 모드 bg-brand 버튼은 dark text(--foreground) 사용 권장. brand-foreground = dark ink) */
   --brand: #DB8FA9;
-  --brand-foreground: #1C1819;
+  --brand-foreground: #101317;
   --brand-muted: #3A2430;
-  /* 다크 서브: 워밍 뉴트럴 */
-  --sage: #9B8E84;
-  --sage-muted: #2C2626;
+  /* 다크 서브: cool slate 뉴트럴 */
+  --sage: #8B95A2;
+  --sage-muted: #252C35;
   /* 다크 차트 */
   --chart-1: #DB8FA9;
-  --chart-2: rgba(237, 232, 230, 0.50);
-  --chart-3: rgba(237, 232, 230, 0.35);
-  --chart-4: rgba(237, 232, 230, 0.20);
-  --chart-5: rgba(237, 232, 230, 0.10);
-  --sidebar: #1F1B1D;
-  --sidebar-foreground: #9B8B85;
-  --sidebar-primary: #EDE8E6;
-  --sidebar-primary-foreground: #1C1819;
-  --sidebar-accent: #332B2E;
-  --sidebar-accent-foreground: #EDE8E6;
-  --sidebar-border: #3D3336;
+  --chart-2: rgba(231, 235, 240, 0.50);
+  --chart-3: rgba(231, 235, 240, 0.35);
+  --chart-4: rgba(231, 235, 240, 0.20);
+  --chart-5: rgba(231, 235, 240, 0.10);
+  --sidebar: #15181D;
+  --sidebar-foreground: #7E8794;
+  --sidebar-primary: #E7EBF0;
+  --sidebar-primary-foreground: #101317;
+  --sidebar-accent: #252C35;
+  --sidebar-accent-foreground: #E7EBF0;
+  --sidebar-border: #2C333D;
   --sidebar-ring: #DB8FA9;
   /* 다크 AI 그라데이션 — 어두운 배경 위 과도한 채도 방지 */
   --ai-grad-from: #C77A98;

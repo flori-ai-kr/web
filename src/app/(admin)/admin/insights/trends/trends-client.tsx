@@ -310,7 +310,7 @@ function TrendDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader className="text-left">
           <div className="flex items-center gap-2 mb-2">
             <CategoryBadge category={article.category} />
