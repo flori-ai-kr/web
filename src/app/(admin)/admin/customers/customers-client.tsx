@@ -11,7 +11,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/
 import {CalendarDays, Plus, Search, Settings, UserPlus, Users} from 'lucide-react';
 import {format, subDays} from 'date-fns';
 import {toast} from 'sonner';
-import {deleteCustomer, getCustomerSales} from '@/lib/actions/customers';
+import {deleteCustomer, getCustomerById, getCustomerSales} from '@/lib/actions/customers';
 import {cn} from '@/lib/utils';
 import type {Customer, CustomerGradeConfig, Sale} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
@@ -171,16 +171,25 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
     }
   };
 
-  // URL 파라미터로 고객 상세 자동 오픈 (매출 페이지에서 연결)
+  // URL 파라미터로 고객 상세 자동 오픈 (매출·사진첩 페이지에서 연결)
   useEffect(() => {
     const customerId = searchParams.get('customerId');
-    if (customerId) {
-      const customer = initialCustomers.find(c => c.id === customerId);
-      if (customer) {
-        handleSelectCustomer(customer);
-      }
-      router.replace('/admin/customers', { scroll: false });
+    if (!customerId) return;
+    router.replace('/admin/customers', { scroll: false });
+
+    const customer = initialCustomers.find(c => c.id === customerId);
+    if (customer) {
+      handleSelectCustomer(customer);
+      return;
     }
+    // 현재 로드된 목록에 없으면(다른 페이지 고객) 단건 조회로 상세를 연다.
+    void getCustomerById(customerId)
+      .then((fetched) => {
+        if (fetched) handleSelectCustomer(fetched);
+      })
+      .catch((error) => {
+        console.error('Failed to load customer for deep link:', error);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

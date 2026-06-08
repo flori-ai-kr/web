@@ -13,6 +13,7 @@ import {toast} from 'sonner';
 import {createPhotoCard, reorderPhotos, updatePhotoCard} from '@/lib/actions/photo-cards';
 import {uploadPhotoFiles, uploadPhotoFilesStandalone} from '@/lib/photo-upload';
 import {createPhotoTag} from '@/lib/actions/photo-tags';
+import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
 import {cn} from '@/lib/utils';
 
 const MAX_FILE_SIZE_MB = 5;
@@ -44,6 +45,8 @@ export function PhotoUploadModal({
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('');
@@ -66,11 +69,15 @@ export function PhotoUploadModal({
       setTitle(editingCard.title);
       setMemo(editingCard.memo || '');
       setSelectedTags(editingCard.tags);
+      setCustomerName(editingCard.customer_name || '');
+      setCustomerId(editingCard.customer_id || null);
       setPhotoItems(editingCard.photos.map(photo => ({ type: 'existing', photo })));
     } else {
       setTitle('');
       setMemo('');
       setSelectedTags([]);
+      setCustomerName('');
+      setCustomerId(null);
       setPhotoItems([]);
     }
     setNewTagName('');
@@ -215,6 +222,8 @@ export function PhotoUploadModal({
       formData.append('memo', memo);
       formData.append('tags', JSON.stringify(selectedTags));
       formData.append('photos', JSON.stringify(existingPhotos));
+      // 고객 연결: 선택된 고객 id만 전송. 비우면 액션이 연결 해제(clearCustomer) 처리한다.
+      formData.append('customer_id', customerId || '');
 
       if (editingCard) {
         await updatePhotoCard(editingCard.id, formData);
@@ -347,6 +356,19 @@ export function PhotoUploadModal({
             </div>
           </div>
 
+
+          <div className="space-y-2">
+            <Label>고객 연결 (선택)</Label>
+            <CustomerAutocomplete
+              value={customerName}
+              onChange={(name, id) => {
+                setCustomerName(name);
+                setCustomerId(id);
+              }}
+              placeholder="고객명 검색 또는 입력"
+            />
+            <p className="text-xs text-muted-foreground">이름·연락처로 검색해 연결. 연결 안 해도 저장 가능.</p>
+          </div>
 
           <div className="space-y-2">
             <Label>사진 ({totalPhotos}/{MAX_PHOTOS}) *</Label>

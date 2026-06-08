@@ -5,8 +5,9 @@ import {PhotoCard} from '@/types/database';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
-import {ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Loader2, Trash2} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Loader2, Trash2, User} from 'lucide-react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -21,6 +22,7 @@ interface PhotoCardDialogProps {
 }
 
 export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDialogProps) {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -188,15 +190,31 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
               </div>
             )}
 
-            {card.sale_id && (
-              <Link
-                href={`/sales?saleId=${card.sale_id}`}
-                className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand hover:underline"
-              >
-                <ExternalLink className="w-4 h-4" />
-                연결된 매출 보기
-              </Link>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {card.customer_name && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!card.customer_id) return;
+                    router.push(`/admin/customers?customerId=${card.customer_id}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  {card.customer_name}
+                </button>
+              )}
+
+              {card.sale_id && (
+                <Link
+                  href={`/sales?saleId=${card.sale_id}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand hover:underline"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  연결된 매출 보기
+                </Link>
+              )}
+            </div>
           </div>
 
           {showDeleteConfirm ? (
