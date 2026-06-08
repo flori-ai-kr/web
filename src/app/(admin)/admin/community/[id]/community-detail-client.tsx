@@ -9,6 +9,7 @@ import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityComment, CommunityPost} from '@/types/database';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
+import {AdminBadge} from '@/components/community/admin-badge';
 import dynamic from 'next/dynamic';
 import {LikeButton} from '@/components/community/like-button';
 import {CommentForm} from '@/components/community/comment-form';
@@ -98,6 +99,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{post.title}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground/80">{post.author_nickname}</span>
+              {post.author_is_admin && <AdminBadge />}
               <span>·</span>
               <span>
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}

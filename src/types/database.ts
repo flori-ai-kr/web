@@ -312,6 +312,7 @@ export type CommunityCategory =
 export interface CommunityPost {
   id: string;
   author_nickname: string;
+  author_is_admin: boolean;
   category: CommunityCategory;
   title: string;
   content: unknown; // Tiptap JSON (JSONContent)
@@ -333,6 +334,7 @@ export interface CommunityComment {
   post_id: string;
   parent_id: string | null; // 대댓글 셀프참조
   author_nickname: string;
+  author_is_admin: boolean;
   content: string; // 평문
   is_secret: boolean;
   is_mine: boolean;
