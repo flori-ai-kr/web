@@ -27,6 +27,7 @@
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
 | Charts | recharts (운영 콘솔 통계 추이) |
+| Tour | driver.js (인앱 제품 투어 — 첫 진입 시 자동 실행) |
 | Test | Vitest, fast-check, Testing Library |
 | Deploy | Vercel (Cron 포함) |
 | Error Logging | Discord 웹훅 |
@@ -80,15 +81,16 @@ src/
 │   └── health/          # AI 헬스 패널 (ai-server/litellm 프록시, 수동 새로고침)
 │   (공통 프리미티브: components/console/{StatCard,StatusBadge,TrendChart})
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
-├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
+├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts. Step1에 전화번호 필수 입력 포함
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx
 ├── app/login/           # 로그인 (소셜 전용)
 ├── app/offline/         # PWA 오프라인 폴백 (SW가 navigate 실패 시 서빙, 정적·인라인스타일·JS無)
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응, date-picker.tsx 공용 날짜 선택기 — 네이티브 `<input type="date">` 전면 대체)
-├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
-├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card 등)
+├── components/layout/    # AppLayout(skip-link 포함, TourLauncher 마운트), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
+├── components/tour/      # 인앱 제품 투어 — tour-launcher.tsx (driver.js 기반, 첫 /admin 진입 시 자동 시작, data-tour 앵커 사용)
+├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card, admin-badge 등)
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
 ├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts, insights-mappers.ts(insights↔scraps 공유 DTO 매퍼)
@@ -165,7 +167,7 @@ src/
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 FAB → **고정비 관리 모달**(탭 구조 폐지, `RecurringExpensesSection embedded`). 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`). `ExpenseFilters.category`/`payment`도 동일한 id 기반 다중선택 패턴 적용
 - 지출 서버 페이지네이션: `getExpenses(month, offset, limit, filters, dateRange)` → BFF `GET /expenses?offset=&limit=&month=&category=&payment=&search=` (페이지 단위 100건). 무한스크롤은 `loadMoreExpenses` 클라이언트 액션으로 추가 로드. 검색어는 300ms 디바운스 후 별도 loadMore 호출. 집계는 `getExpensesSummary(month, filters, dateRange)` → BFF `GET /expenses/summary` (카테고리별 금액 슬라이스 `ExpenseCategorySlice[]` + 이전 기간 비교). 이전의 클라이언트 집계(useMemo 합산) 방식은 폐지됨
-- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
+- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: `ensureCommunityAccess()`(`lib/actions/business-verification.ts`) — 운영자(`is_admin`)는 사업자 인증 없이 통과, 그 외에는 status≠APPROVED이면 `/admin/community/verify`로 리다이렉트. 커뮤니티 4개 페이지(목록/write/[id]/[id]/edit)에서 공통 호출. **관리자 칩**: BFF `authorIsAdmin` → `author_is_admin` 매핑 → 운영자 작성 게시글·댓글 닉네임 옆에 "관리자" 칩(`components/community/admin-badge.tsx`) 표시
 - 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
 
 ---
@@ -190,13 +192,14 @@ src/
 | 용도 | 위치 |
 |------|------|
 | 에러/로깅 | `lib/errors.ts` (AppError, withErrorLogging), `lib/logger.ts` (Discord) |
-| 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트) |
+| 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트). `AuthUser.profile`에 `tourCompleted` 포함 |
 | 운영자 콘솔 가드 | `lib/admin-guard.ts` (requireAdmin — `/admin/me` is_admin 재검증), 액션 `lib/actions/admin-*.ts` |
 | BFF 클라이언트 | `lib/api/client.ts`, `lib/api/auth-cookies.ts` |
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
 | 프로필 관리 | `lib/actions/profile.ts` (프로필 CRUD + 아바타 업로드 + 탈퇴) |
 | 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
-| 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions) |
+| 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions + `ensureCommunityAccess()` 커뮤니티 게이트) |
+| 인앱 투어 | `components/tour/tour-launcher.tsx` (driver.js, AppLayout 마운트), `lib/actions/tour.ts` (`completeTour()` → BFF `POST /me/tour/complete`) |
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |
 | 푸시 브로드캐스트 | `lib/push-broadcast.ts` |
 | 환경변수 검증 | `lib/env.ts` |
