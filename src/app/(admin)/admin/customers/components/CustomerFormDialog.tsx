@@ -76,24 +76,29 @@ export function CustomerFormDialog({ open, onOpenChange, customer, grades, onSuc
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       try {
-        if (isEditMode) {
-          await updateCustomer(customer.id, formData);
-          // 등급 조정: 자동(sentinel)인지 특정 등급인지에 따라 분기.
-          if (gradeValue !== AUTO_GRADE) {
-            if (gradeValue !== customer.grade_id || !customer.grade_locked) {
-              await assignCustomerGrade(customer.id, gradeValue);
+        // 고객 본 정보 저장(이름/연락처/성별/메모). 실패 시 아래 catch로.
+        const savedCustomerId = isEditMode
+          ? (await updateCustomer(customer.id, formData), customer.id)
+          : (await createCustomer(formData))?.id;
+
+        // 등급 조정은 별도 엔드포인트 호출이므로 독립 try/catch로 분리한다.
+        // 고객 정보는 이미 저장됐으므로, 등급 조정만 실패해도 폼은 닫고 새로고침한다.
+        try {
+          if (isEditMode) {
+            if (gradeValue !== AUTO_GRADE) {
+              if (gradeValue !== customer.grade_id || !customer.grade_locked) {
+                await assignCustomerGrade(customer.id, gradeValue);
+              }
+            } else if (customer.grade_locked) {
+              await revertCustomerGradeAuto(customer.id);
             }
-          } else if (customer.grade_locked) {
-            await revertCustomerGradeAuto(customer.id);
+          } else if (gradeValue !== AUTO_GRADE && savedCustomerId) {
+            await assignCustomerGrade(savedCustomerId, gradeValue);
           }
-          toast.success('고객 정보가 수정되었습니다');
-        } else {
-          const created = await createCustomer(formData);
-          // 생성 후 특정 등급을 골랐다면 수동 고정한다.
-          if (gradeValue !== AUTO_GRADE && created?.id) {
-            await assignCustomerGrade(created.id, gradeValue);
-          }
-          toast.success('고객이 등록되었습니다');
+          toast.success(isEditMode ? '고객 정보가 수정되었습니다' : '고객이 등록되었습니다');
+        } catch (gradeError) {
+          console.error('Failed to adjust customer grade:', gradeError);
+          toast.error('고객 정보는 저장됐지만 등급 설정에 실패했습니다.');
         }
 
         onOpenChange(false);

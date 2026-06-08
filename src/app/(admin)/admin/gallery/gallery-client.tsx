@@ -356,6 +356,8 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
             fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
           }`}
           aria-label="액션 메뉴"
+          aria-haspopup="menu"
+          aria-expanded={fabOpen}
         >
           <Plus className="w-5 h-5 text-white" />
         </button>

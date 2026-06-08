@@ -140,6 +140,16 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 고객 연결: 값이 있으면 검증 후 연결, 비어 있으면 null(미연결).
+  let customerIdNum: number | null = null;
+  if (customerId) {
+    const customerParsed = idSchema.safeParse(customerId);
+    if (!customerParsed.success) {
+      throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
+    }
+    customerIdNum = Number(customerParsed.data);
+  }
+
   const dto = await apiFetch<PhotoCardDto>('/photo-cards', {
     method: 'POST',
     body: JSON.stringify({
@@ -148,7 +158,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
-      customerId: customerId ? Number(customerId) : null,
+      customerId: customerIdNum,
     }),
   });
 
@@ -188,7 +198,19 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  // 고객 연결: 값이 있으면 연결, 비어 있으면 연결 해제(clearCustomer)로 전송한다.
+  // 고객 연결: 값이 있으면 검증 후 연결, 진짜로 비어 있을 때만 연결 해제(clearCustomer).
+  // 수정 모달은 기존 고객을 미리 선택해 두므로, 사용자가 직접 비우지 않는 한 customerId가 유지된다.
+  let customerLink: { customerId: number } | { clearCustomer: true };
+  if (customerId) {
+    const customerParsed = idSchema.safeParse(customerId);
+    if (!customerParsed.success) {
+      throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
+    }
+    customerLink = { customerId: Number(customerParsed.data) };
+  } else {
+    customerLink = { clearCustomer: true };
+  }
+
   await apiFetch<PhotoCardDto>(`/photo-cards/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -197,7 +219,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
-      ...(customerId ? { customerId: Number(customerId) } : { clearCustomer: true }),
+      ...customerLink,
     }),
   });
 }

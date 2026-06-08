@@ -4,19 +4,10 @@ import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
-import {AlertTriangle, Crown, Lock, Pencil, Star, Trash2} from 'lucide-react';
+import {Lock, Pencil, Trash2} from 'lucide-react';
 import {format} from 'date-fns';
 import {formatCurrency} from '@/lib/utils';
 import type {Customer} from '@/types/database';
-
-// Legacy 등급 라벨 맵 — CustomerDetailDialog(W4 리팩토링 대기)와 내보내기에서 사용.
-// 동적 등급(grade NAME) 도입 후 카드 자체는 customer.grade 이름을 직접 표시한다.
-export const gradeLabels: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> | null; color: string; bg: string }> = {
-  new: { label: '신규', icon: null, color: 'text-muted-foreground', bg: 'bg-muted' },
-  regular: { label: '단골', icon: Star, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-muted' },
-  vip: { label: 'VIP', icon: Crown, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/15' },
-  blacklist: { label: '블랙', icon: AlertTriangle, color: 'text-danger', bg: 'bg-danger-soft' },
-};
 
 export const genderLabels: Record<string, string> = { male: '남', female: '여' };
 

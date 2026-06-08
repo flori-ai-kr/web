@@ -67,15 +67,20 @@ describe('getCustomers / getCustomerById', () => {
     })
   })
 
-  it('단건 조회는 id 경로로 호출한다', async () => {
+  it('단건 조회는 검증된 id 경로로 호출한다', async () => {
     mockApiFetch.mockResolvedValue(kCustomer)
-    await getCustomerById('c1')
-    expect(mockApiFetch).toHaveBeenCalledWith('/customers/c1')
+    await getCustomerById('1')
+    expect(mockApiFetch).toHaveBeenCalledWith('/customers/1')
+  })
+
+  it('잘못된 id는 거부한다', async () => {
+    await expect(getCustomerById('c1')).rejects.toThrow('올바르지 않은 ID')
+    expect(mockApiFetch).not.toHaveBeenCalled()
   })
 
   it('gender가 null이면 null로 매핑한다', async () => {
     mockApiFetch.mockResolvedValue({ ...kCustomer, gender: null, note: null, firstPurchaseDate: null })
-    const res = await getCustomerById('c1')
+    const res = await getCustomerById('1')
     expect(res.gender).toBeNull()
     expect(res.memo).toBeUndefined()
     expect(res.first_purchase_date).toBeUndefined()

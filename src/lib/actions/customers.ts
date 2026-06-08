@@ -69,7 +69,10 @@ export const getCustomers = withErrorLogging('getCustomers', _getCustomers);
 
 async function _getCustomerById(id: string) {
   await requireAuth();
-  const customer = await apiFetch<KotlinCustomer>(`/customers/${id}`);
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  const customer = await apiFetch<KotlinCustomer>(`/customers/${idParsed.data}`);
   return mapKotlinCustomer(customer);
 }
 

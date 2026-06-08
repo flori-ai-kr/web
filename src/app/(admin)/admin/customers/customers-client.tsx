@@ -85,7 +85,7 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
 
   const filteredCustomers = useMemo(() => {
     const filtered = optimisticCustomers
-      .filter(c => gradeFilter === 'all' || c.grade === gradeFilter)
+      .filter(c => gradeFilter === 'all' || c.grade_id === gradeFilter)
       .filter(c => genderFilter === 'all' || c.gender === genderFilter)
       .filter(c => {
         if (!searchQuery) return true;
@@ -306,12 +306,12 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
           <button
             key={g.id}
             type="button"
-            onClick={() => setGradeFilter(g.name)}
+            onClick={() => setGradeFilter(g.id)}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium',
-              gradeFilter === g.name ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
+              gradeFilter === g.id ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
             )}
-            aria-pressed={gradeFilter === g.name}
+            aria-pressed={gradeFilter === g.id}
           >
             {g.name}
           </button>
@@ -489,6 +489,8 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
           }`}
           aria-label="액션 메뉴"
+          aria-haspopup="menu"
+          aria-expanded={fabOpen}
         >
           <Plus className="w-5 h-5 text-white" />
         </button>
