@@ -459,7 +459,6 @@ export function ExpensesClient({
       >
         <ExpensesSummary
           summary={summary}
-          categories={categories}
           prevTotal={prevTotal ?? undefined}
           prevPeriod={prevPeriod ?? undefined}
         />
@@ -841,6 +840,7 @@ export function ExpensesClient({
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         categories={categories}
+        payments={payments}
         onRefresh={refreshSettings}
       />
 
@@ -874,7 +874,7 @@ export function ExpensesClient({
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
             >
               <Settings className="w-4 h-4" />
-              관리
+              설정
             </button>
           </div>
         )}

@@ -239,8 +239,9 @@ export default function SettingsPage() {
       <BottomNavCustomizer />
 
       <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-        <p>매출 카테고리와 결제방식은 매출 관리 페이지의 설정 버튼에서 관리할 수 있습니다.</p>
-        <p className="mt-1">사진첩 태그는 사진첩 페이지의 태그 관리에서 관리할 수 있습니다.</p>
+        <p>매출 카테고리·결제방식·채널은 매출 페이지의 설정 버튼에서 설정할 수 있습니다.</p>
+        <p className="mt-1">지출 카테고리·결제방식은 지출 페이지의 설정 버튼에서 설정할 수 있습니다.</p>
+        <p className="mt-1">사진첩 태그는 사진첩 페이지의 태그 설정에서 설정할 수 있습니다.</p>
       </div>
     </div>
   );

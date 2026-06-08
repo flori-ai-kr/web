@@ -1,32 +1,7 @@
 'use client';
 
-import {useState} from 'react';
 import {formatCurrency} from '@/lib/utils';
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {TrendingUp, TrendingDown} from 'lucide-react';
-
-/** breakdown 막대 한 칸 — 데스크탑 호버 + 모바일 탭(클릭 토글) 모두 지원. */
-function BarSegment({ widthPct, color, label, value, pct }: {
-  widthPct: number; color: string; label: string; value: string; pct: number;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Tooltip open={open} onOpenChange={setOpen}>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="h-full rounded-full hover:opacity-80 transition-opacity"
-          style={{ width: `${widthPct}%`, backgroundColor: color }}
-          aria-label={`${label} ${value} (${pct}%)`}
-        />
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs">
-        {label} {value} ({pct}%)
-      </TooltipContent>
-    </Tooltip>
-  );
-}
 
 interface SalesSummaryProps {
   summary: {
@@ -46,20 +21,7 @@ function fmtDot(d: string): string {
   return d.replaceAll('-', '.');
 }
 
-const BREAKDOWN_CONFIG = [
-  { key: 'card' as const, label: '카드', color: '#93c5fd' },
-  { key: 'naverpay' as const, label: '네이버페이', color: '#86efac' },
-  { key: 'transfer' as const, label: '계좌이체', color: '#c4b5fd' },
-  { key: 'cash' as const, label: '현금', color: '#fcd34d' },
-];
-
-export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, prevPeriod }: SalesSummaryProps) {
-  const segments = BREAKDOWN_CONFIG
-    .map(cfg => ({ ...cfg, value: summary[cfg.key] }))
-    .filter(s => s.value > 0);
-
-  const total = summary.total || 1;
-
+export function SalesSummary({ summary, prevTotal, prevPeriod }: SalesSummaryProps) {
   const hasPrev = prevTotal != null;
   const changePercent = hasPrev && prevTotal! > 0
     ? Math.round(((summary.total - prevTotal!) / prevTotal!) * 100)
@@ -101,30 +63,6 @@ export function SalesSummary({ summary, label = '이번 달 매출', prevTotal, 
           </div>
         )}
       </div>
-      {segments.length > 0 && (
-        <TooltipProvider delayDuration={0}>
-          <div className="flex w-full h-3 rounded-full overflow-hidden gap-0.5 mt-3">
-            {segments.map(seg => (
-              <BarSegment
-                key={seg.key}
-                widthPct={Math.max((seg.value / total) * 100, 2)}
-                color={seg.color}
-                label={seg.label}
-                value={formatCurrency(seg.value)}
-                pct={Math.round((seg.value / total) * 100)}
-              />
-            ))}
-          </div>
-          <div className="flex gap-3 mt-2 flex-wrap">
-            {segments.map(seg => (
-              <span key={seg.key} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
-                {seg.label}
-              </span>
-            ))}
-          </div>
-        </TooltipProvider>
-      )}
     </div>
   );
 }

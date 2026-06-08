@@ -5,7 +5,6 @@ import {formatCurrency} from '@/lib/utils';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {TrendingUp, TrendingDown} from 'lucide-react';
 import type {ExpenseCategorySlice} from '@/lib/actions/expenses';
-import type {ExpenseCategory} from '@/lib/actions/expense-settings';
 
 /** breakdown 막대 한 칸 — 데스크탑 호버 + 모바일 탭(클릭 토글) 모두 지원. */
 function BarSegment({ widthPct, color, label, value, pct }: {
@@ -36,7 +35,6 @@ interface ExpensesSummaryProps {
     count: number;
     byCategory: ExpenseCategorySlice[];
   };
-  categories: ExpenseCategory[];
   prevTotal?: number;
   prevPeriod?: { startDate: string; endDate: string };
   rightSlot?: ReactNode;
@@ -47,19 +45,17 @@ function fmtDot(d: string): string {
   return d.replaceAll('-', '.');
 }
 
-// 카테고리 색이 없을 때 쓰는 폴백 팔레트(지출 톤).
+// 카테고리 색상은 제거됨 — 비중바는 인덱스 기반 팔레트(지출 톤)로 칠한다.
 const FALLBACK_COLORS = ['#C2683F', '#D89A6A', '#E0B894', '#9AA0A6', '#7C8590', '#B0894F'];
 
-export function ExpensesSummary({ summary, categories, prevTotal, prevPeriod, rightSlot }: ExpensesSummaryProps) {
-  const colorById = new Map(categories.map(c => [c.id, c.color]));
-
+export function ExpensesSummary({ summary, prevTotal, prevPeriod, rightSlot }: ExpensesSummaryProps) {
   const segments = summary.byCategory
     .filter(s => s.amount > 0)
     .map((s, i) => ({
       key: s.category_id ?? `none-${i}`,
       label: s.category_label,
       value: s.amount,
-      color: (s.category_id && colorById.get(s.category_id)) || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+      color: FALLBACK_COLORS[i % FALLBACK_COLORS.length],
     }));
 
   const total = summary.total || 1;

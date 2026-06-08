@@ -536,6 +536,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         categories={categories}
+        payments={payments}
+        channels={channels}
         onRefresh={refreshSettings}
       />
 
@@ -561,7 +563,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
             >
               <Settings className="w-4 h-4" />
-              관리
+              설정
             </button>
           </div>
         )}

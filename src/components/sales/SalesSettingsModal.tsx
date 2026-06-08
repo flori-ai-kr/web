@@ -1,27 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, X, Loader2, Pencil, Check } from 'lucide-react';
-import { toast } from 'sonner';
+import { LabelSettingsManager, type LabelTabConfig } from '@/components/settings/label-settings-manager';
 import {
   SaleCategory,
+  PaymentMethod,
+  SaleChannel,
   createSaleCategory,
   updateSaleCategory,
   deleteSaleCategory,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  createSaleChannel,
+  updateSaleChannel,
+  deleteSaleChannel,
 } from '@/lib/actions/sale-settings';
 
 interface SalesSettingsModalProps {
   open: boolean;
   onClose: () => void;
   categories: SaleCategory[];
+  payments: PaymentMethod[];
+  channels: SaleChannel[];
   onRefresh: () => void;
 }
 
@@ -29,177 +29,47 @@ export function SalesSettingsModal({
   open,
   onClose,
   categories,
+  payments,
+  channels,
   onRefresh,
 }: SalesSettingsModalProps) {
-  const [newCatName, setNewCatName] = useState('');
-  const [isAddingCat, setIsAddingCat] = useState(false);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
-  const [editCatName, setEditCatName] = useState('');
-  const [isSavingCat, setIsSavingCat] = useState(false);
-  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
-  const [isDeletingCat, setIsDeletingCat] = useState(false);
-
-  const handleAddCategory = async () => {
-    if (!newCatName.trim()) return;
-    setIsAddingCat(true);
-    try {
-      await createSaleCategory(newCatName.trim());
-      setNewCatName('');
-      onRefresh();
-      toast.success('카테고리가 추가되었습니다');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '카테고리 추가 실패');
-    } finally {
-      setIsAddingCat(false);
-    }
-  };
-
-  const handleSaveCatEdit = async () => {
-    if (!editingCatId || !editCatName.trim()) return;
-    setIsSavingCat(true);
-    try {
-      await updateSaleCategory(editingCatId, editCatName.trim());
-      setEditingCatId(null);
-      onRefresh();
-      toast.success('카테고리가 수정되었습니다');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '카테고리 수정 실패');
-    } finally {
-      setIsSavingCat(false);
-    }
-  };
-
-  const handleDeleteCategory = async () => {
-    if (!deletingCatId) return;
-    setIsDeletingCat(true);
-    try {
-      await deleteSaleCategory(deletingCatId);
-      setDeletingCatId(null);
-      onRefresh();
-      toast.success('카테고리가 삭제되었습니다');
-    } catch {
-      toast.error('카테고리 삭제 실패');
-    } finally {
-      setIsDeletingCat(false);
-    }
-  };
+  const tabs: LabelTabConfig[] = [
+    {
+      key: 'category',
+      tabLabel: '카테고리',
+      addPlaceholder: '새 카테고리 이름',
+      items: categories,
+      onCreate: createSaleCategory,
+      onUpdate: updateSaleCategory,
+      onDelete: deleteSaleCategory,
+    },
+    {
+      key: 'payment',
+      tabLabel: '결제방식',
+      addPlaceholder: '새 결제방식 이름',
+      items: payments,
+      onCreate: (label) => createPaymentMethod(label),
+      onUpdate: updatePaymentMethod,
+      onDelete: deletePaymentMethod,
+    },
+    {
+      key: 'channel',
+      tabLabel: '채널',
+      addPlaceholder: '새 채널 이름',
+      items: channels,
+      onCreate: createSaleChannel,
+      onUpdate: updateSaleChannel,
+      onDelete: deleteSaleChannel,
+    },
+  ];
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>카테고리 관리</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex-1 min-h-0 flex flex-col space-y-4 py-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="새 카테고리 이름"
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddCategory}
-              size="icon"
-              disabled={isAddingCat}
-              aria-label="카테고리 추가"
-            >
-              {isAddingCat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            </Button>
-          </div>
-
-          <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-            {categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">등록된 카테고리가 없습니다</p>
-            ) : (
-              categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-muted hover:bg-muted"
-                >
-                  {editingCatId === cat.id ? (
-                    <>
-                      <Input
-                        value={editCatName}
-                        onChange={(e) => setEditCatName(e.target.value)}
-                        className="flex-1 h-8"
-                        autoFocus
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={handleSaveCatEdit}
-                        disabled={isSavingCat}
-                        aria-label="저장"
-                      >
-                        {isSavingCat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-success" />}
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => setEditingCatId(null)}
-                        aria-label="취소"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  ) : deletingCatId === cat.id ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="flex-1 text-sm text-danger">삭제하시겠습니까?</span>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="h-7 px-2"
-                        onClick={handleDeleteCategory}
-                        disabled={isDeletingCat}
-                      >
-                        {isDeletingCat ? <Loader2 className="w-3 h-3 animate-spin" /> : '삭제'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2"
-                        onClick={() => setDeletingCatId(null)}
-                      >
-                        취소
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex-1 text-sm font-medium">{cat.label}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setEditingCatId(cat.id);
-                          setEditCatName(cat.label);
-                        }}
-                        aria-label="카테고리 수정"
-                      >
-                        <Pencil className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => setDeletingCatId(cat.id)}
-                        aria-label="카테고리 삭제"
-                      >
-                        <X className="w-4 h-4 text-danger" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <LabelSettingsManager
+      open={open}
+      onClose={onClose}
+      title="매출 설정"
+      tabs={tabs}
+      onRefresh={onRefresh}
+    />
   );
 }
