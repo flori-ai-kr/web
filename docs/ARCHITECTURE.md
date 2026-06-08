@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-08 | UX/UI 리스킨 패스: 지출 서버 페이지네이션·요약 API + cool slate 팔레트 + 공용 DatePicker + isUnsettledUnpaid 헬퍼 + 지출 FAB Speed Dial(고정비 탭→모달)
+> 최종 업데이트: 2026-06-08 | 세션3: 고객·사진첩 리디자인 + 사진↔고객 직접연결 + 커스텀 등급(자동승급·수동고정)
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -423,9 +423,18 @@ erDiagram
         uuid user_id FK
         string name
         string phone "UK(phone,user_id)"
-        string grade
+        bigint grade_id FK "customer_grades.id, nullable(soft ref)"
+        bool grade_locked "true=수동고정, 자동승급 제외"
         string gender
         text memo
+    }
+
+    customer_grades {
+        bigint id PK
+        uuid user_id FK
+        string name "UK(name,user_id)"
+        int threshold "구매횟수 임계값, null=수동전용"
+        int sort_order
     }
 
     reservations {
@@ -453,6 +462,7 @@ erDiagram
         text[] tags
         text memo
         uuid sale_id FK
+        bigint customer_id "nullable, soft ref(FK 없음)"
     }
 
     photo_tags {
@@ -603,9 +613,9 @@ erDiagram
 | `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
 | `/admin/expenses` | 지출 관리 | 서버 페이지네이션(100건 단위 무한스크롤) + getExpensesSummary(카테고리별 비율 바) + 기간 범위 필터 + 다중선택 필터(id 기반) + FAB Speed Dial(지출 등록/고정비 관리 모달/내보내기/설정) |
-| `/admin/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 (category_label 직접 표시) |
+| `/admin/customers` | 고객 관리 | 통합 그리드(최근구매순) + 커스텀 등급 칩 필터 + 사진 썸네일 미리보기 + FAB(등록/내보내기/등급관리) |
 | `/admin/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
-| `/admin/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 + ?card= 딥링크 |
+| `/admin/gallery` | 사진첩 | 카드 CRUD + 태그 + 드래그 정렬 + ?card= 딥링크 + FAB(카드추가/태그관리) + 고객 배지·customer_id 직접 필터 |
 | `/admin/calendar` | 예약 캘린더 | 예약 CRUD + 일정(schedules) + 리마인더 + 매출 자동 생성(id 기반) + 픽업 완료 토글 |
 | `/admin/insights` | 인사이트 | 랜딩 (트렌드/팔로우/스크랩 섹션 소개) |
 | `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
@@ -641,7 +651,8 @@ erDiagram
 |------|------|
 | `auth.ts` | login, logout |
 | `sales.ts` | createSale, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
-| `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, updateCustomerGrade, deleteCustomer, findOrCreateCustomer, getCustomerSales |
+| `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, assignCustomerGrade(수동 고정), revertCustomerGradeAuto(자동 되돌리기), deleteCustomer, findOrCreateCustomer, getCustomerSales |
+| `customer-grades.ts` | getCustomerGrades, createCustomerGradeConfig, updateCustomerGradeConfig, deleteCustomerGradeConfig — 테넌트별 커스텀 등급 CRUD (`GET/POST/PATCH/DELETE /customer-grades`) |
 | `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성), getExpenses(offset·limit·filters·dateRange → BFF `GET /expenses`), loadMoreExpenses(무한스크롤), getExpensesSummary(카테고리 슬라이스 → BFF `GET /expenses/summary`) |
 | `recurring-expenses.ts` | getRecurringExpenses, createRecurringExpense, updateRecurringExpense (mode: 'this'|'future'), deleteRecurringExpense (mode: 'this'|'future'|'all'), quickAddRecurringExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
@@ -665,7 +676,9 @@ erDiagram
 // src/types/database.ts
 // ※ id 기반 계약 이후: PaymentMethod 문자열 enum 폐지, ProductCategory enum 폐지,
 //   ReservationChannel 문자열 enum 폐지. 카테고리·결제방식·채널은 모두 id(string) + label(string) 쌍으로 전달.
-type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist'
+// ※ 세션3: CustomerGrade 고정 union 폐지 → 테넌트별 커스텀 등급(string | null). grade_id·grade_locked 추가.
+//   등급 설정은 CustomerGradeConfig { id, name, threshold, sort_order } + /customer-grades API.
+// type CustomerGrade = 'new' | 'regular' | 'vip' | 'blacklist'  // 폐지됨
 type CustomerGender = 'male' | 'female'
 type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' // 제작 필요 | 픽업 필요 | 픽업 완료 | 취소
 type DepositStatus = 'pending' | 'completed' | 'not_applicable'

@@ -63,7 +63,7 @@ src/
 │   ├── dashboard-client.tsx
 │   ├── sales/           # 매출 — sales-client.tsx + components/(SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog)
 │   ├── expenses/        # 지출 — expenses-client.tsx + components/(ExpensesFilters, ExpensesList, ExpensesSummary)
-│   ├── customers/       # 고객 — customers-client.tsx + components/(CustomerCard, CustomerFormDialog, CustomerDetailDialog)
+│   ├── customers/       # 고객 — customers-client.tsx + components/(CustomerCard, CustomerFormDialog, CustomerDetailDialog, CustomerGradesModal)
 │   ├── gallery/         # 사진첩
 │   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + components/(EventCard, ReservationCard, CalendarDialogs)
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
@@ -152,11 +152,11 @@ src/
 
 ## 비즈니스 로직
 
-- 고객 식별: 전화번호 + user_id 복합 unique, 성별(male/female) 선택
+- 고객 식별: 전화번호 + user_id 복합 unique, 성별(male/female) 선택. 등급은 테넌트별 커스텀(`customer_grades` 테이블) — 이름(string)·구매횟수 임계값(optional)으로 자유 정의. 구매횟수가 임계값 도달 시 자동승급, 수동 지정 시 `grade_locked=true`(자동 재계산 제외). 고객 상세에서 "자동 등급으로 되돌리기"로 잠금 해제. 등급 관리는 고객 목록 FAB → `CustomerGradesModal`
 - 로드 구입: 매출 등록 간편 모드 (결제방식=현금, 채널=road 고정, 카드사/주문자명/연락처 생략)
 - 카드 수수료: `expected_deposit = amount * (1 - fee_rate/100)`, 입금 예정일은 영업일 기준 N일. **fee/expected_deposit/deposit_status/is_unpaid 계산은 BFF가 수행** (web은 입력값만 POST)
 - 지출 총액: `unit_price * quantity`
-- 사진: 5MB 초과 시 하드 거부(클라이언트 자동 압축 제거됨), 카드당 최대 10장, AWS S3 + CloudFront 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 BFF에서 presigned PUT URL 발급 → 브라우저가 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회)
+- 사진: 5MB 초과 시 하드 거부(클라이언트 자동 압축 제거됨), 카드당 최대 10장, AWS S3 + CloudFront 저장(CDN). 업로드: `createPhotoUploadTargets()` 로 BFF에서 presigned PUT URL 발급 → 브라우저가 S3 엔드포인트에 직접 PUT (Vercel 4.5MB 본문 제한 우회). 사진카드 ↔ 고객 soft 참조(`photo_cards.customer_id`, FK 없음): 사진 작성/편집 모달에서 고객 검색 연결(선택), 사진 상세에서 고객 상세로 이동. 고객 카드/상세에서 연결 사진 썸네일(`photo_thumbnails`, 최대 3장) + 카운트(`photo_count`) 표시 — BFF가 응답에 포함(N+1 없이 집계)
 - 예약 리마인더: `reminder_at` 설정 → Cron 푸시 발송
 - 미수(외상): `is_unpaid=true` 플래그 별도 관리 (`payment_method='unpaid'` 폐지). 등록 시 `is_unpaid: true` + `payment_method_id: null`로 전송. 결제 완료 `completeUnpaidSale()`, 되돌리기 `revertUnpaidSale()`. **미수 판정 헬퍼**: `isUnsettledUnpaid(sale)` (`lib/utils.ts`) = `is_unpaid && payment_method_id == null`. `is_unpaid`는 '외상이었음'을 나타내는 영구 마커이고 결제 후에도 BFF가 유지하므로, 실제 '미수 중'은 payment_method_id가 null인 경우만이다. UI 전체(매출 리스트/상세/대시보드/캘린더)에서 직접 `sale.is_unpaid` 비교 금지 — 반드시 이 헬퍼를 사용
 - 푸시 실패: 영구 실패(404/410)만 구독 비활성화, 일시 에러는 유지
@@ -207,6 +207,7 @@ src/
 | 날짜 선택 UI | `components/ui/date-picker.tsx` (shadcn Calendar 팝오버 — `name` prop으로 FormData 제출 지원, 모든 네이티브 `<input type="date">` 대체) |
 | 미수 판정 | `lib/utils.ts` `isUnsettledUnpaid(sale)` — `is_unpaid && payment_method_id == null` |
 | 지출 서버 액션 | `lib/actions/expenses.ts` — `getExpenses`(페이징), `loadMoreExpenses`(무한스크롤), `getExpensesSummary`(카테고리 슬라이스 집계) |
+| 고객 등급 CRUD | `lib/actions/customer-grades.ts` — `getCustomerGrades`, `createCustomerGradeConfig`, `updateCustomerGradeConfig`, `deleteCustomerGradeConfig` (테넌트별 커스텀 등급 관리) |
 
 ---
 
