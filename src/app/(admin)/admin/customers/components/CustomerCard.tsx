@@ -36,7 +36,7 @@ interface CustomerCardProps {
 }
 
 export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerCardProps) {
-  const grade = gradeLabels[customer.grade];
+  const grade = gradeLabels[customer.grade ?? ''] ?? gradeLabels.new;
   const GradeIcon = grade.icon;
 
   return (

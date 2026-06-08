@@ -12,7 +12,8 @@ import {
   getCustomerById,
   createCustomer,
   updateCustomer,
-  updateCustomerGrade,
+  assignCustomerGrade,
+  revertCustomerGradeAuto,
   deleteCustomer,
   findOrCreateCustomer,
   getCustomerSales,
@@ -84,10 +85,12 @@ describe('getCustomers / getCustomerById', () => {
 describe('createCustomer', () => {
   it('유효한 입력은 POST 후 매핑된 고객을 반환하고 revalidate한다', async () => {
     mockApiFetch.mockResolvedValue(kCustomer)
-    const res = await createCustomer(form({ name: '홍길동', phone: '010-1234-5678', grade: 'regular', gender: 'male' }))
+    const res = await createCustomer(form({ name: '홍길동', phone: '010-1234-5678', gender: 'male' }))
     expect(mockApiFetch).toHaveBeenCalledWith('/customers', expect.objectContaining({ method: 'POST' }))
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body).toMatchObject({ name: '홍길동', phone: '010-1234-5678', grade: 'regular', gender: 'male' })
+    expect(body).toMatchObject({ name: '홍길동', phone: '010-1234-5678', gender: 'male' })
+    // 등급은 더 이상 생성 요청 본문에 포함하지 않는다
+    expect(body.grade).toBeUndefined()
     expect(res.id).toBe('c1')
     expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
   })
@@ -104,11 +107,11 @@ describe('createCustomer', () => {
     expect(body.gender).toBeNull()
   })
 
-  it('grade 미지정 시 new로 기본값 처리한다', async () => {
+  it('grade는 본문에 포함하지 않는다 (서버 자동 산정)', async () => {
     mockApiFetch.mockResolvedValue(kCustomer)
     await createCustomer(form({ name: '김', phone: '010-1234-5678' }))
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body.grade).toBe('new')
+    expect(body.grade).toBeUndefined()
   })
 })
 
@@ -126,17 +129,34 @@ describe('updateCustomer', () => {
   })
 })
 
-describe('updateCustomerGrade', () => {
-  it('id/grade를 검증 후 PATCH한다', async () => {
+describe('assignCustomerGrade', () => {
+  it('id/gradeId를 검증 후 gradeId(Number)로 PATCH한다', async () => {
     mockApiFetch.mockResolvedValue(kCustomer)
-    await updateCustomerGrade('5', 'vip')
+    await assignCustomerGrade('5', '3')
     expect(mockApiFetch).toHaveBeenCalledWith('/customers/5/grade', expect.objectContaining({ method: 'PATCH' }))
     const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
-    expect(body.grade).toBe('vip')
+    expect(body.gradeId).toBe(3)
   })
 
-  it('잘못된 grade는 거부한다', async () => {
-    await expect(updateCustomerGrade('5', 'bad' as never)).rejects.toThrow('올바르지 않은 등급')
+  it('잘못된 gradeId는 거부한다', async () => {
+    await expect(assignCustomerGrade('5', 'bad')).rejects.toThrow('올바르지 않은 등급')
+  })
+
+  it('잘못된 고객 id는 거부한다', async () => {
+    await expect(assignCustomerGrade('xx', '3')).rejects.toThrow('올바르지 않은 ID')
+  })
+})
+
+describe('revertCustomerGradeAuto', () => {
+  it('자동 등급 엔드포인트로 PATCH하고 revalidate한다', async () => {
+    mockApiFetch.mockResolvedValue(kCustomer)
+    await revertCustomerGradeAuto('5')
+    expect(mockApiFetch).toHaveBeenCalledWith('/customers/5/grade/auto', expect.objectContaining({ method: 'PATCH' }))
+    expect(mockRevalidate).toHaveBeenCalledWith('/admin/customers')
+  })
+
+  it('잘못된 id는 거부한다', async () => {
+    await expect(revertCustomerGradeAuto('xx')).rejects.toThrow('올바르지 않은 ID')
   })
 })
 

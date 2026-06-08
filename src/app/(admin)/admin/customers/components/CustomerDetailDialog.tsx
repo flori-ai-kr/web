@@ -82,13 +82,16 @@ export function CustomerDetailDialog({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-lg text-foreground">{customer.name}</span>
-                  <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded ${gradeLabels[customer.grade].bg} ${gradeLabels[customer.grade].color}`}>
-                    {(() => {
-                      const GradeIcon = gradeLabels[customer.grade].icon;
-                      return GradeIcon ? <GradeIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null;
-                    })()}
-                    {gradeLabels[customer.grade].label}
-                  </span>
+                  {(() => {
+                    const grade = gradeLabels[customer.grade ?? ''] ?? gradeLabels.new;
+                    const GradeIcon = grade.icon;
+                    return (
+                      <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded ${grade.bg} ${grade.color}`}>
+                        {GradeIcon ? <GradeIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+                        {grade.label}
+                      </span>
+                    );
+                  })()}
                   <GenderBadge gender={customer.gender} size="md" />
                 </div>
                 <a href={`tel:${customer.phone.replace(/-/g, '')}`} className="flex items-center gap-1 text-muted-foreground text-sm hover:text-brand transition-colors">

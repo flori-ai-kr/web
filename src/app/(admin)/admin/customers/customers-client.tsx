@@ -128,7 +128,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     columns: [
       { header: '이름', accessor: (c) => String(c.name || '') },
       { header: '전화번호', accessor: (c) => String(c.phone || '') },
-      { header: '등급', accessor: (c) => gradeLabels[c.grade]?.label || c.grade || '' },
+      { header: '등급', accessor: (c) => gradeLabels[c.grade ?? '']?.label || c.grade || '' },
       { header: '성별', accessor: (c) => c.gender ? genderLabels[c.gender] || '' : '' },
       { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
       { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },

@@ -23,6 +23,8 @@ interface PhotoCardDto {
   tags: string[];
   photos: PhotoFileDto[];
   saleId: string | null;
+  customerId: number | string | null;
+  customerName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +56,8 @@ function toPhotoCard(dto: PhotoCardDto): PhotoCard {
     tags: dto.tags || [],
     photos: dto.photos || [],
     sale_id: dto.saleId,
+    customer_id: dto.customerId != null ? String(dto.customerId) : null,
+    customer_name: dto.customerName ?? null,
     created_at: dto.createdAt,
     updated_at: dto.updatedAt,
   };
@@ -115,6 +119,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
+  const customerId = formData.get('customer_id') as string | null;
 
   let tags: string[];
   let photos: PhotoFile[];
@@ -143,6 +148,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
+      customerId: customerId ? Number(customerId) : null,
     }),
   });
 
@@ -161,6 +167,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
+  const customerId = formData.get('customer_id') as string | null;
 
   let tags: string[];
   let photos: PhotoFile[];
@@ -181,6 +188,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 고객 연결: 값이 있으면 연결, 비어 있으면 연결 해제(clearCustomer)로 전송한다.
   await apiFetch<PhotoCardDto>(`/photo-cards/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -189,6 +197,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
+      ...(customerId ? { customerId: Number(customerId) } : { clearCustomer: true }),
     }),
   });
 }

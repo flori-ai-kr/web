@@ -10,7 +10,7 @@ interface CustomerOption {
   id: string;
   name: string;
   phone: string;
-  grade: string;
+  grade: string | null;
 }
 
 interface CustomerAutocompleteProps {
@@ -137,7 +137,7 @@ export function CustomerAutocomplete({
                 <div className="px-3 py-2 text-sm text-muted-foreground">일치하는 고객이 없습니다</div>
               )}
               {options.map((customer) => {
-                const grade = gradeLabels[customer.grade] || gradeLabels.new;
+                const grade = gradeLabels[customer.grade ?? ''] || gradeLabels.new;
                 return (
                   <button
                     key={customer.id}
