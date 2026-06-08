@@ -103,6 +103,9 @@ export function OnboardingForm({
   const [nicknameStatus, setNicknameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [isLoading, setIsLoading] = useState(false)
 
+  // 전화번호가 입력됐지만 형식이 틀린 경우(빈 값은 에러 표시 안 함).
+  const phoneInvalid = phone.length > 0 && !PHONE_REGEX.test(phone.replace(/\D/g, ''))
+
   const step1Valid =
     name.trim().length > 0 &&
     PHONE_REGEX.test(phone.replace(/\D/g, '')) &&
@@ -149,7 +152,7 @@ export function OnboardingForm({
   const handleComplete = async () => {
     if (!step1Valid) {
       setStep(1)
-      setError('가게명·닉네임·이메일·지역(시/도)을 모두 입력해 주세요.')
+      setError('가게명·전화번호·닉네임·이메일·지역(시/도)을 모두 입력해 주세요.')
       return
     }
 
@@ -254,8 +257,14 @@ export function OnboardingForm({
                 placeholder="010-1234-5678"
                 value={phone}
                 onChange={(e) => setPhone(formatPhone(e.target.value))}
-                aria-invalid={phone.length > 0 && !PHONE_REGEX.test(phone.replace(/\D/g, '')) ? true : undefined}
+                aria-invalid={phoneInvalid ? true : undefined}
+                aria-describedby={phoneInvalid ? 'phone-error' : undefined}
               />
+              {phoneInvalid && (
+                <p id="phone-error" className="text-sm text-destructive" role="alert">
+                  올바른 휴대폰 번호를 입력해 주세요.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

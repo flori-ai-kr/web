@@ -59,7 +59,7 @@ export function FeatureIntroCarousel({
   }
 
   return (
-    <div className="space-y-6" aria-roledescription="carousel">
+    <div className="space-y-6" aria-roledescription="carousel" aria-label="기능 소개">
       <div
         className="rounded-2xl border border-border bg-card p-8 text-center"
         aria-label={`${index + 1} / ${SLIDES.length}: ${slide.eyebrow}`}
@@ -74,14 +74,13 @@ export function FeatureIntroCarousel({
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-2" role="tablist" aria-label="슬라이드 인디케이터">
+      <div className="flex items-center justify-center gap-2" role="group" aria-label="슬라이드 인디케이터">
         {SLIDES.map((s, i) => (
           <button
             key={s.eyebrow}
             type="button"
-            role="tab"
-            aria-selected={i === index}
             aria-label={`${i + 1}번 슬라이드로 이동`}
+            aria-current={i === index ? 'true' : undefined}
             onClick={() => setIndex(i)}
             className={cn(
               'h-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
