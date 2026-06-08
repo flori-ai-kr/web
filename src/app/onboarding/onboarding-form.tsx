@@ -258,8 +258,11 @@ export function OnboardingForm({
                 value={phone}
                 onChange={(e) => setPhone(formatPhone(e.target.value))}
                 aria-invalid={phoneInvalid ? true : undefined}
-                aria-describedby={phoneInvalid ? 'phone-error' : undefined}
+                aria-describedby={phoneInvalid ? 'phone-error' : 'phone-help'}
               />
+              <p id="phone-help" className="text-xs text-muted-foreground">
+                본인 확인과 중요 안내 연락에 사용돼요. 정확히 입력해 주세요.
+              </p>
               {phoneInvalid && (
                 <p id="phone-error" className="text-sm text-destructive" role="alert">
                   올바른 휴대폰 번호를 입력해 주세요.
