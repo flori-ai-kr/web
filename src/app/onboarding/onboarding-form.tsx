@@ -20,6 +20,14 @@ import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-optio
 import { checkNickname, completeRegistration } from './actions'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_REGEX = /^01\d{8,9}$/
+/** 숫자만 추출해 010-XXXX-XXXX 형태로 포맷. */
+function formatPhone(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length < 4) return d
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`
+}
 
 function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
@@ -78,6 +86,7 @@ export function OnboardingForm({
 
   // Step 1 (필수)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [nickname, setNickname] = useState(defaultNickname)
   const [email, setEmail] = useState(defaultEmail)
   const [regionSido, setRegionSido] = useState('')
@@ -96,6 +105,7 @@ export function OnboardingForm({
 
   const step1Valid =
     name.trim().length > 0 &&
+    PHONE_REGEX.test(phone.replace(/\D/g, '')) &&
     nickname.trim().length > 0 &&
     nicknameStatus === 'available' &&
     EMAIL_REGEX.test(email.trim()) &&
@@ -150,6 +160,7 @@ export function OnboardingForm({
 
     const result = await completeRegistration({
       name: name.trim(),
+      phoneNumber: phone.replace(/\D/g, ''),
       nickname: nickname.trim(),
       email: email.trim(),
       regionSido,
@@ -226,6 +237,24 @@ export function OnboardingForm({
                 autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                사업자등록증의 상호와 동일하게 정확히 입력해 주세요.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">전화번호</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="010-1234-5678"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                aria-invalid={phone.length > 0 && !PHONE_REGEX.test(phone.replace(/\D/g, '')) ? true : undefined}
               />
             </div>
 

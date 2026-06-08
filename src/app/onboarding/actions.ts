@@ -10,6 +10,8 @@ import {
 export interface RegistrationInput {
   /** 가게명 (필수) */
   name: string
+  /** 휴대폰 번호 (필수, 숫자만) */
+  phoneNumber: string
   /** 닉네임 (필수) */
   nickname: string
   /** 이메일 (필수) */
@@ -87,11 +89,12 @@ export async function completeRegistration(
   }
 
   const name = input.name?.trim()
+  const phoneNumber = input.phoneNumber?.replace(/\D/g, '')
   const nickname = input.nickname?.trim()
   const email = input.email?.trim()
   const regionSido = input.regionSido?.trim()
 
-  if (!name || !nickname || !email || !regionSido) {
+  if (!name || !nickname || !email || !regionSido || !phoneNumber || !/^01\d{8,9}$/.test(phoneNumber)) {
     return { error: '필수 항목을 모두 입력해 주세요.', kind: 'unknown' }
   }
 
@@ -100,6 +103,7 @@ export async function completeRegistration(
   const body = {
     registerToken,
     storeName: name,
+    phoneNumber,
     nickname,
     email,
     regionSido,
