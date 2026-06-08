@@ -1,12 +1,16 @@
 'use client';
 
+import {useRouter} from 'next/navigation';
+import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
-import {AlertTriangle, Crown, Pencil, Star, Trash2} from 'lucide-react';
+import {AlertTriangle, Crown, Lock, Pencil, Star, Trash2} from 'lucide-react';
 import {format} from 'date-fns';
 import {formatCurrency} from '@/lib/utils';
 import type {Customer} from '@/types/database';
 
+// Legacy 등급 라벨 맵 — CustomerDetailDialog(W4 리팩토링 대기)와 내보내기에서 사용.
+// 동적 등급(grade NAME) 도입 후 카드 자체는 customer.grade 이름을 직접 표시한다.
 export const gradeLabels: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> | null; color: string; bg: string }> = {
   new: { label: '신규', icon: null, color: 'text-muted-foreground', bg: 'bg-muted' },
   regular: { label: '단골', icon: Star, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-muted' },
@@ -36,8 +40,14 @@ interface CustomerCardProps {
 }
 
 export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerCardProps) {
-  const grade = gradeLabels[customer.grade ?? ''] ?? gradeLabels.new;
-  const GradeIcon = grade.icon;
+  const router = useRouter();
+  const thumbnails = customer.photo_thumbnails?.slice(0, 3) ?? [];
+  const photoCount = customer.photo_count ?? 0;
+
+  const goToGallery = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/admin/gallery?customer=${customer.id}`);
+  };
 
   return (
     <Card
@@ -52,18 +62,20 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
         {/* Top: name + grade + gender + actions */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 bg-muted rounded-full flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-muted-foreground">
+            <div className="w-9 h-9 bg-brand-muted rounded-full flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-brand">
                 {customer.name.charAt(0)}
               </span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-foreground text-sm truncate">{customer.name}</span>
-                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded ${grade.bg} ${grade.color} shrink-0`}>
-                  {GradeIcon && <GradeIcon className="h-3 w-3" aria-hidden="true" />}
-                  {grade.label}
-                </span>
+                {customer.grade && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground shrink-0">
+                    {customer.grade}
+                    {customer.grade_locked && <Lock className="h-2.5 w-2.5" aria-label="등급 고정됨" />}
+                  </span>
+                )}
                 <GenderBadge gender={customer.gender} />
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">{customer.phone}</p>
@@ -114,6 +126,34 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
           <p className="text-xs text-muted-foreground mt-2 truncate" title={customer.memo}>
             {customer.memo}
           </p>
+        )}
+
+        {/* Connected photos */}
+        {photoCount > 0 ? (
+          <div className="mt-3 pt-3 border-t border-border flex items-center gap-1.5">
+            {thumbnails.map((url, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={goToGallery}
+                className="w-9 h-9 rounded-lg overflow-hidden bg-muted shrink-0 relative"
+                aria-label={`${customer.name} 연결 사진 보기`}
+              >
+                <Image src={url} alt="" fill sizes="36px" className="object-cover" unoptimized />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={goToGallery}
+              className="text-xs text-brand ml-1 hover:underline"
+            >
+              사진 {photoCount} →
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+            연결된 사진 없음
+          </div>
         )}
       </CardContent>
     </Card>

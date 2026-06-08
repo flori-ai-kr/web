@@ -8,35 +8,30 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {AlertTriangle, CalendarDays, Crown, Plus, Search, Star, UserPlus, Users} from 'lucide-react';
+import {CalendarDays, Plus, Search, Settings, UserPlus, Users} from 'lucide-react';
 import {format, subDays} from 'date-fns';
 import {toast} from 'sonner';
 import {deleteCustomer, getCustomerSales} from '@/lib/actions/customers';
 import {cn} from '@/lib/utils';
-import type {Customer, Sale} from '@/types/database';
+import type {Customer, CustomerGradeConfig, Sale} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
-import {CustomerCard, genderLabels, gradeLabels} from './components/CustomerCard';
+import {CustomerCard, genderLabels} from './components/CustomerCard';
 import {CustomerFormDialog} from './components/CustomerFormDialog';
 import {CustomerDetailDialog} from './components/CustomerDetailDialog';
+import {CustomerGradesModal} from './components/CustomerGradesModal';
 
-const gradeSections = [
-  { key: 'vip', label: 'VIP', icon: Crown, iconColor: 'text-purple-600 dark:text-purple-400' },
-  { key: 'regular', label: '단골', icon: Star, iconColor: 'text-yellow-600 dark:text-yellow-400' },
-  { key: 'new', label: '신규', icon: UserPlus, iconColor: 'text-muted-foreground' },
-  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-danger' },
-] as const;
-
-type SortBy = 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
+type SortBy = 'recent' | 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
 type GenderFilter = 'all' | 'male' | 'female';
 
 interface Props {
   initialCustomers: Customer[];
   initialCategories: SaleCategory[];
+  initialGrades: CustomerGradeConfig[];
 }
 
-export function CustomersClient({ initialCustomers, initialCategories }: Props) {
+export function CustomersClient({ initialCustomers, initialCategories, initialGrades }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -44,8 +39,10 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [gradeFilter, setGradeFilter] = useState('all');
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
-  const [sortBy, setSortBy] = useState<SortBy>('newest');
+  const [sortBy, setSortBy] = useState<SortBy>('recent');
   const [searchQuery, setSearchQuery] = useState('');
+  const [fabOpen, setFabOpen] = useState(false);
+  const [isGradesOpen, setIsGradesOpen] = useState(false);
   const [customerSales, setCustomerSales] = useState<Sale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(false);
   const [isLoadingMoreSales, setIsLoadingMoreSales] = useState(false);
@@ -64,6 +61,12 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const sortCustomers = useCallback((customers: Customer[]) => {
     return [...customers].sort((a, b) => {
       switch (sortBy) {
+        case 'recent': {
+          // 최근 구매순 (nulls last)
+          const aTime = a.last_purchase_date ? new Date(a.last_purchase_date).getTime() : -Infinity;
+          const bTime = b.last_purchase_date ? new Date(b.last_purchase_date).getTime() : -Infinity;
+          return bTime - aTime;
+        }
         case 'newest':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
@@ -93,33 +96,30 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     return sortCustomers(filtered);
   }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
 
-  // Group by grade (only when grade filter is 'all')
-  const groupedByGrade = useMemo(() => {
-    if (gradeFilter !== 'all') return null;
-    const groups: Record<string, Customer[]> = {};
-    for (const customer of filteredCustomers) {
-      const grade = customer.grade || 'new';
-      if (!groups[grade]) groups[grade] = [];
-      groups[grade].push(customer);
-    }
-    return groups;
-  }, [filteredCustomers, gradeFilter]);
+  // VIP·단골 통계는 등급명 기준(임계값이 가장 높은 상위 2개 등급)으로 집계한다.
+  const topGradeNames = useMemo(() => {
+    return initialGrades
+      .filter(g => g.threshold != null)
+      .sort((a, b) => (b.threshold ?? 0) - (a.threshold ?? 0))
+      .slice(0, 2)
+      .map(g => g.name);
+  }, [initialGrades]);
 
   const stats = useMemo(() => {
     const total = initialCustomers.length;
-    const regularVip = initialCustomers.filter(c => c.grade === 'regular' || c.grade === 'vip').length;
+    const regularVip = initialCustomers.filter(c => c.grade != null && topGradeNames.includes(c.grade)).length;
     const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
     const recentBuyers = initialCustomers.filter(c => c.last_purchase_date && c.last_purchase_date >= thirtyDaysAgo).length;
     return { total, regularVip, recentBuyers };
-  }, [initialCustomers]);
+  }, [initialCustomers, topGradeNames]);
 
-  const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'newest';
+  const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'recent';
 
   const resetFilters = () => {
     setGradeFilter('all');
     setGenderFilter('all');
     setSearchQuery('');
-    setSortBy('newest');
+    setSortBy('recent');
   };
 
   const getExportConfig = useCallback((): ExportConfig<Customer> => ({
@@ -128,7 +128,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     columns: [
       { header: '이름', accessor: (c) => String(c.name || '') },
       { header: '전화번호', accessor: (c) => String(c.phone || '') },
-      { header: '등급', accessor: (c) => gradeLabels[c.grade ?? '']?.label || c.grade || '' },
+      { header: '등급', accessor: (c) => c.grade || '' },
       { header: '성별', accessor: (c) => c.gender ? genderLabels[c.gender] || '' : '' },
       { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
       { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },
@@ -188,6 +188,10 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     router.refresh();
   };
 
+  const handleGradesChanged = () => {
+    router.refresh();
+  };
+
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setSelectedCustomer(null);
@@ -233,15 +237,6 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-        <Button onClick={handleOpenCreateForm} className="flex-1 sm:flex-initial">
-          <Plus className="w-4 h-4 mr-2" />
-          고객 등록
-        </Button>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <Card>
@@ -285,20 +280,37 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
         </Card>
       </div>
 
+      {/* 등급 필터 칩 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setGradeFilter('all')}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-xs font-medium',
+            gradeFilter === 'all' ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
+          )}
+          aria-pressed={gradeFilter === 'all'}
+        >
+          전체
+        </button>
+        {initialGrades.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => setGradeFilter(g.name)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium',
+              gradeFilter === g.name ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
+            )}
+            aria-pressed={gradeFilter === g.name}
+          >
+            {g.name}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={gradeFilter} onValueChange={setGradeFilter}>
-          <SelectTrigger className="w-[120px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 등급</SelectItem>
-            <SelectItem value="new">신규</SelectItem>
-            <SelectItem value="regular">단골</SelectItem>
-            <SelectItem value="vip">VIP</SelectItem>
-            <SelectItem value="blacklist">블랙리스트</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
           <SelectTrigger className="w-[110px] bg-background">
             <SelectValue />
@@ -310,11 +322,12 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-          <SelectTrigger className="w-[130px] bg-background">
+          <SelectTrigger className="w-[140px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">최신순</SelectItem>
+            <SelectItem value="recent">최근 구매순</SelectItem>
+            <SelectItem value="newest">최신 등록순</SelectItem>
             <SelectItem value="oldest">오래된순</SelectItem>
             <SelectItem value="name">가나다순</SelectItem>
             <SelectItem value="purchase_count">구매횟수순</SelectItem>
@@ -361,37 +374,8 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
             </div>
           )}
         </Card>
-      ) : groupedByGrade ? (
-        // Group by grade section
-        <div className="space-y-6">
-          {gradeSections.map(({ key, label, icon: Icon, iconColor }) => {
-            const customers = groupedByGrade[key];
-            if (!customers || customers.length === 0) return null;
-            return (
-              <div key={key}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon className={cn('w-4 h-4', iconColor)} />
-                  <h2 className="text-sm font-semibold text-foreground">{label}</h2>
-                  <span className="text-xs text-muted-foreground">{customers.length}명</span>
-                  <div className="flex-1 border-t border-border ml-2" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {customers.map((customer) => (
-                    <CustomerCard
-                      key={customer.id}
-                      customer={customer}
-                      onSelect={handleSelectCustomer}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       ) : (
-        // Specific grade filter → flat grid
+        // 통합 그리드 (등급 그룹핑 없음)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredCustomers.map((customer) => (
             <CustomerCard
@@ -454,6 +438,51 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 등급 관리 모달 */}
+      <CustomerGradesModal
+        open={isGradesOpen}
+        onOpenChange={setIsGradesOpen}
+        onChanged={handleGradesChanged}
+      />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); handleOpenCreateForm(); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <UserPlus className="w-4 h-4" />
+              고객 등록
+            </button>
+            <ExportButton
+              getExportConfig={getExportConfig}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            />
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsGradesOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              등급 관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }
