@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 export interface LabelItem {
   id: string;
   label: string;
-  is_default: boolean;
 }
 
 /** 탭 하나의 구성 — 항목 목록 + CRUD 액션. */
@@ -44,7 +43,7 @@ interface LabelSettingsManagerProps {
 
 /**
  * 매출/지출 라벨 설정(카테고리·결제방식·채널)을 탭으로 묶어 관리하는 공용 모달.
- * 기본 항목(isDefault)은 "기본" 칩만 표시하고 수정·삭제 불가(서버에서도 강제).
+ * 모든 항목은 자유롭게 추가·수정·삭제할 수 있다.
  */
 export function LabelSettingsManager({
   open,
@@ -71,7 +70,7 @@ export function LabelSettingsManager({
             </TabsList>
           )}
           {tabs.map((tab) => (
-            <TabsContent key={tab.key} value={tab.key} className="flex-1 min-h-0">
+            <TabsContent key={tab.key} value={tab.key} className="flex-1 min-h-0 flex flex-col">
               <LabelTabPanel tab={tab} onRefresh={onRefresh} />
             </TabsContent>
           ))}
@@ -142,7 +141,7 @@ function LabelTabPanel({
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 space-y-4 py-4">
+    <div className="flex flex-col flex-1 min-h-0 space-y-4 py-4">
       <div className="flex gap-2">
         <Input
           placeholder={tab.addPlaceholder}
@@ -156,23 +155,13 @@ function LabelTabPanel({
         </Button>
       </div>
 
-      <div className="space-y-2 overflow-y-auto flex-1 pr-1 min-h-[120px]">
+      {/* 항목 5개까지는 스크롤 없이, 6개부터 스크롤 — 행 ≈54px + 간격 8px 기준 고정 높이. 탭 전환 시 크기 불변 */}
+      <div className="space-y-2 overflow-y-auto h-[320px] pr-1">
         {tab.items.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">등록된 항목이 없습니다</p>
         ) : (
           tab.items.map((item) =>
-            item.is_default ? (
-              // 기본 항목 — "기본" 칩, 수정·삭제 불가
-              <div
-                key={item.id}
-                className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border border-border"
-              >
-                <span className="flex-1 text-sm text-muted-foreground">{item.label}</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                  기본
-                </span>
-              </div>
-            ) : editingId === item.id ? (
+            editingId === item.id ? (
               <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted">
                 <Input
                   value={editName}
@@ -254,10 +243,6 @@ function LabelTabPanel({
           )
         )}
       </div>
-
-      <p className="text-[11px] text-muted-foreground">
-        &lsquo;기본&rsquo; 항목은 수정·삭제할 수 없어요. 직접 추가한 항목만 관리됩니다.
-      </p>
     </div>
   );
 }

@@ -6,13 +6,12 @@ import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {idSchema, labelSettingSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 
-// label_settings(지출) — color는 서버/DB에서 제거됨. is_default true면 수정·삭제 불가.
+// label_settings(지출) — color는 서버/DB에서 제거됨.
 export interface ExpenseCategory {
   id: string;
   value: string;
   label: string;
   sort_order: number;
-  is_default: boolean;
 }
 
 export interface ExpensePaymentMethod {
@@ -20,7 +19,6 @@ export interface ExpensePaymentMethod {
   value: string;
   label: string;
   sort_order: number;
-  is_default: boolean;
 }
 
 // Kotlin /settings/* 공통 응답 (LabelSettingResponse, camelCase).
@@ -30,11 +28,10 @@ interface KotlinLabelSetting {
   value: string;
   label: string;
   sortOrder: number;
-  isDefault: boolean;
 }
 
 // camelCase(Kotlin) → snake_case(웹 설정 타입). id는 반드시 String으로.
-function mapLabelSetting<T extends { id: string; value: string; label: string; sort_order: number; is_default: boolean }>(
+function mapLabelSetting<T extends { id: string; value: string; label: string; sort_order: number }>(
   s: KotlinLabelSetting,
 ): T {
   return {
@@ -42,25 +39,24 @@ function mapLabelSetting<T extends { id: string; value: string; label: string; s
     value: s.value,
     label: s.label,
     sort_order: s.sortOrder,
-    is_default: s.isDefault ?? false,
   } as T;
 }
 
-// 기본 항목 (서버에 사용자 항목이 없을 때 인메모리 fallback). 모두 is_default=true로 잠근다.
+// 기본 항목 (서버에 사용자 항목이 없을 때 인메모리 fallback).
 const DEFAULT_CATEGORIES: Omit<ExpenseCategory, 'id'>[] = [
-  { value: 'flower_purchase', label: '꽃 사입', sort_order: 1, is_default: true },
-  { value: 'delivery', label: '배송비', sort_order: 2, is_default: true },
-  { value: 'advertising', label: '광고비', sort_order: 3, is_default: true },
-  { value: 'rent', label: '임대료', sort_order: 4, is_default: true },
-  { value: 'utilities', label: '공과금', sort_order: 5, is_default: true },
-  { value: 'supplies', label: '소모품', sort_order: 6, is_default: true },
-  { value: 'other', label: '기타', sort_order: 7, is_default: true },
+  { value: 'flower_purchase', label: '꽃 사입', sort_order: 1 },
+  { value: 'delivery', label: '배송비', sort_order: 2 },
+  { value: 'advertising', label: '광고비', sort_order: 3 },
+  { value: 'rent', label: '임대료', sort_order: 4 },
+  { value: 'utilities', label: '공과금', sort_order: 5 },
+  { value: 'supplies', label: '소모품', sort_order: 6 },
+  { value: 'other', label: '기타', sort_order: 7 },
 ];
 
 const DEFAULT_PAYMENTS: Omit<ExpensePaymentMethod, 'id'>[] = [
-  { value: 'card', label: '카드', sort_order: 1, is_default: true },
-  { value: 'cash', label: '현금', sort_order: 2, is_default: true },
-  { value: 'transfer', label: '계좌이체', sort_order: 3, is_default: true },
+  { value: 'card', label: '카드', sort_order: 1 },
+  { value: 'cash', label: '현금', sort_order: 2 },
+  { value: 'transfer', label: '계좌이체', sort_order: 3 },
 ];
 
 function fallbackCategories(): ExpenseCategory[] {

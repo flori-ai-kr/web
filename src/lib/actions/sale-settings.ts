@@ -7,13 +7,11 @@ import {idSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 
 // 라벨 설정(label_settings) — 카테고리/결제방식/채널 공통 모양. color는 서버에서 제거됨.
-// is_default: 가입 시 시드된 기본 항목. true면 수정·삭제 불가(서버에서도 강제).
 export interface SaleCategory {
   id: string;
   value: string;
   label: string;
   sort_order: number;
-  is_default: boolean;
 }
 
 export interface PaymentMethod {
@@ -21,7 +19,6 @@ export interface PaymentMethod {
   value: string;
   label: string;
   sort_order: number;
-  is_default: boolean;
 }
 
 export interface SaleChannel {
@@ -29,7 +26,6 @@ export interface SaleChannel {
   value: string;
   label: string;
   sort_order: number;
-  is_default: boolean;
 }
 
 // ─── Kotlin LabelSettingResponse 미러 (camelCase) ───────────────
@@ -38,16 +34,14 @@ interface LabelSettingDto {
   value: string;
   label: string;
   sortOrder: number;
-  isDefault: boolean;
 }
 
-function toLabel<T extends { id: string; value: string; label: string; sort_order: number; is_default: boolean }>(dto: LabelSettingDto): T {
+function toLabel<T extends { id: string; value: string; label: string; sort_order: number }>(dto: LabelSettingDto): T {
   return {
     id: String(dto.id),
     value: dto.value,
     label: dto.label,
     sort_order: dto.sortOrder,
-    is_default: dto.isDefault ?? false,
   } as T;
 }
 
