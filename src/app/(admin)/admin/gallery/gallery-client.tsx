@@ -49,6 +49,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
   const [editingCard, setEditingCard] = useState<PhotoCard | null>(null);
   const [tags, setTags] = useState<PhotoTag[]>(initialTags);
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -197,13 +198,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setIsUploadModalOpen(true)} className="w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          새 카드 추가
-        </Button>
-      </div>
-
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <TagFilter
@@ -211,16 +205,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
             selectedTag={selectedTag}
             onSelectTag={setSelectedTag}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsTagModalOpen(true)}
-            className="shrink-0"
-            title="태그 관리"
-            aria-label="태그 관리"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
         </div>
 
         {/* 고객 필터 */}
@@ -342,6 +326,40 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
         onTagsChange={refreshTags}
         onTagSelect={setSelectedTag}
       />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsUploadModalOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              새 카드 추가
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsTagModalOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              태그 관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }

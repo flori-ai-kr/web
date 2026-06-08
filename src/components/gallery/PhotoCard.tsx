@@ -134,7 +134,7 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
 
       <div className="p-2.5">
         <h3 className="font-medium text-foreground truncate text-sm">{card.title}</h3>
-        {card.tags.length > 0 && (
+        {(card.tags.length > 0 || card.customer_name) && (
           <div className="flex flex-wrap gap-1 mt-1">
             {card.tags.slice(0, 3).map((tagName) => {
               const color = tagColorMap.get(tagName) || '#6b7280';
@@ -149,6 +149,14 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
                 </span>
               );
             })}
+            {card.customer_name && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-muted text-brand truncate max-w-[80px]"
+                title={card.customer_name}
+              >
+                👤 {card.customer_name}
+              </span>
+            )}
           </div>
         )}
         <p className="text-[11px] text-muted-foreground mt-0.5">
