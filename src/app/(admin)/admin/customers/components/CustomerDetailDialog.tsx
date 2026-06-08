@@ -1,14 +1,15 @@
 'use client';
 
+import Image from 'next/image';
 import {useRouter} from 'next/navigation';
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Skeleton} from '@/components/ui/skeleton';
 import {
     ExternalLink,
-    Image as ImageIcon,
     Loader2,
+    Lock,
     Pencil,
     Phone,
     ShoppingBag,
@@ -19,8 +20,9 @@ import {
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
+import {revertCustomerGradeAuto} from '@/lib/actions/customers';
 import type {Customer, Sale} from '@/types/database';
-import {GenderBadge, gradeLabels} from './CustomerCard';
+import {GenderBadge} from './CustomerCard';
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -49,6 +51,18 @@ export function CustomerDetailDialog({
 }: CustomerDetailDialogProps) {
   const router = useRouter();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isReverting, setIsReverting] = useState(false);
+
+  const handleRevertGrade = useCallback(async () => {
+    if (!customer || isReverting) return;
+    setIsReverting(true);
+    try {
+      await revertCustomerGradeAuto(customer.id);
+      router.refresh();
+    } finally {
+      setIsReverting(false);
+    }
+  }, [customer, isReverting, router]);
 
   const handleIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -82,22 +96,36 @@ export function CustomerDetailDialog({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-lg text-foreground">{customer.name}</span>
-                  {(() => {
-                    const grade = gradeLabels[customer.grade ?? ''] ?? gradeLabels.new;
-                    const GradeIcon = grade.icon;
-                    return (
-                      <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded ${grade.bg} ${grade.color}`}>
-                        {GradeIcon ? <GradeIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
-                        {grade.label}
-                      </span>
-                    );
-                  })()}
+                  {customer.grade && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-brand-muted text-brand">
+                      {customer.grade}
+                      {customer.grade_locked && <Lock className="h-3 w-3" aria-label="수동 고정됨" />}
+                    </span>
+                  )}
                   <GenderBadge gender={customer.gender} size="md" />
                 </div>
                 <a href={`tel:${customer.phone.replace(/-/g, '')}`} className="flex items-center gap-1 text-muted-foreground text-sm hover:text-brand transition-colors">
                   <Phone className="w-3 h-3" />
                   <span>{customer.phone}</span>
                 </a>
+                {customer.grade_locked && (
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-0.5">
+                      <Lock className="h-3 w-3" aria-hidden="true" />
+                      수동 고정됨
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      onClick={handleRevertGrade}
+                      disabled={isReverting}
+                      className="inline-flex items-center gap-1 text-brand hover:underline disabled:opacity-60"
+                    >
+                      {isReverting && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
+                      자동 등급으로 되돌리기
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -111,6 +139,60 @@ export function CustomerDetailDialog({
                 <p className="text-xl font-bold text-brand tabular-nums">{formatCurrency(customer.total_purchase_amount)}</p>
               </div>
             </div>
+
+            {customer.photo_count > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">연결된 사진 · {customer.photo_count}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      router.push(`/admin/gallery?customer=${customer.id}`);
+                    }}
+                    className="text-xs text-brand hover:underline"
+                  >
+                    사진첩에서 보기 →
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {customer.photo_thumbnails.map((url, i) => (
+                    <button
+                      key={`${url}-${i}`}
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        router.push(`/admin/gallery?customer=${customer.id}`);
+                      }}
+                      className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted"
+                      aria-label="사진첩에서 보기"
+                    >
+                      <Image
+                        src={url}
+                        alt=""
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </button>
+                  ))}
+                  {customer.photo_count > customer.photo_thumbnails.length && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        router.push(`/admin/gallery?customer=${customer.id}`);
+                      }}
+                      className="w-20 h-20 flex-shrink-0 grid place-items-center rounded-xl bg-muted text-sm font-semibold text-muted-foreground"
+                      aria-label="사진첩에서 보기"
+                    >
+                      +{customer.photo_count - customer.photo_thumbnails.length}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {customer.first_purchase_date && (
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -208,16 +290,6 @@ export function CustomerDetailDialog({
                 >
                   <ShoppingBag className="w-4 h-4 mr-2" />
                   매출 등록
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onClose();
-                    router.push(`/admin/gallery?customer=${customer.id}`);
-                  }}
-                >
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  사진 보기
                 </Button>
                 <Button variant="outline" onClick={() => onEdit(customer)}>
                   <Pencil className="w-4 h-4 mr-2" />
