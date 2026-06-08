@@ -99,7 +99,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{post.title}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground/80">{post.author_nickname}</span>
-              {post.author_is_admin && <AdminBadge />}
+              {post.can_view && post.author_is_admin && <AdminBadge />}
               <span>·</span>
               <span>
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}

@@ -104,7 +104,8 @@ export function TourLauncher({tourCompleted}: TourLauncherProps) {
         onDestroyStarted: () => {
           if (!completedRef.current) {
             completedRef.current = true;
-            void completeTour();
+            // fire-and-forget — 실패해도 다음 진입에 다시 뜸(허용). unhandled rejection만 방지.
+            completeTour().catch(() => {});
           }
           driverObj.destroy();
         },
