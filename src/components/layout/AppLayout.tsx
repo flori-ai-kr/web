@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {Sidebar} from './Sidebar';
 import {Header} from './Header';
 import {BottomNav} from './BottomNav';
+import {TourLauncher} from '@/components/tour/tour-launcher';
 import {cn} from '@/lib/utils';
 import type {NavItemKey} from '@/types/database';
 
@@ -15,9 +16,10 @@ interface AppLayoutProps {
   userName?: string;
   userImage?: string;
   bottomNavItems?: NavItemKey[];
+  tourCompleted?: boolean;
 }
 
-export function AppLayout({ children, userEmail, userName, userImage, bottomNavItems }: AppLayoutProps) {
+export function AppLayout({ children, userEmail, userName, userImage, bottomNavItems, tourCompleted }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -65,6 +67,8 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
       </div>
 
       <BottomNav items={bottomNavItems} />
+
+      <TourLauncher tourCompleted={tourCompleted ?? false} />
     </div>
   );
 }

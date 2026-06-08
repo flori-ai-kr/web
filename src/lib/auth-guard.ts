@@ -10,7 +10,7 @@ export interface AuthUser {
   name: string;
   nickname?: string;
   email: string;
-  profile?: { profileImageUrl?: string | null };
+  profile?: { profileImageUrl?: string | null; tourCompleted?: boolean };
   // server가 온보딩 필드를 추가하기 전(미준비)에는 없을 수 있다(옵셔널).
   // 게이트는 `onboarded === false`일 때만 동작하므로 undefined면 통과한다.
   onboarded?: boolean;
