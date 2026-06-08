@@ -18,7 +18,6 @@ import { AuthHeader } from '@/components/auth/auth-header'
 import { cn } from '@/lib/utils'
 import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
 import { checkNickname, completeRegistration } from './actions'
-import { FeatureIntroCarousel } from './feature-intro-carousel'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^01\d{8,9}$/
@@ -30,16 +29,11 @@ function formatPhone(value: string): string {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`
 }
 
-function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
+function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
-    <div className="flex items-center justify-center gap-2" aria-label={`3단계 중 ${step}단계`}>
-      {[1, 2, 3].map((n) => (
-        <span
-          key={n}
-          className={cn('h-1.5 w-8 rounded-full transition-colors', step >= n ? 'bg-brand' : 'bg-border')}
-          aria-hidden="true"
-        />
-      ))}
+    <div className="flex items-center justify-center gap-2" aria-label={`2단계 중 ${step}단계`}>
+      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 1 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
+      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 2 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
     </div>
   )
 }
@@ -82,7 +76,7 @@ export function OnboardingForm({
   defaultNickname: string
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2>(1)
 
   // Step 1 (필수)
   const [name, setName] = useState('')
@@ -377,15 +371,15 @@ export function OnboardingForm({
               다음
             </Button>
           </form>
-        ) : step === 2 ? (
+        ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              setStep(3)
+              void handleComplete()
             }}
             className="space-y-6"
           >
-            <fieldset className="space-y-3">
+            <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
                 나이대 <span className="text-muted-foreground">(선택)</span>
               </legend>
@@ -401,7 +395,7 @@ export function OnboardingForm({
               </div>
             </fieldset>
 
-            <fieldset className="space-y-3">
+            <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
                 관심사 <span className="text-muted-foreground">(선택 · 다중)</span>
               </legend>
@@ -417,7 +411,7 @@ export function OnboardingForm({
               </div>
             </fieldset>
 
-            <fieldset className="space-y-3">
+            <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
                 가게 주력 <span className="text-muted-foreground">(선택 · 다중)</span>
               </legend>
@@ -444,6 +438,7 @@ export function OnboardingForm({
                 type="button"
                 variant="outline"
                 className="h-10 flex-1"
+                disabled={isLoading}
                 onClick={() => {
                   setError(null)
                   setStep(1)
@@ -452,8 +447,9 @@ export function OnboardingForm({
                 <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
                 이전
               </Button>
-              <Button type="submit" className="h-10 flex-1">
-                다음
+              <Button type="submit" className="h-10 flex-1" disabled={isLoading}>
+                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />}
+                {isLoading ? '저장하는 중...' : '완료'}
               </Button>
             </div>
 
@@ -461,16 +457,12 @@ export function OnboardingForm({
               type="button"
               variant="ghost"
               className="h-9 w-full text-muted-foreground"
-              onClick={() => {
-                setError(null)
-                setStep(3)
-              }}
+              disabled={isLoading}
+              onClick={() => void handleComplete()}
             >
               건너뛰기
             </Button>
           </form>
-        ) : (
-          <FeatureIntroCarousel onComplete={() => void handleComplete()} isSubmitting={isLoading} />
         )}
       </div>
     </div>
