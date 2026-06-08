@@ -1,6 +1,8 @@
 'use server';
 
+import {redirect} from 'next/navigation';
 import {requireAuth} from '@/lib/auth-guard';
+import {checkIsAdmin} from '@/lib/admin-guard';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 import {
@@ -96,3 +98,13 @@ async function _submitBusinessVerification(input: BusinessVerificationInput): Pr
 }
 
 export const submitBusinessVerification = withErrorLogging('submitBusinessVerification', _submitBusinessVerification);
+
+/**
+ * 커뮤니티 접근 게이트. 운영자(is_admin)는 사업자 인증 없이 통과한다.
+ * 그 외에는 사업자 인증 APPROVED여야 하며, 아니면 /admin/community/verify로 리다이렉트.
+ */
+export async function ensureCommunityAccess(): Promise<void> {
+  if (await checkIsAdmin()) return;
+  const verification = await getMyBusinessVerification();
+  if (verification.status !== 'APPROVED') redirect('/admin/community/verify');
+}
