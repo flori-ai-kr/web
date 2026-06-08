@@ -3,7 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
-import {idSchema, labelSettingSchema} from '@/lib/validations';
+import {idSchema, idsSchema, labelSettingSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 
 // label_settings(지출) — color는 서버/DB에서 제거됨.
@@ -120,6 +120,18 @@ async function _deleteExpenseCategory(id: string): Promise<void> {
 }
 export const deleteExpenseCategory = withErrorLogging('deleteExpenseCategory', _deleteExpenseCategory);
 
+async function _reorderExpenseCategories(ids: string[]): Promise<void> {
+  await requireAuth();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '순서 목록이 올바르지 않습니다');
+  await apiFetch<KotlinLabelSetting[]>('/settings/expense-categories/order', {
+    method: 'PUT',
+    body: JSON.stringify({ ids: parsed.data.map(Number) }),
+  });
+  revalidatePath('/admin/expenses');
+}
+export const reorderExpenseCategories = withErrorLogging('reorderExpenseCategories', _reorderExpenseCategories);
+
 // ─── 지출 결제방식 ───────────────────────────────────────────
 async function _getExpensePaymentMethods(): Promise<ExpensePaymentMethod[]> {
   await requireAuth();
@@ -170,3 +182,15 @@ async function _deleteExpensePaymentMethod(id: string): Promise<void> {
   revalidatePath('/admin/expenses');
 }
 export const deleteExpensePaymentMethod = withErrorLogging('deleteExpensePaymentMethod', _deleteExpensePaymentMethod);
+
+async function _reorderExpensePaymentMethods(ids: string[]): Promise<void> {
+  await requireAuth();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '순서 목록이 올바르지 않습니다');
+  await apiFetch<KotlinLabelSetting[]>('/settings/expense-payment-methods/order', {
+    method: 'PUT',
+    body: JSON.stringify({ ids: parsed.data.map(Number) }),
+  });
+  revalidatePath('/admin/expenses');
+}
+export const reorderExpensePaymentMethods = withErrorLogging('reorderExpensePaymentMethods', _reorderExpensePaymentMethods);

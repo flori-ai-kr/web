@@ -7,9 +7,11 @@ import {
   createExpenseCategory,
   updateExpenseCategory,
   deleteExpenseCategory,
+  reorderExpenseCategories,
   createExpensePaymentMethod,
   updateExpensePaymentMethod,
   deleteExpensePaymentMethod,
+  reorderExpensePaymentMethods,
 } from '@/lib/actions/expense-settings';
 
 interface ExpenseSettingsModalProps {
@@ -36,6 +38,7 @@ export function ExpenseSettingsModal({
       onCreate: createExpenseCategory,
       onUpdate: updateExpenseCategory,
       onDelete: deleteExpenseCategory,
+      onReorder: reorderExpenseCategories,
     },
     {
       key: 'payment',
@@ -45,6 +48,7 @@ export function ExpenseSettingsModal({
       onCreate: createExpensePaymentMethod,
       onUpdate: updateExpensePaymentMethod,
       onDelete: deleteExpensePaymentMethod,
+      onReorder: reorderExpensePaymentMethods,
     },
   ];
 

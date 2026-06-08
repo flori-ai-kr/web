@@ -8,12 +8,15 @@ import {
   createSaleCategory,
   updateSaleCategory,
   deleteSaleCategory,
+  reorderSaleCategories,
   createPaymentMethod,
   updatePaymentMethod,
   deletePaymentMethod,
+  reorderPaymentMethods,
   createSaleChannel,
   updateSaleChannel,
   deleteSaleChannel,
+  reorderSaleChannels,
 } from '@/lib/actions/sale-settings';
 
 interface SalesSettingsModalProps {
@@ -42,6 +45,7 @@ export function SalesSettingsModal({
       onCreate: createSaleCategory,
       onUpdate: updateSaleCategory,
       onDelete: deleteSaleCategory,
+      onReorder: reorderSaleCategories,
     },
     {
       key: 'payment',
@@ -51,6 +55,7 @@ export function SalesSettingsModal({
       onCreate: (label) => createPaymentMethod(label),
       onUpdate: updatePaymentMethod,
       onDelete: deletePaymentMethod,
+      onReorder: reorderPaymentMethods,
     },
     {
       key: 'channel',
@@ -60,6 +65,7 @@ export function SalesSettingsModal({
       onCreate: createSaleChannel,
       onUpdate: updateSaleChannel,
       onDelete: deleteSaleChannel,
+      onReorder: reorderSaleChannels,
     },
   ];
 
