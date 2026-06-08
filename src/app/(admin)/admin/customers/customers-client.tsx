@@ -399,6 +399,7 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
           }
         }}
         customer={editingCustomer}
+        grades={initialGrades}
         onSuccess={handleFormSuccess}
       />
 
