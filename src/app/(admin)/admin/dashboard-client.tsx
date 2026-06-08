@@ -237,7 +237,7 @@ export function DashboardClient({ initialToday }: { initialToday?: DashboardToda
           ))}
         </div>
       ) : (
-        <KpiGroup>
+        <KpiGroup data-tour="dashboard-summary">
           <KpiCard label="오늘 매출" value={formatCurrency(todaySummary?.totalAmount || 0)} />
           <KpiCard
             label={`${monthOptions.find((o) => o.value === selectedMonth)?.label || '이번 달'} 매출`}

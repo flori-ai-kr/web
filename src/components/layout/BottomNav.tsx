@@ -85,6 +85,7 @@ export function BottomNav({ items }: BottomNavProps) {
           {displayedItems.map((key) => (
             <NavTab
               key={key}
+              tourKey={key}
               href={NAV_ITEM_HREFS[key]}
               icon={ICON_MAP[key]}
               label={NAV_ITEM_LABELS[key]}
@@ -93,6 +94,7 @@ export function BottomNav({ items }: BottomNavProps) {
           ))}
           <button
             onClick={() => setMoreOpen(true)}
+            data-tour="nav-more"
             aria-label="더보기 메뉴"
             className={cn(
               'relative flex flex-col items-center justify-center gap-1 min-w-0 min-h-[44px] py-2 transition-colors',
@@ -154,11 +156,13 @@ export function BottomNav({ items }: BottomNavProps) {
 }
 
 function NavTab({
+  tourKey,
   href,
   icon: Icon,
   label,
   isActive,
 }: {
+  tourKey: NavItemKey;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -167,6 +171,7 @@ function NavTab({
   return (
     <Link
       href={href}
+      data-tour={`nav-${tourKey}`}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative flex flex-col items-center justify-center gap-1 min-w-0 min-h-[44px] py-2 transition-colors',
