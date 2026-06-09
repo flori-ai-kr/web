@@ -50,11 +50,28 @@ next-env.d.ts
 # mcp (contains access tokens)
 .mcp.json
 
-### Claude ###
+# Claude Code 로컬 설정/아티팩트 (프레임워크 자산은 커밋, 로컬만 제외)
 .serena
 .superpowers
-# 예약 작업 런타임 락 (세션별 일회성)
-.claude/scheduled_tasks.lock
+.scratch/
+.claude/settings.local.json
+.claude/settings.local.*.json
+.claude/.env.local*
+.claude/local/
+.claude/plans/
+.claude/agent-memory/
+.claude/worktrees/
+
+# 스킬별 시크릿
+.claude/skills/*/.env*
+.claude/skills/*/secrets/
+.claude/skills/*/*/*secret*
+.claude/skills/*/*/*key*
+.claude/skills/*/*/*token*
+!.claude/skills/*/modules/*token*.md
+
+# /html 등 임시 시각화 산출물
+docs/_tmp/
 
 ### IDE ####
 .idea
