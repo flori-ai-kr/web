@@ -298,7 +298,7 @@ export function PhotoUploadModal({
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="memo">설명</Label>
+              <Label htmlFor="memo">메모</Label>
               <span className={cn(
                 "text-xs",
                 memo.length > 200 ? "text-danger" : "text-muted-foreground"
@@ -310,7 +310,7 @@ export function PhotoUploadModal({
               id="memo"
               value={memo}
               onChange={(e) => setMemo(e.target.value.slice(0, 200))}
-              placeholder="설명을 입력하세요 (선택)"
+              placeholder="메모를 입력하세요 (선택)"
               className="min-h-[100px] resize-none"
               maxLength={200}
             />

@@ -53,6 +53,8 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  // 이미 로드한 카드 id 추적 — 중복 추가 방지 + 진전 없으면(무한로딩) 정지
+  const loadedIdsRef = useRef<Set<string>>(new Set(initialData.cards.map((c) => c.id)));
 
   // 고객 검색 결과 메모이제이션
   const filteredCustomers = useMemo(() => {
@@ -78,18 +80,28 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 딥링크(?card=<id>)로 진입 시 해당 포토카드 바로 열기 (매출 상세 등에서 연결)
+  // 딥링크(?customer=<id> / ?card=<id>)로 진입 시 고객 자동 필터 + 해당 포토카드 바로 열기.
+  // (useState 초기화는 첫 렌더에 searchParams가 비어있으면 누락될 수 있어 useEffect에서 확실히 적용)
   useEffect(() => {
+    const customerId = searchParams.get('customer');
     const cardId = searchParams.get('card');
-    if (!cardId) return;
-    getPhotoCardById(cardId)
-      .then((card) => { if (card) setSelectedCard(card); })
-      .catch(() => {});
-    // URL 정리(뒤로가기 시 재오픈 방지)
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('card');
-    const qs = params.toString();
-    router.replace(qs ? `/admin/gallery?${qs}` : '/admin/gallery', { scroll: false });
+    if (customerId) {
+      const found = customers.find((c) => c.id === customerId);
+      if (found) setSelectedCustomer(found);
+    }
+    if (cardId) {
+      getPhotoCardById(cardId)
+        .then((card) => { if (card) setSelectedCard(card); })
+        .catch(() => {});
+    }
+    if (customerId || cardId) {
+      // URL 정리(뒤로가기 시 재오픈/재적용 방지). 필터는 state로 유지됨.
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('customer');
+      params.delete('card');
+      const qs = params.toString();
+      router.replace(qs ? `/admin/gallery?${qs}` : '/admin/gallery', { scroll: false });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,13 +111,16 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setIsLoading(true);
     try {
       const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id);
-      // 필터 전환/페이지네이션 레이스로 중복 카드가 끼면 key 충돌 → id 기준 dedupe
-      setCards(prev => {
-        const seen = new Set(prev.map(c => c.id));
-        return [...prev, ...response.cards.filter(c => !seen.has(c.id))];
-      });
-      setCursor(response.nextCursor);
-      setHasMore(response.hasMore);
+      // 새로 들어온 카드만(id 기준). 진전이 없으면 더 불러올 게 없는 것으로 보고 정지(무한로딩 방지).
+      const fresh = response.cards.filter(c => !loadedIdsRef.current.has(c.id));
+      if (fresh.length === 0) {
+        setHasMore(false);
+      } else {
+        fresh.forEach(c => loadedIdsRef.current.add(c.id));
+        setCards(prev => [...prev, ...fresh]);
+        setCursor(response.nextCursor);
+        setHasMore(response.hasMore);
+      }
     } catch (error) {
       console.error('Error loading more cards:', error);
     } finally {
@@ -119,6 +134,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       setIsLoading(true);
       try {
         const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+        loadedIdsRef.current = new Set(response.cards.map(c => c.id));
         setCards(response.cards);
         setCursor(response.nextCursor);
         setHasMore(response.hasMore);
@@ -162,6 +178,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setIsLoading(true);
     try {
       const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+      loadedIdsRef.current = new Set(response.cards.map(c => c.id));
       setCards(response.cards);
       setCursor(response.nextCursor);
       setHasMore(response.hasMore);

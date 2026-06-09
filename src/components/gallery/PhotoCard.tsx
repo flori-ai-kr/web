@@ -2,10 +2,8 @@
 
 import { PhotoCard as PhotoCardType } from '@/types/database';
 import { Card } from '@/components/ui/card';
-import { Image as ImageIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { format } from 'date-fns';
-import { ko } from '@/lib/date-locale';
 
 interface PhotoCardProps {
   card: PhotoCardType;
@@ -16,9 +14,6 @@ interface PhotoCardProps {
 export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
   const photos = card.photos;
   const photoCount = photos.length;
-  const createdDate = format(new Date(card.created_at), 'yy.MM.dd HH:mm', { locale: ko });
-  const updatedDate = format(new Date(card.updated_at), 'yy.MM.dd HH:mm', { locale: ko });
-  const isUpdated = card.created_at !== card.updated_at;
 
   // 콜라주 레이아웃 렌더링
   const renderCollage = () => {
@@ -159,9 +154,12 @@ export function PhotoCard({ card, tagColorMap, onClick }: PhotoCardProps) {
             )}
           </div>
         )}
-        <p className="text-[11px] text-muted-foreground mt-0.5">
-          {isUpdated ? `수정 ${updatedDate}` : createdDate}
-        </p>
+        {card.memo && (
+          <div className="flex items-start gap-1 mt-1">
+            <FileText className="w-3 h-3 shrink-0 text-brand/85 mt-0.5" aria-hidden />
+            <span className="text-[11px] text-foreground/80 line-clamp-2">{card.memo}</span>
+          </div>
+        )}
       </div>
     </Card>
   );
