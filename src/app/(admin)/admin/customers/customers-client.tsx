@@ -682,9 +682,9 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             onChange={(v) => setSortBy(v as SortBy)}
           />
         </div>
-        {/* 검색 + 초기화 — 데탑에선 남는 폭 채움 */}
+        {/* 검색 + 초기화 — 데탑에선 검색바 폭 제한(매출과 동일 220px) */}
         <div className="flex items-center gap-2 sm:flex-1 min-w-0">
-          <div className="relative flex-1">
+          <div className="relative flex-1 sm:max-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               placeholder="이름, 연락처, 메모 검색..."
