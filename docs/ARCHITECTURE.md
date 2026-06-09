@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-08 | UX/UI 리스킨 패스: 지출 서버 페이지네이션·요약 API + cool slate 팔레트 + 공용 DatePicker + isUnsettledUnpaid 헬퍼 + 지출 FAB Speed Dial(고정비 탭→모달)
+> 최종 업데이트: 2026-06-08 | 라벨 설정 통합: LabelSettingsManager(공용 모달) + dnd-kit 드래그 순서 변경 + BFF /settings/.../order 5종 엔드포인트
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -651,8 +651,8 @@ erDiagram
 | `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
 | `photo-cards.ts` | CRUD + getPhotoCardBySaleId + getPhotoCardById + createPhotoUploadTargets (presigned PUT URL 발급, 소유권 검증) |
 | `photo-tags.ts` | CRUD |
-| `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels (`GET /settings/sale-channels`) |
-| `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods |
+| `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels, createSaleCategory, updateSaleCategory, deleteSaleCategory, **reorderSaleCategories** (`PUT /settings/sale-categories/order`), createPaymentMethod, updatePaymentMethod, deletePaymentMethod, **reorderPaymentMethods** (`PUT /settings/payment-methods/order`), createSaleChannel, updateSaleChannel, deleteSaleChannel, **reorderSaleChannels** (`PUT /settings/sale-channels/order`) |
+| `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory, **reorderExpenseCategories** (`PUT /settings/expense-categories/order`), createExpensePaymentMethod, updateExpensePaymentMethod, deleteExpensePaymentMethod, **reorderExpensePaymentMethods** (`PUT /settings/expense-payment-methods/order`) |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
 | `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
@@ -848,6 +848,8 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | radix-ui | ^1.4.3 | 접근성 UI 프리미티브 |
 | sonner | ^2.0.7 | 토스트 알림 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
-| @dnd-kit/sortable | ^10.x | BottomNav 아이템 드래그 정렬 (설정 화면) |
+| @dnd-kit/core | ^6.x | 드래그 앤 드롭 코어 (BottomNav + 라벨 설정 모달) |
+| @dnd-kit/sortable | ^10.x | 정렬 가능 리스트 (BottomNav 아이템 + 라벨 설정 순서 변경) |
+| @dnd-kit/utilities | ^3.x | CSS Transform 유틸 (SortableRow 드래그 애니메이션) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |

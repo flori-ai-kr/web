@@ -114,10 +114,9 @@ export const scheduleSchema = scheduleBaseSchema.refine(
   { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
 );
 
-// 카테고리 설정
-export const categorySettingSchema = z.object({
+// 라벨 설정(카테고리·결제방식·채널) — 색상은 제거됨, label만 관리
+export const labelSettingSchema = z.object({
   label: z.string().min(1).max(100),
-  color: colorSchema.optional(),
 });
 
 // 카드사 설정

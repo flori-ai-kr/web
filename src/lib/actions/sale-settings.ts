@@ -3,7 +3,7 @@
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
-import {idSchema} from '@/lib/validations';
+import {idSchema, idsSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 
 // 라벨 설정(label_settings) — 카테고리/결제방식/채널 공통 모양. color는 서버에서 제거됨.
@@ -83,6 +83,18 @@ async function _deleteSaleCategory(id: string): Promise<void> {
 }
 export const deleteSaleCategory = withErrorLogging('deleteSaleCategory', _deleteSaleCategory);
 
+async function _reorderSaleCategories(ids: string[]): Promise<void> {
+  await requireAuth();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '순서 목록이 올바르지 않습니다');
+  await apiFetch<LabelSettingDto[]>('/settings/sale-categories/order', {
+    method: 'PUT',
+    body: JSON.stringify({ ids: parsed.data.map(Number) }),
+  });
+  revalidatePath('/admin/sales');
+}
+export const reorderSaleCategories = withErrorLogging('reorderSaleCategories', _reorderSaleCategories);
+
 // ─── 결제방식 ────────────────────────────────────────────────
 async function _getPaymentMethods(): Promise<PaymentMethod[]> {
   await requireAuth();
@@ -121,6 +133,18 @@ async function _deletePaymentMethod(id: string): Promise<void> {
 }
 export const deletePaymentMethod = withErrorLogging('deletePaymentMethod', _deletePaymentMethod);
 
+async function _reorderPaymentMethods(ids: string[]): Promise<void> {
+  await requireAuth();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '순서 목록이 올바르지 않습니다');
+  await apiFetch<LabelSettingDto[]>('/settings/payment-methods/order', {
+    method: 'PUT',
+    body: JSON.stringify({ ids: parsed.data.map(Number) }),
+  });
+  revalidatePath('/admin/sales');
+}
+export const reorderPaymentMethods = withErrorLogging('reorderPaymentMethods', _reorderPaymentMethods);
+
 // ─── 매출 채널 (신규: label_settings로 동적화) ─────────────────
 async function _getSaleChannels(): Promise<SaleChannel[]> {
   await requireAuth();
@@ -158,3 +182,15 @@ async function _deleteSaleChannel(id: string): Promise<void> {
   revalidatePath('/admin/sales');
 }
 export const deleteSaleChannel = withErrorLogging('deleteSaleChannel', _deleteSaleChannel);
+
+async function _reorderSaleChannels(ids: string[]): Promise<void> {
+  await requireAuth();
+  const parsed = idsSchema.safeParse(ids);
+  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, '순서 목록이 올바르지 않습니다');
+  await apiFetch<LabelSettingDto[]>('/settings/sale-channels/order', {
+    method: 'PUT',
+    body: JSON.stringify({ ids: parsed.data.map(Number) }),
+  });
+  revalidatePath('/admin/sales');
+}
+export const reorderSaleChannels = withErrorLogging('reorderSaleChannels', _reorderSaleChannels);

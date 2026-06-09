@@ -63,32 +63,9 @@ export default async function ExpensesPage({
     payment: paymentParam.length > 0 ? paymentParam : undefined,
   };
 
-  // 이전 동일 길이 기간 비교 (로컬 KST 기준 — toISOString UTC 금지)
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  let prevDateRange: { startDate: string; endDate: string } | undefined;
-
-  if (hasDateRange) {
-    const start = new Date(params.startDate! + 'T00:00:00');
-    const end = new Date(params.endDate! + 'T00:00:00');
-    const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1);
-    const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1);
-    prevDateRange = { startDate: fmt(prevStart), endDate: fmt(prevEnd) };
-  } else if (!isAllYear && !isAllMonth && currentDay > 0) {
-    const target = new Date(currentYear, currentMonth - 1, currentDay);
-    const prev = new Date(target); prev.setDate(prev.getDate() - 1);
-    prevDateRange = { startDate: fmt(prev), endDate: fmt(prev) };
-  } else if (!isAllYear && !isAllMonth) {
-    const prevDate = new Date(currentYear, currentMonth - 2, 1);
-    const prevEnd = new Date(currentYear, currentMonth - 1, 0);
-    prevDateRange = { startDate: fmt(prevDate), endDate: fmt(prevEnd) };
-  }
-
-  const [expensesResult, summary, prevSummary, categories, payments, initialSelectedExpense] = await Promise.all([
+  const [expensesResult, summary, categories, payments, initialSelectedExpense] = await Promise.all([
     getExpenses(monthParam, 0, 100, filters, dateRange),
     getExpensesSummary(monthParam, filters, dateRange),
-    prevDateRange ? getExpensesSummary(undefined, undefined, prevDateRange) : Promise.resolve(null),
     getExpenseCategories(),
     getExpensePaymentMethods(),
     params.expenseId ? getExpenseById(params.expenseId) : Promise.resolve(null),
@@ -99,8 +76,6 @@ export default async function ExpensesPage({
       initialExpenses={expensesResult.expenses}
       initialHasMore={expensesResult.hasMore}
       initialSummary={summary}
-      prevTotal={prevSummary?.total ?? null}
-      prevPeriod={prevDateRange ?? null}
       monthParam={monthParam ?? null}
       currentYear={currentYear}
       currentMonth={currentMonth}

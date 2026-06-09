@@ -32,7 +32,7 @@ import {
   loadMoreExpenses,
   updateExpense,
 } from '@/lib/actions/expenses';
-import type {ExpenseCategorySlice, ExpenseFilters} from '@/lib/actions/expenses';
+import type {ExpenseFilters} from '@/lib/actions/expenses';
 import {
   ExpenseCategory,
   ExpensePaymentMethod,
@@ -47,16 +47,12 @@ import type {ExportConfig} from '@/lib/export';
 
 interface ExpensesSummaryData {
   total: number;
-  count: number;
-  byCategory: ExpenseCategorySlice[];
 }
 
 interface Props {
   initialExpenses: Expense[];
   initialHasMore: boolean;
   initialSummary: ExpensesSummaryData;
-  prevTotal?: number | null;
-  prevPeriod?: { startDate: string; endDate: string } | null;
   monthParam: string | null;
   currentYear: number;
   currentMonth: number;
@@ -71,8 +67,6 @@ export function ExpensesClient({
   initialExpenses,
   initialHasMore,
   initialSummary,
-  prevTotal,
-  prevPeriod,
   monthParam: serverMonthParam,
   currentYear,
   currentMonth,
@@ -457,12 +451,7 @@ export function ExpensesClient({
         onSearchChange={setSearchQuery}
         onReset={handleResetFilters}
       >
-        <ExpensesSummary
-          summary={summary}
-          categories={categories}
-          prevTotal={prevTotal ?? undefined}
-          prevPeriod={prevPeriod ?? undefined}
-        />
+        <ExpensesSummary summary={summary} />
       </ExpensesFiltersUI>
 
       <ExpensesList
@@ -841,6 +830,7 @@ export function ExpensesClient({
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         categories={categories}
+        payments={payments}
         onRefresh={refreshSettings}
       />
 
@@ -874,7 +864,7 @@ export function ExpensesClient({
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
             >
               <Settings className="w-4 h-4" />
-              관리
+              설정
             </button>
           </div>
         )}

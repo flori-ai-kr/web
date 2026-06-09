@@ -68,36 +68,9 @@ export default async function SalesPage({
     channel: channelParam.length > 0 ? channelParam : undefined,
   };
 
-  // 이전 동일 길이 기간 비교
-  // 로컬(KST) 기준 yyyy-MM-dd. toISOString()은 UTC라 KST에서 하루 밀리므로 사용 금지.
-  const fmt = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  let prevDateRange: { startDate: string; endDate: string } | undefined;
-
-  if (hasDateRange) {
-    // 기간 범위 모드: 선택 기간과 동일 길이의 직전 기간
-    const start = new Date(params.startDate!);
-    const end = new Date(params.endDate!);
-    const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const prevEnd = new Date(start); prevEnd.setDate(prevEnd.getDate() - 1);
-    const prevStart = new Date(prevEnd); prevStart.setDate(prevStart.getDate() - days + 1);
-    prevDateRange = { startDate: fmt(prevStart), endDate: fmt(prevEnd) };
-  } else if (!isAllYear && !isAllMonth && currentDay > 0) {
-    // 특정 일자 → 전일 비교
-    const target = new Date(currentYear, currentMonth - 1, currentDay);
-    const prev = new Date(target); prev.setDate(prev.getDate() - 1);
-    prevDateRange = { startDate: fmt(prev), endDate: fmt(prev) };
-  } else if (!isAllYear && !isAllMonth) {
-    // 월 조회 → 이전 달 비교
-    const prevDate = new Date(currentYear, currentMonth - 2, 1);
-    const prevEnd = new Date(currentYear, currentMonth - 1, 0);
-    prevDateRange = { startDate: fmt(prevDate), endDate: fmt(prevEnd) };
-  }
-
-  const [salesResult, summary, prevSummary, categories, payments, channels, initialSelectedSale] = await Promise.all([
+  const [salesResult, summary, categories, payments, channels, initialSelectedSale] = await Promise.all([
     getSales(monthParam, 0, 100, filters, dateRange),
     getSalesSummary(monthParam, filters, dateRange),
-    prevDateRange ? getSalesSummary(undefined, undefined, prevDateRange) : Promise.resolve(null),
     getSaleCategories(),
     getPaymentMethods(),
     getSaleChannels(),
@@ -109,8 +82,6 @@ export default async function SalesPage({
       initialSales={salesResult.sales}
       initialHasMore={salesResult.hasMore}
       initialSummary={summary}
-      prevTotal={prevSummary?.total ?? null}
-      prevPeriod={prevDateRange ?? null}
       monthParam={monthParam ?? null}
       currentYear={currentYear}
       currentMonth={currentMonth}
