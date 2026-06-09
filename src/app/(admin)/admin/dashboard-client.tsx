@@ -406,7 +406,6 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
               >
                 {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">{netProfit >= 0 ? '흑자' : '적자'}</p>
             </div>
           </div>
         )}
