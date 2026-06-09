@@ -21,6 +21,7 @@ import {
 import { SalesStatPanel } from './components/SalesStatPanel';
 import { ExpenseStatPanel } from './components/ExpenseStatPanel';
 import { ReservationStatPanel } from './components/ReservationStatPanel';
+import { CustomerStatPanel } from './components/CustomerStatPanel';
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
@@ -241,12 +242,7 @@ export function StatisticsClient({
         return <ReservationStatPanel data={entry.data as ReservationStatistics} />;
 
       case 'customers':
-        // TODO(B8): return <CustomerStatPanel data={entry.data as CustomerStatistics} from={from} to={to} />;
-        return (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
-            [B8] 고객 통계 패널 삽입 위치 — 데이터 로드됨
-          </div>
-        );
+        return <CustomerStatPanel data={entry.data as CustomerStatistics} />;
     }
   }
 
