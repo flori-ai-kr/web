@@ -168,7 +168,7 @@ export function CustomerDetailDialog({
                               : `/admin/gallery?customer=${customer.id}`,
                           );
                         }}
-                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card"
+                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card cursor-pointer hover:opacity-80 hover:border-brand/50 transition-opacity"
                         aria-label="사진첩에서 이 카드 열기"
                       >
                         <Image
