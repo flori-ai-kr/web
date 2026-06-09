@@ -171,27 +171,29 @@
      p-2 = 8px, gap-4 = 16px, …). Do NOT add redundant spacing
      vars and do NOT use arbitrary values like p-[13px]. */
 
-  /* hazel 공개 사이트 v2 팔레트 — Claude Design "alpha" (Sage & Wood) 기반.
-     매장 다크 그린월 + 따뜻한 크림 베이스. 액센트는 무광 올리브. */
-  --site-paper: #FAF7EF;          /* 따뜻한 거의-흰 — 페이지 베이스 */
-  --site-paper-soft: #FFFCF5;     /* 카드/footer 표면 — paper보다 살짝 밝음 */
-  --site-ink: #2D2418;            /* 잉크 (따뜻한 다크 브라운) */
-  --site-ink-soft: rgba(45, 36, 24, 0.66);  /* 본문 보조 */
-  --site-accent: #6E7457;         /* 무광 올리브 — 매장 그린월 톤 */
-  --site-accent-soft: #8C9476;    /* 페일 올리브 호버 */
-  --site-leaf: #6E7457;           /* leaf alias */
-  --site-muted: rgba(45, 36, 24, 0.42);  /* 캡션/마이크로 */
-  --site-line: rgba(45, 36, 24, 0.14);   /* 디바이더 */
+  /* flori 랜딩 팔레트 — cool-rose white (어드민 팔레트 기반, 고정 라이트)
+     어드민 cool slate 캔버스 + dusty rose 액센트를 랜딩에도 통일. */
+  --site-paper: #FAFAF9;          /* cool 오프화이트 — 페이지 베이스 */
+  --site-paper-soft: #FFFFFF;     /* 카드/섹션 표면 — 순백 */
+  --site-ink: #1C2024;            /* 잉크 (cool 다크 — 어드민 --foreground 동일) */
+  --site-ink-soft: #5A6472;       /* 본문 보조 */
+  --site-accent: #A85475;         /* dusty rose 포인트 — 어드민 --brand 동일 */
+  --site-accent-deep: #8E3F5F;    /* 로즈 딥 (호버/강조) */
+  --site-accent-soft: #F7E9EF;    /* 소프트 로즈 틴트 — 어드민 --brand-muted 동일 */
+  --site-slate: #8A929E;          /* cool slate 보조 — 어드민 --sage 동일 */
+  --site-leaf: #A85475;           /* leaf alias → rose (구 olive 대체) */
+  --site-muted: #9A9690;          /* 캡션/마이크로 */
+  --site-line: #ECEAE6;           /* 디바이더 */
 
   /* Legacy aliases (점진 마이그레이션용 — 추후 제거 예정) */
-  --site-ivory: var(--site-paper);
-  --site-parchment: var(--site-paper-soft);
-  --site-charcoal: var(--site-ink);
-  --site-oxblood: var(--site-accent);
-  --site-pewter: var(--site-muted);
-  --site-olive: var(--site-leaf);
-  --site-oxblood-light: var(--site-accent-soft);
-  --site-oxblood-soft: var(--site-accent-soft);
+  --site-ivory: var(--site-paper);          /* #FAFAF9 */
+  --site-parchment: var(--site-paper-soft); /* #FFFFFF */
+  --site-charcoal: var(--site-ink);         /* #1C2024 */
+  --site-oxblood: var(--site-accent);       /* #A85475 (구 oxblood → rose) */
+  --site-pewter: var(--site-muted);         /* #9A9690 */
+  --site-olive: var(--site-leaf);           /* #A85475 (구 olive → rose) */
+  --site-oxblood-light: var(--site-accent-soft);  /* #F7E9EF */
+  --site-oxblood-soft: var(--site-accent-soft);   /* #F7E9EF */
   /* 어드민 로즈 테마 — Rose reskin 2026-05-26
      --brand        : #A85475  (dusty deep rose — white text contrast ~5.01:1 ✅ WCAG AA)
      --brand-muted  : #FBEFF3  (soft rose tint bg)
