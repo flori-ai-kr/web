@@ -285,149 +285,132 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
         </Card>
 
-        {/* 이번 달 요약 (오늘 매출 타일 포함) */}
+        {/* 커뮤니티 최신글 (예약 우측) */}
         <Card className="overflow-hidden h-full flex flex-col">
           <CardContent className="p-4 pb-2">
             <SectionHeader
               title={
                 <span className="inline-flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-brand" aria-hidden="true" />
-                  이번 달 요약
+                  <MessageSquare className="h-4 w-4 text-brand" aria-hidden="true" />
+                  커뮤니티 최신글
                 </span>
               }
-              meta={format(now, 'M월', {locale: ko})}
               action={
                 <Link
-                  href="/admin/statistics"
+                  href="/admin/community"
                   className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
                 >
-                  통계 보기 <ArrowUpRight className="w-3 h-3" />
+                  커뮤니티 가기 <ArrowUpRight className="w-3 h-3" />
                 </Link>
               }
             />
           </CardContent>
-          <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-center">
-            {!initialMonth ? (
-              <div className="space-y-5 py-1">
-                <Skeleton className="h-8 w-28" />
-                <Skeleton className="h-2 w-full rounded-full" />
-                <div className="grid grid-cols-3 gap-2.5">
-                  <Skeleton className="h-16 rounded-lg" />
-                  <Skeleton className="h-16 rounded-lg" />
-                  <Skeleton className="h-16 rounded-lg" />
-                </div>
+          <CardContent className="p-4 pt-2 flex-1">
+            {communityPosts.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">커뮤니티에서 다른 사장님들과 소통해보세요</p>
+                <Link
+                  href="/admin/community"
+                  className="inline-flex items-center gap-1 mt-2 text-xs text-brand hover:underline"
+                >
+                  커뮤니티 가기 <ArrowUpRight className="w-3 h-3" />
+                </Link>
               </div>
             ) : (
-              <div className="space-y-5">
-                {/* 순이익 — 헤드라인 */}
-                <div className="flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground">순이익</p>
-                    <p
-                      className={`text-2xl sm:text-3xl font-bold tabular-nums mt-0.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
-                    >
-                      {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
-                    </p>
-                  </div>
-                  {totalSales > 0 && (
-                    <span className="text-xs text-muted-foreground shrink-0 pb-1.5">
-                      매출의 {expenseRatio}% 지출
+              <div>
+                {communityPosts.map((post) => (
+                  <Link
+                    key={post.id}
+                    href={`/admin/community/${post.id}`}
+                    className="flex items-center gap-3 py-3 border-b border-border last:border-0 hover:bg-muted/30 -mx-1 px-1 rounded-sm group"
+                  >
+                    <CommunityCategoryBadge category={post.category} className="shrink-0" />
+                    <span className="flex-1 min-w-0 text-sm font-medium text-foreground truncate group-hover:text-brand">
+                      {post.title}
                     </span>
-                  )}
-                </div>
-
-                {/* 지출/매출 비율 바 */}
-                <div
-                  className="h-2 rounded-full bg-muted overflow-hidden"
-                  role="img"
-                  aria-label={`매출 대비 지출 비율 ${expenseRatio}%`}
-                >
-                  <div
-                    className={`h-full rounded-full ${netProfit >= 0 ? 'bg-brand' : 'bg-danger'}`}
-                    style={{width: `${Math.min(expenseRatio, 100)}%`}}
-                  />
-                </div>
-
-                {/* 오늘 매출 · 이번 달 매출 · 지출 타일 */}
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="rounded-lg bg-brand-muted px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground">오늘 매출</p>
-                    <p className="text-sm sm:text-base font-bold text-brand tabular-nums mt-0.5">
-                      {formatManwon(todaySummary?.totalAmount ?? 0)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground">매출</p>
-                    <p className="text-sm sm:text-base font-bold text-foreground tabular-nums mt-0.5">
-                      {formatManwon(totalSales)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                    <p className="text-xs text-muted-foreground">지출</p>
-                    <p className="text-sm sm:text-base font-bold text-foreground tabular-nums mt-0.5">
-                      {formatManwon(monthExpenseTotal)}
-                    </p>
-                  </div>
-                </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatDistanceToNow(new Date(post.createdAt), {addSuffix: true, locale: ko})}
+                    </span>
+                  </Link>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* 커뮤니티 최신글 */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 pb-2">
-          <SectionHeader
-            title={
-              <span className="inline-flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-brand" aria-hidden="true" />
-                커뮤니티 최신글
-              </span>
-            }
-            action={
-              <Link
-                href="/admin/community"
-                className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
-              >
-                커뮤니티 가기 <ArrowUpRight className="w-3 h-3" />
-              </Link>
-            }
-          />
-        </CardContent>
-        <CardContent className="p-4 pt-2">
-          {communityPosts.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">커뮤니티에서 다른 사장님들과 소통해보세요</p>
-              <Link
-                href="/admin/community"
-                className="inline-flex items-center gap-1 mt-2 text-xs text-brand hover:underline"
-              >
-                커뮤니티 가기 <ArrowUpRight className="w-3 h-3" />
-              </Link>
+      {/* 이번 달 요약 — 4 KPI 카드 (full width) */}
+      <section aria-label="이번 달 요약">
+        <div className="flex items-center justify-between mb-3 px-0.5">
+          <span className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
+            <TrendingUp className="h-4 w-4 text-brand" aria-hidden="true" />
+            이번 달 요약
+            <span className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})}</span>
+          </span>
+          <Link
+            href="/admin/statistics"
+            className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
+          >
+            통계 보기 <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {!initialMonth ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-[92px] rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 오늘 매출 */}
+            <div
+              className="rounded-2xl border border-border p-4"
+              style={{background: 'linear-gradient(160deg, var(--card), var(--brand-muted))'}}
+            >
+              <p className="text-xs font-semibold text-muted-foreground">오늘 매출</p>
+              <p className="text-2xl font-bold text-brand tabular-nums mt-1.5">
+                {formatCurrency(todaySummary?.totalAmount ?? 0)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{format(now, 'M월 d일', {locale: ko})}</p>
             </div>
-          ) : (
-            <div>
-              {communityPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/admin/community/${post.id}`}
-                  className="flex items-center gap-3 py-3 border-b border-border last:border-0 hover:bg-muted/30 -mx-1 px-1 rounded-sm group"
-                >
-                  <CommunityCategoryBadge category={post.category} className="shrink-0" />
-                  <span className="flex-1 min-w-0 text-sm font-medium text-foreground truncate group-hover:text-brand">
-                    {post.title}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(post.createdAt), {addSuffix: true, locale: ko})}
-                  </span>
-                </Link>
-              ))}
+
+            {/* N월 매출 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span className="absolute left-0 inset-y-0 w-1 bg-brand" aria-hidden="true" />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 매출</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(totalSales)}</p>
+              <p className="text-xs text-muted-foreground mt-1">이번 달 누적</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* N월 지출 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span className="absolute left-0 inset-y-0 w-1 bg-muted-foreground/40" aria-hidden="true" />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 지출</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(monthExpenseTotal)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalSales > 0 ? `매출의 ${expenseRatio}%` : '이번 달 누적'}
+              </p>
+            </div>
+
+            {/* N월 순이익 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span
+                className={`absolute left-0 inset-y-0 w-1 ${netProfit >= 0 ? 'bg-brand' : 'bg-danger'}`}
+                aria-hidden="true"
+              />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 순이익</p>
+              <p
+                className={`text-2xl font-bold tabular-nums mt-1.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
+              >
+                {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{netProfit >= 0 ? '흑자' : '적자'}</p>
+            </div>
+          </div>
+        )}
+      </section>
 
     </div>
   );
