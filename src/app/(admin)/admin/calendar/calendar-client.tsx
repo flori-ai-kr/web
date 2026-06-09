@@ -276,6 +276,36 @@ export function CalendarClient() {
     }
   }, [showForm]);
 
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 예약 등록 폼을 즉시 오픈 (오늘 날짜 프리필).
+  // selectedDate 초기값이 이미 new Date() 이므로 오늘 날짜는 자동으로 채워진다.
+  // 1회만 처리 후 파라미터 제거 (새로고침 재오픈 방지).
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      setFormData({
+        customer_name: '',
+        customer_phone: '',
+        title: '',
+        memo: '',
+        product_category: '',
+        payment_method: '',
+        reservation_channel: '',
+        sale_date: todayStr,
+      });
+      setPickups([{ date: todayStr, time: '', amount: '', reminder_date: todayStr, reminder_time: '' }]);
+      setDeletedPickupIds([]);
+      setEditingId(null);
+      setEditingSaleId(null);
+      setShowScheduleForm(false);
+      setShowForm(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  // 마운트 시 1회만 실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 제작 완료 토글: pending ↔ confirmed
   async function toggleCompletion(reservation: Reservation) {
     const newStatus: ReservationStatus = reservation.status === 'pending' ? 'confirmed' : 'pending';

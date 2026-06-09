@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-08 | 라벨 설정 통합: LabelSettingsManager(공용 모달) + dnd-kit 드래그 순서 변경 + BFF /settings/.../order 5종 엔드포인트
+> 최종 업데이트: 2026-06-10 | 통계 페이지(`/admin/statistics`) + 대시보드 '오늘·운영 홈' 개편 + BFF `/statistics/*` 4종 엔드포인트
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -600,7 +600,8 @@ erDiagram
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
 | `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
-| `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
+| `/admin` | 대시보드 | 시간대별 인사말 + 이번 달 4 KPI + 다가오는 예약 + 커뮤니티 최신글 + flori AI 브리핑('개발 중'). 월별 분석은 `/admin/statistics`로 분리됨 |
+| `/admin/statistics` | 통계 | 빠른 선택 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 예약 탭에 요일×시간대 히트맵 포함 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
 | `/admin/expenses` | 지출 관리 | 서버 페이지네이션(100건 단위 무한스크롤) + getExpensesSummary(카테고리별 비율 바) + 기간 범위 필터 + 다중선택 필터(id 기반) + FAB Speed Dial(지출 등록/고정비 관리 모달/내보내기/설정) |
 | `/admin/customers` | 고객 관리 | 카드 그리드 + 등급 + 성별 + 매출 연동 (category_label 직접 표시) |
@@ -648,7 +649,7 @@ erDiagram
 | `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
 | `schedules.ts` | getSchedules, createSchedule, updateSchedule, deleteSchedule (BFF `/schedules?month=`) |
 | `dashboard.ts` | getDashboardTodayData, getDashboardMonthData, getTriggeredReminders, getUpcomingReservations |
-| `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
+| `statistics.ts` | `getSalesStatistics`, `getExpensesStatistics`, `getReservationStatistics`, `getCustomerStatistics` — BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=`. ISO 날짜 형식 가드(`assertIsoDate`) 포함. (구 `getCategoryStats`·`getPaymentMethodStats`·`getChannelStats`·`getCustomerStats`·`getExpenseCategoryStats` 는 제거됨) |
 | `photo-cards.ts` | CRUD + getPhotoCardBySaleId + getPhotoCardById + createPhotoUploadTargets (presigned PUT URL 발급, 소유권 검증) |
 | `photo-tags.ts` | CRUD |
 | `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels, createSaleCategory, updateSaleCategory, deleteSaleCategory, **reorderSaleCategories** (`PUT /settings/sale-categories/order`), createPaymentMethod, updatePaymentMethod, deletePaymentMethod, **reorderPaymentMethods** (`PUT /settings/payment-methods/order`), createSaleChannel, updateSaleChannel, deleteSaleChannel, **reorderSaleChannels** (`PUT /settings/sale-channels/order`) |
@@ -656,7 +657,7 @@ erDiagram
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
 | `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
-| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
+| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 
 ## 타입 시스템

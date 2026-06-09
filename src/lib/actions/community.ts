@@ -148,6 +148,36 @@ async function _getComments(postId: string): Promise<CommunityComment[]> {
 
 export const getComments = withErrorLogging('getComments', _getComments);
 
+// 대시보드 "커뮤니티 최신글" 카드용 경량 조회 — 제목·메타데이터만 (B10 소비)
+// category 는 코드(CommunityCategory)이므로, 렌더 시 COMMUNITY_CATEGORY_LABELS / CommunityCategoryBadge 로 라벨링한다.
+export interface LatestCommunityPost {
+  id: string;
+  title: string;
+  category: CommunityCategory;
+  createdAt: string;
+}
+
+// BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 비밀글은 제외하고 상위 limit개만 반환.
+async function _getLatestCommunityPosts(limit = 4): Promise<LatestCommunityPost[]> {
+  await requireAuth();
+
+  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${limit}`);
+  return (page.posts || [])
+    .filter((p) => !p.isSecret)
+    .slice(0, limit)
+    .map((p) => ({
+      id: String(p.id),
+      title: p.title,
+      category: p.category,
+      createdAt: p.createdAt,
+    }));
+}
+
+export const getLatestCommunityPosts = withErrorLogging(
+  'getLatestCommunityPosts',
+  _getLatestCommunityPosts,
+);
+
 // ─── 변경 ───────────────────────────────────────────────────────
 
 export interface CommunityPostInput {

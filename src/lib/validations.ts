@@ -255,6 +255,7 @@ export const navItemKeySchema = z.enum([
   'calendar',
   'sales',
   'expenses',
+  'statistics',
   'customers',
   'gallery',
   'community',

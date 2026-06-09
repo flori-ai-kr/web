@@ -26,7 +26,7 @@
 | Editor | Tiptap v3 (커뮤니티 게시판 본문, JSON 저장 + plain text 미리보기) |
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
-| Charts | recharts (운영 콘솔 통계 추이) |
+| Charts | recharts (운영 콘솔 통계 추이 + `/admin/statistics` area/donut/bar 차트) |
 | DnD | @dnd-kit/core · @dnd-kit/sortable · @dnd-kit/utilities (BottomNav + 라벨 설정 순서 변경) |
 | Test | Vitest, fast-check, Testing Library |
 | Deploy | Vercel (Cron 포함) |
@@ -70,6 +70,7 @@ src/
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── profile/         # 내 프로필 (프로필 수정 + 아바타 업로드 + 탈퇴)
+│   ├── statistics/      # 통계 — statistics-client.tsx + 빠른 선택 DateRangeSelector + 매출/지출/예약/고객 4탭 (URL ?range&from&to&tab), recharts area/donut + StatBarList + 예약 히트맵
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리. 어드민 토큰 라이트 셸(테마 토글 존중)
@@ -165,6 +166,9 @@ src/
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 FAB → **고정비 관리 모달**(탭 구조 폐지, `RecurringExpensesSection embedded`). 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`). `ExpenseFilters.category`/`payment`도 동일한 id 기반 다중선택 패턴 적용
+- 대시보드 역할 변경: `/admin`(dashboard)은 '오늘·운영 홈' 역할로 개편 — 시간대별 인사말(`lib/greeting.ts`), 이번 달 4 KPI 카드(`formatManwon`), 커뮤니티 최신글(`getLatestCommunityPosts`), flori AI 브리핑 카드('개발 중' 잠금). 월별 분석(카테고리·결제방식·채널 BarList)은 대시보드에서 제거되어 `/admin/statistics`로 분리됨.
+- 빠른 등록 `?new=1`: 대시보드 드롭다운에서 매출/지출/예약 등록 클릭 시 해당 페이지로 이동(`?new=1`) → 각 클라이언트(sales/expenses/calendar)가 마운트 시 폼을 오늘 날짜로 프리필하여 즉시 오픈. 1회 처리 후 파라미터 제거.
+- 통계(`/admin/statistics`): 빠른 선택 글로벌 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 탭별 데이터는 클라이언트 캐시로 중복 요청 방지. 예약 탭에 요일×시간대 히트맵(`ReservationHeatmap`) 포함.
 - 라벨 설정 관리: 매출(카테고리·결제방식·채널)·지출(카테고리·결제방식) 설정은 공용 `LabelSettingsManager` 모달로 통합. 탭 구조로 도메인·종류를 전환하며, 각 항목은 좌측 `GripVertical` 드래그 핸들(`@dnd-kit/sortable`)로 순서를 변경한다. 순서 변경은 낙관적 적용 후 BFF `PUT /settings/{domain}/order` (5종: `sale-categories`, `payment-methods`, `sale-channels`, `expense-categories`, `expense-payment-methods`)로 저장하며 실패 시 롤백. `ExpenseCategory`·`ExpensePaymentMethod` 타입에서 `color` 필드 제거됨(BFF `LabelSettingResponse`가 color를 반환하지 않음).
 - 지출 서버 페이지네이션: `getExpenses(month, offset, limit, filters, dateRange)` → BFF `GET /expenses?offset=&limit=&month=&category=&payment=&search=` (페이지 단위 100건). 무한스크롤은 `loadMoreExpenses` 클라이언트 액션으로 추가 로드. 검색어는 300ms 디바운스 후 별도 loadMore 호출. 집계는 `getExpensesSummary(month, filters, dateRange)` → BFF `GET /expenses/summary` (카테고리별 금액 슬라이스 `ExpenseCategorySlice[]` + 이전 기간 비교). 이전의 클라이언트 집계(useMemo 합산) 방식은 폐지됨
 - 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: `ensureCommunityAccess()`(`lib/actions/business-verification.ts`) — status≠APPROVED이면 `/admin/community/verify`로 리다이렉트(운영자 예외 없음 — BFF `@RequiresBusinessVerified`도 전원 인증 요구). 커뮤니티 4개 페이지(목록/write/[id]/[id]/edit)에서 공통 호출. **관리자 칩**: BFF `authorIsAdmin` → `author_is_admin` 매핑 → 운영자 작성 게시글·댓글 닉네임 옆에 "관리자" 칩(`components/community/admin-badge.tsx`) 표시
@@ -208,7 +212,11 @@ src/
 | Service Worker | `public/sw.js` |
 | 날짜 선택 UI | `components/ui/date-picker.tsx` (shadcn Calendar 팝오버 — `name` prop으로 FormData 제출 지원, 모든 네이티브 `<input type="date">` 대체) |
 | 미수 판정 | `lib/utils.ts` `isUnsettledUnpaid(sale)` — `is_unpaid && payment_method_id == null` |
+| 금액 만원 표시 | `lib/utils.ts` `formatManwon(n)` — 1만 미만은 `₩N`, 이상은 `N만원` (대시보드·통계 집계용) |
+| 대시보드 인사말 | `lib/greeting.ts` `getDashboardGreeting(name)` — KST 시간대별 인사 (서버에서 계산해 props로 전달, 하이드레이션 불일치 방지) |
 | 지출 서버 액션 | `lib/actions/expenses.ts` — `getExpenses`(페이징), `loadMoreExpenses`(무한스크롤), `getExpensesSummary`(카테고리 슬라이스 집계) |
+| 통계 서버 액션 | `lib/actions/statistics.ts` — `getSalesStatistics`, `getExpensesStatistics`, `getReservationStatistics`, `getCustomerStatistics` (BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=`) |
+| 통계 컴포넌트 | `app/(admin)/admin/statistics/components/` — `SalesStatPanel`, `ExpenseStatPanel`, `ReservationStatPanel`, `CustomerStatPanel`, `DateRangeSelector`, `StatAreaChart`, `StatBarList`, `StatDonut`, `StatKpiCard`, `ReservationHeatmap` |
 | 라벨 설정 공용 UI | `components/settings/label-settings-manager.tsx` — 매출·지출 카테고리·결제방식·채널 설정을 탭+드래그 핸들로 통합 관리하는 공용 모달 (`LabelSettingsManager`, `LabelTabConfig`) |
 
 ---
