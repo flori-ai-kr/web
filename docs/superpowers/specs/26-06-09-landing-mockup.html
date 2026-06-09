@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>flori 랜딩 시안 v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C2024; --muted:#5A6472; --faint:#9A9690;
+    --line:#ECEAE6; --rose:#A85475; --rose-deep:#8E3F5F; --rose-soft:#F7E9EF; --slate:#8A929E;
+    --accent2:#F3F1ED;
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);scroll-behavior:smooth;}
+  body{font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.6;margin:0;letter-spacing:-0.01em;}
+  .display{font-family:"Cormorant Garamond",serif;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,40px);}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);font-weight:700;}
+  .btn-rose{background:var(--rose);color:#fff;border-radius:11px;font-weight:600;font-size:15px;padding:13px 26px;display:inline-flex;align-items:center;gap:8px;transition:background .15s;text-decoration:none;}
+  .btn-rose:hover{background:var(--rose-deep);}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:11px;font-weight:600;font-size:15px;padding:13px 24px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--rose-deep);background:var(--rose-soft);border-radius:999px;padding:7px 15px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;}
+  /* asset placeholder */
+  .ph{border:1.5px dashed #C9A3B4;border-radius:14px;background:repeating-linear-gradient(135deg,#FBEFF3,#FBEFF3 12px,#F7E6ED 12px,#F7E6ED 24px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#9A5E76;text-align:center;padding:24px;}
+  .ph b{font-size:13px;font-weight:700;}
+  .ph span{font-size:11px;color:#B07E92;}
+  .ph .ico{font-size:26px;}
+  /* browser chrome */
+  .browser{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 30px 70px -34px rgba(28,32,36,.40);}
+  .browser .bar{height:40px;display:flex;align-items:center;gap:7px;padding:0 16px;background:#F6F8FA;border-bottom:1px solid var(--line);}
+  .browser .d{width:10px;height:10px;border-radius:99px;}
+  details{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:12px;padding:0 20px;transition:box-shadow .15s,border-color .15s;}
+  details[open]{border-color:#EAD3DD;box-shadow:0 8px 24px -16px rgba(168,84,117,.35);}
+  details>summary{cursor:pointer;list-style:none;padding:20px 0;font-weight:600;font-size:16px;display:flex;justify-content:space-between;gap:16px;align-items:center;}
+  details>summary::-webkit-details-marker{display:none;}
+  details>summary::after{content:"+";color:var(--rose);font-size:24px;font-weight:300;transition:transform .2s;flex-shrink:0;}
+  details[open]>summary::after{transform:rotate(45deg);}
+  details .ans{padding:0 0 20px;color:var(--muted);font-size:15px;max-width:64ch;}
+  .feat-ico{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--accent2);font-size:22px;}
+  @media(max-width:760px){.row{grid-template-columns:1fr !important;}}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="sticky top-0 z-30" style="backdrop-filter:blur(12px);background:rgba(255,255,255,.80);border-bottom:1px solid var(--line);">
+  <div class="wrap flex items-center justify-between" style="height:64px;">
+    <div class="display" style="font-size:30px;font-weight:600;letter-spacing:-.01em;">flori<span style="color:var(--rose);">.</span></div>
+    <nav class="flex items-center" style="gap:28px;">
+      <a href="#features" class="hidden md:inline text-[14px]" style="color:var(--muted);text-decoration:none;">기능</a>
+      <a href="#faq" class="hidden md:inline text-[14px]" style="color:var(--muted);text-decoration:none;">자주 묻는 질문</a>
+      <a href="#" class="btn-rose" style="padding:9px 20px;font-size:14px;">로그인</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="wrap" style="text-align:center;padding:clamp(56px,9vw,104px) 0 clamp(40px,6vw,72px);">
+  <span class="chip" style="margin-bottom:26px;">🌷 꽃집 사장님을 위한 운영 서비스</span>
+  <h1 style="font-size:clamp(38px,6.4vw,76px);font-weight:800;line-height:1.08;letter-spacing:-.035em;margin:0;">
+    꽃에만 집중하세요.<br><span style="color:var(--rose);">살림은 flori가</span> 챙길게요.
+  </h1>
+  <p style="font-size:clamp(16px,2.1vw,20px);color:var(--muted);margin:24px auto 0;max-width:34ch;word-break:keep-all;line-height:1.75;">
+    매출·지출·고객·예약·사진첩까지. 꽃집 운영에 필요한 모든 기록을 flori 하나로.
+  </p>
+  <div class="flex items-center justify-center" style="gap:12px;margin-top:36px;flex-wrap:wrap;">
+    <a href="#waitlist" class="btn-rose">사전등록하고 첫 달 무료받기 →</a>
+    <a href="#features" class="btn-ghost">기능 둘러보기</a>
+  </div>
+  <p style="font-size:13px;color:var(--faint);margin-top:16px;">카카오 · 네이버 · 구글 계정으로 30초 만에 시작</p>
+
+  <!-- 큰 제품 미리보기 (Linear식) -->
+  <div class="browser" style="margin-top:clamp(44px,7vw,76px);max-width:980px;margin-left:auto;margin-right:auto;text-align:left;">
+    <div class="bar">
+      <span class="d" style="background:#E6C4CE;"></span><span class="d" style="background:#E7E2CF;"></span><span class="d" style="background:#DCE3D6;"></span>
+      <span style="margin-left:10px;font-size:12px;color:var(--faint);">app.flori.ai.kr/admin</span>
+    </div>
+    <div class="ph" style="aspect-ratio:16/9;border:none;border-radius:0;margin:0;">
+      <div class="ico">🎬</div>
+      <b>HERO 메인 비주얼 — 대시보드 스크린샷 또는 데모 영상</b>
+      <span>자동재생 루프: 15~30초 권장(무음·MP4, ~5MB) · 길게(1분) 가면 재생버튼 클릭형으로 · 16:9</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 사전등록 (waitlist) ===== -->
+<section id="waitlist" style="border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,#FBEFF3,#F7E9EF);">
+  <div class="wrap" style="padding:clamp(40px,6vw,64px) 0;">
+    <div style="max-width:560px;margin:0 auto;text-align:center;">
+      <span class="chip" style="background:#fff;color:var(--rose-deep);margin-bottom:14px;">🎁 출시 전 한정 혜택</span>
+      <h2 style="font-size:clamp(24px,3.6vw,38px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px;color:var(--ink);">선착순 <span style="color:var(--rose);">100명</span>, 첫 달 무료</h2>
+      <p style="font-size:15px;color:var(--rose-deep);margin:0 0 22px;">지금 사전등록하면 한 달간 모든 기능을 무료로 · 정식 출시 후 <b>월 9,900원</b></p>
+
+      <!-- 진행 게이지 (마감일 없음) -->
+      <div style="margin:0 auto 24px;">
+        <div style="height:10px;border-radius:99px;background:#fff;overflow:hidden;border:1px solid #EAD3DD;">
+          <div style="width:24%;height:100%;background:var(--rose);"></div>
+        </div>
+        <div style="font-size:13px;color:var(--rose-deep);margin-top:8px;font-weight:700;">
+          <span style="font-size:18px;">24</span> / 100명 등록 완료 <span style="font-weight:500;opacity:.7;">· 76자리 남음</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: 폼 (가게명 + 전화번호) -->
+      <div class="card" style="padding:22px;text-align:left;background:#fff;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <span style="width:22px;height:22px;border-radius:99px;background:var(--rose);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">1</span>
+          <b style="font-size:14px;">정보 입력</b>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input placeholder="가게명 (예: 헤이즐 플라워)" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;background:#FAFBFC;">
+          <input placeholder="휴대폰 번호 (예: 010-1234-5678)" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;background:#FAFBFC;">
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:12px 0 0;">입력하신 가게명·연락처는 <b>사전등록 안내 연락</b>에만 써요. 등록 시 <a href="/policy/privacy" style="color:var(--rose);text-decoration:underline;">개인정보처리방침</a>에 동의하게 됩니다.</p>
+      </div>
+
+      <div style="font-size:20px;color:var(--rose);margin:8px 0;">↓</div>
+
+      <!-- STEP 2: 카카오 오픈채팅 -->
+      <div class="card" style="padding:22px;text-align:left;background:#fff;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="width:22px;height:22px;border-radius:99px;background:var(--rose);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">2</span>
+          <b style="font-size:14px;">카카오톡 오픈채팅 참여 <span style="color:var(--rose);">(필수)</span></b>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">오픈채팅까지 들어오셔야 사전등록이 <b>최종 완료</b>돼요. 출시 소식·무료 혜택을 여기로 안내드립니다.</p>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#FEE500;color:#191600;border-radius:10px;font-weight:700;font-size:14px;padding:12px;text-decoration:none;">💬 카카오톡 오픈채팅 참여하기</a>
+        <p style="font-size:11px;color:var(--faint);margin:10px 0 0;">※ 오픈채팅 링크는 사장님이 제공 예정</p>
+      </div>
+
+      <p style="font-size:11px;color:var(--rose-deep);opacity:.7;margin-top:16px;">※ 진행률·인원은 DB 실집계로 표시 (마감기한 없음 · 100명 도달 시 마감)</p>
+
+      <!-- 참고: 100명 마감 시 이 영역이 아래처럼 바뀜 -->
+      <div style="margin-top:20px;border:1px dashed #C9A3B4;border-radius:12px;padding:14px;background:rgba(255,255,255,.5);">
+        <div style="font-size:11px;color:#9A5E76;font-weight:700;margin-bottom:10px;">참고 · 100명 마감 시 화면</div>
+        <div class="card" style="padding:20px;background:#fff;text-align:center;">
+          <div style="height:10px;border-radius:99px;background:#fff;overflow:hidden;border:1px solid #EAD3DD;max-width:300px;margin:0 auto;">
+            <div style="width:100%;height:100%;background:var(--rose);"></div>
+          </div>
+          <div style="font-size:13px;color:var(--rose-deep);margin-top:10px;font-weight:700;">🎉 선착순 100명 모집 완료</div>
+          <p style="font-size:13px;color:var(--muted);margin:8px 0 14px;">사전등록이 마감됐어요. 정식 출시 소식은 카카오톡 오픈채팅에서 가장 먼저 받아보세요.</p>
+          <a href="#" style="display:inline-flex;align-items:center;gap:8px;background:#FEE500;color:#191600;border-radius:10px;font-weight:700;font-size:14px;padding:11px 20px;text-decoration:none;">💬 오픈채팅으로 출시 소식 받기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES (교차 행) ===== -->
+<section id="features" style="padding:clamp(56px,8vw,96px) 0;">
+  <div class="wrap">
+    <div style="text-align:center;margin-bottom:clamp(40px,6vw,64px);">
+      <div class="eyebrow" style="margin-bottom:12px;">Features</div>
+      <h2 style="font-size:clamp(28px,4.4vw,46px);font-weight:800;letter-spacing:-.03em;margin:0;">흩어진 꽃집 살림, 하나로</h2>
+    </div>
+
+    <!-- 행 1 : 매출·지출 -->
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;margin-bottom:clamp(48px,7vw,88px);">
+      <div>
+        <div class="feat-ico" style="margin-bottom:16px;">📊</div>
+        <h3 style="font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.02em;margin:0 0 12px;">오늘 번 돈, 쓴 돈이 한눈에</h3>
+        <p style="font-size:15px;color:var(--muted);margin:0 0 16px;word-break:keep-all;">현금·카드 매출과 재료비·고정비를 기록하면 월별·카테고리별로 자동 정리돼요. 외상(미수)도 따로 챙겨, 입금되면 한 번에 정산.</p>
+        <ul style="font-size:14px;color:var(--ink);margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li>✓ 현금·카드·채널별 매출 통계</li>
+          <li>✓ 미수금 관리 · 결제 완료 처리</li>
+          <li>✓ 매달 나가는 고정비 자동 기록</li>
+        </ul>
+      </div>
+      <div class="ph" style="aspect-ratio:4/3;"><div class="ico">📷</div><b>매출·지출 화면 캡처</b><span>매출 요약 + 카테고리 통계 화면</span></div>
+    </div>
+
+    <!-- 행 2 : 고객·사진첩 (반전) -->
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;margin-bottom:clamp(48px,7vw,88px);">
+      <div class="ph" style="aspect-ratio:4/3;order:-1;"><div class="ico">📷</div><b>고객·사진첩 화면 캡처</b><span>고객 카드 + 작품 사진 그리드</span></div>
+      <div>
+        <div class="feat-ico" style="margin-bottom:16px;">👥</div>
+        <h3 style="font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.02em;margin:0 0 12px;">단골과 작품을 기억해요</h3>
+        <p style="font-size:15px;color:var(--muted);margin:0 0 16px;word-break:keep-all;">전화번호로 단골을 알아보고 구매 이력을 쌓아요. 완성한 꽃은 사진첩에 포트폴리오처럼 모아 고객과 연결.</p>
+        <ul style="font-size:14px;color:var(--ink);margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li>✓ 전화번호 기반 고객 식별 · 등급</li>
+          <li>✓ 작품 사진첩(카드당 10장) · 태그</li>
+          <li>✓ 매출에 고객 연결 → 이력 자동 누적</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 행 3 : 예약·알림 -->
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;margin-bottom:clamp(48px,7vw,88px);">
+      <div>
+        <div class="feat-ico" style="margin-bottom:16px;">📅</div>
+        <h3 style="font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.02em;margin:0 0 12px;">픽업·배송, 놓치지 않게</h3>
+        <p style="font-size:15px;color:var(--muted);margin:0 0 16px;word-break:keep-all;">예약을 등록하고 리마인더를 켜면 픽업·배송 전에 푸시로 알려드려요. 매일 아침 8시엔 그날 예약 요약까지.</p>
+        <ul style="font-size:14px;color:var(--ink);margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li>✓ 픽업·배송 전 푸시 리마인더</li>
+          <li>✓ 매일 오전 8시 그날 예약 요약</li>
+          <li>✓ 예약 → 매출 바로 전환</li>
+        </ul>
+      </div>
+      <div class="ph" style="aspect-ratio:4/3;"><div class="ico">📷</div><b>예약 캘린더 화면 캡처</b><span>캘린더 + 푸시 알림 예시</span></div>
+    </div>
+
+    <!-- 행 4 : 커뮤니티 (반전) -->
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;">
+      <div class="ph" style="aspect-ratio:4/3;order:-1;"><div class="ico">📷</div><b>커뮤니티 화면 캡처</b><span>게시판 + 사업자 인증 배지</span></div>
+      <div>
+        <div class="feat-ico" style="margin-bottom:16px;">💬</div>
+        <h3 style="font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.02em;margin:0 0 12px;">전국 사장님과 노하우를 나눠요</h3>
+        <p style="font-size:15px;color:var(--muted);margin:0 0 16px;word-break:keep-all;">실제 꽃집 사장님들만의 공간. 시세·거래처·운영 팁을 묻고 답해요. 사업자 인증을 한 번 하면 자유롭게.</p>
+        <ul style="font-size:14px;color:var(--ink);margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li>✓ 사업자 인증 회원 전용</li>
+          <li>✓ 카테고리별 글 · 대댓글 · 좋아요</li>
+          <li>✓ 민감한 글은 비밀글로</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 보조 기능 그리드 ===== -->
+<section style="padding:clamp(48px,7vw,80px) 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div style="text-align:center;margin-bottom:40px;">
+      <div class="eyebrow" style="margin-bottom:12px;">And more</div>
+      <h2 style="font-size:clamp(24px,3.4vw,36px);font-weight:800;letter-spacing:-.02em;margin:0;">사장님 하루를 가볍게 하는 디테일</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+      <div class="card" style="padding:22px;"><div style="font-size:22px;margin-bottom:10px;">📈</div><b style="font-size:15px;">인사이트 · 트렌드</b><p style="font-size:13px;color:var(--muted);margin:6px 0 0;">시즌 트렌드와 인기 작품을 스크랩.</p></div>
+      <div class="card" style="padding:22px;"><div style="font-size:22px;margin-bottom:10px;">📑</div><b style="font-size:15px;">엑셀 · PDF 내보내기</b><p style="font-size:13px;color:var(--muted);margin:6px 0 0;">매출·지출을 파일로 정산·보고.</p></div>
+      <div class="card" style="padding:22px;"><div style="font-size:22px;margin-bottom:10px;">📲</div><b style="font-size:15px;">폰·PC 어디서나</b><p style="font-size:13px;color:var(--muted);margin:6px 0 0;">어디서 켜도 같은 기록으로 이어서.</p></div>
+      <div class="card" style="padding:22px;"><div style="font-size:22px;margin-bottom:10px;">🔔</div><b style="font-size:15px;">푸시 알림</b><p style="font-size:13px;color:var(--muted);margin:6px 0 0;">예약·정산을 놓치지 않게.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="faq" style="padding:clamp(56px,8vw,100px) 0;">
+  <div class="wrap" style="max-width:780px;">
+    <div style="text-align:center;margin-bottom:clamp(28px,4vw,48px);">
+      <div class="eyebrow" style="margin-bottom:12px;">FAQ</div>
+      <h2 style="font-size:clamp(28px,4.4vw,46px);font-weight:800;letter-spacing:-.03em;margin:0;">자주 묻는 질문</h2>
+    </div>
+    <div>
+      <details open><summary>flori는 어떤 서비스인가요?</summary><div class="ans">꽃집 사장님을 위한 운영 앱이에요. 매출·지출·고객·예약·사진첩을 폰 하나로 기록하고, 전국 꽃집 사장님들과 소통할 수 있어요. 복잡한 POS 단말이나 설치 없이 바로 시작합니다.</div></details>
+      <details><summary>어떻게 시작하나요?</summary><div class="ans">카카오·구글·네이버 계정으로 로그인하면 끝이에요. 가게 정보만 간단히 입력하면 바로 매출을 기록할 수 있어요.</div></details>
+      <details><summary>비용이 드나요?</summary><div class="ans"><span style="color:var(--rose);">[문구 확정 필요]</span> 가격 정책이 정해지면 이 자리에 안내드릴게요.</div></details>
+      <details><summary>외상(미수)은 어떻게 관리하나요?</summary><div class="ans">판매할 때 미수로 등록해 두면 "미수 중"으로 표시돼요. 나중에 입금되면 "결제 완료"로 바꿔 한 번에 정산합니다.</div></details>
+      <details><summary>예약 알림은 언제 오나요?</summary><div class="ans">예약에 리마인더를 설정하면 픽업·배송 시간 전에 푸시 알림이 와요. 매일 오전 8시엔 그날 예약 요약도 보내드려요. (설정에서 푸시 알림을 켜야 합니다.)</div></details>
+      <details><summary>커뮤니티는 왜 사업자 인증이 필요한가요?</summary><div class="ans">실제로 운영 중인 꽃집 사장님들만의 공간을 위해서예요. 사업자등록증으로 한 번 인증하면 이후 자유롭게 이용할 수 있어요.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA BAND ===== -->
+<section style="padding:clamp(56px,8vw,96px) 0;background:var(--ink);color:#fff;text-align:center;">
+  <div class="wrap">
+    <h2 style="font-size:clamp(26px,4vw,42px);font-weight:800;margin:0 0 10px;letter-spacing:-.02em;">지금 사전등록하면 첫 달 무료</h2>
+    <p style="font-size:15px;color:#A8B0BC;margin:0 0 28px;">선착순 100명 · 소셜 계정으로 30초 시작</p>
+    <a href="#waitlist" class="btn-rose" style="font-size:16px;padding:14px 32px;">사전등록하고 첫 달 무료받기 →</a>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer style="padding:clamp(44px,6vw,64px) 0 40px;background:#fff;border-top:1px solid var(--line);">
+  <div class="wrap" style="display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap;">
+    <div>
+      <div class="display" style="font-size:40px;font-weight:600;letter-spacing:-.01em;">flori<span style="color:var(--rose);">.</span></div>
+      <p style="font-size:13px;color:var(--muted);margin:6px 0 0;">꽃집 사장님을 위한 운영 앱</p>
+    </div>
+    <div style="text-align:right;font-size:13px;color:var(--muted);line-height:2;">
+      <a href="/policy/privacy" style="color:var(--muted);text-decoration:none;">개인정보처리방침</a>
+      <span style="color:var(--faint);margin:0 8px;">·</span>
+      <a href="/policy/terms" style="color:var(--muted);text-decoration:none;">이용약관</a>
+      <br>
+      <span style="font-size:12px;color:var(--faint);">© 2026 flori. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
