@@ -18,6 +18,7 @@ import {
   type ReservationStatistics,
   type CustomerStatistics,
 } from '@/lib/actions/statistics';
+import { SalesStatPanel } from './components/SalesStatPanel';
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
@@ -229,12 +230,7 @@ export function StatisticsClient({
 
     switch (activeTab) {
       case 'sales':
-        // TODO(B5): return <SalesStatPanel data={entry.data as SalesStatistics} from={from} to={to} />;
-        return (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
-            [B5] 매출 통계 패널 삽입 위치 — 데이터 로드됨
-          </div>
-        );
+        return <SalesStatPanel data={entry.data as SalesStatistics} />;
 
       case 'expenses':
         // TODO(B6): return <ExpensesStatPanel data={entry.data as ExpensesStatistics} from={from} to={to} />;
