@@ -9,8 +9,8 @@ describe('resolveRange', () => {
   it('last-month', () => {
     expect(resolveRange('last-month', today)).toEqual({ from: '2026-05-01', to: '2026-05-31' });
   });
-  it('last-3m → 직전 2개월 1일 ~ 오늘', () => {
-    expect(resolveRange('last-3m', today)).toEqual({ from: '2026-04-01', to: '2026-06-09' });
+  it('last-3m → 오늘로부터 3개월 전 같은 날짜 ~ 오늘', () => {
+    expect(resolveRange('last-3m', today)).toEqual({ from: '2026-03-09', to: '2026-06-09' });
   });
   it('this-year', () => {
     expect(resolveRange('this-year', today)).toEqual({ from: '2026-01-01', to: '2026-12-31' });
