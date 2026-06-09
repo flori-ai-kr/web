@@ -122,6 +122,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                   sizes="(max-width: 768px) 100vw, 768px"
                   className="object-contain"
                   priority={currentIndex === 0}
+                  unoptimized
                 />
               </div>
 
@@ -164,6 +165,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                     fill
                     sizes="64px"
                     className="object-cover"
+                    unoptimized
                   />
                 </button>
               ))}
