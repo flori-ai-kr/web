@@ -58,9 +58,13 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
         'pt-14 transition-[margin] duration-200',
         isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
       )}>
-        <main id="main-content" className="p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8" aria-label="주요 콘텐츠">
-          <div className="max-w-7xl mx-auto">
-            {children}
+        <main
+          id="main-content"
+          className="flex min-h-[calc(100dvh-3.5rem)] flex-col p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8"
+          aria-label="주요 콘텐츠"
+        >
+          <div className="mx-auto w-full max-w-7xl flex-1">{children}</div>
+          <div className="mx-auto w-full max-w-7xl">
             <AppFooter />
           </div>
         </main>
