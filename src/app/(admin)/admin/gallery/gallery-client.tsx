@@ -111,9 +111,14 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setIsLoading(true);
     try {
       const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id);
-      // 새로 들어온 카드만(id 기준). 진전이 없으면 더 불러올 게 없는 것으로 보고 정지(무한로딩 방지).
+      // 무한로딩 차단(api 상태 무관): ①새 카드 0개 ②커서가 전진하지 않음 ③에러 → 즉시 정지.
       const fresh = response.cards.filter(c => !loadedIdsRef.current.has(c.id));
-      if (fresh.length === 0) {
+      const cursorAdvanced = !!response.nextCursor && response.nextCursor !== cursor;
+      if (fresh.length === 0 || !cursorAdvanced) {
+        if (fresh.length > 0) {
+          fresh.forEach(c => loadedIdsRef.current.add(c.id));
+          setCards(prev => [...prev, ...fresh]);
+        }
         setHasMore(false);
       } else {
         fresh.forEach(c => loadedIdsRef.current.add(c.id));
@@ -123,6 +128,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       }
     } catch (error) {
       console.error('Error loading more cards:', error);
+      setHasMore(false); // 에러 시 무한 재시도 방지
     } finally {
       setIsLoading(false);
     }
