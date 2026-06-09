@@ -267,14 +267,14 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       {/* Stats — 매출/지출처럼 카드 없이 포인트 컬러 숫자로 바로 노출 */}
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">전체 고객</p>
-          <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">{stats.total}<span className="text-base font-medium">명</span></p>
+      <div>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">전체 고객</p>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-2xl font-bold tracking-tight text-brand tabular-nums leading-none">{stats.total}<span className="text-sm font-medium">명</span></p>
+          {stats.newThisMonth > 0 && (
+            <p className="text-xs text-muted-foreground tabular-nums">이번 달 신규 <span className="text-brand font-semibold">+{stats.newThisMonth}</span></p>
+          )}
         </div>
-        {stats.newThisMonth > 0 && (
-          <p className="text-sm text-muted-foreground tabular-nums">이번 달 신규 <span className="text-brand font-semibold">+{stats.newThisMonth}</span></p>
-        )}
       </div>
 
       {/* Filters */}
