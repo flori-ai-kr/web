@@ -10,6 +10,7 @@ import { apiFetch } from '@/lib/api/client'
 import { AppError, ErrorCode } from '@/lib/errors'
 import {
   getCommunityPosts,
+  getLatestCommunityPosts,
   getCommunityPost,
   getComments,
   createCommunityPost,
@@ -62,6 +63,30 @@ describe('getCommunityPosts', () => {
     mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
     await getCommunityPosts()
     expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=100')
+  })
+})
+
+describe('getLatestCommunityPosts', () => {
+  it('limit을 쿼리로 전달하고 최소 형태로 매핑', async () => {
+    mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: false })
+    const res = await getLatestCommunityPosts(3)
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=3')
+    expect(res).toEqual([{ id: '42', title: '제목', category: 'daily', createdAt: '2026-01-01' }])
+  })
+
+  it('비밀글은 제외하고 limit으로 자른다', async () => {
+    const secret = { ...kPost, id: 99, isSecret: true }
+    const a = { ...kPost, id: 1 }
+    const b = { ...kPost, id: 2 }
+    mockApiFetch.mockResolvedValue({ posts: [secret, a, b], hasMore: false })
+    const res = await getLatestCommunityPosts(1)
+    expect(res.map((p) => p.id)).toEqual(['1'])
+  })
+
+  it('기본 limit은 4', async () => {
+    mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
+    await getLatestCommunityPosts()
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=4')
   })
 })
 
