@@ -5,7 +5,7 @@ import type { CommunityPost } from '@/types/database'
 
 const post = (over: Partial<CommunityPost> = {}): CommunityPost =>
   ({
-    id: '1', author_nickname: '플로리스트', category: 'daily', title: '제목입니다',
+    id: '1', author_nickname: '플로리스트', author_is_admin: false, category: 'daily', title: '제목입니다',
     content: { type: 'doc' }, content_text: '본문 미리보기', image_urls: [],
     is_secret: false, is_pinned: false, like_count: 3, liked: false,
     comment_count: 2, is_mine: false, can_view: true,
@@ -47,5 +47,15 @@ describe('PostCard', () => {
     render(<PostCard post={post({ is_secret: true, can_view: true, title: '열람가능제목' })} />)
     expect(screen.getByText('열람가능제목')).toBeInTheDocument()
     expect(screen.getByLabelText('비밀글')).toBeInTheDocument()
+  })
+
+  it('운영자 글이면 관리자 칩을 보여준다', () => {
+    render(<PostCard post={post({ author_is_admin: true })} />)
+    expect(screen.getByText('관리자')).toBeInTheDocument()
+  })
+
+  it('일반 글이면 관리자 칩이 없다', () => {
+    render(<PostCard post={post({ author_is_admin: false })} />)
+    expect(screen.queryByText('관리자')).not.toBeInTheDocument()
   })
 })

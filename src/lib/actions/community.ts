@@ -15,6 +15,7 @@ import type {CommunityCategory, CommunityComment, CommunityPost,} from '@/types/
 interface PostResponseDto {
   id: number;
   authorNickname: string;
+  authorIsAdmin: boolean;
   category: CommunityCategory;
   title: string;
   content: unknown; // Tiptap JSON
@@ -41,6 +42,7 @@ interface CommentResponseDto {
   postId: number;
   parentId: number | null;
   authorNickname: string;
+  authorIsAdmin: boolean;
   content: string;
   isSecret: boolean;
   isMine: boolean;
@@ -60,6 +62,7 @@ function toPost(dto: PostResponseDto): CommunityPost {
   return {
     id: String(dto.id),
     author_nickname: dto.authorNickname,
+    author_is_admin: dto.authorIsAdmin,
     category: dto.category,
     title: dto.title,
     content: dto.content,
@@ -83,6 +86,7 @@ function toComment(dto: CommentResponseDto): CommunityComment {
     post_id: String(dto.postId),
     parent_id: dto.parentId != null ? String(dto.parentId) : null,
     author_nickname: dto.authorNickname,
+    author_is_admin: dto.authorIsAdmin,
     content: dto.content,
     is_secret: dto.isSecret,
     is_mine: dto.isMine,

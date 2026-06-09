@@ -8,6 +8,7 @@ import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {toast} from 'sonner';
 import type {CommunityComment} from '@/types/database';
+import {AdminBadge} from '@/components/community/admin-badge';
 import {CommentForm} from './comment-form';
 import {deleteComment} from '@/lib/actions/community';
 
@@ -107,6 +108,7 @@ function CommentNode({
           <>
             <div className="flex items-center gap-2 mb-1 text-xs">
               <span className="font-medium text-foreground">{comment.author_nickname}</span>
+              {comment.author_is_admin && <AdminBadge />}
               {comment.is_secret && <Lock className="h-3 w-3 text-muted-foreground" aria-label="비밀" />}
               <span className="text-muted-foreground">
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ko })}
