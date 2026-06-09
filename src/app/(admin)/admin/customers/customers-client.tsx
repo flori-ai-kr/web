@@ -406,7 +406,10 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
         if (!isSearching) return true;
         const q = searchQuery.toLowerCase();
         const qDigits = q.replace(/-/g, '');
-        return c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.phone.replace(/-/g, '').includes(qDigits);
+        return c.name.toLowerCase().includes(q)
+          || c.phone.includes(q)
+          || c.phone.replace(/-/g, '').includes(qDigits)
+          || (c.memo?.toLowerCase().includes(q) ?? false);
       });
     return sortCustomers(filtered);
   }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, matchesPeriod, sortCustomers]);
@@ -683,7 +686,7 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="이름/연락처 검색..."
+              placeholder="이름, 연락처, 메모 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-8 text-sm bg-background rounded-full"
