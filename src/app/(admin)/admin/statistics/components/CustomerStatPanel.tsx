@@ -5,6 +5,7 @@ import { StatKpiCard } from './StatKpiCard';
 import { StatAreaChart } from './StatAreaChart';
 import { StatBarList } from './StatBarList';
 import type { DeltaTone } from './StatKpiCard';
+import { formatManwon } from '@/lib/utils';
 
 // ─── Grade / gender label helpers ────────────────────────────────────────────
 
@@ -43,18 +44,6 @@ function genderKr(gender: string | null): string {
   if (gender === 'male') return '남성';
   if (gender === 'female') return '여성';
   return '미입력';
-}
-
-// ─── Formatters ───────────────────────────────────────────────────────────────
-
-/**
- * 집계 금액을 만원 단위로 표시.
- * 예: 1,240,000 → "124만원", 9,000 → "₩9,000" (1만 미만은 원 단위 그대로)
- */
-function formatManwon(n: number): string {
-  if (n < 10000) return `₩${n.toLocaleString('ko-KR')}`;
-  const manwon = Math.round(n / 10000);
-  return `${manwon.toLocaleString('ko-KR')}만원`;
 }
 
 // ─── Delta helpers ────────────────────────────────────────────────────────────

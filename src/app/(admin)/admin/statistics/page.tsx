@@ -55,7 +55,17 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
         initialData = await getCustomerStatistics(from, to);
         break;
     }
-  } catch {
+  } catch (e) {
+    // redirect()/notFound() 등 Next 내부 제어 에러는 삼키지 말고 전파(인증 리다이렉트 보존).
+    if (
+      e &&
+      typeof e === 'object' &&
+      'digest' in e &&
+      typeof (e as { digest: unknown }).digest === 'string' &&
+      (e as { digest: string }).digest.startsWith('NEXT_')
+    ) {
+      throw e;
+    }
     initialError = true;
   }
 

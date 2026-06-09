@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useRef, useState, useTransition} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -26,13 +26,12 @@ import {ko} from '@/lib/date-locale';
 import Link from 'next/link';
 import {toast} from 'sonner';
 import {useRouter} from 'next/navigation';
-import type {Reservation, Sale} from '@/types/database';
+import type {Reservation} from '@/types/database';
 import {RESERVATION_STATUS} from '@/types/database';
 import type {DashboardMonthData, DashboardSummary, DashboardTodayData} from '@/lib/actions/dashboard';
 import {getDashboardTodayData} from '@/lib/actions/dashboard';
 import type {LatestCommunityPost} from '@/lib/actions/community';
-import {formatCurrency, getTodayKST, isUnsettledUnpaid} from '@/lib/utils';
-import {KpiCard, KpiGroup} from '@/components/dashboard/kpi-card';
+import {formatCurrency, formatManwon, getTodayKST} from '@/lib/utils';
 import {SectionHeader} from '@/components/dashboard/section-header';
 import {SaleFormDialog} from '@/app/(admin)/admin/sales/components/SaleFormDialog';
 import {getSaleCategories, getPaymentMethods, getSaleChannels} from '@/lib/actions/sale-settings';
@@ -40,17 +39,6 @@ import type {PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
 
 const PAGE_SIZE = 5;
-
-/** 집계 금액을 만원 단위 문자열로 포맷 (예: 48만원, 0원) */
-function formatManwon(amount: number): string {
-  if (amount === 0) return '0원';
-  const man = Math.round(amount / 10000);
-  if (man === 0) {
-    // 1만원 미만은 원 단위 그대로
-    return new Intl.NumberFormat('ko-KR').format(amount) + '원';
-  }
-  return man.toLocaleString('ko-KR') + '만원';
-}
 
 interface Props {
   initialToday?: DashboardTodayData;
@@ -81,7 +69,6 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
   const [salePayments, setSalePayments] = useState<PaymentMethod[]>([]);
   const [saleChannels, setSaleChannels] = useState<SaleChannel[]>([]);
   const [isSaleSettingsLoading, setIsSaleSettingsLoading] = useState(false);
-  const [, startSaleSettingsTransition] = useTransition();
 
   const statusMap = useMemo(() => new Map(RESERVATION_STATUS.map((s) => [s.value, s])), []);
 
@@ -129,7 +116,7 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
       return;
     }
     setIsSaleSettingsLoading(true);
-    startSaleSettingsTransition(async () => {
+    (async () => {
       try {
         const [cats, pays, chans] = await Promise.all([
           getSaleCategories(),
@@ -145,7 +132,7 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
       } finally {
         setIsSaleSettingsLoading(false);
       }
-    });
+    })();
   }
 
   const totalSales = monthSummary?.totalAmount ?? 0;
@@ -445,7 +432,13 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
           {communityPosts.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
               <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">최신 게시글이 없습니다</p>
+              <p className="text-sm">커뮤니티에서 다른 사장님들과 소통해보세요</p>
+              <Link
+                href="/admin/community"
+                className="inline-flex items-center gap-1 mt-2 text-xs text-brand hover:underline"
+              >
+                커뮤니티 가기 <ArrowUpRight className="w-3 h-3" />
+              </Link>
             </div>
           ) : (
             <div>

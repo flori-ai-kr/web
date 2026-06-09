@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
@@ -117,6 +117,13 @@ export function StatisticsClient({
     return seed;
   });
 
+  // In-flight fetch guard: prevents duplicate concurrent fetches on fast tab/range clicks
+  const inFlight = useRef<Set<string>>(new Set());
+
+  // resolvedKeys tracks keys that have been fully fetched (data or error), seeded
+  // with the initial SSR key so it's never re-fetched on the first render.
+  const resolvedKeys = useRef<Set<string>>(new Set([initialKey]));
+
   // ─── URL sync helper ────────────────────────────────────────────────────────
 
   const pushURL = useCallback(
@@ -139,16 +146,16 @@ export function StatisticsClient({
     async (tab: StatTab, f: string, t: string) => {
       const key = cacheKey(tab, f, t);
 
-      // Already cached (successful or error)
-      setCache((prev) => {
-        if (prev[key]) return prev;
-        return { ...prev, [key]: { data: null, from: f, to: t, error: false, loading: true } };
-      });
+      // Already fully resolved (data or error) — skip refetch
+      if (resolvedKeys.current.has(key)) return;
 
-      // Prevent duplicate in-flight fetches by checking loading state
+      // Duplicate concurrent fetch guard — skip if already in flight
+      if (inFlight.current.has(key)) return;
+
+      inFlight.current.add(key);
       setCache((prev) => {
-        if (prev[key] && !prev[key].loading) return prev;
-        return prev; // will actually fetch below
+        if (prev[key]) return prev; // already seeded (e.g. from initialData)
+        return { ...prev, [key]: { data: null, from: f, to: t, error: false, loading: true } };
       });
 
       try {
@@ -167,15 +174,19 @@ export function StatisticsClient({
             data = await getCustomerStatistics(f, t);
             break;
         }
+        resolvedKeys.current.add(key);
         setCache((prev) => ({
           ...prev,
           [key]: { data, from: f, to: t, error: false, loading: false },
         }));
       } catch {
+        resolvedKeys.current.add(key);
         setCache((prev) => ({
           ...prev,
           [key]: { data: null, from: f, to: t, error: true, loading: false },
         }));
+      } finally {
+        inFlight.current.delete(key);
       }
     },
     [],

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface HeatmapCell {
@@ -54,10 +55,9 @@ export function ReservationHeatmap({ cells }: ReservationHeatmapProps) {
 
         {/* Data rows */}
         {HOUR_BUCKETS.map((bucket) => (
-          <>
+          <Fragment key={bucket}>
             {/* Row label */}
             <div
-              key={`label-${bucket}`}
               className="flex items-center text-[11px] font-semibold text-muted-foreground"
               role="rowheader"
               aria-label={`${bucketLabel(bucket)} 시간대`}
@@ -83,13 +83,13 @@ export function ReservationHeatmap({ cells }: ReservationHeatmapProps) {
                   style={{
                     aspectRatio: '1.5 / 1',
                     ...(count > 0
-                      ? { backgroundColor: `rgba(168, 84, 117, ${alpha.toFixed(2)})` }
+                      ? { backgroundColor: `color-mix(in srgb, var(--brand) ${Math.round(alpha * 100)}%, transparent)` }
                       : {}),
                   }}
                 />
               );
             })}
-          </>
+          </Fragment>
         ))}
       </div>
 
@@ -101,7 +101,7 @@ export function ReservationHeatmap({ cells }: ReservationHeatmapProps) {
             <div
               key={a}
               className="w-4 h-3 rounded-sm"
-              style={{ backgroundColor: `rgba(168, 84, 117, ${a})` }}
+              style={{ backgroundColor: `color-mix(in srgb, var(--brand) ${Math.round(a * 100)}%, transparent)` }}
               aria-hidden="true"
             />
           ))}

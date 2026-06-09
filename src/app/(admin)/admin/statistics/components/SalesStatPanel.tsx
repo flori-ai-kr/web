@@ -6,24 +6,11 @@ import { StatBarList } from './StatBarList';
 import { StatAreaChart } from './StatAreaChart';
 import { StatDonut } from './StatDonut';
 import type { DeltaTone } from './StatKpiCard';
+import { formatManwon } from '@/lib/utils';
 
 // ─── Brand-derived donut palette ─────────────────────────────────────────────
 
 const DONUT_COLORS = ['#A85475', '#c98aa4', '#8A929E', '#bcc4cf', '#7a3d56'];
-
-// ─── Formatters ───────────────────────────────────────────────────────────────
-
-/**
- * 집계 금액을 만원 단위로 표시.
- * 예: 6,420,000 → "642만원", 9,000 → "₩9,000" (1만 미만은 원 단위 그대로)
- */
-function formatManwon(n: number): string {
-  if (n < 10000) {
-    return `₩${n.toLocaleString('ko-KR')}`;
-  }
-  const manwon = Math.round(n / 10000);
-  return `${manwon.toLocaleString('ko-KR')}만원`;
-}
 
 /** 정확한 원화 표시 (객단가 등 낮은 금액용) */
 function formatWon(n: number): string {
