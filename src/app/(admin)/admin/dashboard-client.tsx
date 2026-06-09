@@ -141,7 +141,7 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
               className="gap-3 cursor-pointer"
               onSelect={() => router.push('/admin/expenses?new=1')}
             >
-              <Wallet className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+              <Wallet className="h-4 w-4 text-brand shrink-0" aria-hidden="true" />
               <div>
                 <div className="font-medium text-sm">지출 등록</div>
                 <div className="text-xs text-muted-foreground">오늘 날짜로 바로 입력</div>
@@ -151,7 +151,7 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
               className="gap-3 cursor-pointer"
               onSelect={() => router.push('/admin/calendar?new=1')}
             >
-              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+              <CalendarDays className="h-4 w-4 text-brand shrink-0" aria-hidden="true" />
               <div>
                 <div className="font-medium text-sm">예약 등록</div>
                 <div className="text-xs text-muted-foreground">오늘 날짜로 바로 입력</div>
