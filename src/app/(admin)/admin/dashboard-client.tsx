@@ -33,9 +33,6 @@ import {getDashboardTodayData} from '@/lib/actions/dashboard';
 import type {LatestCommunityPost} from '@/lib/actions/community';
 import {formatCurrency, formatManwon, getTodayKST} from '@/lib/utils';
 import {SectionHeader} from '@/components/dashboard/section-header';
-import {SaleFormDialog} from '@/app/(admin)/admin/sales/components/SaleFormDialog';
-import {getSaleCategories, getPaymentMethods, getSaleChannels} from '@/lib/actions/sale-settings';
-import type {PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
 
 const PAGE_SIZE = 5;
@@ -62,13 +59,6 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
 
   // Community posts (from SSR)
   const communityPosts = initialCommunityPosts;
-
-  // Quick-add: Sales dialog (Option A — mount directly with today-prefilled date)
-  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
-  const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
-  const [salePayments, setSalePayments] = useState<PaymentMethod[]>([]);
-  const [saleChannels, setSaleChannels] = useState<SaleChannel[]>([]);
-  const [isSaleSettingsLoading, setIsSaleSettingsLoading] = useState(false);
 
   const statusMap = useMemo(() => new Map(RESERVATION_STATUS.map((s) => [s.value, s])), []);
 
@@ -109,32 +99,6 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
     fetchTodayData();
   }, []);
 
-  // 매출 등록 dialog 열기 — 설정(카테고리/결제방식/채널)을 첫 클릭 시 지연 로드
-  function handleOpenSaleDialog() {
-    if (saleCategories.length > 0) {
-      setSaleDialogOpen(true);
-      return;
-    }
-    setIsSaleSettingsLoading(true);
-    (async () => {
-      try {
-        const [cats, pays, chans] = await Promise.all([
-          getSaleCategories(),
-          getPaymentMethods(),
-          getSaleChannels(),
-        ]);
-        setSaleCategories(cats);
-        setSalePayments(pays);
-        setSaleChannels(chans);
-        setSaleDialogOpen(true);
-      } catch {
-        toast.error('설정을 불러오지 못했습니다');
-      } finally {
-        setIsSaleSettingsLoading(false);
-      }
-    })();
-  }
-
   const totalSales = monthSummary?.totalAmount ?? 0;
   const netProfit = totalSales - monthExpenseTotal;
 
@@ -157,7 +121,6 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
             <Button
               variant="default"
               className="gap-2 bg-brand hover:bg-brand/90 text-white shadow-sm"
-              disabled={isSaleSettingsLoading}
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
               빠른 등록
@@ -166,7 +129,7 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuItem
               className="gap-3 cursor-pointer"
-              onSelect={handleOpenSaleDialog}
+              onSelect={() => router.push('/admin/sales?new=1')}
             >
               <ReceiptText className="h-4 w-4 text-brand shrink-0" aria-hidden="true" />
               <div>
@@ -462,25 +425,6 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
         </CardContent>
       </Card>
 
-      {/* Quick-add: 매출 등록 Dialog (Option A — today-prefilled) */}
-      <SaleFormDialog
-        open={saleDialogOpen}
-        onOpenChange={setSaleDialogOpen}
-        sale={null}
-        categories={saleCategories}
-        payments={salePayments}
-        channels={saleChannels}
-        onSuccess={() => {
-          setSaleDialogOpen(false);
-          // 오늘 데이터 새로고침
-          getDashboardTodayData()
-            .then((data) => {
-              setTodaySummary(data.summary);
-              setReservations(data.reservations);
-            })
-            .catch(() => {});
-        }}
-      />
     </div>
   );
 }

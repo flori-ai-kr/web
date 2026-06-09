@@ -121,6 +121,19 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setChannels(chs);
   };
 
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setInitialCustomer(undefined);
+      setIsFormOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  // 마운트 시 1회만 실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
   useEffect(() => {
     const action = searchParams.get('action');
