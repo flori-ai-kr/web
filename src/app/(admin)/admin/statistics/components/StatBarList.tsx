@@ -31,14 +31,14 @@ export function StatBarList({ items, emptyMessage = '데이터가 없습니다' 
 
         return (
           <div key={idx} className="space-y-1.5" role="listitem">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-foreground font-semibold truncate">{item.label}</span>
-              <span className="text-xs text-muted-foreground ml-2 shrink-0 tabular-nums font-semibold">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-foreground truncate">{item.label}</span>
+              <span className="text-[13px] text-muted-foreground ml-2 shrink-0 tabular-nums">
                 {item.valueText}
               </span>
             </div>
             <div
-              className="h-2 bg-muted rounded-full overflow-hidden"
+              className="h-1.5 bg-muted rounded-full overflow-hidden"
               role="presentation"
               aria-hidden="true"
             >

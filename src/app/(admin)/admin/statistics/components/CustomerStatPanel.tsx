@@ -4,6 +4,7 @@ import type { CustomerStatistics } from '@/lib/actions/statistics';
 import { StatKpiCard } from './StatKpiCard';
 import { StatAreaChart } from './StatAreaChart';
 import { StatBarList } from './StatBarList';
+import { StatSectionHeader } from './StatSectionHeader';
 import type { DeltaTone } from './StatKpiCard';
 import { formatManwon } from '@/lib/utils';
 
@@ -87,6 +88,7 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       delta: undefined,
       deltaTone: 'neutral' as DeltaTone,
       sub: undefined,
+      highlight: true,
     },
     {
       label: '신규',
@@ -94,6 +96,7 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       delta: `${Math.abs(kpi.newDelta)}명`,
       deltaTone: countDeltaTone(kpi.newDelta),
       sub: undefined,
+      highlight: false,
     },
     {
       label: '재방문',
@@ -101,6 +104,7 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       delta: `${Math.abs(kpi.returningDelta)}명`,
       deltaTone: countDeltaTone(kpi.returningDelta),
       sub: undefined,
+      highlight: false,
     },
     {
       label: '재방문율',
@@ -108,6 +112,7 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       delta: undefined,
       deltaTone: 'neutral' as DeltaTone,
       sub: undefined,
+      highlight: false,
     },
   ];
 
@@ -136,23 +141,21 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       {/* KPI grid — 4 columns (2 on mobile) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpiCards.map((card) => (
-          <div key={card.label} className="rounded-xl bg-card border border-border overflow-hidden">
-            <StatKpiCard
-              label={card.label}
-              value={card.value}
-              delta={card.delta}
-              deltaTone={card.deltaTone}
-              sub={card.sub}
-            />
-          </div>
+          <StatKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            delta={card.delta}
+            deltaTone={card.deltaTone}
+            sub={card.sub}
+            highlight={card.highlight}
+          />
         ))}
       </div>
 
       {/* Full-width area chart — 신규 고객 추이 */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-          신규 고객 추이
-        </p>
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+        <StatSectionHeader title="신규 고객 추이" />
         <StatAreaChart
           data={chartData}
           type="area"
@@ -164,27 +167,25 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
       {/* stat grid — 2 columns (1 on mobile): TOP table left, distributions right */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.6fr_1fr]">
         {/* Left: TOP 고객 테이블 */}
-        <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-            TOP 고객 (구매액)
-          </p>
+        <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+          <StatSectionHeader title="TOP 고객 (구매액)" />
           {topCustomers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">데이터 없음</p>
           ) : (
             <div className="overflow-x-auto -mx-1">
-              <table className="w-full border-collapse text-sm" aria-label="TOP 고객 목록">
+              <table className="w-full border-collapse" aria-label="TOP 고객 목록">
                 <thead>
                   <tr>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-1.5 pb-2 border-b border-border">
+                    <th className="text-left text-xs text-muted-foreground px-1.5 pb-2 border-b border-border font-medium">
                       고객
                     </th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground px-1.5 pb-2 border-b border-border">
+                    <th className="text-left text-xs text-muted-foreground px-1.5 pb-2 border-b border-border font-medium">
                       등급
                     </th>
-                    <th className="text-right text-xs font-semibold text-muted-foreground px-1.5 pb-2 border-b border-border">
+                    <th className="text-right text-xs text-muted-foreground px-1.5 pb-2 border-b border-border font-medium">
                       구매
                     </th>
-                    <th className="text-right text-xs font-semibold text-muted-foreground px-1.5 pb-2 border-b border-border">
+                    <th className="text-right text-xs text-muted-foreground px-1.5 pb-2 border-b border-border font-medium">
                       누적액
                     </th>
                   </tr>
@@ -192,20 +193,20 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
                 <tbody>
                   {topCustomers.map((c, idx) => (
                     <tr key={c.customerId ?? `${c.name}-${idx}`}>
-                      <td className="px-1.5 py-2.5 border-b border-border font-medium text-foreground">
+                      <td className="px-1.5 py-2.5 border-b border-border text-[13px] text-foreground">
                         {c.name}
                       </td>
                       <td className="px-1.5 py-2.5 border-b border-border">
                         <span
-                          className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${gradePillCls(c.grade)}`}
+                          className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${gradePillCls(c.grade)}`}
                         >
                           {gradeKr(c.grade)}
                         </span>
                       </td>
-                      <td className="px-1.5 py-2.5 border-b border-border text-right tabular-nums text-muted-foreground font-semibold">
+                      <td className="px-1.5 py-2.5 border-b border-border text-right tabular-nums text-[13px] text-muted-foreground">
                         {c.purchaseCount}회
                       </td>
-                      <td className="px-1.5 py-2.5 border-b border-border text-right tabular-nums font-semibold text-foreground">
+                      <td className="px-1.5 py-2.5 border-b border-border text-right tabular-nums text-[13px] text-foreground">
                         {formatManwon(c.totalAmount)}
                       </td>
                     </tr>
@@ -217,17 +218,13 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
         </div>
 
         {/* Right: 등급 + 성별 분포 */}
-        <div className="rounded-xl bg-card border border-border p-4 sm:p-5 space-y-5">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-5">
           <div>
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-              등급 분포
-            </p>
+            <StatSectionHeader title="등급 분포" />
             <StatBarList items={gradeItems} emptyMessage="데이터 없음" />
           </div>
           <div>
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-              성별
-            </p>
+            <StatSectionHeader title="성별" />
             <StatBarList items={genderItems} emptyMessage="데이터 없음" />
           </div>
         </div>

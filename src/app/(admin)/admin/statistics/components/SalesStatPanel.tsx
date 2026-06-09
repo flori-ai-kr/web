@@ -5,6 +5,7 @@ import { StatKpiCard } from './StatKpiCard';
 import { StatBarList } from './StatBarList';
 import { StatAreaChart } from './StatAreaChart';
 import { StatDonut } from './StatDonut';
+import { StatSectionHeader } from './StatSectionHeader';
 import type { DeltaTone } from './StatKpiCard';
 import { formatManwon } from '@/lib/utils';
 
@@ -59,24 +60,28 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
       value: formatManwon(kpi.totalAmount),
       delta: pctDeltaText(kpi.totalAmountDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalAmountDeltaPct),
+      highlight: true,
     },
     {
       label: '매출 건수',
       value: `${kpi.count.toLocaleString('ko-KR')}건`,
       delta: countDeltaText(kpi.countDelta),
       deltaTone: countDeltaTone(kpi.countDelta),
+      highlight: false,
     },
     {
       label: '평균 객단가',
       value: formatWon(kpi.avgOrderValue),
       delta: pctDeltaText(kpi.avgOrderValueDeltaPct),
       deltaTone: pctDeltaTone(kpi.avgOrderValueDeltaPct),
+      highlight: false,
     },
     {
       label: '미수 잔액',
       value: formatManwon(kpi.unpaidBalance),
       sub: `${kpi.unpaidCount}건 미정산`,
       deltaTone: 'neutral' as DeltaTone,
+      highlight: false,
     },
   ];
 
@@ -107,23 +112,21 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
       {/* KPI grid — 4 columns (2 on mobile) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpiCards.map((card) => (
-          <div key={card.label} className="rounded-xl bg-card border border-border overflow-hidden">
-            <StatKpiCard
-              label={card.label}
-              value={card.value}
-              delta={card.delta}
-              deltaTone={card.deltaTone}
-              sub={card.sub}
-            />
-          </div>
+          <StatKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            delta={card.delta}
+            deltaTone={card.deltaTone}
+            sub={card.sub}
+            highlight={card.highlight}
+          />
         ))}
       </div>
 
       {/* Full-width area chart */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-          일별 매출 추이
-        </p>
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+        <StatSectionHeader title="일별 매출 추이" />
         <StatAreaChart
           data={chartData}
           type="area"
@@ -135,10 +138,8 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
       {/* Stat grid — category barlist | payment donut + channel barlist */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Left: category distribution */}
-        <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-            카테고리별 매출
-          </p>
+        <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+          <StatSectionHeader title="카테고리별 매출" />
           <StatBarList
             items={categoryItems}
             emptyMessage="카테고리 데이터가 없습니다"
@@ -147,17 +148,13 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
 
         {/* Right: payment donut + channel barlist */}
         <div className="space-y-3">
-          <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-              결제방식
-            </p>
+          <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+            <StatSectionHeader title="결제방식" />
             <StatDonut items={paymentItems} />
           </div>
 
-          <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-              예약 채널
-            </p>
+          <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+            <StatSectionHeader title="예약 채널" />
             <StatBarList
               items={channelItems}
               emptyMessage="채널 데이터가 없습니다"

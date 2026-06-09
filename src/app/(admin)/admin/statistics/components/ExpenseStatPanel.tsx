@@ -4,6 +4,7 @@ import type { ExpensesStatistics } from '@/lib/actions/statistics';
 import { StatKpiCard } from './StatKpiCard';
 import { StatAreaChart } from './StatAreaChart';
 import { StatDonut } from './StatDonut';
+import { StatSectionHeader } from './StatSectionHeader';
 import type { DeltaTone } from './StatKpiCard';
 import { formatManwon } from '@/lib/utils';
 
@@ -51,23 +52,27 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
       value: formatManwon(kpi.totalAmount),
       delta: pctDeltaText(kpi.totalAmountDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalAmountDeltaPct),
+      highlight: true,
     },
     {
       label: '지출 건수',
       value: `${kpi.count.toLocaleString('ko-KR')}건`,
       delta: countDeltaText(kpi.countDelta),
       deltaTone: countDeltaTone(kpi.countDelta),
+      highlight: false,
     },
     {
       label: '매출 대비',
       value: `${kpi.expenseRatioPct}%`,
       deltaTone: 'neutral' as DeltaTone,
+      highlight: false,
     },
     {
       label: '순이익',
       value: formatManwon(kpi.netProfit),
       delta: pctDeltaText(kpi.netProfitDeltaPct),
       deltaTone: pctDeltaTone(kpi.netProfitDeltaPct),
+      highlight: false,
     },
   ];
 
@@ -87,24 +92,25 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
       {/* KPI grid — 4 columns (2 on mobile) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpiCards.map((card) => (
-          <div key={card.label} className="rounded-xl bg-card border border-border overflow-hidden">
-            <StatKpiCard
-              label={card.label}
-              value={card.value}
-              delta={card.delta}
-              deltaTone={card.deltaTone}
-            />
-          </div>
+          <StatKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            delta={card.delta}
+            deltaTone={card.deltaTone}
+            highlight={card.highlight}
+          />
         ))}
       </div>
 
       {/* Full-width dual area chart: 지출 + 순이익 */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-[13px] font-semibold text-foreground whitespace-nowrap">
             일별 지출 · 순이익 추이
-          </p>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold">
+          </h2>
+          <div className="h-px flex-1 bg-border" />
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span
                 className="w-2.5 h-2 rounded-sm shrink-0"
@@ -142,10 +148,8 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
       </div>
 
       {/* Category donut — max-width ~520px per mockup */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5 max-w-[520px]">
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-          지출 카테고리
-        </p>
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4 max-w-[520px]">
+        <StatSectionHeader title="지출 카테고리" />
         {categoryItems.length === 0 ? (
           <div
             className="flex items-center justify-center text-sm text-muted-foreground py-8"

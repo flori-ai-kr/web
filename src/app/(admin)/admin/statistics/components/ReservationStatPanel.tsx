@@ -4,6 +4,7 @@ import type { ReservationStatistics } from '@/lib/actions/statistics';
 import { StatKpiCard } from './StatKpiCard';
 import { StatAreaChart } from './StatAreaChart';
 import { StatBarList } from './StatBarList';
+import { StatSectionHeader } from './StatSectionHeader';
 import { ReservationHeatmap } from './ReservationHeatmap';
 import type { DeltaTone } from './StatKpiCard';
 
@@ -78,6 +79,7 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       delta: pctDeltaText(kpi.totalDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalDeltaPct),
       sub: undefined,
+      highlight: true,
     },
     {
       label: '일평균',
@@ -85,6 +87,7 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       delta: undefined,
       deltaTone: 'neutral' as DeltaTone,
       sub: undefined,
+      highlight: false,
     },
     {
       label: '가장 바쁜 요일',
@@ -92,6 +95,7 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       delta: undefined,
       deltaTone: 'neutral' as DeltaTone,
       sub: busiestDowSub,
+      highlight: false,
     },
     {
       label: '피크 시간대',
@@ -99,6 +103,7 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       delta: undefined,
       deltaTone: 'neutral' as DeltaTone,
       sub: peakHourSub,
+      highlight: false,
     },
   ];
 
@@ -129,23 +134,21 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       {/* KPI grid — 4 columns (2 on mobile) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpiCards.map((card) => (
-          <div key={card.label} className="rounded-xl bg-card border border-border overflow-hidden">
-            <StatKpiCard
-              label={card.label}
-              value={card.value}
-              delta={card.delta}
-              deltaTone={card.deltaTone}
-              sub={card.sub}
-            />
-          </div>
+          <StatKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            delta={card.delta}
+            deltaTone={card.deltaTone}
+            sub={card.sub}
+            highlight={card.highlight}
+          />
         ))}
       </div>
 
       {/* Full-width area chart */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-          일자별 예약 건수
-        </p>
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+        <StatSectionHeader title="일자별 예약 건수" />
         <StatAreaChart
           data={chartData}
           type="area"
@@ -155,12 +158,10 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       </div>
 
       {/* Full-width heatmap */}
-      <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-        <div className="mb-3">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            요일 × 시간대 히트맵
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+      <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+        <div className="mb-2">
+          <StatSectionHeader title="요일 × 시간대 히트맵" />
+          <p className="text-[11px] text-muted-foreground -mt-1">
             색이 진할수록 그 시간대에 예약이 몰린 것
           </p>
         </div>
@@ -170,10 +171,8 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
       {/* Distribution stat grid — 2 columns */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {/* Left: DOW distribution */}
-        <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-            요일별 예약
-          </p>
+        <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+          <StatSectionHeader title="요일별 예약" />
           <StatBarList
             items={dowItems}
             emptyMessage="데이터 없음"
@@ -181,10 +180,8 @@ export function ReservationStatPanel({ data }: ReservationStatPanelProps) {
         </div>
 
         {/* Right: Hour distribution */}
-        <div className="rounded-xl bg-card border border-border p-4 sm:p-5">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase mb-3">
-            시간대별 예약
-          </p>
+        <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+          <StatSectionHeader title="시간대별 예약" />
           <StatBarList
             items={hourItems}
             emptyMessage="데이터 없음"

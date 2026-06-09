@@ -71,15 +71,13 @@ export function StatDonut({ items, centerLabel }: StatDonutProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* Center label — overlaid via absolute is tricky with ResponsiveContainer,
-          so we render a separate centered label below the chart on mobile,
-          and use CSS grid overlap on wider viewports */}
+      {/* Legend */}
       <div className="flex flex-col gap-2 flex-1 min-w-0" role="list">
         {items.map((item, idx) => {
           const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
           return (
-            <div key={idx} className="flex items-center justify-between text-sm" role="listitem">
-              <span className="flex items-center gap-2 text-muted-foreground font-semibold min-w-0 truncate">
+            <div key={idx} className="flex items-center justify-between text-[13px]" role="listitem">
+              <span className="flex items-center gap-2 text-foreground min-w-0 truncate">
                 <span
                   className="w-2.5 h-2.5 rounded-sm shrink-0"
                   style={{ backgroundColor: item.color }}
@@ -87,7 +85,7 @@ export function StatDonut({ items, centerLabel }: StatDonutProps) {
                 />
                 {item.label}
               </span>
-              <span className="font-bold tabular-nums ml-2 shrink-0">{pct}%</span>
+              <span className="text-muted-foreground tabular-nums ml-2 shrink-0">{pct}%</span>
             </div>
           );
         })}
