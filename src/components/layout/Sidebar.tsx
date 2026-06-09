@@ -4,6 +4,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import {usePathname} from 'next/navigation';
 import {
+    BarChart3,
     CalendarDays,
     ChevronsLeft,
     ChevronsRight,
@@ -39,6 +40,7 @@ const navSections: NavSection[] = [
       { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
       { href: '/admin/sales', icon: Receipt, label: '매출' },
       { href: '/admin/expenses', icon: Wallet, label: '지출' },
+      { href: '/admin/statistics', icon: BarChart3, label: '통계' },
     ],
   },
   {
