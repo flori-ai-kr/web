@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
@@ -20,6 +20,8 @@ import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-optio
 import { checkNickname, completeRegistration } from './actions'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** 온보딩 입력 임시저장 키(sessionStorage). 정책 페이지 이동·새로고침·뒤로가기 시 입력값 보존. */
+const DRAFT_KEY = 'flori_onboarding_draft'
 const PHONE_REGEX = /^01\d{8,9}$/
 /** 숫자만 추출해 010-XXXX-XXXX 형태로 포맷. */
 function formatPhone(value: string): string {
@@ -100,6 +102,57 @@ export function OnboardingForm({
   // 전화번호가 입력됐지만 형식이 틀린 경우(빈 값은 에러 표시 안 함).
   const phoneInvalid = phone.length > 0 && !PHONE_REGEX.test(phone.replace(/\D/g, ''))
 
+  // sessionStorage 임시저장 복원/유지. 복원 완료 전에는 저장하지 않는다(빈 기본값으로 덮어쓰기 방지).
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY)
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown>
+        if (typeof d.name === 'string') setName(d.name)
+        if (typeof d.phone === 'string') setPhone(d.phone)
+        if (typeof d.nickname === 'string') setNickname(d.nickname)
+        if (typeof d.email === 'string') setEmail(d.email)
+        if (typeof d.regionSido === 'string') setRegionSido(d.regionSido)
+        if (typeof d.regionSigungu === 'string') setRegionSigungu(d.regionSigungu)
+        if (typeof d.ownerAgeRange === 'string' || d.ownerAgeRange === null) {
+          setOwnerAgeRange(d.ownerAgeRange as string | null)
+        }
+        if (Array.isArray(d.interests)) setInterests(d.interests.filter((v): v is string => typeof v === 'string'))
+        if (Array.isArray(d.specialties)) {
+          setSpecialties(d.specialties.filter((v): v is string => typeof v === 'string'))
+        }
+        // 닉네임은 값만 복원하고 중복확인 상태(nicknameStatus)는 idle 유지 → 사용자가 다시 확인하게 한다.
+      }
+    } catch {
+      // 손상된 draft는 무시
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          name,
+          phone,
+          nickname,
+          email,
+          regionSido,
+          regionSigungu,
+          ownerAgeRange,
+          interests,
+          specialties,
+        }),
+      )
+    } catch {
+      // 저장 실패(용량/프라이버시 모드)는 무시 — 캐싱은 best-effort
+    }
+  }, [hydrated, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties])
+
   const step1Valid =
     name.trim().length > 0 &&
     PHONE_REGEX.test(phone.replace(/\D/g, '')) &&
@@ -167,8 +220,15 @@ export function OnboardingForm({
       specialties,
     })
 
-    // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다.
-    if (!result) return
+    // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다. 임시저장 정리(베스트에포트).
+    if (!result) {
+      try {
+        sessionStorage.removeItem(DRAFT_KEY)
+      } catch {
+        // noop
+      }
+      return
+    }
 
     setIsLoading(false)
 
@@ -207,6 +267,8 @@ export function OnboardingForm({
           입력 정보는 맞춤 추천에 사용돼요.{' '}
           <Link
             href="/policy/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
             className="underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           >
             개인정보 처리방침
