@@ -39,13 +39,12 @@ const PAGE_SIZE = 5;
 
 interface Props {
   greeting: string;
-  quote: string;
   initialToday?: DashboardTodayData;
   initialMonth?: DashboardMonthData;
   initialCommunityPosts: LatestCommunityPost[];
 }
 
-export function DashboardClient({greeting, quote, initialToday, initialMonth, initialCommunityPosts}: Props) {
+export function DashboardClient({greeting, initialToday, initialMonth, initialCommunityPosts}: Props) {
   const now = new Date();
   const router = useRouter();
 
@@ -109,14 +108,11 @@ export function DashboardClient({greeting, quote, initialToday, initialMonth, in
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-sans text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="font-sans text-base sm:text-lg font-medium text-foreground/80 tracking-tight">
             {greeting}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(now, 'yyyy년 M월 d일 (EEEE)', {locale: ko})}
-          </p>
-          <p className="text-sm text-brand/90 mt-2">
-            {quote}
           </p>
         </div>
 
