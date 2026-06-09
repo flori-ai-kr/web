@@ -110,7 +110,7 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-sans text-base sm:text-lg font-medium text-foreground/80 tracking-tight">
+          <h1 className="font-sans text-base sm:text-lg font-semibold text-foreground tracking-tight">
             {greeting}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -163,6 +163,77 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* 이번 달 요약 — 4 KPI 카드 (full width) */}
+      <section aria-label="이번 달 요약">
+        <div className="flex items-center justify-between mb-3 px-0.5">
+          <span className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
+            <TrendingUp className="h-4 w-4 text-brand" aria-hidden="true" />
+            이번 달 요약
+            <span className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})}</span>
+          </span>
+          <Link
+            href="/admin/statistics"
+            className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
+          >
+            통계 보기 <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {!initialMonth ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-[92px] rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 오늘 매출 */}
+            <div
+              className="rounded-2xl border border-border p-4"
+              style={{background: 'linear-gradient(160deg, var(--card), var(--brand-muted))'}}
+            >
+              <p className="text-xs font-semibold text-muted-foreground">오늘 매출</p>
+              <p className="text-2xl font-bold text-brand tabular-nums mt-1.5">
+                {formatCurrency(todaySummary?.totalAmount ?? 0)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{format(now, 'M월 d일', {locale: ko})}</p>
+            </div>
+
+            {/* N월 매출 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span className="absolute left-0 inset-y-0 w-1 bg-brand" aria-hidden="true" />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 매출</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(totalSales)}</p>
+              <p className="text-xs text-muted-foreground mt-1">이번 달 누적</p>
+            </div>
+
+            {/* N월 지출 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span className="absolute left-0 inset-y-0 w-1 bg-muted-foreground/40" aria-hidden="true" />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 지출</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(monthExpenseTotal)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalSales > 0 ? `매출의 ${expenseRatio}%` : '이번 달 누적'}
+              </p>
+            </div>
+
+            {/* N월 순이익 */}
+            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
+              <span
+                className={`absolute left-0 inset-y-0 w-1 ${netProfit >= 0 ? 'bg-brand' : 'bg-danger'}`}
+                aria-hidden="true"
+              />
+              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 순이익</p>
+              <p
+                className={`text-2xl font-bold tabular-nums mt-1.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
+              >
+                {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* flori AI 오늘의 브리핑 (개발 중 — 잠금 미리보기) */}
       <AiBriefingCard />
@@ -339,77 +410,6 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
         </Card>
       </div>
-
-      {/* 이번 달 요약 — 4 KPI 카드 (full width) */}
-      <section aria-label="이번 달 요약">
-        <div className="flex items-center justify-between mb-3 px-0.5">
-          <span className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
-            <TrendingUp className="h-4 w-4 text-brand" aria-hidden="true" />
-            이번 달 요약
-            <span className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})}</span>
-          </span>
-          <Link
-            href="/admin/statistics"
-            className="text-xs text-muted-foreground hover:text-brand flex items-center gap-1 transition-colors"
-          >
-            통계 보기 <ArrowUpRight className="w-3 h-3" />
-          </Link>
-        </div>
-
-        {!initialMonth ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-[92px] rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* 오늘 매출 */}
-            <div
-              className="rounded-2xl border border-border p-4"
-              style={{background: 'linear-gradient(160deg, var(--card), var(--brand-muted))'}}
-            >
-              <p className="text-xs font-semibold text-muted-foreground">오늘 매출</p>
-              <p className="text-2xl font-bold text-brand tabular-nums mt-1.5">
-                {formatCurrency(todaySummary?.totalAmount ?? 0)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">{format(now, 'M월 d일', {locale: ko})}</p>
-            </div>
-
-            {/* N월 매출 */}
-            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
-              <span className="absolute left-0 inset-y-0 w-1 bg-brand" aria-hidden="true" />
-              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 매출</p>
-              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(totalSales)}</p>
-              <p className="text-xs text-muted-foreground mt-1">이번 달 누적</p>
-            </div>
-
-            {/* N월 지출 */}
-            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
-              <span className="absolute left-0 inset-y-0 w-1 bg-muted-foreground/40" aria-hidden="true" />
-              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 지출</p>
-              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(monthExpenseTotal)}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalSales > 0 ? `매출의 ${expenseRatio}%` : '이번 달 누적'}
-              </p>
-            </div>
-
-            {/* N월 순이익 */}
-            <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
-              <span
-                className={`absolute left-0 inset-y-0 w-1 ${netProfit >= 0 ? 'bg-brand' : 'bg-danger'}`}
-                aria-hidden="true"
-              />
-              <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 순이익</p>
-              <p
-                className={`text-2xl font-bold tabular-nums mt-1.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
-              >
-                {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
 
     </div>
   );
