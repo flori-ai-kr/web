@@ -642,10 +642,10 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="space-y-3">
-        {/* 드롭다운 — 모바일에서도 한 줄(넘치면 가로 스크롤) */}
-        <div className="flex items-center gap-2 overflow-x-auto">
+      {/* Filters — 데탑: 한 줄(드롭다운 + 검색 flex-1) / 모바일: 드롭다운 줄 + 검색 줄 */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* 드롭다운 — 한 줄(넘치면 가로 스크롤) */}
+        <div className="flex items-center gap-2 overflow-x-auto shrink-0">
           <FilterSelect
             label="등급"
             value={gradeFilter}
@@ -682,8 +682,8 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             onChange={(v) => setSortBy(v as SortBy)}
           />
         </div>
-        {/* 검색 + 초기화 */}
-        <div className="flex items-center gap-2">
+        {/* 검색 + 초기화 — 데탑에선 남는 폭 채움 */}
+        <div className="flex items-center gap-2 sm:flex-1 min-w-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
