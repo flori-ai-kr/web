@@ -4,7 +4,7 @@ import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
-import {Lock, Pencil, Trash2} from 'lucide-react';
+import {FileText, Lock, Pencil, Trash2} from 'lucide-react';
 import {format} from 'date-fns';
 import {formatCurrency} from '@/lib/utils';
 import type {Customer} from '@/types/database';
@@ -108,9 +108,10 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
 
         {/* Note preview */}
         {customer.memo && (
-          <p className="text-xs text-muted-foreground mt-2 truncate" title={customer.memo}>
-            {customer.memo}
-          </p>
+          <div className="flex items-start gap-1.5 mt-2" title={customer.memo}>
+            <FileText className="w-3 h-3 shrink-0 text-brand/85 mt-0.5" aria-hidden />
+            <span className="text-xs text-foreground/80 truncate">{customer.memo}</span>
+          </div>
         )}
 
         {/* Connected photos */}
