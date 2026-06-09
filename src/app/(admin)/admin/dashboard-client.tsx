@@ -38,12 +38,14 @@ import {CommunityCategoryBadge} from '@/components/community/category-badge';
 const PAGE_SIZE = 5;
 
 interface Props {
+  greeting: string;
+  quote: string;
   initialToday?: DashboardTodayData;
   initialMonth?: DashboardMonthData;
   initialCommunityPosts: LatestCommunityPost[];
 }
 
-export function DashboardClient({initialToday, initialMonth, initialCommunityPosts}: Props) {
+export function DashboardClient({greeting, quote, initialToday, initialMonth, initialCommunityPosts}: Props) {
   const now = new Date();
   const router = useRouter();
 
@@ -106,12 +108,15 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="font-sans text-xl font-semibold text-foreground tracking-tight">
-            안녕하세요
+        <div className="min-w-0">
+          <h1 className="font-sans text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+            {greeting}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {format(now, 'yyyy년 M월 d일 (EEEE)', {locale: ko})}
+          </p>
+          <p className="text-sm text-brand/90 mt-2">
+            {quote}
           </p>
         </div>
 
@@ -164,24 +169,24 @@ export function DashboardClient({initialToday, initialMonth, initialCommunityPos
       {/* 오늘 매출 Hero KPI */}
       {isTodayLoading ? (
         <Card>
-          <CardContent className="p-5 flex items-center gap-4">
+          <CardContent className="p-4 flex items-center gap-4">
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-10 w-36" />
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-7 w-32" />
               <Skeleton className="h-3 w-24" />
             </div>
-            <Skeleton className="w-1 h-16 rounded-full" />
+            <Skeleton className="w-1 h-12 rounded-full" />
           </CardContent>
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <CardContent className="p-5 flex items-center justify-between gap-4">
+          <CardContent className="p-4 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-muted-foreground">오늘 매출</p>
-              <p className="text-4xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">오늘 매출</p>
+              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
                 {formatCurrency(todaySummary?.totalAmount ?? 0)}
               </p>
-              <p className="text-sm text-muted-foreground mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1">
                 {todaySummary?.totalAmount
                   ? `카드 ${formatCurrency(todaySummary.cardAmount ?? 0)} · 현금 ${formatCurrency(todaySummary.cashAmount ?? 0)}`
                   : '오늘 등록된 매출이 없습니다'}

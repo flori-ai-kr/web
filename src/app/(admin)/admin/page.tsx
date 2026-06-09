@@ -2,6 +2,8 @@ import {DashboardClient} from './dashboard-client';
 import {getDashboardTodayData, getDashboardMonthData, type DashboardTodayData, type DashboardMonthData} from '@/lib/actions/dashboard';
 import {getLatestCommunityPosts, type LatestCommunityPost} from '@/lib/actions/community';
 import {getCurrentMonthKST} from '@/lib/utils';
+import {requireAuth} from '@/lib/auth-guard';
+import {getDashboardGreeting} from '@/lib/greeting';
 
 export default async function DashboardPage() {
   // 오늘 데이터는 서버에서 미리 채워 첫 페인트에 바로 보이게 한다(빈 스켈레톤 → 즉시 표시, LCP 개선).
@@ -11,6 +13,10 @@ export default async function DashboardPage() {
   let initialCommunityPosts: LatestCommunityPost[] = [];
 
   const currentMonth = getCurrentMonthKST();
+
+  // 인사말은 닉네임(없으면 이름) 기준 + KST 시간대로 서버에서 계산해 하이드레이션 불일치를 피한다.
+  const user = await requireAuth();
+  const {greeting, quote} = getDashboardGreeting(user.nickname?.trim() || user.name);
 
   try {
     initialToday = await getDashboardTodayData();
@@ -52,6 +58,8 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
+      greeting={greeting}
+      quote={quote}
       initialToday={initialToday}
       initialMonth={initialMonth}
       initialCommunityPosts={initialCommunityPosts}
