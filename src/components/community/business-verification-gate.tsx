@@ -36,10 +36,10 @@ export function BusinessVerificationGate({ initial }: { initial: BusinessVerific
               <Clock className="w-6 h-6 text-brand" />
             </div>
             <h1 className="text-lg font-semibold text-foreground">검토 중입니다</h1>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              제출하신 사업자 인증을 담당자가 확인하고 있어요.
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed break-keep">
+              제출하신 사업자 인증을 확인하고 있어요.
               <br />
-              수일 내로 결과를 알려드릴게요.
+              빠른 시일 내에 결과를 알려드릴게요.
             </p>
             <Button variant="outline" className="mt-6" onClick={() => router.push('/admin')}>
               대시보드로
@@ -221,7 +221,7 @@ function VerificationForm({
           />
         </div>
 
-        <p className="text-xs text-muted-foreground">* 담당자가 수일 내로 확인 후 권한을 부여해드려요.</p>
+        <p className="text-xs text-muted-foreground">* 담당자가 빠른 시일 내에 확인 후 권한을 부여해드려요.</p>
 
         <div className="flex items-center justify-end gap-2 border-t border-border -mx-5 px-5 pt-4">
           <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
