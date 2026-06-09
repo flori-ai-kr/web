@@ -23,7 +23,6 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  tourKey?: string;
 }
 
 interface NavSection {
@@ -31,28 +30,28 @@ interface NavSection {
   items: NavItem[];
 }
 
-const dashboardItem: NavItem = { href: '/admin', icon: LayoutDashboard, label: '대시보드', tourKey: 'dashboard' };
+const dashboardItem: NavItem = { href: '/admin', icon: LayoutDashboard, label: '대시보드' };
 
 const navSections: NavSection[] = [
   {
     title: '매장 운영',
     items: [
-      { href: '/admin/calendar', icon: CalendarDays, label: '캘린더', tourKey: 'calendar' },
-      { href: '/admin/sales', icon: Receipt, label: '매출', tourKey: 'sales' },
-      { href: '/admin/expenses', icon: Wallet, label: '지출', tourKey: 'expenses' },
+      { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
+      { href: '/admin/sales', icon: Receipt, label: '매출' },
+      { href: '/admin/expenses', icon: Wallet, label: '지출' },
     ],
   },
   {
     title: '고객 기록',
     items: [
-      { href: '/admin/customers', icon: Users, label: '고객', tourKey: 'customers' },
-      { href: '/admin/gallery', icon: Image, label: '사진첩', tourKey: 'gallery' },
+      { href: '/admin/customers', icon: Users, label: '고객' },
+      { href: '/admin/gallery', icon: Image, label: '사진첩' },
     ],
   },
   {
     title: '소통',
     items: [
-      { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티', tourKey: 'community' },
+      { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티' },
     ],
   },
 ];
@@ -71,19 +70,16 @@ function NavLink({
   label,
   isActive,
   isCollapsed,
-  tourKey,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   isActive: boolean;
   isCollapsed: boolean;
-  tourKey?: string;
 }) {
   const link = (
     <Link
       href={href}
-      data-tour={tourKey ? `nav-${tourKey}` : undefined}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
         'relative flex items-center gap-3 min-h-[44px] rounded-lg text-[13px] font-medium transition-colors',
@@ -157,7 +153,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
                 label={dashboardItem.label}
                 isActive={bestMatchHref === dashboardItem.href}
                 isCollapsed={isCollapsed}
-                tourKey={dashboardItem.tourKey}
               />
             </div>
 
@@ -187,7 +182,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
                         label={item.label}
                         isActive={isActive}
                         isCollapsed={isCollapsed}
-                        tourKey={item.tourKey}
                       />
                     );
                   })}

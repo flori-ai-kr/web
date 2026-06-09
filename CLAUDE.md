@@ -27,7 +27,6 @@
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
 | Charts | recharts (운영 콘솔 통계 추이) |
-| Tour | driver.js (인앱 제품 투어 — 첫 진입 시 자동 실행) |
 | Test | Vitest, fast-check, Testing Library |
 | Deploy | Vercel (Cron 포함) |
 | Error Logging | Discord 웹훅 |
@@ -88,8 +87,7 @@ src/
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응, date-picker.tsx 공용 날짜 선택기 — 네이티브 `<input type="date">` 전면 대체)
-├── components/layout/    # AppLayout(skip-link 포함, TourLauncher 마운트), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
-├── components/tour/      # 인앱 제품 투어 — tour-launcher.tsx (driver.js 기반, 첫 /admin 진입 시 자동 시작, data-tour 앵커 사용)
+├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
 ├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card, admin-badge 등)
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
@@ -192,14 +190,13 @@ src/
 | 용도 | 위치 |
 |------|------|
 | 에러/로깅 | `lib/errors.ts` (AppError, withErrorLogging), `lib/logger.ts` (Discord) |
-| 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트). `AuthUser.profile`에 `tourCompleted` 포함 |
+| 인증 가드 | `lib/auth-guard.ts` (requireAuth — /me + 온보딩 게이트) |
 | 운영자 콘솔 가드 | `lib/admin-guard.ts` (requireAdmin — `/admin/me` is_admin 재검증), 액션 `lib/actions/admin-*.ts` |
 | BFF 클라이언트 | `lib/api/client.ts`, `lib/api/auth-cookies.ts` |
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
 | 프로필 관리 | `lib/actions/profile.ts` (프로필 CRUD + 아바타 업로드 + 탈퇴) |
 | 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
 | 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions + `ensureCommunityAccess()` 커뮤니티 게이트) |
-| 인앱 투어 | `components/tour/tour-launcher.tsx` (driver.js, AppLayout 마운트), `lib/actions/tour.ts` (`completeTour()` → BFF `POST /me/tour/complete`) |
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |
 | 푸시 브로드캐스트 | `lib/push-broadcast.ts` |
 | 환경변수 검증 | `lib/env.ts` |

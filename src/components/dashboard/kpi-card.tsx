@@ -43,12 +43,9 @@ export function KpiCard({
  * Connected KPI container — single bordered, rounded surface with vertical
  * hairline dividers between cells, exactly like the mockup `.kpis` block.
  */
-export function KpiGroup({children, ...rest}: {children: ReactNode} & React.HTMLAttributes<HTMLDivElement>) {
+export function KpiGroup({children}: {children: ReactNode}) {
   return (
-    <div
-      className="grid grid-cols-2 md:grid-cols-4 overflow-hidden rounded-xl border border-border bg-card [&>*]:border-border [&>*:not(:last-child)]:border-r [&>*:nth-child(-n+2)]:border-b md:[&>*:nth-child(-n+2)]:border-b-0 md:[&>*:nth-child(2)]:border-r [&>*:nth-child(2)]:border-r-0"
-      {...rest}
-    >
+    <div className="grid grid-cols-2 md:grid-cols-4 overflow-hidden rounded-xl border border-border bg-card [&>*]:border-border [&>*:not(:last-child)]:border-r [&>*:nth-child(-n+2)]:border-b md:[&>*:nth-child(-n+2)]:border-b-0 md:[&>*:nth-child(2)]:border-r [&>*:nth-child(2)]:border-r-0">
       {children}
     </div>
   );

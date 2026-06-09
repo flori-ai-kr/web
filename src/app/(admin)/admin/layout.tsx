@@ -19,7 +19,7 @@ export default async function DashboardLayout({
   // 두 조회는 독립적이므로 병렬화(워터폴 제거).
   const [user, prefs] = await Promise.all([requireAuth(), getUserPreferences()]);
   return (
-    <AppLayout userEmail={user.email || ''} userName={user.nickname || user.name || ''} userImage={user.profile?.profileImageUrl ?? undefined} bottomNavItems={prefs.bottom_nav_items} tourCompleted={user.profile?.tourCompleted ?? false}>
+    <AppLayout userEmail={user.email || ''} userName={user.nickname || user.name || ''} userImage={user.profile?.profileImageUrl ?? undefined} bottomNavItems={prefs.bottom_nav_items}>
       {children}
       {/* [AI 기능 비활성화] 전역 flori AI 채팅 드로어 (플로팅 진입)
       <AiChatLauncher /> */}

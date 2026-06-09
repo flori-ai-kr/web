@@ -658,7 +658,6 @@ erDiagram
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 운영자 패스) — 에러코드 E-VRF-001..004 |
-| `tour.ts` | completeTour() → BFF `POST /me/tour/complete` (투어 완료 플래그 저장) |
 
 ## 타입 시스템
 
@@ -850,6 +849,5 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | sonner | ^2.0.7 | 토스트 알림 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
 | @dnd-kit/sortable | ^10.x | BottomNav 아이템 드래그 정렬 (설정 화면) |
-| driver.js | ^1.4.0 | 인앱 제품 투어 (첫 진입 자동 실행, data-tour 앵커) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |
