@@ -406,6 +406,207 @@
   }
 }
 
+/* ─── 랜딩 페이지 컴포넌트 (.site-public 스코프) ───────────
+   시안: docs/superpowers/specs/26-06-09-landing-mockup.html
+   팔레트 변수 매핑:
+     --rose      → --site-accent
+     --rose-deep → --site-accent-deep
+     --rose-soft → --site-accent-soft
+     --bg        → --site-paper
+     --card      → --site-paper-soft
+     --ink       → --site-ink
+     --muted     → --site-ink-soft
+     --faint     → --site-muted
+     --line      → --site-line
+     --slate     → --site-slate
+     --accent2   → #F3F1ED (light neutral)
+   ──────────────────────────────────────────────────────── */
+
+.site-public .wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 40px);
+}
+
+.site-public .eyebrow {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--site-muted);
+  font-weight: 700;
+}
+
+.site-public .btn-rose {
+  background: var(--site-accent);
+  color: #fff;
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .15s;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+.site-public .btn-rose:hover {
+  background: var(--site-accent-deep);
+}
+
+.site-public .btn-ghost {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  color: var(--site-ink);
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.site-public .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-accent-deep);
+  background: var(--site-accent-soft);
+  border-radius: 999px;
+  padding: 7px 15px;
+}
+
+.site-public .card {
+  background: var(--site-paper-soft);
+  border: 1px solid var(--site-line);
+  border-radius: 18px;
+}
+
+/* Asset placeholder */
+.site-public .ph {
+  border: 1.5px dashed #C9A3B4;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    135deg,
+    #FBEFF3,
+    #FBEFF3 12px,
+    #F7E6ED 12px,
+    #F7E6ED 24px
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #9A5E76;
+  text-align: center;
+  padding: 24px;
+}
+.site-public .ph b {
+  font-size: 13px;
+  font-weight: 700;
+}
+.site-public .ph span {
+  font-size: 11px;
+  color: #B07E92;
+}
+.site-public .ph .ico {
+  font-size: 26px;
+}
+
+/* Browser chrome */
+.site-public .browser {
+  border: 1px solid var(--site-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 30px 70px -34px rgba(28,32,36,.40);
+}
+.site-public .browser .bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  background: #F6F8FA;
+  border-bottom: 1px solid var(--site-line);
+}
+.site-public .browser .d {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+/* FAQ details/summary */
+.site-public details {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  padding: 0 20px;
+  transition: box-shadow .15s, border-color .15s;
+}
+.site-public details[open] {
+  border-color: #EAD3DD;
+  box-shadow: 0 8px 24px -16px rgba(168,84,117,.35);
+}
+.site-public details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 20px 0;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.site-public details > summary::-webkit-details-marker {
+  display: none;
+}
+.site-public details > summary::after {
+  content: "+";
+  color: var(--site-accent);
+  font-size: 24px;
+  font-weight: 300;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.site-public details[open] > summary::after {
+  transform: rotate(45deg);
+}
+.site-public details .ans {
+  padding: 0 0 20px;
+  color: var(--site-ink-soft);
+  font-size: 15px;
+  max-width: 64ch;
+}
+
+/* Feature icon badge */
+.site-public .feat-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F1ED;
+  font-size: 22px;
+}
+
+/* Feature row responsive */
+@media (max-width: 760px) {
+  .site-public .feat-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ─── Tiptap 커뮤니티 본문 렌더링 ─────────────────────────── */
 .tiptap-content {
   font-size: 0.95rem;
