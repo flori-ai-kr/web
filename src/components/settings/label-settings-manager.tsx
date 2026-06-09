@@ -184,7 +184,7 @@ function LabelTabPanel({
   };
 
   const handleAdd = async () => {
-    if (!newName.trim()) return;
+    if (isAdding || !newName.trim()) return; // 진행 중 재진입(중복 Enter 등) 차단
     setIsAdding(true);
     try {
       await tab.onCreate(newName.trim());
@@ -199,7 +199,7 @@ function LabelTabPanel({
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId || !editName.trim()) return;
+    if (isSaving || !editingId || !editName.trim()) return; // 진행 중 재진입 차단
     setIsSaving(true);
     try {
       await tab.onUpdate(editingId, editName.trim());
@@ -235,7 +235,10 @@ function LabelTabPanel({
           placeholder={tab.addPlaceholder}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          onKeyDown={(e) => {
+            // IME(한글) 조합 확정 Enter는 무시 — 조합 중 Enter가 두 번 발생해 중복 추가되는 것 방지
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleAdd();
+          }}
           className="flex-1"
         />
         <Button onClick={handleAdd} size="icon" disabled={isAdding} aria-label="추가">
@@ -263,7 +266,9 @@ function LabelTabPanel({
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSaveEdit();
+                          }}
                           className="flex-1 h-8"
                           autoFocus
                         />

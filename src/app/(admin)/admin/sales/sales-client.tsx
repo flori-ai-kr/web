@@ -52,11 +52,9 @@ interface Props {
   initialPayments: PaymentMethod[];
   initialChannels: SaleChannel[];
   initialSelectedSale?: Sale | null;
-  prevTotal?: number | null;
-  prevPeriod?: { startDate: string; endDate: string } | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale, prevTotal, prevPeriod }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -422,7 +420,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         onSearchChange={setSearchQuery}
         onReset={handleResetFilters}
       >
-        <SalesSummary summary={summary} prevTotal={prevTotal ?? undefined} prevPeriod={prevPeriod ?? undefined} />
+        <SalesSummary summary={summary} />
       </SalesFiltersUI>
 
       {/* Sales List */}
