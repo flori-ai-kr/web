@@ -4,6 +4,7 @@ import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityPost} from '@/types/database';
 import {CommunityCategoryBadge} from './category-badge';
+import {AdminBadge} from '@/components/community/admin-badge';
 
 export function PostCard({ post }: { post: CommunityPost }) {
   const masked = post.is_secret && !post.can_view;
@@ -32,6 +33,7 @@ export function PostCard({ post }: { post: CommunityPost }) {
         <span className="font-medium text-foreground/70">
           {masked ? '비공개' : post.author_nickname}
         </span>
+        {!masked && post.author_is_admin && <AdminBadge />}
         <span>
           {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}
         </span>

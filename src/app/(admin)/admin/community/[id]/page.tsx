@@ -1,6 +1,6 @@
-import {notFound, redirect} from 'next/navigation';
+import {notFound} from 'next/navigation';
 import {getComments, getCommunityPost} from '@/lib/actions/community';
-import {getMyBusinessVerification} from '@/lib/actions/business-verification';
+import {ensureCommunityAccess} from '@/lib/actions/business-verification';
 import {CommunityDetailClient} from './community-detail-client';
 
 export default async function CommunityPostPage({
@@ -8,8 +8,7 @@ export default async function CommunityPostPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const verification = await getMyBusinessVerification();
-  if (verification.status !== 'APPROVED') redirect('/admin/community/verify');
+  await ensureCommunityAccess();
 
   const { id } = await params;
   const post = await getCommunityPost(id);

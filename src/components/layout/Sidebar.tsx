@@ -182,7 +182,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
                         label={item.label}
                         isActive={isActive}
                         isCollapsed={isCollapsed}
-                              />
+                      />
                     );
                   })}
                 </div>

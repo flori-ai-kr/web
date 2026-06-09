@@ -278,8 +278,8 @@ sequenceDiagram
         BFF-->>CB: {registerToken, socialEmail, socialNickname}
         CB->>CB: flori_register 쿠키 저장
         CB-->>U: /onboarding?email=...&nickname=... redirect
-        U->>OB: 가게명·닉네임·이메일·지역 입력
-        OB->>BFF: POST /auth/register/complete {registerToken, ...}
+        U->>OB: 가게명·전화번호·닉네임·이메일·지역 입력
+        OB->>BFF: POST /auth/register/complete {registerToken, storeName, phoneNumber, ...}
         BFF-->>OB: {accessToken, refreshToken, ...}
         OB->>OB: flori_access·flori_refresh 저장, flori_register 삭제
         OB-->>U: /admin redirect
@@ -611,12 +611,12 @@ erDiagram
 | `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
 | `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
 | `/admin/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
-| `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 사업자 인증 상태 확인 → APPROVED 아니면 /verify 리다이렉트 |
+| `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 `ensureCommunityAccess()` — APPROVED 아니면 /verify 리다이렉트(전원 인증, 운영자 예외 없음). 운영자 작성물에 "관리자" 칩 표시 |
 | `/admin/community/verify` | 사업자 인증 | 사업자등록증 업로드 + 심사 상태 표시 (`BusinessVerificationGate`). APPROVED 상태이면 /admin/community로 리다이렉트 |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
 | `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
 | `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
-| `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드) |
+| `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드). Step1에 전화번호 필수 입력 포함 |
 | `/policy/privacy` | 개인정보 처리방침 | flori 개인정보 처리방침 (인증 불필요) |
 | `/policy/terms` | 서비스 이용약관 | flori 서비스 이용약관 (인증 불필요) |
 | `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
@@ -657,7 +657,7 @@ erDiagram
 | `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
-| `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`) — 에러코드 E-VRF-001..004 |
+| `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 
 ## 타입 시스템
 
