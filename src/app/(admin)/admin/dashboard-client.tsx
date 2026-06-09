@@ -168,7 +168,7 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
       <AiBriefingCard />
 
       {/* Two Column: Reservations + (오늘 매출 + 이번 달 요약) */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid lg:grid-cols-2 gap-4 items-stretch">
         {/* Upcoming Reservations */}
         <Card className="overflow-hidden">
           <CardContent className="p-4 pb-2">
@@ -285,38 +285,8 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
         </Card>
 
-        {/* 오늘 매출 + 이번 달 요약 (합친 카드) */}
-        <Card className="overflow-hidden">
-          {/* 오늘 매출 */}
-          <CardContent className="p-4 pb-3 border-b border-border">
-            {isTodayLoading ? (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-3 w-14" />
-                  <Skeleton className="h-7 w-32" />
-                </div>
-                <Skeleton className="w-1 h-10 rounded-full" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">오늘 매출</p>
-                  <p className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
-                    {formatCurrency(todaySummary?.totalAmount ?? 0)}
-                  </p>
-                  {!todaySummary?.totalAmount && (
-                    <p className="text-xs text-muted-foreground mt-1">오늘 등록된 매출이 없습니다</p>
-                  )}
-                </div>
-                <div
-                  className="w-1 self-stretch rounded-full shrink-0"
-                  style={{background: 'linear-gradient(to bottom, var(--brand), color-mix(in srgb, var(--brand) 50%, white))'}}
-                  aria-hidden="true"
-                />
-              </div>
-            )}
-          </CardContent>
-          {/* 이번 달 요약 */}
+        {/* 이번 달 요약 (오늘 매출 타일 포함) */}
+        <Card className="overflow-hidden h-full flex flex-col">
           <CardContent className="p-4 pb-2">
             <SectionHeader
               title={
@@ -336,30 +306,31 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
               }
             />
           </CardContent>
-          <CardContent className="p-4 pt-2">
+          <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-center">
             {!initialMonth ? (
-              <div className="space-y-4 py-1">
+              <div className="space-y-5 py-1">
                 <Skeleton className="h-8 w-28" />
                 <Skeleton className="h-2 w-full rounded-full" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Skeleton className="h-14 rounded-lg" />
-                  <Skeleton className="h-14 rounded-lg" />
+                <div className="grid grid-cols-3 gap-2.5">
+                  <Skeleton className="h-16 rounded-lg" />
+                  <Skeleton className="h-16 rounded-lg" />
+                  <Skeleton className="h-16 rounded-lg" />
                 </div>
               </div>
             ) : (
-              <div className="space-y-3.5">
+              <div className="space-y-5">
                 {/* 순이익 — 헤드라인 */}
                 <div className="flex items-end justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-muted-foreground">순이익</p>
                     <p
-                      className={`text-2xl font-bold tabular-nums mt-0.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
+                      className={`text-2xl sm:text-3xl font-bold tabular-nums mt-0.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
                     >
                       {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
                     </p>
                   </div>
                   {totalSales > 0 && (
-                    <span className="text-xs text-muted-foreground shrink-0 pb-1">
+                    <span className="text-xs text-muted-foreground shrink-0 pb-1.5">
                       매출의 {expenseRatio}% 지출
                     </span>
                   )}
@@ -377,17 +348,23 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
                   />
                 </div>
 
-                {/* 매출 · 지출 타일 */}
-                <div className="grid grid-cols-2 gap-3 pt-0.5">
+                {/* 오늘 매출 · 이번 달 매출 · 지출 타일 */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded-lg bg-brand-muted px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">오늘 매출</p>
+                    <p className="text-sm sm:text-base font-bold text-brand tabular-nums mt-0.5">
+                      {formatManwon(todaySummary?.totalAmount ?? 0)}
+                    </p>
+                  </div>
                   <div className="rounded-lg bg-muted/40 px-3 py-2.5">
                     <p className="text-xs text-muted-foreground">매출</p>
-                    <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
+                    <p className="text-sm sm:text-base font-bold text-foreground tabular-nums mt-0.5">
                       {formatManwon(totalSales)}
                     </p>
                   </div>
                   <div className="rounded-lg bg-muted/40 px-3 py-2.5">
                     <p className="text-xs text-muted-foreground">지출</p>
-                    <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
+                    <p className="text-sm sm:text-base font-bold text-foreground tabular-nums mt-0.5">
                       {formatManwon(monthExpenseTotal)}
                     </p>
                   </div>
