@@ -33,6 +33,7 @@ import {getDashboardTodayData} from '@/lib/actions/dashboard';
 import type {LatestCommunityPost} from '@/lib/actions/community';
 import {formatCurrency, formatManwon, getTodayKST} from '@/lib/utils';
 import {SectionHeader} from '@/components/dashboard/section-header';
+import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
 
 const PAGE_SIZE = 5;
@@ -102,6 +103,7 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
 
   const totalSales = monthSummary?.totalAmount ?? 0;
   const netProfit = totalSales - monthExpenseTotal;
+  const expenseRatio = totalSales > 0 ? Math.round((monthExpenseTotal / totalSales) * 100) : 0;
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
@@ -179,14 +181,12 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           <CardContent className="p-4 flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">오늘 매출</p>
-              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
+              <p className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
                 {formatCurrency(todaySummary?.totalAmount ?? 0)}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {todaySummary?.totalAmount
-                  ? `카드 ${formatCurrency(todaySummary.cardAmount ?? 0)} · 현금 ${formatCurrency(todaySummary.cashAmount ?? 0)}`
-                  : '오늘 등록된 매출이 없습니다'}
-              </p>
+              {!todaySummary?.totalAmount && (
+                <p className="text-xs text-muted-foreground mt-1">오늘 등록된 매출이 없습니다</p>
+              )}
             </div>
             <div
               className="w-1 self-stretch rounded-full shrink-0"
@@ -246,9 +246,11 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
                           <span className="text-xs font-medium text-muted-foreground tabular-nums block">
                             {isToday ? '오늘' : r.date.slice(5).replace('-', '/')}
                           </span>
-                          <span className="text-[10px] text-muted-foreground tabular-nums block">
-                            {r.time ? r.time.slice(0, 5) : '--:--'}
-                          </span>
+                          {r.time && (
+                            <span className="text-[10px] text-muted-foreground tabular-nums block">
+                              {r.time.slice(0, 5)}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -336,41 +338,68 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
           <CardContent className="p-4 pt-2">
             {!initialMonth ? (
-              <div className="space-y-1">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                    <Skeleton className="h-3.5 w-16" />
-                    <Skeleton className="h-5 w-20" />
-                  </div>
-                ))}
+              <div className="space-y-4 py-1">
+                <Skeleton className="h-8 w-28" />
+                <Skeleton className="h-2 w-full rounded-full" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-14 rounded-lg" />
+                  <Skeleton className="h-14 rounded-lg" />
+                </div>
               </div>
             ) : (
-              <div>
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-sm font-semibold text-muted-foreground">매출</span>
-                  <span className="text-lg font-bold text-foreground tabular-nums">
-                    {formatManwon(totalSales)}
-                  </span>
+              <div className="space-y-3.5">
+                {/* 순이익 — 헤드라인 */}
+                <div className="flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground">순이익</p>
+                    <p
+                      className={`text-2xl font-bold tabular-nums mt-0.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
+                    >
+                      {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
+                    </p>
+                  </div>
+                  {totalSales > 0 && (
+                    <span className="text-xs text-muted-foreground shrink-0 pb-1">
+                      매출의 {expenseRatio}% 지출
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-sm font-semibold text-muted-foreground">지출</span>
-                  <span className="text-lg font-bold text-foreground tabular-nums">
-                    {formatManwon(monthExpenseTotal)}
-                  </span>
+
+                {/* 지출/매출 비율 바 */}
+                <div
+                  className="h-2 rounded-full bg-muted overflow-hidden"
+                  role="img"
+                  aria-label={`매출 대비 지출 비율 ${expenseRatio}%`}
+                >
+                  <div
+                    className={`h-full rounded-full ${netProfit >= 0 ? 'bg-brand' : 'bg-danger'}`}
+                    style={{width: `${Math.min(expenseRatio, 100)}%`}}
+                  />
                 </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm font-semibold text-muted-foreground">순이익</span>
-                  <span
-                    className={`text-lg font-bold tabular-nums ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
-                  >
-                    {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
-                  </span>
+
+                {/* 매출 · 지출 타일 */}
+                <div className="grid grid-cols-2 gap-3 pt-0.5">
+                  <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">매출</p>
+                    <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
+                      {formatManwon(totalSales)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">지출</p>
+                    <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
+                      {formatManwon(monthExpenseTotal)}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* flori AI 오늘의 브리핑 (개발 중 — 잠금 미리보기) */}
+      <AiBriefingCard />
 
       {/* 커뮤니티 최신글 */}
       <Card className="overflow-hidden">
