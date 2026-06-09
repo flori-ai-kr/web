@@ -4,6 +4,7 @@ import {useEffect, useRef} from 'react';
 import {usePathname} from 'next/navigation';
 import {driver, type DriveStep} from 'driver.js';
 import 'driver.js/dist/driver.css';
+import './tour-theme.css';
 import {completeTour} from '@/lib/actions/tour';
 
 interface TourLauncherProps {
@@ -95,9 +96,16 @@ export function TourLauncher({tourCompleted}: TourLauncherProps) {
 
       const driverObj = driver({
         showProgress: true,
+        progressText: '{{current}} / {{total}}',
         nextBtnText: '다음',
         prevBtnText: '이전',
         doneBtnText: '시작하기',
+        popoverClass: 'flori-tour',
+        overlayColor: '#1C2024',
+        overlayOpacity: 0.6,
+        stagePadding: 8,
+        stageRadius: 12,
+        smoothScroll: true,
         steps,
         // onDestroyStarted는 정의 시 destroy()를 직접 호출해야 닫힌다(driver.js v1).
         // 완료/건너뛰기/닫기 모두 여기로 수렴하므로 서버 마킹을 1회 수행한다.
