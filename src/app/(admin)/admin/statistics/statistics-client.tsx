@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart2, AlertCircle } from 'lucide-react';
@@ -261,8 +260,6 @@ export function StatisticsClient({
 
   return (
     <div className="space-y-5">
-      <PageHeader title="통계" />
-
       {/* Global date range selector */}
       <DateRangeSelector
         preset={preset}
