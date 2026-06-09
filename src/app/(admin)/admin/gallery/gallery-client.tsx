@@ -99,7 +99,11 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setIsLoading(true);
     try {
       const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id);
-      setCards(prev => [...prev, ...response.cards]);
+      // 필터 전환/페이지네이션 레이스로 중복 카드가 끼면 key 충돌 → id 기준 dedupe
+      setCards(prev => {
+        const seen = new Set(prev.map(c => c.id));
+        return [...prev, ...response.cards.filter(c => !seen.has(c.id))];
+      });
       setCursor(response.nextCursor);
       setHasMore(response.hasMore);
     } catch (error) {
