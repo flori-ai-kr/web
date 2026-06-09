@@ -651,9 +651,16 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             aria-label="고객 검색"
           />
         </div>
-        <p className="text-sm text-muted-foreground ml-auto shrink-0">
-          {filteredCustomers.length}명{filteredCustomers.length !== optimisticCustomers.length && ` / 전체 ${optimisticCustomers.length}명`}
-        </p>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="ml-auto inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-border bg-background text-xs text-muted-foreground hover:bg-muted transition-colors shrink-0"
+          >
+            <RotateCcw className="w-3 h-3" />
+            초기화
+          </button>
+        )}
       </div>
 
       {/* Customer Card Grid */}
