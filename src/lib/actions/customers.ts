@@ -27,7 +27,7 @@ interface KotlinCustomer {
   totalPurchaseAmount: number;
   firstPurchaseDate: string | null;
   lastPurchaseDate: string | null;
-  photoThumbnails: KotlinPhotoThumbnail[] | null;
+  photoThumbnails: (KotlinPhotoThumbnail | string)[] | null;
   photoCount: number;
   createdAt: string;
   updatedAt: string;
@@ -56,10 +56,14 @@ function mapKotlinCustomer(c: KotlinCustomer): Customer {
     total_purchase_amount: c.totalPurchaseAmount,
     first_purchase_date: c.firstPurchaseDate ?? undefined,
     last_purchase_date: c.lastPurchaseDate ?? undefined,
-    photo_thumbnails: (c.photoThumbnails ?? []).map((t) => ({
-      url: t.url,
-      card_id: String(t.cardId),
-    })),
+    // BFF가 신형({url,cardId} 객체) 또는 구형(문자열 URL) 어느 쪽을 줘도 안전하게 정규화하고, url 없는 항목은 제거
+    photo_thumbnails: (c.photoThumbnails ?? [])
+      .map((t) =>
+        typeof t === 'string'
+          ? { url: t, card_id: '' }
+          : { url: t?.url ?? '', card_id: t?.cardId != null ? String(t.cardId) : '' },
+      )
+      .filter((t) => t.url),
     photo_count: c.photoCount ?? 0,
     memo: c.memo ?? undefined,
     created_at: c.createdAt,

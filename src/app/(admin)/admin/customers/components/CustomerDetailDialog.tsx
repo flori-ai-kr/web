@@ -162,7 +162,11 @@ export function CustomerDetailDialog({
                         type="button"
                         onClick={() => {
                           onClose();
-                          router.push(`/admin/gallery?customer=${customer.id}&card=${thumb.card_id}`);
+                          router.push(
+                            thumb.card_id
+                              ? `/admin/gallery?customer=${customer.id}&card=${thumb.card_id}`
+                              : `/admin/gallery?customer=${customer.id}`,
+                          );
                         }}
                         className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card"
                         aria-label="사진첩에서 이 카드 열기"
