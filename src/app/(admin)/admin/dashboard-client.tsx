@@ -164,40 +164,10 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
         </DropdownMenu>
       </div>
 
-      {/* 오늘 매출 Hero KPI */}
-      {isTodayLoading ? (
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-3 w-14" />
-              <Skeleton className="h-7 w-32" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-            <Skeleton className="w-1 h-12 rounded-full" />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="overflow-hidden">
-          <CardContent className="p-4 flex items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">오늘 매출</p>
-              <p className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
-                {formatCurrency(todaySummary?.totalAmount ?? 0)}
-              </p>
-              {!todaySummary?.totalAmount && (
-                <p className="text-xs text-muted-foreground mt-1">오늘 등록된 매출이 없습니다</p>
-              )}
-            </div>
-            <div
-              className="w-1 self-stretch rounded-full shrink-0"
-              style={{background: 'linear-gradient(to bottom, var(--brand), color-mix(in srgb, var(--brand) 50%, white))'}}
-              aria-hidden="true"
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* flori AI 오늘의 브리핑 (개발 중 — 잠금 미리보기) */}
+      <AiBriefingCard />
 
-      {/* Two Column: Reservations + 이번 달 미니 요약 */}
+      {/* Two Column: Reservations + (오늘 매출 + 이번 달 요약) */}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         {/* Upcoming Reservations */}
         <Card className="overflow-hidden">
@@ -315,8 +285,38 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
         </Card>
 
-        {/* 이번 달 미니 요약 */}
+        {/* 오늘 매출 + 이번 달 요약 (합친 카드) */}
         <Card className="overflow-hidden">
+          {/* 오늘 매출 */}
+          <CardContent className="p-4 pb-3 border-b border-border">
+            {isTodayLoading ? (
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-7 w-32" />
+                </div>
+                <Skeleton className="w-1 h-10 rounded-full" />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">오늘 매출</p>
+                  <p className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mt-1 tabular-nums">
+                    {formatCurrency(todaySummary?.totalAmount ?? 0)}
+                  </p>
+                  {!todaySummary?.totalAmount && (
+                    <p className="text-xs text-muted-foreground mt-1">오늘 등록된 매출이 없습니다</p>
+                  )}
+                </div>
+                <div
+                  className="w-1 self-stretch rounded-full shrink-0"
+                  style={{background: 'linear-gradient(to bottom, var(--brand), color-mix(in srgb, var(--brand) 50%, white))'}}
+                  aria-hidden="true"
+                />
+              </div>
+            )}
+          </CardContent>
+          {/* 이번 달 요약 */}
           <CardContent className="p-4 pb-2">
             <SectionHeader
               title={
@@ -397,9 +397,6 @@ export function DashboardClient({greeting, initialToday, initialMonth, initialCo
           </CardContent>
         </Card>
       </div>
-
-      {/* flori AI 오늘의 브리핑 (개발 중 — 잠금 미리보기) */}
-      <AiBriefingCard />
 
       {/* 커뮤니티 최신글 */}
       <Card className="overflow-hidden">
