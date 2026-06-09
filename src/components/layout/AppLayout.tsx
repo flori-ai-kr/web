@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {Sidebar} from './Sidebar';
 import {Header} from './Header';
 import {BottomNav} from './BottomNav';
+import {AppFooter} from './AppFooter';
 import {cn} from '@/lib/utils';
 import type {NavItemKey} from '@/types/database';
 
@@ -60,6 +61,7 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
         <main id="main-content" className="p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-8" aria-label="주요 콘텐츠">
           <div className="max-w-7xl mx-auto">
             {children}
+            <AppFooter />
           </div>
         </main>
       </div>
