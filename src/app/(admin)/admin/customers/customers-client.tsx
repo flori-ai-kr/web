@@ -694,7 +694,7 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-border bg-background text-xs text-muted-foreground hover:bg-muted transition-colors shrink-0"
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium shrink-0 hover:bg-muted transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
               초기화
