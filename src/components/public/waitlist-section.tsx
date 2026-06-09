@@ -275,7 +275,7 @@ export function WaitlistSection({
                   </p>
                 ) : (
                   <form onSubmit={onSubmit} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                    <label htmlFor="wl-shop-name" style={{display: 'none'}}>가게명</label>
+                    <label htmlFor="wl-shop-name" className="sr-only">가게명</label>
                     <input
                       id="wl-shop-name"
                       placeholder="가게명 (예: 헤이즐 플라워)"
@@ -292,7 +292,7 @@ export function WaitlistSection({
                         outline: 'none',
                       }}
                     />
-                    <label htmlFor="wl-phone" style={{display: 'none'}}>전화번호</label>
+                    <label htmlFor="wl-phone" className="sr-only">전화번호</label>
                     <input
                       id="wl-phone"
                       placeholder="휴대폰 번호 (예: 010-1234-5678)"
@@ -311,7 +311,7 @@ export function WaitlistSection({
                       }}
                     />
                     {error && (
-                      <p style={{fontSize: '13px', color: '#C42B30', margin: 0}}>{error}</p>
+                      <p style={{fontSize: '13px', color: 'var(--destructive)', margin: 0}}>{error}</p>
                     )}
                     <button
                       type="submit"
