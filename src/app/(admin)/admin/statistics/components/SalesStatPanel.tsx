@@ -33,8 +33,8 @@ function formatWon(n: number): string {
 // ─── Delta helpers ────────────────────────────────────────────────────────────
 
 function pctDeltaText(pct: number): string {
-  const sign = pct >= 0 ? '▲' : '▼';
-  return `${sign} ${Math.abs(pct)}%`;
+  // 글리프(▲/▼)는 StatKpiCard가 deltaTone으로 렌더하므로 크기만 반환
+  return `${Math.abs(pct)}%`;
 }
 
 function pctDeltaTone(pct: number): DeltaTone {
@@ -44,8 +44,8 @@ function pctDeltaTone(pct: number): DeltaTone {
 }
 
 function countDeltaText(delta: number): string {
-  const sign = delta >= 0 ? '▲' : '▼';
-  return `${sign} ${Math.abs(delta)}건`;
+  // 글리프는 StatKpiCard가 렌더
+  return `${Math.abs(delta)}건`;
 }
 
 function countDeltaTone(delta: number): DeltaTone {
