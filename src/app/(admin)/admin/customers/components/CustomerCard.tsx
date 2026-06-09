@@ -32,8 +32,9 @@ interface CustomerCardProps {
 
 export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerCardProps) {
   const router = useRouter();
-  const thumbnails = customer.photo_thumbnails?.slice(0, 3) ?? [];
+  const thumbnails = customer.photo_thumbnails?.slice(0, 6) ?? [];
   const photoCount = customer.photo_count ?? 0;
+  const overflow = photoCount - thumbnails.length;
 
   const goToGallery = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,25 +53,18 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
       <CardContent className="p-4">
         {/* Top: name + grade + gender + actions */}
         <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 bg-brand-muted rounded-full flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-brand">
-                {customer.name.charAt(0)}
-              </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-foreground text-sm truncate">{customer.name}</span>
+              {customer.grade && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground shrink-0">
+                  {customer.grade}
+                  {customer.grade_locked && <Lock className="h-2.5 w-2.5" aria-label="등급 고정됨" />}
+                </span>
+              )}
+              <GenderBadge gender={customer.gender} />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-foreground text-sm truncate">{customer.name}</span>
-                {customer.grade && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-muted text-muted-foreground shrink-0">
-                    {customer.grade}
-                    {customer.grade_locked && <Lock className="h-2.5 w-2.5" aria-label="등급 고정됨" />}
-                  </span>
-                )}
-                <GenderBadge gender={customer.gender} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{customer.phone}</p>
-            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{customer.phone}</p>
           </div>
           <div className="flex gap-0.5 shrink-0">
             <Button
@@ -121,26 +115,32 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
 
         {/* Connected photos */}
         {photoCount > 0 ? (
-          <div className="mt-3 pt-3 border-t border-border flex items-center gap-1.5">
-            {thumbnails.map((url, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={goToGallery}
-                className="w-9 h-9 rounded-lg overflow-hidden bg-muted shrink-0 relative"
-                aria-label={`${customer.name} 연결 사진 보기`}
-              >
-                <Image src={url} alt="" fill sizes="36px" className="object-cover" unoptimized />
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={goToGallery}
-              className="text-xs text-brand ml-1 hover:underline"
-            >
-              사진 {photoCount} →
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={goToGallery}
+            className="mt-3 pt-3 border-t border-border w-full text-left"
+            aria-label={`${customer.name} 연결 사진 ${photoCount}장 — 사진첩에서 보기`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] text-muted-foreground">연결 사진 {photoCount}</span>
+              <span className="text-xs text-brand">사진첩 →</span>
+            </div>
+            <div className="grid grid-cols-6 gap-1">
+              {thumbnails.map((url, i) => {
+                const isLast = i === thumbnails.length - 1;
+                return (
+                  <div key={i} className="aspect-square rounded-md overflow-hidden bg-muted relative">
+                    <Image src={url} alt="" fill sizes="48px" className="object-cover" unoptimized />
+                    {isLast && overflow > 0 && (
+                      <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
+                        +{overflow}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </button>
         ) : (
           <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
             연결된 사진 없음

@@ -8,8 +8,8 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {CalendarDays, Plus, Search, Settings, UserPlus, Users} from 'lucide-react';
-import {format, subDays} from 'date-fns';
+import {Plus, Search, Settings, UserPlus, Users} from 'lucide-react';
+import {format} from 'date-fns';
 import {toast} from 'sonner';
 import {deleteCustomer, getCustomerById, getCustomerSales} from '@/lib/actions/customers';
 import {cn} from '@/lib/utils';
@@ -96,22 +96,16 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
     return sortCustomers(filtered);
   }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
 
-  // VIP·단골 통계는 등급명 기준(임계값이 가장 높은 상위 2개 등급)으로 집계한다.
-  const topGradeNames = useMemo(() => {
-    return initialGrades
-      .filter(g => g.threshold != null)
-      .sort((a, b) => (b.threshold ?? 0) - (a.threshold ?? 0))
-      .slice(0, 2)
-      .map(g => g.name);
-  }, [initialGrades]);
-
+  // 상단 통계: 전체 고객 수 + 이번 달 신규(created_at 의 연·월이 현재와 일치).
   const stats = useMemo(() => {
     const total = initialCustomers.length;
-    const regularVip = initialCustomers.filter(c => c.grade != null && topGradeNames.includes(c.grade)).length;
-    const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-    const recentBuyers = initialCustomers.filter(c => c.last_purchase_date && c.last_purchase_date >= thirtyDaysAgo).length;
-    return { total, regularVip, recentBuyers };
-  }, [initialCustomers, topGradeNames]);
+    const now = new Date();
+    const thisMonth = format(now, 'yyyy-MM');
+    const newThisMonth = initialCustomers.filter(
+      c => c.created_at && format(new Date(c.created_at), 'yyyy-MM') === thisMonth,
+    ).length;
+    return { total, newThisMonth };
+  }, [initialCustomers]);
 
   const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'recent';
 
@@ -246,48 +240,18 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">전체 고객</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.total}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <span className="text-base sm:text-lg">🌟</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">단골/VIP</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.regularVip}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">최근 30일</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.recentBuyers}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats — 전체 고객 + 이번 달 신규 */}
+      <Card>
+        <CardContent className="p-4 flex items-end justify-between">
+          <div>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">전체 고객</p>
+            <p className="text-2xl font-bold text-foreground tabular-nums">{stats.total}<span className="text-base font-medium">명</span></p>
+          </div>
+          {stats.newThisMonth > 0 && (
+            <p className="text-sm text-brand tabular-nums">이번 달 신규 +{stats.newThisMonth}</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 등급 필터 칩 */}
       <div className="flex flex-wrap items-center gap-2">

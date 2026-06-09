@@ -14,8 +14,7 @@ import {
     Phone,
     ShoppingBag,
     Trash2,
-    TrendingUp,
-    Users
+    TrendingUp
 } from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -89,10 +88,7 @@ export function CustomerDetailDialog({
         </DialogHeader>
         {customer && (
           <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-muted-foreground" />
-              </div>
+            <div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-lg text-foreground">{customer.name}</span>
@@ -155,41 +151,37 @@ export function CustomerDetailDialog({
                     사진첩에서 보기 →
                   </button>
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {customer.photo_thumbnails.map((url, i) => (
-                    <button
-                      key={`${url}-${i}`}
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/admin/gallery?customer=${customer.id}`);
-                      }}
-                      className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-muted"
-                      aria-label="사진첩에서 보기"
-                    >
-                      <Image
-                        src={url}
-                        alt=""
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </button>
-                  ))}
-                  {customer.photo_count > customer.photo_thumbnails.length && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        router.push(`/admin/gallery?customer=${customer.id}`);
-                      }}
-                      className="w-20 h-20 flex-shrink-0 grid place-items-center rounded-xl bg-muted text-sm font-semibold text-muted-foreground"
-                      aria-label="사진첩에서 보기"
-                    >
-                      +{customer.photo_count - customer.photo_thumbnails.length}
-                    </button>
-                  )}
+                <div className="grid grid-cols-6 gap-2">
+                  {customer.photo_thumbnails.slice(0, 6).map((url, i, arr) => {
+                    const isLast = i === arr.length - 1;
+                    const overflow = customer.photo_count - customer.photo_thumbnails.length;
+                    return (
+                      <button
+                        key={`${url}-${i}`}
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          router.push(`/admin/gallery?customer=${customer.id}`);
+                        }}
+                        className="relative aspect-square overflow-hidden rounded-xl bg-muted"
+                        aria-label="사진첩에서 보기"
+                      >
+                        <Image
+                          src={url}
+                          alt=""
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                        {isLast && overflow > 0 && (
+                          <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-sm font-semibold text-white">
+                            +{overflow}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
