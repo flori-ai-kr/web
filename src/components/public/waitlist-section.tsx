@@ -2,7 +2,7 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import {submitWaitlist, type WaitlistCount} from '@/lib/actions/waitlist';
+import {getWaitlistCount, submitWaitlist, type WaitlistCount} from '@/lib/actions/waitlist';
 
 function KakaoButton({kakaoUrl}: {kakaoUrl?: string}) {
   if (kakaoUrl) {
@@ -31,7 +31,9 @@ function KakaoButton({kakaoUrl}: {kakaoUrl?: string}) {
   }
   return (
     <button
+      type="button"
       disabled
+      aria-label="카카오톡 오픈채팅 (준비 중)"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -82,6 +84,12 @@ export function WaitlistSection({
       setRegistered(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요');
+      // 마감(100명 도달) 등으로 실패했을 수 있으니 카운트를 새로고침해 마감 UI로 전환되게 한다.
+      try {
+        setCount(await getWaitlistCount());
+      } catch {
+        // 카운트 갱신 실패는 무시(에러 메시지는 이미 표시됨)
+      }
     } finally {
       setSubmitting(false);
     }
@@ -289,7 +297,6 @@ export function WaitlistSection({
                         fontSize: '14px',
                         fontFamily: 'inherit',
                         background: '#FAFBFC',
-                        outline: 'none',
                       }}
                     />
                     <label htmlFor="wl-phone" className="sr-only">전화번호</label>
@@ -307,7 +314,6 @@ export function WaitlistSection({
                         fontSize: '14px',
                         fontFamily: 'inherit',
                         background: '#FAFBFC',
-                        outline: 'none',
                       }}
                     />
                     {error && (

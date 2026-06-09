@@ -11,12 +11,14 @@ export function LandingHeader() {
       }}
     >
       <div className="wrap flex items-center justify-between" style={{height: '64px'}}>
-        <div
+        <Link
+          href="/"
+          aria-label="flori 홈으로 이동"
           className="font-display"
           style={{fontSize: '30px', fontWeight: 600, letterSpacing: '-.01em'}}
         >
           flori<span style={{color: 'var(--site-accent)'}}>.</span>
-        </div>
+        </Link>
         <nav className="flex items-center" style={{gap: '28px'}}>
           <a
             href="#features"
