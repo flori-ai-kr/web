@@ -2,18 +2,15 @@ import Link from 'next/link';
 
 /**
  * 어드민 공통 푸터. 본문 하단에 가벼운 유틸 링크(가이드·정책·문의)를 모은다.
- * 메인 네비를 어지럽히지 않으면서 가이드/정책 진입점을 제공한다.
+ * 옅은 패널 + medium 링크로 "의도된 요소"처럼 안착시키되 메인 네비를 어지럽히지 않는다.
  */
 export function AppFooter() {
   return (
-    <footer className="mt-12 border-t border-border pt-6 pb-2">
-      <nav
-        aria-label="푸터"
-        className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
-      >
+    <footer className="mt-8">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-secondary/60 px-4 py-3 text-sm">
         <Link
           href="/admin/guide"
-          className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          className="font-medium text-foreground/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
         >
           사용 가이드
         </Link>
@@ -22,7 +19,7 @@ export function AppFooter() {
           href="/policy/privacy"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          className="font-medium text-foreground/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
         >
           개인정보 처리방침
         </Link>
@@ -31,7 +28,7 @@ export function AppFooter() {
           href="/policy/terms"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          className="font-medium text-foreground/80 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
         >
           이용약관
         </Link>
@@ -40,8 +37,8 @@ export function AppFooter() {
         <span className="cursor-not-allowed text-muted-foreground/50" aria-disabled="true">
           버그 제보 · 문의
         </span>
-        <span className="ml-auto text-muted-foreground/60">© flori</span>
-      </nav>
+        <span className="ml-auto text-xs text-muted-foreground/70">© flori</span>
+      </div>
     </footer>
   );
 }
