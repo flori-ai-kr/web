@@ -440,6 +440,36 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
     return groups;
   }, [filteredCustomers, gradeFilter, gradeOrder]);
 
+  // 헤더 보조 지표용 — 날짜 문자열이 활성 기간에 포함되는지(first_purchase_date 등에 사용).
+  const inActivePeriod = useCallback((dateStr?: string | null) => {
+    if (!dateStr) return false;
+    const date = dateStr.slice(0, 10);
+    if (customRange) return customRange.start <= date && date <= customRange.end;
+    const ym = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
+    return date.slice(0, 7) === ym;
+  }, [customRange, periodYear, periodMonth]);
+
+  const isSearching = searchQuery.trim() !== '';
+
+  // 헤더: 라벨 + 큰 숫자 + 보조(신규/재방문/평균구매액). 기간 뷰 기준.
+  const headerLabel = isSearching
+    ? '검색 결과'
+    : customRange
+      ? `${formatDisplayDate(customRange.start)} ~ ${formatDisplayDate(customRange.end)} 방문 고객`
+      : `${periodMonth}월 방문 고객`;
+
+  const headerStats = useMemo(() => {
+    const total = filteredCustomers.length;
+    // 신규 = 이 기간에 '첫 구매'가 발생한 고객(검색 모드에선 기간 개념이 없어 0).
+    const newCount = isSearching
+      ? 0
+      : filteredCustomers.filter(c => inActivePeriod(c.first_purchase_date)).length;
+    const revisit = total - newCount;
+    const sum = filteredCustomers.reduce((s, c) => s + (c.total_purchase_amount || 0), 0);
+    const avgManwon = total > 0 ? Math.round(sum / total / 10000) : 0;
+    return { total, newCount, revisit, avgManwon };
+  }, [filteredCustomers, isSearching, inActivePeriod]);
+
   const isDefaultPeriod = customRange === null
     && periodYear === now.getFullYear()
     && periodMonth === now.getMonth() + 1;
@@ -599,10 +629,23 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
         onRangeReset={() => setCustomRange(null)}
       />
 
-      {/* 기간 내 고객 수 — 매출 총액과 동일 스타일 */}
-      <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums">
-        {filteredCustomers.length}<span className="text-base font-medium">명</span>
-      </p>
+      {/* 헤더: 라벨 + 큰 숫자 + 보조 미니스탯 */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-0.5">{headerLabel}</p>
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">
+            {headerStats.total}<span className="text-base font-medium">명</span>
+          </p>
+          {headerStats.total > 0 && (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {!isSearching && (
+                <>신규 <span className="font-semibold text-foreground">{headerStats.newCount}</span> · 재방문 <span className="font-semibold text-foreground">{headerStats.revisit}</span> · </>
+              )}
+              평균 <span className="font-semibold text-foreground">{headerStats.avgManwon}만</span>
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
