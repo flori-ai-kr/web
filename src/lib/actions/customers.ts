@@ -3,6 +3,12 @@
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import type {Customer, CustomerGender, Sale,} from '@/types/database';
+
+// Kotlin CustomerResponse.photoThumbnails 항목 (camelCase). { url, cardId } 객체 배열.
+interface KotlinPhotoThumbnail {
+  url: string;
+  cardId: number | string;
+}
 import {customerSchema, idSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
@@ -21,7 +27,7 @@ interface KotlinCustomer {
   totalPurchaseAmount: number;
   firstPurchaseDate: string | null;
   lastPurchaseDate: string | null;
-  photoThumbnails: string[] | null;
+  photoThumbnails: KotlinPhotoThumbnail[] | null;
   photoCount: number;
   createdAt: string;
   updatedAt: string;
@@ -50,7 +56,10 @@ function mapKotlinCustomer(c: KotlinCustomer): Customer {
     total_purchase_amount: c.totalPurchaseAmount,
     first_purchase_date: c.firstPurchaseDate ?? undefined,
     last_purchase_date: c.lastPurchaseDate ?? undefined,
-    photo_thumbnails: c.photoThumbnails ?? [],
+    photo_thumbnails: (c.photoThumbnails ?? []).map((t) => ({
+      url: t.url,
+      card_id: String(t.cardId),
+    })),
     photo_count: c.photoCount ?? 0,
     memo: c.memo ?? undefined,
     created_at: c.createdAt,

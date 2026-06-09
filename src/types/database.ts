@@ -81,6 +81,12 @@ export interface RecurringExpense {
   updated_at: string;
 }
 
+/** 고객 대표 썸네일 한 장. card_id로 사진첩 해당 카드 딥링크 가능. (BFF id-as-string 규약) */
+export interface PhotoThumbnail {
+  url: string;
+  card_id: string;
+}
+
 export interface Customer {
   id: string;
   user_id: string;
@@ -97,8 +103,8 @@ export interface Customer {
   total_purchase_amount: number;
   first_purchase_date?: string;
   last_purchase_date?: string;
-  /** 대표 사진 썸네일 URL(최대 3장 등). 서버 집계값. */
-  photo_thumbnails: string[];
+  /** 대표 사진 썸네일(카드 id 포함, 딥링크용). 서버 집계값. */
+  photo_thumbnails: PhotoThumbnail[];
   /** 연결된 사진 카드 수. 서버 집계값. */
   photo_count: number;
   memo?: string;

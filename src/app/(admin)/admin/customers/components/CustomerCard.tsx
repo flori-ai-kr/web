@@ -126,11 +126,11 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
               <span className="text-xs text-brand">사진첩 →</span>
             </div>
             <div className="grid grid-cols-6 gap-1">
-              {thumbnails.map((url, i) => {
+              {thumbnails.map((thumb, i) => {
                 const isLast = i === thumbnails.length - 1;
                 return (
-                  <div key={i} className="aspect-square rounded-md overflow-hidden bg-muted relative">
-                    <Image src={url} alt="" fill sizes="48px" className="object-cover" unoptimized />
+                  <div key={`${thumb.card_id}-${i}`} className="aspect-square rounded-md overflow-hidden bg-muted relative">
+                    <Image src={thumb.url} alt="" fill sizes="48px" className="object-cover" unoptimized />
                     {isLast && overflow > 0 && (
                       <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
                         +{overflow}

@@ -8,6 +8,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/
 import {Skeleton} from '@/components/ui/skeleton';
 import {
     ExternalLink,
+    FileText,
     Loader2,
     Lock,
     Pencil,
@@ -125,12 +126,12 @@ export function CustomerDetailDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-              <div className="text-center">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center rounded-xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">구매 횟수</p>
                 <p className="text-xl font-bold text-foreground tabular-nums">{customer.total_purchase_count}회</p>
               </div>
-              <div className="text-center">
+              <div className="text-center rounded-xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">총 구매액</p>
                 <p className="text-xl font-bold text-brand tabular-nums">{formatCurrency(customer.total_purchase_amount)}</p>
               </div>
@@ -152,22 +153,22 @@ export function CustomerDetailDialog({
                   </button>
                 </div>
                 <div className="grid grid-cols-6 gap-2">
-                  {customer.photo_thumbnails.slice(0, 6).map((url, i, arr) => {
+                  {customer.photo_thumbnails.slice(0, 6).map((thumb, i, arr) => {
                     const isLast = i === arr.length - 1;
                     const overflow = customer.photo_count - customer.photo_thumbnails.length;
                     return (
                       <button
-                        key={`${url}-${i}`}
+                        key={`${thumb.card_id}-${i}`}
                         type="button"
                         onClick={() => {
                           onClose();
-                          router.push(`/admin/gallery?customer=${customer.id}`);
+                          router.push(`/admin/gallery?customer=${customer.id}&card=${thumb.card_id}`);
                         }}
-                        className="relative aspect-square overflow-hidden rounded-xl bg-muted"
-                        aria-label="사진첩에서 보기"
+                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card"
+                        aria-label="사진첩에서 이 카드 열기"
                       >
                         <Image
-                          src={url}
+                          src={thumb.url}
                           alt=""
                           fill
                           sizes="64px"
@@ -202,9 +203,12 @@ export function CustomerDetailDialog({
             )}
 
             {customer.memo && (
-              <div className="space-y-1 pt-2 border-t">
+              <div className="space-y-1.5 pt-2 border-t">
                 <p className="text-sm text-muted-foreground">메모</p>
-                <p className="text-foreground">{customer.memo}</p>
+                <div className="flex items-start gap-1.5 rounded-xl border border-border bg-card p-3">
+                  <FileText className="w-3.5 h-3.5 shrink-0 text-brand/85 mt-0.5" aria-hidden />
+                  <p className="text-sm leading-snug text-foreground/90 whitespace-pre-wrap">{customer.memo}</p>
+                </div>
               </div>
             )}
 
@@ -217,7 +221,7 @@ export function CustomerDetailDialog({
               {isLoadingSales ? (
                 <div className="space-y-2 py-1">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex justify-between items-center p-2 bg-muted rounded">
+                    <div key={i} className="flex justify-between items-center rounded-xl border border-border bg-card p-2.5">
                       <div className="flex items-center gap-2">
                         <Skeleton className="h-3.5 w-8" />
                         <Skeleton className="h-5 w-16 rounded" />
@@ -231,16 +235,16 @@ export function CustomerDetailDialog({
                   {sales.map((sale) => (
                     <div
                       key={sale.id}
-                      className="flex justify-between items-center text-sm p-2 bg-muted rounded"
+                      className="flex justify-between items-center text-sm rounded-xl border border-border bg-card p-2.5"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{format(new Date(sale.date), 'yy/MM/dd')}</span>
-                        <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted-foreground/10">
+                        <span className="text-muted-foreground tabular-nums">{format(new Date(sale.date), 'yy/MM/dd')}</span>
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground">
                           {sale.category_label ?? '미분류'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(sale.amount)}</span>
+                        <span className="font-semibold text-foreground tabular-nums">{formatCurrency(sale.amount)}</span>
                         <button
                           type="button"
                           className="text-brand hover:text-brand p-1"
