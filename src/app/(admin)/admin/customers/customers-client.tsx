@@ -382,11 +382,12 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
     });
   }, [sortBy]);
 
-  // 기간(최근 방문 시기) 매칭 — last_purchase_date 가 활성 기간에 포함되는지.
+  // 기간 매칭 — 최근 방문일(last_purchase_date) 기준. 단, 방문 기록이 없는 고객은
+  // 등록일(created_at)로 대체해 '이 기간에 새로 등록한 고객'이 목록에서 사라지지 않게 한다.
   const matchesPeriod = useCallback((c: Customer) => {
-    const visited = c.last_purchase_date;
-    if (!visited) return false; // 방문 기록 없는 고객은 기간 뷰에서 제외
-    const date = visited.slice(0, 10); // 'YYYY-MM-DD'
+    const ref = c.last_purchase_date ?? c.created_at;
+    if (!ref) return false;
+    const date = ref.slice(0, 10); // 'YYYY-MM-DD'
     if (customRange) {
       return customRange.start <= date && date <= customRange.end;
     }
@@ -455,10 +456,10 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
   // 헤더: 큰 숫자 + 보조(신규/재방문/평균구매액). 기간 뷰 기준.
   const headerStats = useMemo(() => {
     const total = filteredCustomers.length;
-    // 신규 = 이 기간에 '첫 구매'가 발생한 고객(검색 모드에선 기간 개념이 없어 0).
+    // 신규 = 이 기간에 '등록'한 고객(검색 모드에선 기간 개념이 없어 0).
     const newCount = isSearching
       ? 0
-      : filteredCustomers.filter(c => inActivePeriod(c.first_purchase_date)).length;
+      : filteredCustomers.filter(c => inActivePeriod(c.created_at)).length;
     const revisit = total - newCount;
     const sum = filteredCustomers.reduce((s, c) => s + (c.total_purchase_amount || 0), 0);
     const avgManwon = total > 0 ? Math.round(sum / total / 10000) : 0;
