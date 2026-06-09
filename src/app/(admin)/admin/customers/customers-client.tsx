@@ -4,7 +4,7 @@ import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition}
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
-import {Card, CardContent} from '@/components/ui/card';
+import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -12,7 +12,6 @@ import {Plus, Search, Settings, UserPlus, Users} from 'lucide-react';
 import {format} from 'date-fns';
 import {toast} from 'sonner';
 import {deleteCustomer, getCustomerById, getCustomerSales} from '@/lib/actions/customers';
-import {cn} from '@/lib/utils';
 import type {Customer, CustomerGradeConfig, Sale} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
@@ -106,6 +105,33 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
     ).length;
     return { total, newThisMonth };
   }, [initialCustomers]);
+
+  // 등급 표시 순서: 구매횟수 임계값 높은 등급 먼저(많이 온 순). 임계값 없는(수동전용) 등급은 맨 뒤.
+  const gradeOrder = useMemo(() => {
+    return [...initialGrades].sort((a, b) => {
+      if (a.threshold == null && b.threshold == null) return a.sort_order - b.sort_order;
+      if (a.threshold == null) return 1;
+      if (b.threshold == null) return -1;
+      return b.threshold - a.threshold;
+    });
+  }, [initialGrades]);
+
+  // 전체 등급 보기일 때만 등급별 그룹핑(구분선). 특정 등급 필터 시엔 평면 그리드(null).
+  const groupedCustomers = useMemo(() => {
+    if (gradeFilter !== 'all') return null;
+    const byGrade = new Map<string, typeof filteredCustomers>();
+    for (const c of filteredCustomers) {
+      const key = c.grade_id ?? '__none__';
+      (byGrade.get(key) ?? byGrade.set(key, []).get(key)!).push(c);
+    }
+    const groups = gradeOrder
+      .filter(g => byGrade.has(g.id))
+      .map(g => ({ id: g.id, name: g.name, customers: byGrade.get(g.id)! }));
+    if (byGrade.has('__none__')) {
+      groups.push({ id: '__none__', name: '미지정', customers: byGrade.get('__none__')! });
+    }
+    return groups;
+  }, [filteredCustomers, gradeFilter, gradeOrder]);
 
   const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'recent';
 
@@ -240,50 +266,30 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* Stats — 전체 고객 + 이번 달 신규 */}
-      <Card>
-        <CardContent className="p-4 flex items-end justify-between">
-          <div>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">전체 고객</p>
-            <p className="text-2xl font-bold text-foreground tabular-nums">{stats.total}<span className="text-base font-medium">명</span></p>
-          </div>
-          {stats.newThisMonth > 0 && (
-            <p className="text-sm text-brand tabular-nums">이번 달 신규 +{stats.newThisMonth}</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 등급 필터 칩 */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setGradeFilter('all')}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium',
-            gradeFilter === 'all' ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
-          )}
-          aria-pressed={gradeFilter === 'all'}
-        >
-          전체
-        </button>
-        {initialGrades.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            onClick={() => setGradeFilter(g.id)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium',
-              gradeFilter === g.id ? 'bg-brand text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70',
-            )}
-            aria-pressed={gradeFilter === g.id}
-          >
-            {g.name}
-          </button>
-        ))}
+      {/* Stats — 매출/지출처럼 카드 없이 포인트 컬러 숫자로 바로 노출 */}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-0.5">전체 고객</p>
+          <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">{stats.total}<span className="text-base font-medium">명</span></p>
+        </div>
+        {stats.newThisMonth > 0 && (
+          <p className="text-sm text-muted-foreground tabular-nums">이번 달 신규 <span className="text-brand font-semibold">+{stats.newThisMonth}</span></p>
+        )}
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v)}>
+          <SelectTrigger className="w-[120px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 등급</SelectItem>
+            {initialGrades.map((g) => (
+              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
           <SelectTrigger className="w-[110px] bg-background">
             <SelectValue />
@@ -347,8 +353,32 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
             </div>
           )}
         </Card>
+      ) : groupedCustomers ? (
+        // 전체 보기: 등급별 그룹(임계값 높은 순) + 구분선
+        <div className="space-y-6">
+          {groupedCustomers.map((group) => (
+            <div key={group.id} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground shrink-0">{group.name}</span>
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">{group.customers.length}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {group.customers.map((customer) => (
+                  <CustomerCard
+                    key={customer.id}
+                    customer={customer}
+                    onSelect={handleSelectCustomer}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        // 통합 그리드 (등급 그룹핑 없음)
+        // 특정 등급 필터: 평면 그리드
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredCustomers.map((customer) => (
             <CustomerCard
