@@ -639,62 +639,68 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <FilterSelect
-          label="등급"
-          value={gradeFilter}
-          defaultValue="all"
-          options={[
-            { value: 'all', label: '전체 등급' },
-            ...initialGrades.map((g) => ({ value: g.id, label: g.name })),
-          ]}
-          onChange={setGradeFilter}
-        />
-        <FilterSelect
-          label="성별"
-          value={genderFilter}
-          defaultValue="all"
-          options={[
-            { value: 'all', label: '전체' },
-            { value: 'male', label: '남성' },
-            { value: 'female', label: '여성' },
-          ]}
-          onChange={(v) => setGenderFilter(v as GenderFilter)}
-        />
-        <FilterSelect
-          label="정렬"
-          value={sortBy}
-          defaultValue="recent"
-          options={[
-            { value: 'recent', label: '최근 구매순' },
-            { value: 'newest', label: '최신 등록순' },
-            { value: 'oldest', label: '오래된순' },
-            { value: 'name', label: '가나다순' },
-            { value: 'purchase_count', label: '구매횟수순' },
-            { value: 'purchase_amount', label: '구매금액순' },
-          ]}
-          onChange={(v) => setSortBy(v as SortBy)}
-        />
-        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="이름/연락처 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-8 text-sm bg-background rounded-full"
-            aria-label="고객 검색"
+      <div className="space-y-3">
+        {/* 드롭다운 — 모바일에서도 한 줄(넘치면 가로 스크롤) */}
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <FilterSelect
+            label="등급"
+            value={gradeFilter}
+            defaultValue="all"
+            options={[
+              { value: 'all', label: '전체' },
+              ...initialGrades.map((g) => ({ value: g.id, label: g.name })),
+            ]}
+            onChange={setGradeFilter}
+          />
+          <FilterSelect
+            label="성별"
+            value={genderFilter}
+            defaultValue="all"
+            options={[
+              { value: 'all', label: '전체' },
+              { value: 'male', label: '남성' },
+              { value: 'female', label: '여성' },
+            ]}
+            onChange={(v) => setGenderFilter(v as GenderFilter)}
+          />
+          <FilterSelect
+            label="정렬"
+            value={sortBy}
+            defaultValue="recent"
+            options={[
+              { value: 'recent', label: '최근 구매순' },
+              { value: 'newest', label: '최신 등록순' },
+              { value: 'oldest', label: '오래된순' },
+              { value: 'name', label: '가나다순' },
+              { value: 'purchase_count', label: '구매횟수순' },
+              { value: 'purchase_amount', label: '구매금액순' },
+            ]}
+            onChange={(v) => setSortBy(v as SortBy)}
           />
         </div>
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="ml-auto inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-border bg-background text-xs text-muted-foreground hover:bg-muted transition-colors shrink-0"
-          >
-            <RotateCcw className="w-3 h-3" />
-            초기화
-          </button>
-        )}
+        {/* 검색 + 초기화 */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="이름/연락처 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-sm bg-background rounded-full"
+              aria-label="고객 검색"
+            />
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-lg border border-border bg-background text-xs text-muted-foreground hover:bg-muted transition-colors shrink-0"
+            >
+              <RotateCcw className="w-3 h-3" />
+              초기화
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Customer Card Grid */}
