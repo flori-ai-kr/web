@@ -6,11 +6,10 @@ import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
 import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Calendar} from '@/components/ui/calendar';
-import {CalendarDays, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Settings, UserPlus, Users} from 'lucide-react';
+import {CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Settings, UserPlus, Users} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from 'date-fns/locale';
 import {toast} from 'sonner';
@@ -267,6 +266,58 @@ function PeriodHeader({
         </div>
       )}
     </div>
+  );
+}
+
+// 매출 페이지(SalesFilters)의 FilterDropdown 과 동일한 트리거+팝오버 스타일의 단일 선택 드롭다운.
+function FilterSelect({
+  label,
+  value,
+  options,
+  defaultValue,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  defaultValue: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const displayLabel = options.find(o => o.value === value)?.label ?? value;
+  const isCustom = value !== defaultValue;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-background text-xs hover:bg-muted transition-colors"
+        >
+          <span className="text-muted-foreground">{label}</span>
+          <span className={`font-medium ${isCustom ? 'text-brand' : 'text-foreground'}`}>
+            {displayLabel}
+          </span>
+          <ChevronDown className="w-3 h-3 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-44 p-1">
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => { onChange(opt.value); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
+          >
+            <span className={`w-3.5 h-3.5 flex items-center justify-center ${value === opt.value ? 'text-brand' : 'text-transparent'}`}>
+              <Check className="w-3 h-3" />
+            </span>
+            {opt.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -548,49 +599,55 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
         onRangeReset={() => setCustomRange(null)}
       />
 
+      {/* 기간 내 고객 수 — 매출 총액과 동일 스타일 */}
+      <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums">
+        {filteredCustomers.length}<span className="text-base font-medium">명</span>
+      </p>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v)}>
-          <SelectTrigger className="w-[120px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 등급</SelectItem>
-            {initialGrades.map((g) => (
-              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
-          <SelectTrigger className="w-[110px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 성별</SelectItem>
-            <SelectItem value="male">남성</SelectItem>
-            <SelectItem value="female">여성</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-          <SelectTrigger className="w-[140px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">최근 구매순</SelectItem>
-            <SelectItem value="newest">최신 등록순</SelectItem>
-            <SelectItem value="oldest">오래된순</SelectItem>
-            <SelectItem value="name">가나다순</SelectItem>
-            <SelectItem value="purchase_count">구매횟수순</SelectItem>
-            <SelectItem value="purchase_amount">구매금액순</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <FilterSelect
+          label="등급"
+          value={gradeFilter}
+          defaultValue="all"
+          options={[
+            { value: 'all', label: '전체 등급' },
+            ...initialGrades.map((g) => ({ value: g.id, label: g.name })),
+          ]}
+          onChange={setGradeFilter}
+        />
+        <FilterSelect
+          label="성별"
+          value={genderFilter}
+          defaultValue="all"
+          options={[
+            { value: 'all', label: '전체' },
+            { value: 'male', label: '남성' },
+            { value: 'female', label: '여성' },
+          ]}
+          onChange={(v) => setGenderFilter(v as GenderFilter)}
+        />
+        <FilterSelect
+          label="정렬"
+          value={sortBy}
+          defaultValue="recent"
+          options={[
+            { value: 'recent', label: '최근 구매순' },
+            { value: 'newest', label: '최신 등록순' },
+            { value: 'oldest', label: '오래된순' },
+            { value: 'name', label: '가나다순' },
+            { value: 'purchase_count', label: '구매횟수순' },
+            { value: 'purchase_amount', label: '구매금액순' },
+          ]}
+          onChange={(v) => setSortBy(v as SortBy)}
+        />
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="이름/연락처 검색..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background"
+            className="pl-9 h-8 text-sm bg-background rounded-full"
             aria-label="고객 검색"
           />
         </div>
