@@ -176,9 +176,7 @@ function PeriodHeader({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="text-sm font-semibold text-foreground min-w-[100px] text-center">
-            {isRangeApplied && customRange
-              ? `${formatDisplayDate(customRange.start)} ~ ${formatDisplayDate(customRange.end)}`
-              : monthDisplay}
+            {monthDisplay}
           </span>
           <button
             type="button"
@@ -451,13 +449,7 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
 
   const isSearching = searchQuery.trim() !== '';
 
-  // 헤더: 라벨 + 큰 숫자 + 보조(신규/재방문/평균구매액). 기간 뷰 기준.
-  const headerLabel = isSearching
-    ? '검색 결과'
-    : customRange
-      ? `${formatDisplayDate(customRange.start)} ~ ${formatDisplayDate(customRange.end)} 방문 고객`
-      : `${periodMonth}월 방문 고객`;
-
+  // 헤더: 큰 숫자 + 보조(신규/재방문/평균구매액). 기간 뷰 기준.
   const headerStats = useMemo(() => {
     const total = filteredCustomers.length;
     // 신규 = 이 기간에 '첫 구매'가 발생한 고객(검색 모드에선 기간 개념이 없어 0).
@@ -629,9 +621,8 @@ export function CustomersClient({ initialCustomers, initialCategories, initialGr
         onRangeReset={() => setCustomRange(null)}
       />
 
-      {/* 헤더: 라벨 + 큰 숫자 + 보조 미니스탯 */}
+      {/* 헤더: 큰 숫자 + 보조 미니스탯 */}
       <div>
-        <p className="text-xs text-muted-foreground mb-0.5">{headerLabel}</p>
         <div className="flex items-baseline gap-3 flex-wrap">
           <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">
             {headerStats.total}<span className="text-base font-medium">명</span>
