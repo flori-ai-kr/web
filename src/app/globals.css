@@ -171,27 +171,29 @@
      p-2 = 8px, gap-4 = 16px, …). Do NOT add redundant spacing
      vars and do NOT use arbitrary values like p-[13px]. */
 
-  /* hazel 공개 사이트 v2 팔레트 — Claude Design "alpha" (Sage & Wood) 기반.
-     매장 다크 그린월 + 따뜻한 크림 베이스. 액센트는 무광 올리브. */
-  --site-paper: #FAF7EF;          /* 따뜻한 거의-흰 — 페이지 베이스 */
-  --site-paper-soft: #FFFCF5;     /* 카드/footer 표면 — paper보다 살짝 밝음 */
-  --site-ink: #2D2418;            /* 잉크 (따뜻한 다크 브라운) */
-  --site-ink-soft: rgba(45, 36, 24, 0.66);  /* 본문 보조 */
-  --site-accent: #6E7457;         /* 무광 올리브 — 매장 그린월 톤 */
-  --site-accent-soft: #8C9476;    /* 페일 올리브 호버 */
-  --site-leaf: #6E7457;           /* leaf alias */
-  --site-muted: rgba(45, 36, 24, 0.42);  /* 캡션/마이크로 */
-  --site-line: rgba(45, 36, 24, 0.14);   /* 디바이더 */
+  /* flori 랜딩 팔레트 — cool-rose white (어드민 팔레트 기반, 고정 라이트)
+     어드민 cool slate 캔버스 + dusty rose 액센트를 랜딩에도 통일. */
+  --site-paper: #FAFAF9;          /* cool 오프화이트 — 페이지 베이스 */
+  --site-paper-soft: #FFFFFF;     /* 카드/섹션 표면 — 순백 */
+  --site-ink: #1C2024;            /* 잉크 (cool 다크 — 어드민 --foreground 동일) */
+  --site-ink-soft: #5A6472;       /* 본문 보조 */
+  --site-accent: #A85475;         /* dusty rose 포인트 — 어드민 --brand 동일 */
+  --site-accent-deep: #8E3F5F;    /* 로즈 딥 (호버/강조) */
+  --site-accent-soft: #F7E9EF;    /* 소프트 로즈 틴트 — 어드민 --brand-muted 동일 */
+  --site-slate: #8A929E;          /* cool slate 보조 — 어드민 --sage 동일 */
+  --site-leaf: #A85475;           /* leaf alias → rose (구 olive 대체) */
+  --site-muted: #9A9690;          /* 캡션/마이크로 */
+  --site-line: #ECEAE6;           /* 디바이더 */
 
   /* Legacy aliases (점진 마이그레이션용 — 추후 제거 예정) */
-  --site-ivory: var(--site-paper);
-  --site-parchment: var(--site-paper-soft);
-  --site-charcoal: var(--site-ink);
-  --site-oxblood: var(--site-accent);
-  --site-pewter: var(--site-muted);
-  --site-olive: var(--site-leaf);
-  --site-oxblood-light: var(--site-accent-soft);
-  --site-oxblood-soft: var(--site-accent-soft);
+  --site-ivory: var(--site-paper);          /* #FAFAF9 */
+  --site-parchment: var(--site-paper-soft); /* #FFFFFF */
+  --site-charcoal: var(--site-ink);         /* #1C2024 */
+  --site-oxblood: var(--site-accent);       /* #A85475 (구 oxblood → rose) */
+  --site-pewter: var(--site-muted);         /* #9A9690 */
+  --site-olive: var(--site-leaf);           /* #A85475 (구 olive → rose) */
+  --site-oxblood-light: var(--site-accent-soft);  /* #F7E9EF */
+  --site-oxblood-soft: var(--site-accent-soft);   /* #F7E9EF */
   /* 어드민 로즈 테마 — Rose reskin 2026-05-26
      --brand        : #A85475  (dusty deep rose — white text contrast ~5.01:1 ✅ WCAG AA)
      --brand-muted  : #FBEFF3  (soft rose tint bg)
@@ -401,6 +403,214 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ─── 랜딩 페이지 컴포넌트 (.site-public 스코프) ───────────
+   시안: docs/superpowers/specs/26-06-09-landing-mockup.html
+   팔레트 변수 매핑:
+     --rose      → --site-accent
+     --rose-deep → --site-accent-deep
+     --rose-soft → --site-accent-soft
+     --bg        → --site-paper
+     --card      → --site-paper-soft
+     --ink       → --site-ink
+     --muted     → --site-ink-soft
+     --faint     → --site-muted
+     --line      → --site-line
+     --slate     → --site-slate
+     --accent2   → #F3F1ED (light neutral)
+   ──────────────────────────────────────────────────────── */
+
+.site-public .wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 40px);
+}
+
+.site-public .eyebrow {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--site-muted);
+  font-weight: 700;
+}
+
+.site-public .btn-rose {
+  background: var(--site-accent);
+  color: #fff;
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .15s;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+.site-public .btn-rose:hover {
+  background: var(--site-accent-deep);
+}
+
+.site-public .btn-ghost {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  color: var(--site-ink);
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.site-public .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-accent-deep);
+  background: var(--site-accent-soft);
+  border-radius: 999px;
+  padding: 7px 15px;
+}
+
+.site-public .card {
+  background: var(--site-paper-soft);
+  border: 1px solid var(--site-line);
+  border-radius: 18px;
+}
+
+/* 공개 폼 입력 포커스 링(접근성 — WCAG 2.4.11). 인라인 outline:none 제거 후 가시 포커스 복구. */
+.site-public input:focus-visible {
+  outline: 2px solid var(--site-accent);
+  outline-offset: 2px;
+  border-color: var(--site-accent);
+}
+
+/* Asset placeholder */
+.site-public .ph {
+  border: 1.5px dashed #C9A3B4;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    135deg,
+    #FBEFF3,
+    #FBEFF3 12px,
+    #F7E6ED 12px,
+    #F7E6ED 24px
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #9A5E76;
+  text-align: center;
+  padding: 24px;
+}
+.site-public .ph b {
+  font-size: 13px;
+  font-weight: 700;
+}
+.site-public .ph span {
+  font-size: 11px;
+  color: #B07E92;
+}
+.site-public .ph .ico {
+  font-size: 26px;
+}
+
+/* Browser chrome */
+.site-public .browser {
+  border: 1px solid var(--site-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 30px 70px -34px rgba(28,32,36,.40);
+}
+.site-public .browser .bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  background: #F6F8FA;
+  border-bottom: 1px solid var(--site-line);
+}
+.site-public .browser .d {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+/* FAQ details/summary */
+.site-public details {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  padding: 0 20px;
+  transition: box-shadow .15s, border-color .15s;
+}
+.site-public details[open] {
+  border-color: #EAD3DD;
+  box-shadow: 0 8px 24px -16px rgba(168,84,117,.35);
+}
+.site-public details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 20px 0;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.site-public details > summary::-webkit-details-marker {
+  display: none;
+}
+.site-public details > summary::after {
+  content: "+";
+  color: var(--site-accent);
+  font-size: 24px;
+  font-weight: 300;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.site-public details[open] > summary::after {
+  transform: rotate(45deg);
+}
+.site-public details .ans {
+  padding: 0 0 20px;
+  color: var(--site-ink-soft);
+  font-size: 15px;
+  max-width: 64ch;
+}
+
+/* Feature icon badge */
+.site-public .feat-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F1ED;
+  font-size: 22px;
+}
+
+/* Feature row responsive */
+@media (max-width: 760px) {
+  .site-public .feat-row {
+    grid-template-columns: 1fr !important;
   }
 }
 

@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-10 | 통계 페이지(`/admin/statistics`) + 대시보드 '오늘·운영 홈' 개편 + BFF `/statistics/*` 4종 엔드포인트
+> 최종 업데이트: 2026-06-10 | 단일 도메인 랜딩 + 사전등록(waitlist) + 미들웨어 루트 `/` 인증 분기
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -16,7 +16,7 @@ graph TB
     end
 
     subgraph NextServer["Next.js Server"]
-        MW["Middleware<br/>refresh 쿠키 검사 + 인증 리다이렉트"]
+        MW["Middleware<br/>루트 / 인증 분기 + /admin/* 인증 리다이렉트"]
         SC["Server Components<br/>(page.tsx)<br/>초기 데이터 fetch → props 전달"]
         SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + UUID검증 + withErrorLogging()"]
         AC["api/client<br/>apiFetch(JWT) · apiFetchInternal(Bearer)"]
@@ -173,7 +173,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Components, Server Actions, Middleware, ISR)이 zero-config로 동작한다.
 
 1. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
-2. **Edge Middleware**: `src/middleware.ts`가 `/admin/*` 요청에서 refresh 쿠키(`flori_refresh`) 존재 여부를 검사한다. 없으면 `/login`으로 리다이렉트. 토큰 갱신은 미들웨어에서 하지 않고 API 클라이언트가 처리한다. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다. (파일 위치: 루트가 아닌 `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
+2. **Edge Middleware**: `src/middleware.ts`가 두 단계로 동작한다. ① **루트 분기**: `pathname === '/'`일 때 인증 쿠키(`flori_access` 또는 `flori_refresh`) 존재하면 `/admin` redirect, 없으면 랜딩 렌더(통과). 분기 로직은 `src/lib/middleware-routing.ts`의 순수 함수 `rootRedirectTarget`으로 분리(Edge 안전, 단위 테스트 포함). ② **어드민 인증**: `/admin/*` 요청에서 refresh 쿠키 존재 여부 검사 → 없으면 `/login` redirect. 토큰 갱신은 API 클라이언트가 처리. `/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. (파일 위치: `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
 
 ---
 
@@ -599,7 +599,7 @@ erDiagram
 
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
-| `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
+| `/` | flori 제품 랜딩 | 인증 쿠키 있으면 `/admin` redirect (미들웨어), 없으면 랜딩 렌더. 섹션: Hero · 사전등록(waitlist) · 기능 교차 4행 · FAQ · CTA 밴드 · Footer. cool-rose white 팔레트. 사전등록: 가게명+전화번호 → BFF `POST /waitlist` (공개, 선착순 100명). |
 | `/admin` | 대시보드 | 시간대별 인사말 + 이번 달 4 KPI + 다가오는 예약 + 커뮤니티 최신글 + flori AI 브리핑('개발 중'). 월별 분석은 `/admin/statistics`로 분리됨 |
 | `/admin/statistics` | 통계 | 빠른 선택 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 예약 탭에 요일×시간대 히트맵 포함 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
@@ -802,6 +802,7 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | `OAUTH_GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID — 없으면 구글 로그인 비활성 |
 | `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
 | `STORAGE_PUBLIC_URL` | CloudFront 공개 URL (옵션) — `next.config.ts` 이미지 허용 호스트 및 스토리지 URL 검증에 사용. S3 자격증명은 BFF가 보유 |
+| `NEXT_PUBLIC_KAKAO_OPENCHAT_URL` | 사전등록 완료 후 안내할 카카오톡 오픈채팅 URL (옵션) — 미설정 시 버튼 비활성 |
 
 ---
 
