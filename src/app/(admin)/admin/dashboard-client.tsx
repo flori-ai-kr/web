@@ -40,13 +40,14 @@ const PAGE_SIZE = 5;
 
 interface Props {
   greeting: string;
+  nowISO: string;
   initialToday?: DashboardTodayData;
   initialMonth?: DashboardMonthData;
   initialCommunityPosts: LatestCommunityPost[];
 }
 
-export function DashboardClient({greeting, initialToday, initialMonth, initialCommunityPosts}: Props) {
-  const now = new Date();
+export function DashboardClient({greeting, nowISO, initialToday, initialMonth, initialCommunityPosts}: Props) {
+  const now = new Date(nowISO);
   const router = useRouter();
 
   // Today data

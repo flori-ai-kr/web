@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/api/client', () => ({ apiFetch: vi.fn() }));
+vi.mock('@/lib/auth-guard', () => ({ requireAuth: vi.fn().mockResolvedValue({ id: 'test-user', name: '테스트', email: 'test@test.com' }) }));
 
 import { apiFetch } from '@/lib/api/client';
 import {

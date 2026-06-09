@@ -6,6 +6,7 @@ import {
   getReservationStatistics,
   getCustomerStatistics,
 } from '@/lib/actions/statistics';
+import { requireAuth } from '@/lib/auth-guard';
 
 // Next 16 App Router: searchParams is a Promise
 interface PageProps {
@@ -14,8 +15,11 @@ interface PageProps {
 
 const VALID_PRESETS: RangePreset[] = ['this-month', 'last-month', 'last-3m', 'this-year', 'custom'];
 const VALID_TABS: StatTab[] = ['sales', 'expenses', 'reservations', 'customers'];
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function StatisticsPage({ searchParams }: PageProps) {
+  await requireAuth();
+
   const params = await searchParams;
 
   // Resolve preset
@@ -24,10 +28,13 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
     ? (rawRange as RangePreset)
     : 'this-month';
 
-  // Resolve from/to: explicit params take priority; otherwise compute from preset
+  // Resolve from/to: explicit params take priority only if they match ISO format;
+  // otherwise fall back to the computed range (security: prevent injection via URL params).
   const baseRange = resolveRange(preset);
-  const from = params.from ?? baseRange.from;
-  const to = params.to ?? baseRange.to;
+  const from =
+    params.from && ISO_DATE.test(params.from) ? params.from : baseRange.from;
+  const to =
+    params.to && ISO_DATE.test(params.to) ? params.to : baseRange.to;
 
   // Resolve active tab
   const rawTab = params.tab ?? 'sales';

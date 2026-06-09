@@ -59,6 +59,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       greeting={greeting}
+      nowISO={new Date().toISOString()}
       initialToday={initialToday}
       initialMonth={initialMonth}
       initialCommunityPosts={initialCommunityPosts}

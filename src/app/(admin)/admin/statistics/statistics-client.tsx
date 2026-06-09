@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BarChart2, AlertCircle, RefreshCw } from 'lucide-react';
 import { DateRangeSelector } from './components/DateRangeSelector';
 import { type RangePreset } from './lib/range';
 import {
@@ -123,6 +124,19 @@ export function StatisticsClient({
   // with the initial SSR key so it's never re-fetched on the first render.
   const resolvedKeys = useRef<Set<string>>(new Set([initialKey]));
 
+  // ─── Mount: trigger fetch for active tab if not yet resolved ────────────────
+  // This closes the gap where initialData is null/absent (no error) and nothing
+  // would trigger a fetch — e.g. the page rendered with initialError=false but
+  // initialData=null (BFF returned empty), and no user interaction has happened yet.
+  useEffect(() => {
+    const key = cacheKey(initialTab, initialFrom, initialTo);
+    if (!resolvedKeys.current.has(key)) {
+      fetchTab(initialTab, initialFrom, initialTo);
+    }
+    // Run once on mount only — deps are stable initial props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ─── URL sync helper ────────────────────────────────────────────────────────
 
   const pushURL = useCallback(
@@ -222,12 +236,30 @@ export function StatisticsClient({
     if (!entry || entry.loading || isPending) return <StatsPanelSkeleton />;
 
     if (entry.error) {
+      const retryKey = cacheKey(activeTab, from, to);
+      function handleRetry() {
+        // Remove the resolved key so fetchTab treats it as unfetched, then fetch.
+        resolvedKeys.current.delete(retryKey);
+        inFlight.current.delete(retryKey);
+        setCache((prev) => {
+          const next = { ...prev };
+          delete next[retryKey];
+          return next;
+        });
+        fetchTab(activeTab, from, to);
+      }
       return (
-        <EmptyState
-          icon={AlertCircle}
-          title="데이터를 불러오지 못했어요"
-          description="잠시 후 다시 시도해 주세요."
-        />
+        <div className="flex flex-col items-center gap-3">
+          <EmptyState
+            icon={AlertCircle}
+            title="데이터를 불러오지 못했어요"
+            description="잠시 후 다시 시도해 주세요."
+          />
+          <Button variant="outline" size="sm" onClick={handleRetry} className="gap-2">
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            다시 시도
+          </Button>
+        </div>
       );
     }
 

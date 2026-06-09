@@ -30,7 +30,7 @@ export function StatBarList({ items, emptyMessage = '데이터가 없습니다' 
           : undefined;
 
         return (
-          <div key={idx} className="space-y-1.5" role="listitem">
+          <div key={`${item.label}-${idx}`} className="space-y-1.5" role="listitem">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-foreground truncate">{item.label}</span>
               <span className="text-[13px] text-muted-foreground ml-2 shrink-0 tabular-nums">

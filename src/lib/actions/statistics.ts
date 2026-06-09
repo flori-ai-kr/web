@@ -1,7 +1,16 @@
 'use server';
 
-import {withErrorLogging} from '@/lib/errors';
+import {withErrorLogging, AppError, ErrorCode} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
+import {requireAuth} from '@/lib/auth-guard';
+
+// ─── ISO date guard ──────────────────────────────────────────
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function assertIsoDate(...vals: string[]) {
+  for (const v of vals) {
+    if (!ISO_DATE.test(v)) throw new AppError(ErrorCode.VALIDATION, '잘못된 날짜 형식입니다');
+  }
+}
 
 // ─── BFF /statistics/* 응답 DTO 미러 (camelCase, 서버가 그대로 반환 → 재매핑 불필요) ─
 
@@ -87,24 +96,32 @@ export interface CustomerStatistics {
 // 테넌트 격리는 BFF가 JWT(TenantContext) 기준으로 수행한다.
 
 async function _getSalesStatistics(from: string, to: string): Promise<SalesStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
   return apiFetch<SalesStatistics>(`/statistics/sales?from=${from}&to=${to}`);
 }
 
 export const getSalesStatistics = withErrorLogging('getSalesStatistics', _getSalesStatistics);
 
 async function _getExpensesStatistics(from: string, to: string): Promise<ExpensesStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
   return apiFetch<ExpensesStatistics>(`/statistics/expenses?from=${from}&to=${to}`);
 }
 
 export const getExpensesStatistics = withErrorLogging('getExpensesStatistics', _getExpensesStatistics);
 
 async function _getReservationStatistics(from: string, to: string): Promise<ReservationStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
   return apiFetch<ReservationStatistics>(`/statistics/reservations?from=${from}&to=${to}`);
 }
 
 export const getReservationStatistics = withErrorLogging('getReservationStatistics', _getReservationStatistics);
 
 async function _getCustomerStatistics(from: string, to: string): Promise<CustomerStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
   return apiFetch<CustomerStatistics>(`/statistics/customers?from=${from}&to=${to}`);
 }
 
