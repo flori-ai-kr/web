@@ -82,6 +82,18 @@ export function formatPhoneNumber(value: string): string {
 }
 
 /**
+ * 집계 금액을 만원 단위로 표시.
+ * 예: 6,420,000 → "642만원", 9,000 → "₩9,000" (1만 미만은 원 단위 그대로)
+ */
+export function formatManwon(n: number): string {
+  if (n < 10000) {
+    return `₩${n.toLocaleString('ko-KR')}`;
+  }
+  const manwon = Math.round(n / 10000);
+  return `${manwon.toLocaleString('ko-KR')}만원`;
+}
+
+/**
  * 아직 입금 안 된 미수(외상)인지 판정.
  * `is_unpaid`는 '외상이었음'을 나타내는 영구 마커라(결제 완료해도 BFF가 유지),
  * 실제 '미수(아직 안 받음)'는 결제수단이 아직 안 정해진(payment_method_id == null) 경우만이다.

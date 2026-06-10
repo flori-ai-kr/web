@@ -324,6 +324,7 @@ export type CommunityCategory =
 export interface CommunityPost {
   id: string;
   author_nickname: string;
+  author_is_admin: boolean;
   category: CommunityCategory;
   title: string;
   content: unknown; // Tiptap JSON (JSONContent)
@@ -345,6 +346,7 @@ export interface CommunityComment {
   post_id: string;
   parent_id: string | null; // 대댓글 셀프참조
   author_nickname: string;
+  author_is_admin: boolean;
   content: string; // 평문
   is_secret: boolean;
   is_mine: boolean;
@@ -377,6 +379,7 @@ export type NavItemKey =
   | 'calendar'
   | 'sales'
   | 'expenses'
+  | 'statistics'
   | 'customers'
   | 'gallery'
   | 'community';
@@ -392,6 +395,7 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
   calendar: '캘린더',
   sales: '매출',
   expenses: '지출',
+  statistics: '통계',
   customers: '고객',
   gallery: '사진첩',
   community: '커뮤니티',
@@ -402,6 +406,7 @@ export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
   calendar: '/admin/calendar',
   sales: '/admin/sales',
   expenses: '/admin/expenses',
+  statistics: '/admin/statistics',
   customers: '/admin/customers',
   gallery: '/admin/gallery',
   community: '/admin/community',

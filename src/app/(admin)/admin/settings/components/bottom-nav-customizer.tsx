@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {
+    BarChart3,
     CalendarDays,
     Image as ImageIcon,
     LayoutDashboard,
@@ -51,6 +52,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   calendar: CalendarDays,
   sales: Receipt,
   expenses: Wallet,
+  statistics: BarChart3,
   customers: Users,
   gallery: ImageIcon,
   community: MessagesSquare,
@@ -61,6 +63,7 @@ const ALL_KEYS: NavItemKey[] = [
   'calendar',
   'sales',
   'expenses',
+  'statistics',
   'customers',
   'gallery',
   'community',

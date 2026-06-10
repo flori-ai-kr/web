@@ -94,13 +94,6 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
-          R2_ACCOUNT_ID: ci-placeholder
-          R2_ACCESS_KEY_ID: ci-placeholder
-          R2_SECRET_ACCESS_KEY: ci-placeholder
-          R2_BUCKET_NAME: ci-placeholder
-          R2_PUBLIC_URL: https://ci-placeholder.r2.dev
+          # 빌드 타임 validateEnv() 통과용 placeholder (Supabase/R2 스택 폐기됨 — 제거).
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-placeholder
           INTERNAL_API_KEY: ci-placeholder-internal-api-key-32-chars-minimum

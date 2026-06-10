@@ -25,6 +25,8 @@ const serverEnvSchema = z.object({
   OAUTH_KAKAO_REST_API_KEY: z.string().min(1).optional(),
   OAUTH_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   OAUTH_NAVER_CLIENT_ID: z.string().min(1).optional(),
+  // 사전등록 후 안내할 카카오톡 오픈채팅 링크(공개 URL). 미설정 시 버튼 비활성.
+  NEXT_PUBLIC_KAKAO_OPENCHAT_URL: z.string().url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -21,7 +21,7 @@ name: 🚀 Deploy web (DEV)
 
 on:
   push:
-    branches: [dev, main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:

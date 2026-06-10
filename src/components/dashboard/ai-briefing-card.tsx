@@ -102,7 +102,7 @@ function TypingBriefing({lines}: {lines: string[]}) {
 export function AiBriefingCard() {
   return (
     <section
-      aria-label="flori AI 오늘의 브리핑 — 프리미엄 기능 (준비 중)"
+      aria-label="flori AI 오늘의 브리핑 — 개발 중인 기능"
       className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-brand-muted to-card p-5"
     >
       {/* Header */}
@@ -117,10 +117,10 @@ export function AiBriefingCard() {
         <p className="text-sm font-bold tracking-tight text-foreground">
           <span className="text-brand">flori AI</span> · 오늘의 브리핑
         </p>
-        {/* 프리미엄 배지 */}
+        {/* 개발 중 배지 */}
         <span className="ml-auto flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-brand">
           <Lock className="h-3 w-3" aria-hidden="true" />
-          프리미엄
+          개발 중
         </span>
       </div>
 
@@ -171,7 +171,7 @@ export function AiBriefingCard() {
           >
             <Lock className="h-4 w-4" />
           </span>
-          <p className="text-[13px] font-semibold text-foreground">프리미엄 기능</p>
+          <p className="text-[13px] font-semibold text-foreground">아직 개발 중인 기능이에요</p>
           <p className="text-xs leading-snug text-muted-foreground">
             flori AI가 매출·재고·고객을 매일 브리핑해요
             <br />

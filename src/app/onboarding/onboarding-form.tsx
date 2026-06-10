@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
@@ -20,18 +20,22 @@ import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-optio
 import { checkNickname, completeRegistration } from './actions'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** 온보딩 입력 임시저장 키(sessionStorage). 정책 페이지 이동·새로고침·뒤로가기 시 입력값 보존. */
+const DRAFT_KEY = 'flori_onboarding_draft'
+const PHONE_REGEX = /^01\d{8,9}$/
+/** 숫자만 추출해 010-XXXX-XXXX 형태로 포맷. */
+function formatPhone(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length < 4) return d
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`
+}
 
 function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
     <div className="flex items-center justify-center gap-2" aria-label={`2단계 중 ${step}단계`}>
-      <span
-        className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 1 ? 'bg-brand' : 'bg-border')}
-        aria-hidden="true"
-      />
-      <span
-        className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 2 ? 'bg-brand' : 'bg-border')}
-        aria-hidden="true"
-      />
+      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 1 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
+      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 2 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
     </div>
   )
 }
@@ -78,6 +82,7 @@ export function OnboardingForm({
 
   // Step 1 (필수)
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [nickname, setNickname] = useState(defaultNickname)
   const [email, setEmail] = useState(defaultEmail)
   const [regionSido, setRegionSido] = useState('')
@@ -94,8 +99,63 @@ export function OnboardingForm({
   const [nicknameStatus, setNicknameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [isLoading, setIsLoading] = useState(false)
 
+  // 전화번호가 입력됐지만 형식이 틀린 경우(빈 값은 에러 표시 안 함).
+  const phoneInvalid = phone.length > 0 && !PHONE_REGEX.test(phone.replace(/\D/g, ''))
+
+  // sessionStorage 임시저장 복원/유지. 복원 완료 전에는 저장하지 않는다(빈 기본값으로 덮어쓰기 방지).
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY)
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown>
+        if (typeof d.name === 'string') setName(d.name)
+        if (typeof d.phone === 'string') setPhone(d.phone)
+        if (typeof d.nickname === 'string') setNickname(d.nickname)
+        if (typeof d.email === 'string') setEmail(d.email)
+        if (typeof d.regionSido === 'string') setRegionSido(d.regionSido)
+        if (typeof d.regionSigungu === 'string') setRegionSigungu(d.regionSigungu)
+        if (typeof d.ownerAgeRange === 'string' || d.ownerAgeRange === null) {
+          setOwnerAgeRange(d.ownerAgeRange as string | null)
+        }
+        if (Array.isArray(d.interests)) setInterests(d.interests.filter((v): v is string => typeof v === 'string'))
+        if (Array.isArray(d.specialties)) {
+          setSpecialties(d.specialties.filter((v): v is string => typeof v === 'string'))
+        }
+        // 닉네임은 값만 복원하고 중복확인 상태(nicknameStatus)는 idle 유지 → 사용자가 다시 확인하게 한다.
+      }
+    } catch {
+      // 손상된 draft는 무시
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          name,
+          phone,
+          nickname,
+          email,
+          regionSido,
+          regionSigungu,
+          ownerAgeRange,
+          interests,
+          specialties,
+        }),
+      )
+    } catch {
+      // 저장 실패(용량/프라이버시 모드)는 무시 — 캐싱은 best-effort
+    }
+  }, [hydrated, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties])
+
   const step1Valid =
     name.trim().length > 0 &&
+    PHONE_REGEX.test(phone.replace(/\D/g, '')) &&
     nickname.trim().length > 0 &&
     nicknameStatus === 'available' &&
     EMAIL_REGEX.test(email.trim()) &&
@@ -139,7 +199,7 @@ export function OnboardingForm({
   const handleComplete = async () => {
     if (!step1Valid) {
       setStep(1)
-      setError('가게명·닉네임·이메일·지역(시/도)을 모두 입력해 주세요.')
+      setError('가게명·전화번호·닉네임·이메일·지역(시/도)을 모두 입력해 주세요.')
       return
     }
 
@@ -150,6 +210,7 @@ export function OnboardingForm({
 
     const result = await completeRegistration({
       name: name.trim(),
+      phoneNumber: phone.replace(/\D/g, ''),
       nickname: nickname.trim(),
       email: email.trim(),
       regionSido,
@@ -159,8 +220,15 @@ export function OnboardingForm({
       specialties,
     })
 
-    // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다.
-    if (!result) return
+    // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다. 임시저장 정리(베스트에포트).
+    if (!result) {
+      try {
+        sessionStorage.removeItem(DRAFT_KEY)
+      } catch {
+        // noop
+      }
+      return
+    }
 
     setIsLoading(false)
 
@@ -199,6 +267,8 @@ export function OnboardingForm({
           입력 정보는 맞춤 추천에 사용돼요.{' '}
           <Link
             href="/policy/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
             className="underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           >
             개인정보 처리방침
@@ -227,6 +297,33 @@ export function OnboardingForm({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                사업자등록증의 상호와 동일하게 정확히 입력해 주세요.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">전화번호</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="010-1234-5678"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                aria-invalid={phoneInvalid ? true : undefined}
+                aria-describedby={phoneInvalid ? 'phone-error' : 'phone-help'}
+              />
+              <p id="phone-help" className="text-xs text-muted-foreground">
+                본인 확인과 중요 안내 연락에 사용돼요. 정확히 입력해 주세요.
+              </p>
+              {phoneInvalid && (
+                <p id="phone-error" className="text-sm text-destructive" role="alert">
+                  올바른 휴대폰 번호를 입력해 주세요.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -403,11 +500,11 @@ export function OnboardingForm({
                 type="button"
                 variant="outline"
                 className="h-10 flex-1"
+                disabled={isLoading}
                 onClick={() => {
                   setError(null)
                   setStep(1)
                 }}
-                disabled={isLoading}
               >
                 <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
                 이전
@@ -422,8 +519,8 @@ export function OnboardingForm({
               type="button"
               variant="ghost"
               className="h-9 w-full text-muted-foreground"
-              onClick={() => void handleComplete()}
               disabled={isLoading}
+              onClick={() => void handleComplete()}
             >
               건너뛰기
             </Button>

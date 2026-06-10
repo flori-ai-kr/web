@@ -114,10 +114,9 @@ export const scheduleSchema = scheduleBaseSchema.refine(
   { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
 );
 
-// 카테고리 설정
-export const categorySettingSchema = z.object({
+// 라벨 설정(카테고리·결제방식·채널) — 색상은 제거됨, label만 관리
+export const labelSettingSchema = z.object({
   label: z.string().min(1).max(100),
-  color: colorSchema.optional(),
 });
 
 // 카드사 설정
@@ -269,6 +268,7 @@ export const navItemKeySchema = z.enum([
   'calendar',
   'sales',
   'expenses',
+  'statistics',
   'customers',
   'gallery',
   'community',
@@ -308,3 +308,10 @@ export function getFormInt(formData: FormData, key: string): number | null {
   const parsed = parseInt(val, 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
+
+// 사전등록(waitlist) — 가게명 + 전화번호
+export const waitlistSchema = z.object({
+  shop_name: z.string().min(1, '가게명을 입력해주세요').max(50, '가게명은 50자 이내여야 합니다'),
+  phone: phoneSchema,
+});
+export type WaitlistInput = z.infer<typeof waitlistSchema>;

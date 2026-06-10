@@ -26,7 +26,8 @@
 | Editor | Tiptap v3 (커뮤니티 게시판 본문, JSON 저장 + plain text 미리보기) |
 | Push | Web Push API (VAPID) + Service Worker |
 | Export | ExcelJS, jsPDF |
-| Charts | recharts (운영 콘솔 통계 추이) |
+| Charts | recharts (운영 콘솔 통계 추이 + `/admin/statistics` area/donut/bar 차트) |
+| DnD | @dnd-kit/core · @dnd-kit/sortable · @dnd-kit/utilities (BottomNav + 라벨 설정 순서 변경) |
 | Test | Vitest, fast-check, Testing Library |
 | Deploy | Vercel (Cron 포함) |
 | Error Logging | Discord 웹훅 |
@@ -55,9 +56,9 @@ page.tsx (Server) → 데이터 fetch → *-client.tsx (Client) → UI 렌더링
 
 ```
 src/
-├── app/(public)/        # 공개 홈페이지 (인증 불필요, /)
-│   ├── layout.tsx       # 공개 레이아웃 (.site-public CSS 클래스)
-│   └── page.tsx         # hero/statement/instagram + floating-cta (Footer는 layout)
+├── app/(public)/        # flori 제품 랜딩 (인증 불필요, /)
+│   ├── layout.tsx       # 공개 레이아웃 (.site-public CSS 클래스, 폰트 변수, flori SEO 메타데이터)
+│   └── page.tsx         # 랜딩 조립 — LandingHeader/Hero/WaitlistSection/Features/Faq/Cta/Footer + getWaitlistCount() 서버 fetch
 ├── app/(admin)/admin/   # 어드민 라우트 그룹 (인증 필요, /admin/*)
 │   ├── page.tsx              # 대시보드
 │   ├── dashboard-client.tsx
@@ -69,6 +70,7 @@ src/
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── profile/         # 내 프로필 (프로필 수정 + 아바타 업로드 + 탈퇴)
+│   ├── statistics/      # 통계 — statistics-client.tsx + 빠른 선택 DateRangeSelector + 매출/지출/예약/고객 4탭 (URL ?range&from&to&tab), recharts area/donut + StatBarList + 예약 히트맵
 │   ├── settings/        # 설정 (카드사 + 푸시 알림 + BottomNav 커스텀)
 │   └── error.tsx        # 에러 바운더리
 ├── app/(console)/console/ # 슈퍼어드민 운영 콘솔 (운영자 is_admin 전용, /console/*) — 점주 /admin/* 과 분리. 어드민 토큰 라이트 셸(테마 토글 존중)
@@ -80,7 +82,7 @@ src/
 │   └── health/          # AI 헬스 패널 (ai-server/litellm 프록시, 수동 새로고침)
 │   (공통 프리미티브: components/console/{StatCard,StatusBadge,TrendChart})
 ├── app/auth/            # 소셜 OAuth Route Handlers — oauth-providers.ts, login/[provider], callback/[provider]
-├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts
+├── app/onboarding/      # 소셜 신규 가입 온보딩 (registerToken 가드) — page.tsx, onboarding-form.tsx, actions.ts. Step1에 전화번호 필수 입력 포함
 ├── app/policy/          # 정책 문서 (인증 불필요) — privacy/, terms/, policy-ui.tsx
 ├── app/login/           # 로그인 (소셜 전용)
 ├── app/offline/         # PWA 오프라인 폴백 (SW가 navigate 실패 시 서빙, 정적·인라인스타일·JS無)
@@ -88,7 +90,7 @@ src/
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응, date-picker.tsx 공용 날짜 선택기 — 네이티브 `<input type="date">` 전면 대체)
 ├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
-├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card 등)
+├── components/{sales,gallery,expenses,insights,community,auth,public}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card, admin-badge 등; public: landing-header/hero/waitlist-section/features/faq/cta/footer)
 ├── components/theme-provider.tsx
 ├── lib/actions/          # Server Actions (직접 import)
 ├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts, insights-mappers.ts(insights↔scraps 공유 DTO 매퍼)
@@ -99,7 +101,7 @@ src/
 ├── lib/env.ts            # 환경변수 Zod 검증
 ├── lib/business-verification.ts # 사업자 인증 타입·상수 (BusinessVerification, BUSINESS_LICENSE_TYPES 등)
 ├── lib/{constants,utils,date-locale,export,logger}.ts
-├── lib/{public-config,instagram-url,legal-config,onboarding-options}.ts
+├── lib/{landing-content,instagram-url,legal-config,onboarding-options}.ts
 ├── types/database.ts     # 전체 타입 정의
 └── public/
     ├── sw.js             # Service Worker (푸시 알림)
@@ -108,7 +110,7 @@ src/
 
 ### 인증 흐름
 
-- `src/middleware.ts` → Kotlin BFF JWT 쿠키(`flori_access`/`flori_refresh`) 존재 여부 검사 → `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`). `requireAuth()` 내부 `fetchAuthUser`: access 쿠키 없이 refresh 쿠키만 있으면 `/login` 즉시 리다이렉트 없이 `apiFetch(/me)` 진행 → 401 시 자동 refresh. access·refresh 둘 다 없을 때만 `/login`.
+- `src/middleware.ts` → **루트 `/` 분기 먼저**: 인증 쿠키(`flori_access` 또는 `flori_refresh`) 존재하면 `/admin` redirect, 없으면 랜딩 렌더(통과). 분기 로직은 순수 함수 `rootRedirectTarget`(`src/lib/middleware-routing.ts`)로 분리. 이후 `/admin/*`·`/console/*` 경로에 Kotlin BFF JWT 쿠키 검사 + `requireAuth()` 가드 + 온보딩 게이트(`onboarded === false` → `/onboarding`). `requireAuth()` 내부 `fetchAuthUser`: access 쿠키 없이 refresh 쿠키만 있으면 `/login` 즉시 리다이렉트 없이 `apiFetch(/me)` 진행 → 401 시 자동 refresh. access·refresh 둘 다 없을 때만 `/login`.
 - `/admin/*`·`/console/*` 경로만 인증 강제. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*` 는 공개 라우트
 - 운영자 콘솔: `/console/*` 는 `requireAdmin()`(`lib/admin-guard.ts` — `/me` 인증 후 BFF `GET /admin/me`로 is_admin 재검증, 비운영자면 `/admin` redirect)로 게이트. 진짜 방어선은 BFF `@RequiresAdmin`(cross-tenant `/admin/**`)
 - 소셜 OAuth: `/auth/login/[provider]` → 공급자 redirect → `/auth/callback/[provider]` → BFF `POST /auth/oauth/{provider}` → registered=true이면 `/admin`, false이면 `registerToken` 쿠키(`flori_register`) → `/onboarding`
@@ -164,22 +166,27 @@ src/
 - 팔로우 포스트: 썸네일 → 라이트박스(prev/next + Esc/화살표). Instagram CDN `stp` 패딩 옵션을 `normalizeInstagramImageUrl()` 로 제거
 - 고정비(반복 지출): `recurring_expenses`(주/월/연 + 다중 일자) + `recurring_skips`. `expenses.recurring_id` FK + `(recurring_id, date) UNIQUE`. Cron KST 00:30 자동 등록. 지출 페이지 FAB → **고정비 관리 모달**(탭 구조 폐지, `RecurringExpensesSection embedded`). 수정 시 'iOS 이것만/이후 모두' 분기(`updateRecurringExpense` `mode: 'this' | 'future'`)
 - 다중선택 필터: `SalesFilters.category`/`payment`/`channel` 은 `string[]`(id 기반). BFF 응답의 `category_label`/`payment_method_label`/`channel_label`을 직접 사용(프론트에서 value→label 매핑 테이블 불필요). 채널 목록은 `getSaleChannels()`로 동적 조회(`GET /settings/sale-channels`). `ExpenseFilters.category`/`payment`도 동일한 id 기반 다중선택 패턴 적용
+- 대시보드 역할 변경: `/admin`(dashboard)은 '오늘·운영 홈' 역할로 개편 — 시간대별 인사말(`lib/greeting.ts`), 이번 달 4 KPI 카드(`formatManwon`), 커뮤니티 최신글(`getLatestCommunityPosts`), flori AI 브리핑 카드('개발 중' 잠금). 월별 분석(카테고리·결제방식·채널 BarList)은 대시보드에서 제거되어 `/admin/statistics`로 분리됨.
+- 빠른 등록 `?new=1`: 대시보드 드롭다운에서 매출/지출/예약 등록 클릭 시 해당 페이지로 이동(`?new=1`) → 각 클라이언트(sales/expenses/calendar)가 마운트 시 폼을 오늘 날짜로 프리필하여 즉시 오픈. 1회 처리 후 파라미터 제거.
+- 통계(`/admin/statistics`): 빠른 선택 글로벌 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 탭별 데이터는 클라이언트 캐시로 중복 요청 방지. 예약 탭에 요일×시간대 히트맵(`ReservationHeatmap`) 포함.
+- 라벨 설정 관리: 매출(카테고리·결제방식·채널)·지출(카테고리·결제방식) 설정은 공용 `LabelSettingsManager` 모달로 통합. 탭 구조로 도메인·종류를 전환하며, 각 항목은 좌측 `GripVertical` 드래그 핸들(`@dnd-kit/sortable`)로 순서를 변경한다. 순서 변경은 낙관적 적용 후 BFF `PUT /settings/{domain}/order` (5종: `sale-categories`, `payment-methods`, `sale-channels`, `expense-categories`, `expense-payment-methods`)로 저장하며 실패 시 롤백. `ExpenseCategory`·`ExpensePaymentMethod` 타입에서 `color` 필드 제거됨(BFF `LabelSettingResponse`가 color를 반환하지 않음).
 - 지출 서버 페이지네이션: `getExpenses(month, offset, limit, filters, dateRange)` → BFF `GET /expenses?offset=&limit=&month=&category=&payment=&search=` (페이지 단위 100건). 무한스크롤은 `loadMoreExpenses` 클라이언트 액션으로 추가 로드. 검색어는 300ms 디바운스 후 별도 loadMore 호출. 집계는 `getExpensesSummary(month, filters, dateRange)` → BFF `GET /expenses/summary` (카테고리별 금액 슬라이스 `ExpenseCategorySlice[]` + 이전 기간 비교). 이전의 클라이언트 집계(useMemo 합산) 방식은 폐지됨
-- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: 커뮤니티 모든 페이지에서 `GET /verification/business/me` → status≠APPROVED이면 `/admin/community/verify`로 리다이렉트
+- 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: `ensureCommunityAccess()`(`lib/actions/business-verification.ts`) — status≠APPROVED이면 `/admin/community/verify`로 리다이렉트(운영자 예외 없음 — BFF `@RequiresBusinessVerified`도 전원 인증 요구). 커뮤니티 4개 페이지(목록/write/[id]/[id]/edit)에서 공통 호출. **관리자 칩**: BFF `authorIsAdmin` → `author_is_admin` 매핑 → 운영자 작성 게시글·댓글 닉네임 옆에 "관리자" 칩(`components/community/admin-badge.tsx`) 표시
 - 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
+- 사전등록(waitlist): 랜딩 공개 폼(가게명+전화번호, 로그인 불필요) → `submitWaitlist` Server Action → BFF 공개 `POST /waitlist`(`apiFetch`, JWT 없이 호출). 카운트는 `getWaitlistCount` → BFF `GET /waitlist/count` → page.tsx 서버 렌더. 선착순 100명 첫 달 무료, 마감 시 카카오 오픈채팅 유도(`NEXT_PUBLIC_KAKAO_OPENCHAT_URL` env). Zod `waitlistSchema`(`lib/validations.ts`). 중복 전화번호·마감 처리는 BFF가 수행.
 
 ---
 
 ## 컬러 시스템
 
 - **어드민 브랜드**: Dusty Rose (`--brand: #A85475`, 다크 `#DB8FA9`) + Cool Slate Sage (`--sage: #8A929E`, 다크 `#8B95A2`) — Cool slate 리스킨 반영 (구 Warm Taupe `#A09080` 폐기). 배경: 라이트 `--background: #EEF1F5`(cool 캔버스), 다크 `#101317`. 카드는 순백(`#FFFFFF`) / 다크 `#1E242C` — elevation 구분
-- **공개 홈페이지 v2 팔레트** (Sage & Wood, `.site-public` 스코프):
-  - `--site-paper: #FAF7EF` / `--site-paper-soft: #FFFCF5` (베이스)
-  - `--site-ink: #2D2418` / `--site-ink-soft: rgba(45,36,24,0.66)` (잉크 다크 브라운)
-  - `--site-accent: #6E7457` (무광 올리브 — 매장 그린월 톤)
-  - `--site-muted: rgba(45,36,24,0.42)` / `--site-line: rgba(45,36,24,0.14)`
+- **랜딩 팔레트** (cool-rose white, `.site-public` 스코프 — 구 "Sage & Wood" 팔레트 대체):
+  - `--site-paper: #FAFAF9` / `--site-paper-soft: #FFFFFF` (베이스)
+  - `--site-ink: #1C2024` / `--site-ink-soft: #5A6472` (cool 다크 — 어드민 --foreground와 동일)
+  - `--site-accent: #A85475` (dusty rose — 어드민 --brand와 동일) / `--site-accent-deep: #8E3F5F` / `--site-accent-soft: #F7E9EF`
+  - `--site-slate: #8A929E` / `--site-muted: #9A9690` / `--site-line: #ECEAE6`
   - 폰트: Cormorant Garamond(display) + Noto Serif KR + Pretendard(sans)
-  - Legacy alias 유지 (`--site-ivory/parchment/charcoal/oxblood/pewter/olive` → v2 매핑)
+  - Legacy alias 유지 (`--site-ivory/parchment/charcoal/oxblood/pewter/olive` → 신규 cool-rose 값으로 매핑)
 - **배지 패턴**: 도메인 색 배지는 `<DomainBadge color>`(`components/ui/domain-badge.tsx`) 사용 — 라이트는 기존 `${color}40` 동일, 다크는 `.domain-badge` CSS가 카드색 혼합+대비 보정. 인라인 `style={{backgroundColor: ${color}40}}` 직접 작성 금지(다크 깨짐)
 - 상세 컬러는 `globals.css` 의 CSS 변수 참조
 
@@ -196,18 +203,26 @@ src/
 | 검증 스키마 | `lib/validations.ts` (Zod + 이미지 검증) |
 | 프로필 관리 | `lib/actions/profile.ts` (프로필 CRUD + 아바타 업로드 + 탈퇴) |
 | 스토리지(업로드) | `lib/photo-upload.ts` (presigned URL 발급 → S3 직접 PUT) |
-| 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions) |
+| 사업자 인증 | `lib/business-verification.ts` (타입·상수), `lib/actions/business-verification.ts` (Server Actions + `ensureCommunityAccess()` 커뮤니티 게이트) |
 | 내부 API 인증 | `lib/internal-auth.ts` (Bearer timing-safe) |
 | 푸시 브로드캐스트 | `lib/push-broadcast.ts` |
 | 환경변수 검증 | `lib/env.ts` |
 | 공유 라벨 상수 | `lib/constants.ts` (EXPENSE_LABELS — PAYMENT_LABELS·CHANNEL_LABELS는 id 기반 계약으로 제거됨) |
-| 공개 홈 SSOT | `lib/public-config.ts`, `lib/legal-config.ts`, `lib/onboarding-options.ts` |
+| 랜딩 콘텐츠 SSOT | `lib/landing-content.ts` (LANDING_FEATURES, LANDING_FAQS), `lib/legal-config.ts`, `lib/onboarding-options.ts` |
+| 미들웨어 루트 분기 | `lib/middleware-routing.ts` (`rootRedirectTarget` — Edge 안전 순수 함수, 단위 테스트 포함) |
+| 사전등록(waitlist) | `lib/actions/waitlist.ts` (`getWaitlistCount`, `submitWaitlist` — BFF 공개 엔드포인트, JWT 불필요) |
 | 타입 정의 | `types/database.ts` |
 | Service Worker | `public/sw.js` |
 | 날짜 선택 UI | `components/ui/date-picker.tsx` (shadcn Calendar 팝오버 — `name` prop으로 FormData 제출 지원, 모든 네이티브 `<input type="date">` 대체) |
 | 미수 판정 | `lib/utils.ts` `isUnsettledUnpaid(sale)` — `is_unpaid && payment_method_id == null` |
+| 금액 만원 표시 | `lib/utils.ts` `formatManwon(n)` — 1만 미만은 `₩N`, 이상은 `N만원` (대시보드·통계 집계용) |
+| 대시보드 인사말 | `lib/greeting.ts` `getDashboardGreeting(name)` — KST 시간대별 인사 (서버에서 계산해 props로 전달, 하이드레이션 불일치 방지) |
 | 지출 서버 액션 | `lib/actions/expenses.ts` — `getExpenses`(페이징), `loadMoreExpenses`(무한스크롤), `getExpensesSummary`(카테고리 슬라이스 집계) |
 | 고객 등급 CRUD | `lib/actions/customer-grades.ts` — `getCustomerGrades`, `createCustomerGradeConfig`, `updateCustomerGradeConfig`, `deleteCustomerGradeConfig` (테넌트별 커스텀 등급 관리) |
+| 통계 서버 액션 | `lib/actions/statistics.ts` — `getSalesStatistics`, `getExpensesStatistics`, `getReservationStatistics`, `getCustomerStatistics` (BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=`) |
+| 통계 컴포넌트 | `app/(admin)/admin/statistics/components/` — `SalesStatPanel`, `ExpenseStatPanel`, `ReservationStatPanel`, `CustomerStatPanel`, `DateRangeSelector`, `StatAreaChart`, `StatBarList`, `StatDonut`, `StatKpiCard`, `ReservationHeatmap` |
+| 라벨 설정 공용 UI | `components/settings/label-settings-manager.tsx` — 매출·지출 카테고리·결제방식·채널 설정을 탭+드래그 핸들로 통합 관리하는 공용 모달 (`LabelSettingsManager`, `LabelTabConfig`) |
+| 기간 헤더 공용 UI | `components/layout/PeriodHeader.tsx` — 월네비+기간 셀렉터 (사진첩 등). 기간↔ISO 경계 변환은 `lib/period-range.ts` |
 
 ---
 

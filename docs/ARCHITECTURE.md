@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-10 | 세션3: 고객·사진첩 리디자인 + 사진↔고객 직접연결 + 커스텀 등급(자동승급·수동고정) + 사진첩 v2(앨범표지 카드·기간 헤더·#해시태그·총계 헤더)
+> 최종 업데이트: 2026-06-10 | 세션3: 고객·사진첩 리디자인 + 커스텀 등급 + 사진첩 v2(앨범표지·기간 헤더·#해시태그·총계) · 단일 도메인 랜딩 + 사전등록(waitlist) + 미들웨어 루트 `/` 인증 분기
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -16,7 +16,7 @@ graph TB
     end
 
     subgraph NextServer["Next.js Server"]
-        MW["Middleware<br/>refresh 쿠키 검사 + 인증 리다이렉트"]
+        MW["Middleware<br/>루트 / 인증 분기 + /admin/* 인증 리다이렉트"]
         SC["Server Components<br/>(page.tsx)<br/>초기 데이터 fetch → props 전달"]
         SA["Server Actions<br/>(src/lib/actions/)<br/>requireAuth() + Zod + UUID검증 + withErrorLogging()"]
         AC["api/client<br/>apiFetch(JWT) · apiFetchInternal(Bearer)"]
@@ -173,7 +173,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 Next.js를 만든 회사의 플랫폼이다. Next.js의 모든 기능(Server Components, Server Actions, Middleware, ISR)이 zero-config로 동작한다.
 
 1. **자동 배포**: GitHub push 시 자동 빌드/배포. PR에 Preview 배포가 생성되어 코드 리뷰 시 실제 동작을 확인할 수 있다.
-2. **Edge Middleware**: `src/middleware.ts`가 `/admin/*` 요청에서 refresh 쿠키(`flori_refresh`) 존재 여부를 검사한다. 없으면 `/login`으로 리다이렉트. 토큰 갱신은 미들웨어에서 하지 않고 API 클라이언트가 처리한다. `/`·`(public)/*`·`/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. Edge에서 실행되므로 latency가 최소화된다. (파일 위치: 루트가 아닌 `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
+2. **Edge Middleware**: `src/middleware.ts`가 두 단계로 동작한다. ① **루트 분기**: `pathname === '/'`일 때 인증 쿠키(`flori_access` 또는 `flori_refresh`) 존재하면 `/admin` redirect, 없으면 랜딩 렌더(통과). 분기 로직은 `src/lib/middleware-routing.ts`의 순수 함수 `rootRedirectTarget`으로 분리(Edge 안전, 단위 테스트 포함). ② **어드민 인증**: `/admin/*` 요청에서 refresh 쿠키 존재 여부 검사 → 없으면 `/login` redirect. 토큰 갱신은 API 클라이언트가 처리. `/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. (파일 위치: `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
 
 ---
 
@@ -278,8 +278,8 @@ sequenceDiagram
         BFF-->>CB: {registerToken, socialEmail, socialNickname}
         CB->>CB: flori_register 쿠키 저장
         CB-->>U: /onboarding?email=...&nickname=... redirect
-        U->>OB: 가게명·닉네임·이메일·지역 입력
-        OB->>BFF: POST /auth/register/complete {registerToken, ...}
+        U->>OB: 가게명·전화번호·닉네임·이메일·지역 입력
+        OB->>BFF: POST /auth/register/complete {registerToken, storeName, phoneNumber, ...}
         BFF-->>OB: {accessToken, refreshToken, ...}
         OB->>OB: flori_access·flori_refresh 저장, flori_register 삭제
         OB-->>U: /admin redirect
@@ -609,8 +609,9 @@ erDiagram
 
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
-| `/` | 공개 홈페이지 v2 | 플라워 스튜디오 소개 — hero/statement/instagram + footer + 모바일 floating CTA (인증 불필요, Cormorant + Noto Serif KR, Sage & Wood 팔레트) |
-| `/admin` | 대시보드 | 다가오는 예약 + 월별 분석 + 알림 |
+| `/` | flori 제품 랜딩 | 인증 쿠키 있으면 `/admin` redirect (미들웨어), 없으면 랜딩 렌더. 섹션: Hero · 사전등록(waitlist) · 기능 교차 4행 · FAQ · CTA 밴드 · Footer. cool-rose white 팔레트. 사전등록: 가게명+전화번호 → BFF `POST /waitlist` (공개, 선착순 100명). |
+| `/admin` | 대시보드 | 시간대별 인사말 + 이번 달 4 KPI + 다가오는 예약 + 커뮤니티 최신글 + flori AI 브리핑('개발 중'). 월별 분석은 `/admin/statistics`로 분리됨 |
+| `/admin/statistics` | 통계 | 빠른 선택 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 예약 탭에 요일×시간대 히트맵 포함 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
 | `/admin/expenses` | 지출 관리 | 서버 페이지네이션(100건 단위 무한스크롤) + getExpensesSummary(카테고리별 비율 바) + 기간 범위 필터 + 다중선택 필터(id 기반) + FAB Speed Dial(지출 등록/고정비 관리 모달/내보내기/설정) |
 | `/admin/customers` | 고객 관리 | 통합 그리드(최근구매순) + 커스텀 등급 칩 필터 + 사진 썸네일 미리보기 + FAB(등록/내보내기/등급관리) |
@@ -621,12 +622,12 @@ erDiagram
 | `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
 | `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
 | `/admin/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
-| `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 사업자 인증 상태 확인 → APPROVED 아니면 /verify 리다이렉트 |
+| `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 `ensureCommunityAccess()` — APPROVED 아니면 /verify 리다이렉트(전원 인증, 운영자 예외 없음). 운영자 작성물에 "관리자" 칩 표시 |
 | `/admin/community/verify` | 사업자 인증 | 사업자등록증 업로드 + 심사 상태 표시 (`BusinessVerificationGate`). APPROVED 상태이면 /admin/community로 리다이렉트 |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
 | `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
 | `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
-| `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드) |
+| `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드). Step1에 전화번호 필수 입력 포함 |
 | `/policy/privacy` | 개인정보 처리방침 | flori 개인정보 처리방침 (인증 불필요) |
 | `/policy/terms` | 서비스 이용약관 | flori 서비스 이용약관 (인증 불필요) |
 | `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
@@ -659,16 +660,16 @@ erDiagram
 | `reservations.ts` | CRUD + convertReservationToSale + addPickupToSale + getReservationSuggestions (자동완성) (throw 패턴, reminder_at, pickup_completed 지원) |
 | `schedules.ts` | getSchedules, createSchedule, updateSchedule, deleteSchedule (BFF `/schedules?month=`) |
 | `dashboard.ts` | getDashboardTodayData, getDashboardMonthData, getTriggeredReminders, getUpcomingReservations |
-| `statistics.ts` | getCategoryStats, getPaymentMethodStats, getChannelStats, getCustomerStats |
+| `statistics.ts` | `getSalesStatistics`, `getExpensesStatistics`, `getReservationStatistics`, `getCustomerStatistics` — BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=`. ISO 날짜 형식 가드(`assertIsoDate`) 포함. (구 `getCategoryStats`·`getPaymentMethodStats`·`getChannelStats`·`getCustomerStats`·`getExpenseCategoryStats` 는 제거됨) |
 | `photo-cards.ts` | CRUD + getPhotoCardBySaleId + getPhotoCardById + createPhotoUploadTargets (presigned PUT URL 발급, 소유권 검증) |
 | `photo-tags.ts` | CRUD |
-| `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels (`GET /settings/sale-channels`) |
-| `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods |
+| `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels, createSaleCategory, updateSaleCategory, deleteSaleCategory, **reorderSaleCategories** (`PUT /settings/sale-categories/order`), createPaymentMethod, updatePaymentMethod, deletePaymentMethod, **reorderPaymentMethods** (`PUT /settings/payment-methods/order`), createSaleChannel, updateSaleChannel, deleteSaleChannel, **reorderSaleChannels** (`PUT /settings/sale-channels/order`) |
+| `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory, **reorderExpenseCategories** (`PUT /settings/expense-categories/order`), createExpensePaymentMethod, updateExpensePaymentMethod, deleteExpensePaymentMethod, **reorderExpensePaymentMethods** (`PUT /settings/expense-payment-methods/order`) |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
 | `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
 | `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
-| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
-| `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`) — 에러코드 E-VRF-001..004 |
+| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
+| `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 
 ## 타입 시스템
 
@@ -814,6 +815,7 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | `OAUTH_GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID — 없으면 구글 로그인 비활성 |
 | `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
 | `STORAGE_PUBLIC_URL` | CloudFront 공개 URL (옵션) — `next.config.ts` 이미지 허용 호스트 및 스토리지 URL 검증에 사용. S3 자격증명은 BFF가 보유 |
+| `NEXT_PUBLIC_KAKAO_OPENCHAT_URL` | 사전등록 완료 후 안내할 카카오톡 오픈채팅 URL (옵션) — 미설정 시 버튼 비활성 |
 
 ---
 
@@ -861,6 +863,8 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | radix-ui | ^1.4.3 | 접근성 UI 프리미티브 |
 | sonner | ^2.0.7 | 토스트 알림 |
 | date-fns | ^4.1.0 | 날짜 유틸리티 |
-| @dnd-kit/sortable | ^10.x | BottomNav 아이템 드래그 정렬 (설정 화면) |
+| @dnd-kit/core | ^6.x | 드래그 앤 드롭 코어 (BottomNav + 라벨 설정 모달) |
+| @dnd-kit/sortable | ^10.x | 정렬 가능 리스트 (BottomNav 아이템 + 라벨 설정 순서 변경) |
+| @dnd-kit/utilities | ^3.x | CSS Transform 유틸 (SortableRow 드래그 애니메이션) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |

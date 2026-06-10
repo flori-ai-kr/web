@@ -52,11 +52,9 @@ interface Props {
   initialPayments: PaymentMethod[];
   initialChannels: SaleChannel[];
   initialSelectedSale?: Sale | null;
-  prevTotal?: number | null;
-  prevPeriod?: { startDate: string; endDate: string } | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale, prevTotal, prevPeriod }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -122,6 +120,19 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setPayments(pays);
     setChannels(chs);
   };
+
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setInitialCustomer(undefined);
+      setIsFormOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  // 마운트 시 1회만 실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
   useEffect(() => {
@@ -422,7 +433,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         onSearchChange={setSearchQuery}
         onReset={handleResetFilters}
       >
-        <SalesSummary summary={summary} prevTotal={prevTotal ?? undefined} prevPeriod={prevPeriod ?? undefined} />
+        <SalesSummary summary={summary} />
       </SalesFiltersUI>
 
       {/* Sales List */}
@@ -536,6 +547,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         categories={categories}
+        payments={payments}
+        channels={channels}
         onRefresh={refreshSettings}
       />
 
@@ -561,7 +574,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
             >
               <Settings className="w-4 h-4" />
-              관리
+              설정
             </button>
           </div>
         )}

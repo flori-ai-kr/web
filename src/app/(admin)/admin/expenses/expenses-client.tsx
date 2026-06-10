@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback, useEffect, useOptimistic, useRef, useState, useTransition} from 'react';
-import {useRouter} from 'next/navigation';
+import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -32,7 +32,7 @@ import {
   loadMoreExpenses,
   updateExpense,
 } from '@/lib/actions/expenses';
-import type {ExpenseCategorySlice, ExpenseFilters} from '@/lib/actions/expenses';
+import type {ExpenseFilters} from '@/lib/actions/expenses';
 import {
   ExpenseCategory,
   ExpensePaymentMethod,
@@ -47,16 +47,12 @@ import type {ExportConfig} from '@/lib/export';
 
 interface ExpensesSummaryData {
   total: number;
-  count: number;
-  byCategory: ExpenseCategorySlice[];
 }
 
 interface Props {
   initialExpenses: Expense[];
   initialHasMore: boolean;
   initialSummary: ExpensesSummaryData;
-  prevTotal?: number | null;
-  prevPeriod?: { startDate: string; endDate: string } | null;
   monthParam: string | null;
   currentYear: number;
   currentMonth: number;
@@ -71,8 +67,6 @@ export function ExpensesClient({
   initialExpenses,
   initialHasMore,
   initialSummary,
-  prevTotal,
-  prevPeriod,
   monthParam: serverMonthParam,
   currentYear,
   currentMonth,
@@ -83,6 +77,7 @@ export function ExpensesClient({
   initialSelectedExpense,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
@@ -117,6 +112,20 @@ export function ExpensesClient({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const dataVersionRef = useRef(0);
+
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 지출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setIsFormOpen(true);
+      setNoteValue('');
+      setSelectedPaymentMethod(payments[0]?.id ?? '');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  // 마운트 시 1회만 실행 — payments는 초기값이므로 의도적으로 deps 제외
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
   const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
@@ -457,12 +466,7 @@ export function ExpensesClient({
         onSearchChange={setSearchQuery}
         onReset={handleResetFilters}
       >
-        <ExpensesSummary
-          summary={summary}
-          categories={categories}
-          prevTotal={prevTotal ?? undefined}
-          prevPeriod={prevPeriod ?? undefined}
-        />
+        <ExpensesSummary summary={summary} />
       </ExpensesFiltersUI>
 
       <ExpensesList
@@ -841,6 +845,7 @@ export function ExpensesClient({
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         categories={categories}
+        payments={payments}
         onRefresh={refreshSettings}
       />
 
@@ -874,7 +879,7 @@ export function ExpensesClient({
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
             >
               <Settings className="w-4 h-4" />
-              관리
+              설정
             </button>
           </div>
         )}

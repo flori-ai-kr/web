@@ -10,6 +10,7 @@ import {PageHeader} from '@/components/layout/PageHeader';
 import {cn} from '@/lib/utils';
 import {PostCard} from '@/components/community/post-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
+import {AdminBadge} from '@/components/community/admin-badge';
 
 interface CommunityClientProps {
   initialPosts: CommunityPost[];
@@ -146,6 +147,7 @@ function NoticeRow({ post }: { post: CommunityPost }) {
         </span>
         <span className="hidden sm:flex items-center gap-2.5 text-xs text-muted-foreground shrink-0">
           <span>{masked ? '비공개' : post.author_nickname}</span>
+          {!masked && post.author_is_admin && <AdminBadge />}
           {post.comment_count > 0 && (
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" /> {post.comment_count}
