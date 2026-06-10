@@ -47,10 +47,10 @@ export function LandingFeatures() {
                     <div
                       className="ph"
                       style={{aspectRatio: '4/3', order: -1}}
-                      aria-label={`${feature.title} 화면 캡처 — 준비 중`}
+                      aria-label={`${feature.title} 미리보기`}
                     >
-                      <div className="ico">📷</div>
-                      <b>{feature.title} 화면 캡처</b>
+                      <div className="ico">🌷</div>
+                      <b>{feature.title}</b>
                     </div>
                     <FeatureText feature={feature} />
                   </>
@@ -60,10 +60,10 @@ export function LandingFeatures() {
                     <div
                       className="ph"
                       style={{aspectRatio: '4/3'}}
-                      aria-label={`${feature.title} 화면 캡처 — 준비 중`}
+                      aria-label={`${feature.title} 미리보기`}
                     >
-                      <div className="ico">📷</div>
-                      <b>{feature.title} 화면 캡처</b>
+                      <div className="ico">🌷</div>
+                      <b>{feature.title}</b>
                     </div>
                   </>
                 )}

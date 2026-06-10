@@ -21,14 +21,15 @@ async function _getWaitlistCount(): Promise<WaitlistCount> {
 export const getWaitlistCount = withErrorLogging('getWaitlistCount', _getWaitlistCount);
 
 // BFF: POST /waitlist
-async function _submitWaitlist(input: {shopName: string; phone: string}): Promise<WaitlistCount> {
-  const parsed = waitlistSchema.safeParse({shop_name: input.shopName, phone: input.phone});
+// 수집 항목: 이메일 + 가게명 (둘 다 필수). 중복 이메일·마감 판정은 BFF가 수행.
+async function _submitWaitlist(input: {email: string; shopName: string}): Promise<WaitlistCount> {
+  const parsed = waitlistSchema.safeParse({email: input.email.trim(), shop_name: input.shopName.trim()});
   if (!parsed.success) {
     throw new AppError(ErrorCode.VALIDATION, parsed.error.issues[0]?.message ?? '입력값을 확인해 주세요');
   }
   return apiFetch<WaitlistCount>('/waitlist', {
     method: 'POST',
-    body: JSON.stringify({shopName: parsed.data.shop_name, phone: parsed.data.phone}),
+    body: JSON.stringify({email: parsed.data.email, shopName: parsed.data.shop_name}),
   });
 }
 export const submitWaitlist = withErrorLogging('submitWaitlist', _submitWaitlist);

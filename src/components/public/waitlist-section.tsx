@@ -64,8 +64,8 @@ export function WaitlistSection({
   kakaoUrl?: string;
 }) {
   const [count, setCount] = useState(initialCount);
+  const [email, setEmail] = useState('');
   const [shopName, setShopName] = useState('');
-  const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
@@ -79,7 +79,7 @@ export function WaitlistSection({
     setError(null);
     setSubmitting(true);
     try {
-      const next = await submitWaitlist({shopName, phone});
+      const next = await submitWaitlist({email, shopName});
       setCount(next);
       setRegistered(true);
     } catch (err) {
@@ -130,8 +130,7 @@ export function WaitlistSection({
               margin: '0 0 22px',
             }}
           >
-            지금 사전등록하면 한 달간 모든 기능을 무료로 · 정식 출시 후{' '}
-            <b>월 9,900원</b>
+            지금 사전등록하면 한 달간 <b>모든 기능을 무료로</b> 써보세요
           </p>
 
           {/* 진행 게이지 */}
@@ -283,13 +282,15 @@ export function WaitlistSection({
                   </p>
                 ) : (
                   <form onSubmit={onSubmit} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                    <label htmlFor="wl-shop-name" className="sr-only">가게명</label>
+                    <label htmlFor="wl-email" className="sr-only">이메일</label>
                     <input
-                      id="wl-shop-name"
-                      placeholder="가게명 (예: 헤이즐 플라워)"
-                      value={shopName}
-                      onChange={(e) => setShopName(e.target.value)}
+                      id="wl-email"
+                      placeholder="이메일 (예: hazel@flori.ai.kr)"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
+                      type="email"
+                      autoComplete="email"
                       style={{
                         border: '1px solid var(--site-line)',
                         borderRadius: '10px',
@@ -299,14 +300,13 @@ export function WaitlistSection({
                         background: '#FAFBFC',
                       }}
                     />
-                    <label htmlFor="wl-phone" className="sr-only">전화번호</label>
+                    <label htmlFor="wl-shop-name" className="sr-only">가게명</label>
                     <input
-                      id="wl-phone"
-                      placeholder="휴대폰 번호 (예: 010-1234-5678)"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      id="wl-shop-name"
+                      placeholder="가게명 (예: 헤이즐 플라워)"
+                      value={shopName}
+                      onChange={(e) => setShopName(e.target.value)}
                       required
-                      type="tel"
                       style={{
                         border: '1px solid var(--site-line)',
                         borderRadius: '10px',
@@ -331,7 +331,7 @@ export function WaitlistSection({
                 )}
 
                 <p style={{fontSize: '12px', color: 'var(--site-ink-soft)', margin: '12px 0 0'}}>
-                  입력하신 가게명·연락처는 <b>사전등록 안내 연락</b>에만 써요. 등록 시{' '}
+                  입력하신 이메일은 <b>출시·사전등록 안내</b>에만 써요. 등록 시{' '}
                   <Link
                     href="/policy/privacy"
                     style={{color: 'var(--site-accent)', textDecoration: 'underline'}}
@@ -382,14 +382,30 @@ export function WaitlistSection({
                     <span style={{color: 'var(--site-accent)'}}>(필수)</span>
                   </b>
                 </div>
-                <p style={{fontSize: '13px', color: 'var(--site-ink-soft)', margin: '0 0 14px'}}>
+                <p style={{fontSize: '13px', color: 'var(--site-ink-soft)', margin: '0 0 12px'}}>
                   오픈채팅까지 들어오셔야 사전등록이 <b>최종 완료</b>돼요. 출시 소식·무료 혜택을
                   여기로 안내드립니다.
                 </p>
-                <KakaoButton kakaoUrl={kakaoUrl} />
-                <p style={{fontSize: '11px', color: 'var(--site-muted)', margin: '10px 0 0'}}>
-                  ※ 오픈채팅 링크는 사장님이 제공 예정
+                <p
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--site-accent-deep)',
+                    background: 'var(--site-accent-soft)',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    margin: '0 0 14px',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  💡 입장하면 <b>채팅방 닉네임을 이메일 앞부분(@ 앞 아이디)</b>으로 바꿔주세요.
+                  {email.includes('@') && (
+                    <>
+                      {' '}예: <b>{email.split('@')[0]}</b>
+                    </>
+                  )}{' '}
+                  실제 참여 확인에 사용돼요.
                 </p>
+                <KakaoButton kakaoUrl={kakaoUrl} />
               </div>
             </>
           )}
@@ -402,7 +418,7 @@ export function WaitlistSection({
               marginTop: '16px',
             }}
           >
-            ※ 진행률·인원은 DB 실집계로 표시 (마감기한 없음 · 100명 도달 시 마감)
+            ※ 별도 마감 기한 없이 선착순 100명 도달 시 마감됩니다
           </p>
         </div>
       </div>

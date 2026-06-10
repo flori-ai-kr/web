@@ -72,11 +72,11 @@ export function LandingHero() {
         <div
           className="ph"
           style={{aspectRatio: '16/9', border: 'none', borderRadius: 0, margin: 0}}
-          aria-label="대시보드 미리보기 — 준비 중"
+          aria-label="flori 대시보드 미리보기"
         >
-          <div className="ico">🎬</div>
-          <b>HERO 메인 비주얼 — 대시보드 스크린샷 또는 데모 영상</b>
-          <span>자동재생 루프: 15~30초 권장(무음·MP4, ~5MB) · 길게(1분) 가면 재생버튼 클릭형으로 · 16:9</span>
+          <div className="ico">🌷</div>
+          <b>flori 대시보드 미리보기</b>
+          <span>오늘 번 돈·예약·단골을 한 화면에서. 곧 실제 화면으로 보여드릴게요.</span>
         </div>
       </div>
     </section>

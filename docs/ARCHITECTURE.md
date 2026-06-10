@@ -816,6 +816,8 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
 | `STORAGE_PUBLIC_URL` | CloudFront 공개 URL (옵션) — `next.config.ts` 이미지 허용 호스트 및 스토리지 URL 검증에 사용. S3 자격증명은 BFF가 보유 |
 | `NEXT_PUBLIC_KAKAO_OPENCHAT_URL` | 사전등록 완료 후 안내할 카카오톡 오픈채팅 URL (옵션) — 미설정 시 버튼 비활성 |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 측정 ID(`G-…`) (옵션) — 프로덕션 빌드에서만 로드, 미설정 시 미동작 |
+| `NEXT_PUBLIC_CLARITY_PROJECT_ID` | Microsoft Clarity 프로젝트 ID (옵션) — 프로덕션 빌드에서만 로드, 미설정 시 미동작 |
 
 ---
 

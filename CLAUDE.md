@@ -29,7 +29,8 @@
 | Charts | recharts (운영 콘솔 통계 추이 + `/admin/statistics` area/donut/bar 차트) |
 | DnD | @dnd-kit/core · @dnd-kit/sortable · @dnd-kit/utilities (BottomNav + 라벨 설정 순서 변경) |
 | Test | Vitest, fast-check, Testing Library |
-| Deploy | Vercel (Cron 포함) |
+| Deploy | AWS 자체 호스팅 (Vercel 아님) — Docker standalone(ARM64) → ECR `flori-dev/web` → EC2(`flori-dev-app`) docker-compose, ALB `admin.flori.ai.kr`. CI: GitHub Actions `deploy-web-dev.yml`. 랜딩 apex `flori.ai.kr` 은 별도 nginx(`flori-dev/homepage`) |
+| Analytics | Google Analytics 4 + Microsoft Clarity — `components/analytics.tsx`, **프로덕션 빌드에서만** 로드. ID는 `NEXT_PUBLIC_*` build-arg(baked) |
 | Error Logging | Discord 웹훅 |
 
 ---
@@ -173,7 +174,7 @@ src/
 - 지출 서버 페이지네이션: `getExpenses(month, offset, limit, filters, dateRange)` → BFF `GET /expenses?offset=&limit=&month=&category=&payment=&search=` (페이지 단위 100건). 무한스크롤은 `loadMoreExpenses` 클라이언트 액션으로 추가 로드. 검색어는 300ms 디바운스 후 별도 loadMore 호출. 집계는 `getExpensesSummary(month, filters, dateRange)` → BFF `GET /expenses/summary` (카테고리별 금액 슬라이스 `ExpenseCategorySlice[]` + 이전 기간 비교). 이전의 클라이언트 집계(useMemo 합산) 방식은 폐지됨
 - 커뮤니티 게시판(테넌트 간 공유): 카테고리(공지/자유/질문/노하우/후기/기타)·대댓글(최대 5뎁스)·좋아요·이미지·**비밀글/비밀댓글**(작성자+글쓴이+부모작성자만 열람). 본문 Tiptap JSON. `actions/community.ts`는 BFF REST(`GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets`)로 완전 연동. **사업자 인증 게이트**: `ensureCommunityAccess()`(`lib/actions/business-verification.ts`) — status≠APPROVED이면 `/admin/community/verify`로 리다이렉트(운영자 예외 없음 — BFF `@RequiresBusinessVerified`도 전원 인증 요구). 커뮤니티 4개 페이지(목록/write/[id]/[id]/edit)에서 공통 호출. **관리자 칩**: BFF `authorIsAdmin` → `author_is_admin` 매핑 → 운영자 작성 게시글·댓글 닉네임 옆에 "관리자" 칩(`components/community/admin-badge.tsx`) 표시
 - 프로필 관리: `/admin/profile`에서 가게명·닉네임(중복검증)·이메일·지역·선호정보 수정 + 프로필 사진 업로드(presigned S3 `profiles/{userId}/`). 탈퇴: soft delete(BFF `DELETE /me`) + 사유 수집 + 2초 감사 메시지 후 로그아웃
-- 사전등록(waitlist): 랜딩 공개 폼(가게명+전화번호, 로그인 불필요) → `submitWaitlist` Server Action → BFF 공개 `POST /waitlist`(`apiFetch`, JWT 없이 호출). 카운트는 `getWaitlistCount` → BFF `GET /waitlist/count` → page.tsx 서버 렌더. 선착순 100명 첫 달 무료, 마감 시 카카오 오픈채팅 유도(`NEXT_PUBLIC_KAKAO_OPENCHAT_URL` env). Zod `waitlistSchema`(`lib/validations.ts`). 중복 전화번호·마감 처리는 BFF가 수행.
+- 사전등록(waitlist): 랜딩 공개 폼(**이메일 + 가게명, 둘 다 필수**, 로그인 불필요) → `submitWaitlist` Server Action → BFF 공개 `POST /waitlist`(`apiFetch`, JWT 없이 호출, body `{email, shopName|null}`). 카운트는 `getWaitlistCount` → BFF `GET /waitlist/count` → page.tsx 서버 렌더. 선착순 100명 첫 달 무료, 등록 후 카카오 오픈채팅 입장 유도(`NEXT_PUBLIC_KAKAO_OPENCHAT_URL` env) + **닉네임을 이메일 @앞 아이디로 변경**해 실제 참여 대조. Zod `waitlistSchema`(`lib/validations.ts`). **중복 이메일**·마감 처리는 BFF가 수행. (구 가게명+전화번호 수집은 개인정보 최소화를 위해 이메일 기반으로 변경됨)
 
 ---
 

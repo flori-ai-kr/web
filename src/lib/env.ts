@@ -4,6 +4,11 @@ import {z} from 'zod';
 // 빌드 시 필수 환경변수가 누락되면 빌드를 실패시킨다.
 // 새 환경변수 추가 시 이 스키마에도 추가할 것.
 
+// Docker build-arg 는 미설정 옵션 값을 빈 문자열("")로 주입한다(ARG X="").
+// 빈 문자열을 undefined 로 정규화해 .url()/.min(1) 같은 옵션 검증이 깨지지 않게 한다.
+const emptyToUndefined = (schema: z.ZodTypeAny) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema);
+
 const serverEnvSchema = z.object({
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
@@ -26,7 +31,10 @@ const serverEnvSchema = z.object({
   OAUTH_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   OAUTH_NAVER_CLIENT_ID: z.string().min(1).optional(),
   // 사전등록 후 안내할 카카오톡 오픈채팅 링크(공개 URL). 미설정 시 버튼 비활성.
-  NEXT_PUBLIC_KAKAO_OPENCHAT_URL: z.string().url().optional(),
+  NEXT_PUBLIC_KAKAO_OPENCHAT_URL: emptyToUndefined(z.string().url().optional()),
+  // 웹 애널리틱스(공개 ID). 미설정 시 해당 도구 미로드. 프로덕션 빌드에서만 실제 동작.
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: emptyToUndefined(z.string().min(1).optional()), // Google Analytics 4 (G-XXXXXXXXXX)
+  NEXT_PUBLIC_CLARITY_PROJECT_ID: emptyToUndefined(z.string().min(1).optional()), // Microsoft Clarity 프로젝트 ID
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

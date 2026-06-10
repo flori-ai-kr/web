@@ -309,9 +309,9 @@ export function getFormInt(formData: FormData, key: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-// 사전등록(waitlist) — 가게명 + 전화번호
+// 사전등록(waitlist) — 이메일 + 가게명 (둘 다 필수)
 export const waitlistSchema = z.object({
+  email: z.email('올바른 이메일 형식이 아니에요').max(254, '이메일이 너무 깁니다'),
   shop_name: z.string().min(1, '가게명을 입력해주세요').max(50, '가게명은 50자 이내여야 합니다'),
-  phone: phoneSchema,
 });
 export type WaitlistInput = z.infer<typeof waitlistSchema>;

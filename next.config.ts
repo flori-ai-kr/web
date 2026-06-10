@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     // 최적화 대상 이미지 전송량 감소.
     formats: ['image/avif', 'image/webp'],
     // Instagram signed URL은 며칠 뒤 만료. 최적화 캐시 30일 유지해서
-    // 원본 만료 후에도 Vercel edge 캐시에서 계속 서빙 가능.
+    // 원본 만료 후에도 Next 이미지 최적화 캐시에서 계속 서빙 가능.
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       ...(storageHostname
