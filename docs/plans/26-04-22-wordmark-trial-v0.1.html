@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hazel — wordmark trial v0.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,200;0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,300,100,1;1,9..144,300;1,9..144,400&family=Italiana&family=Libre+Caslon+Text:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ivory: #F3EEE5;
+    --parchment: #EDE3D0;
+    --charcoal: #1F1A16;
+    --oxblood: #5A1A1A;
+    --pewter: #8B857C;
+    --olive: #6B6B4F;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: var(--ivory);
+    color: var(--charcoal);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    padding: 80px 48px 240px;
+  }
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--pewter);
+    margin-bottom: 96px;
+  }
+  header .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+  header .meta {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--pewter);
+  }
+
+  /* Intro */
+  .intro {
+    max-width: 640px;
+    margin-bottom: 120px;
+  }
+  .intro h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    font-variation-settings: "SOFT" 40, "WONK" 0;
+  }
+  .intro p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--charcoal);
+    opacity: 0.85;
+  }
+  .intro .accent {
+    color: var(--oxblood);
+    font-style: italic;
+  }
+
+  /* Trial block */
+  .trial {
+    margin-bottom: 144px;
+    padding: 56px 0 0;
+    border-top: 1px dotted var(--pewter);
+  }
+  .trial-meta {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 32px;
+    align-items: baseline;
+    margin-bottom: 56px;
+  }
+  .trial-meta .number {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--oxblood);
+  }
+  .trial-meta .name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    color: var(--charcoal);
+  }
+  .trial-meta .name em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--charcoal);
+  }
+  .trial-meta .note {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--pewter);
+    max-width: 340px;
+    text-align: right;
+  }
+
+  /* Wordmark rendering */
+  .wordmark {
+    font-size: clamp(96px, 16vw, 200px);
+    line-height: 1;
+    color: var(--charcoal);
+    margin-bottom: 64px;
+  }
+  .sizes {
+    display: flex;
+    align-items: baseline;
+    gap: 64px;
+    flex-wrap: wrap;
+    padding-top: 24px;
+    border-top: 1px solid var(--parchment);
+  }
+  .sizes .size-xl { font-size: 88px; }
+  .sizes .size-md { font-size: 40px; }
+  .sizes .size-sm {
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--pewter);
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+  }
+
+  /* Font definitions */
+  .font-fraunces-light      { font-family: 'Fraunces', serif; font-weight: 300; font-variation-settings: "SOFT" 40, "WONK" 0; }
+  .font-fraunces-italic     { font-family: 'Fraunces', serif; font-weight: 300; font-style: italic; font-variation-settings: "SOFT" 40, "WONK" 0; }
+  .font-fraunces-soft       { font-family: 'Fraunces', serif; font-weight: 300; font-variation-settings: "SOFT" 100, "WONK" 1; }
+  .font-fraunces-xlight     { font-family: 'Fraunces', serif; font-weight: 200; font-variation-settings: "SOFT" 20, "WONK" 0; }
+  .font-playfair            { font-family: 'Playfair Display', serif; font-weight: 400; }
+  .font-playfair-italic     { font-family: 'Playfair Display', serif; font-weight: 400; font-style: italic; }
+  .font-cormorant           { font-family: 'Cormorant Garamond', serif; font-weight: 300; }
+  .font-cormorant-italic    { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-style: italic; }
+  .font-italiana            { font-family: 'Italiana', serif; font-weight: 400; }
+  .font-libre               { font-family: 'Libre Caslon Text', serif; font-weight: 400; }
+  .font-libre-italic        { font-family: 'Libre Caslon Text', serif; font-weight: 400; font-style: italic; }
+  .font-eb-garamond-italic  { font-family: 'EB Garamond', serif; font-weight: 400; font-style: italic; }
+
+  /* Tracking utilities */
+  .track--2 { letter-spacing: -0.02em; }
+  .track-0  { letter-spacing: 0; }
+  .track-2  { letter-spacing: 0.02em; }
+  .track-4  { letter-spacing: 0.04em; }
+  .track-6  { letter-spacing: 0.06em; }
+  .track-10 { letter-spacing: 0.1em; }
+
+  /* Composition preview (wordmark + ornament placeholder) */
+  .composition {
+    margin-top: 48px;
+    padding: 72px 40px;
+    background: var(--parchment);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .composition .ornament-mark {
+    opacity: 0.85;
+  }
+  .composition .cap {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--pewter);
+  }
+  .composition .cap .dot {
+    color: var(--oxblood);
+    margin: 0 0.6em;
+  }
+
+  /* Ornament trial grid */
+  .ornament-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .ornament-card {
+    background: var(--ivory);
+    border: 1px solid var(--parchment);
+    padding: 28px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ornament-card.wide {
+    grid-column: 1 / -1;
+  }
+  .ornament-label {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--charcoal);
+  }
+  .ornament-label em {
+    font-style: normal;
+    color: var(--oxblood);
+  }
+  .ornament-note {
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--pewter);
+  }
+  .ornament-stage {
+    padding: 40px 20px;
+    background: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+  }
+  .ornament-stage.wide {
+    min-height: 220px;
+  }
+  .ornament-sizes {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 32px;
+    padding: 20px 0 4px;
+    border-top: 1px dotted var(--pewter);
+  }
+  @media (max-width: 640px) {
+    .ornament-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Palette strip */
+  .palette {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 120px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    flex: 1 1 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .swatch .chip {
+    height: 96px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .swatch .label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--pewter);
+  }
+  .swatch .hex {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    color: var(--charcoal);
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 120px;
+    padding-top: 40px;
+    border-top: 1px solid var(--pewter);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--pewter);
+  }
+  footer .mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--oxblood);
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 48px 24px 120px; }
+    .trial-meta { grid-template-columns: 1fr; gap: 8px; }
+    .trial-meta .note { text-align: left; max-width: 100%; }
+    .sizes { gap: 32px; }
+    .sizes .size-xl { font-size: 56px; }
+    .sizes .size-md { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="brand">HAZEL — WORDMARK TRIAL</div>
+    <div class="meta">v0.2 · 2026-04-22</div>
+  </header>
+
+  <section class="intro">
+    <h1>lowercase <em class="accent"><i>hazel</i></em>, <span style="color: var(--pewter);">—</span> direction locked on <em style="font-style: italic; color: var(--oxblood);">№01 Fraunces Light</em>.</h1>
+    <p>Composition Preview(#09)의 방향으로 확정. 워드마크는 <strong>Fraunces Light (02 tracking)</strong>, 오너먼트는 <strong>Anthurium</strong> — 빈티지 식물도감 스타일의 라인 에칭 + 주변 식물 섞는 컴포지션. 아래에 오너먼트 시안 3종을 함께 얹어놨어.</p>
+  </section>
+
+  <!-- Ornament Trial -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">ORN</div>
+      <div class="name"><em>Anthurium</em> · ornament trial</div>
+      <div class="note">무드 연결 방향. 빈티지 식물도감(18~19C botanical plate) 필치, 단일 글리프 + 식물 섞인 풀 컴포지션 버전.</div>
+    </div>
+    <div class="ornament-grid">
+
+      <!-- A. Solid silhouette -->
+      <div class="ornament-card">
+        <div class="ornament-label">A · solid silhouette</div>
+        <div class="ornament-note">파비콘 · 로딩 · 아이콘 작은 사이즈용. McQueens 모델 직결.</div>
+        <div class="ornament-stage">
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="#5A1A1A" aria-label="Anthurium silhouette" style="width: 140px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 Q31 14 33 6" stroke="#5A1A1A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="30" y1="55" x2="30" y2="75" stroke="#5A1A1A" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="ornament-sizes">
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="#1F1A16" style="width: 48px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 Q31 14 33 6" stroke="#1F1A16" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="30" y1="55" x2="30" y2="75" stroke="#1F1A16" stroke-width="1.5"/>
+          </svg>
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="#5A1A1A" style="width: 28px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 Q31 14 33 6" stroke="#5A1A1A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="30" y1="55" x2="30" y2="75" stroke="#5A1A1A" stroke-width="1.5"/>
+          </svg>
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="#1F1A16" style="width: 16px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 Q31 14 33 6" stroke="#1F1A16" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="30" y1="55" x2="30" y2="75" stroke="#1F1A16" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- B. Line etched -->
+      <div class="ornament-card">
+        <div class="ornament-label">B · line etched</div>
+        <div class="ornament-note">잎맥·세부선이 살아있는 botanical plate 필치. 섹션 디바이더 · 명함 · 패키지 스티커.</div>
+        <div class="ornament-stage">
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1F1A16" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" aria-label="Anthurium etched" style="width: 140px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 L30 54" stroke-width="0.5" opacity="0.55"/>
+            <path d="M30 32 Q20 34 12 31" stroke-width="0.45" opacity="0.35"/>
+            <path d="M30 32 Q40 34 48 31" stroke-width="0.45" opacity="0.35"/>
+            <path d="M30 41 Q22 42 15 38" stroke-width="0.45" opacity="0.35"/>
+            <path d="M30 41 Q38 42 45 38" stroke-width="0.45" opacity="0.35"/>
+            <path d="M30 48 Q24 48 19 45" stroke-width="0.45" opacity="0.3"/>
+            <path d="M30 48 Q36 48 41 45" stroke-width="0.45" opacity="0.3"/>
+            <path d="M30 22 Q31 14 33 6" stroke-width="1.2"/>
+            <path d="M30 55 L30 75" stroke-width="0.8"/>
+          </svg>
+        </div>
+        <div class="ornament-sizes">
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1F1A16" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" style="width: 48px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 L30 54" stroke-width="0.5" opacity="0.55"/>
+            <path d="M30 22 Q31 14 33 6" stroke-width="1.2"/>
+            <path d="M30 55 L30 75" stroke-width="0.8"/>
+          </svg>
+          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1F1A16" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: auto;">
+            <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+            <path d="M30 22 Q31 14 33 6" stroke-width="1.8"/>
+            <path d="M30 55 L30 75"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- C. Botanical plate (mixed foliage) -->
+      <div class="ornament-card wide">
+        <div class="ornament-label">C · botanical plate · <em>mixed foliage</em></div>
+        <div class="ornament-note">중앙 anthurium + 양옆 식물 컴포지션. About 페이지 · Hero · 패키지 라벨 같은 "한 번 등장" 자리용.</div>
+        <div class="ornament-stage wide">
+          <svg viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1F1A16" stroke-width="0.7" stroke-linecap="round" stroke-linejoin="round" aria-label="Botanical plate composition" style="width: 100%; max-width: 420px; height: auto;">
+            <!-- Left: fern-like frond -->
+            <g transform="translate(50, 115)">
+              <line x1="0" y1="0" x2="-8" y2="-80" stroke-width="0.7"/>
+              <path d="M-3 -12 Q-14 -18 -22 -10"/>
+              <path d="M-3 -12 Q6 -8 14 -16" opacity="0.7"/>
+              <path d="M-4 -24 Q-15 -30 -22 -20"/>
+              <path d="M-4 -24 Q6 -20 13 -30" opacity="0.7"/>
+              <path d="M-5 -36 Q-15 -42 -22 -32"/>
+              <path d="M-5 -36 Q5 -32 12 -42" opacity="0.7"/>
+              <path d="M-6 -48 Q-14 -54 -20 -44"/>
+              <path d="M-6 -48 Q4 -44 10 -54" opacity="0.7"/>
+              <path d="M-7 -60 Q-12 -66 -16 -58"/>
+              <path d="M-7 -60 Q2 -58 8 -66" opacity="0.7"/>
+              <path d="M-8 -72 Q-10 -76 -12 -72"/>
+              <path d="M-8 -72 Q-2 -74 2 -78" opacity="0.7"/>
+            </g>
+
+            <!-- Center: anthurium etched -->
+            <g transform="translate(120, 40)">
+              <path d="M0 55 C-12 50 -22 38 -22 28 C-22 21 -17 16 -10 16 C-6 16 -2 18 0 22 C2 18 6 16 10 16 C17 16 22 21 22 28 C22 38 12 50 0 55 Z" stroke-width="1"/>
+              <path d="M0 22 L0 54" stroke-width="0.5" opacity="0.55"/>
+              <path d="M0 32 Q-10 34 -18 31" stroke-width="0.45" opacity="0.35"/>
+              <path d="M0 32 Q10 34 18 31" stroke-width="0.45" opacity="0.35"/>
+              <path d="M0 41 Q-8 42 -15 38" stroke-width="0.45" opacity="0.35"/>
+              <path d="M0 41 Q8 42 15 38" stroke-width="0.45" opacity="0.35"/>
+              <path d="M0 48 Q-6 48 -11 45" stroke-width="0.4" opacity="0.3"/>
+              <path d="M0 48 Q6 48 11 45" stroke-width="0.4" opacity="0.3"/>
+              <path d="M0 22 Q1 14 3 6" stroke-width="1.3"/>
+              <path d="M0 55 L0 90" stroke-width="0.8"/>
+              <!-- base leaves at stem -->
+              <path d="M0 72 Q-8 68 -12 62" stroke-width="0.6"/>
+              <path d="M0 72 Q8 68 12 62" stroke-width="0.6"/>
+            </g>
+
+            <!-- Right: single leaf on stem -->
+            <g transform="translate(195, 115)">
+              <line x1="0" y1="0" x2="6" y2="-75" stroke-width="0.7"/>
+              <!-- Leaf body -->
+              <path d="M6 -75 C-8 -78 -10 -65 -5 -52 C4 -42 14 -58 14 -72 C14 -78 10 -80 6 -75 Z" stroke-width="0.7"/>
+              <path d="M6 -75 L4 -54" stroke-width="0.4" opacity="0.45"/>
+              <path d="M5 -68 L-1 -66" stroke-width="0.35" opacity="0.3"/>
+              <path d="M5 -62 L-3 -60" stroke-width="0.35" opacity="0.3"/>
+              <path d="M5 -68 L10 -66" stroke-width="0.35" opacity="0.3"/>
+              <path d="M5 -62 L9 -58" stroke-width="0.35" opacity="0.3"/>
+              <!-- Second smaller leaf lower -->
+              <path d="M2 -35 C-4 -37 -5 -29 -1 -22 C4 -17 10 -26 10 -34 C10 -38 6 -38 2 -35 Z" stroke-width="0.6"/>
+              <path d="M2 -35 L2 -22" stroke-width="0.35" opacity="0.35"/>
+            </g>
+
+            <!-- Faint baseline -->
+            <line x1="20" y1="122" x2="220" y2="122" stroke-width="0.3" opacity="0.25" stroke-dasharray="0.5 2"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="palette">
+    <div class="swatch"><div class="chip" style="background:#F3EEE5"></div><div class="label">Ivory</div><div class="hex">#F3EEE5</div></div>
+    <div class="swatch"><div class="chip" style="background:#EDE3D0"></div><div class="label">Parchment</div><div class="hex">#EDE3D0</div></div>
+    <div class="swatch"><div class="chip" style="background:#1F1A16"></div><div class="label">Charcoal</div><div class="hex">#1F1A16</div></div>
+    <div class="swatch"><div class="chip" style="background:#5A1A1A"></div><div class="label">Oxblood</div><div class="hex">#5A1A1A</div></div>
+    <div class="swatch"><div class="chip" style="background:#8B857C"></div><div class="label">Pewter</div><div class="hex">#8B857C</div></div>
+    <div class="swatch"><div class="chip" style="background:#6B6B4F"></div><div class="label">Olive</div><div class="hex">#6B6B4F</div></div>
+  </section>
+
+  <!-- 01 Fraunces Light -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">01</div>
+      <div class="name"><em>Fraunces</em> Light · tracking 0.02</div>
+      <div class="note">Canela 계열 프록시. 유기적·약간 손맛. 가장 안전하고 현대적. 변수축으로 soft/wonk 미세 조정 가능.</div>
+    </div>
+    <div class="wordmark font-fraunces-light track-2">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-fraunces-light track-2">hazel</div>
+      <div class="size-md font-fraunces-light track-2">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 02 Fraunces Italic -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">02</div>
+      <div class="name"><em>Fraunces</em> Light Italic · tracking 0.02</div>
+      <div class="note">같은 서체의 이탤릭 버전. "z"의 하강선이 드라마틱. Editorial italic 감성이 강해지고 조금 더 "아틀리에" 느낌.</div>
+    </div>
+    <div class="wordmark font-fraunces-italic track-2">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-fraunces-italic track-2">hazel</div>
+      <div class="size-md font-fraunces-italic track-2">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 03 Fraunces Soft -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">03</div>
+      <div class="name"><em>Fraunces</em> Light · SOFT 100 · WONK 1</div>
+      <div class="note">Fraunces 변수축을 전부 올린 "말랑·삐뚜" 버전. 작업자의 손이 느껴지는 빈티지 프린트 느낌. 개성 강함 — 호불호 있을 수 있음.</div>
+    </div>
+    <div class="wordmark font-fraunces-soft track-0">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-fraunces-soft track-0">hazel</div>
+      <div class="size-md font-fraunces-soft track-0">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 04 Playfair Display -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">04</div>
+      <div class="name"><em>Playfair Display</em> Regular · tracking 0</div>
+      <div class="note">하이 컨트라스트 모던 세리프. Didone 계열의 날카로움. 가장 "매거진스러운" 느낌이지만 조금 차갑고 럭셔리 클리셰 위험.</div>
+    </div>
+    <div class="wordmark font-playfair track-0">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-playfair track-0">hazel</div>
+      <div class="size-md font-playfair track-0">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 05 Cormorant Garamond Light -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">05</div>
+      <div class="name"><em>Cormorant Garamond</em> Light · tracking 0.04</div>
+      <div class="note">올드 스타일 Garalde 계열. 18세기 도감·고서 느낌. Emily Thompson의 picturesque 미학과 가장 직결. 유럽 고전 빈티지.</div>
+    </div>
+    <div class="wordmark font-cormorant track-4">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-cormorant track-4">hazel</div>
+      <div class="size-md font-cormorant track-4">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 06 Cormorant Italic -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">06</div>
+      <div class="name"><em>Cormorant Garamond</em> Light Italic · tracking 0.02</div>
+      <div class="note">05의 이탤릭. 손편지·식물 일러스트 라벨 느낌. 매우 섬세. 소사이즈(네비·푸터)에선 가독성 조심해야 함.</div>
+    </div>
+    <div class="wordmark font-cormorant-italic track-2">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-cormorant-italic track-2">hazel</div>
+      <div class="size-md font-cormorant-italic track-2">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 07 Italiana -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">07</div>
+      <div class="name"><em>Italiana</em> · tracking 0.10</div>
+      <div class="note">극단적으로 얇은 하이 컨트라스트 세리프. Vogue 커버 직계. 대형 디스플레이에서만 살고 소사이즈에선 사라짐 — Hero 전용으로만 써야 함.</div>
+    </div>
+    <div class="wordmark font-italiana track-10">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-italiana track-10">hazel</div>
+      <div class="size-md font-italiana track-10">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- 08 EB Garamond Italic -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">08</div>
+      <div class="name"><em>EB Garamond</em> Italic · tracking 0.02</div>
+      <div class="note">책 본문에 쓰이던 클래식 Garamond. 따뜻하고 문학적. 꽃집보단 "공방"의 사인처럼 보임. 가장 겸손한 선택.</div>
+    </div>
+    <div class="wordmark font-eb-garamond-italic track-2">hazel</div>
+    <div class="sizes">
+      <div class="size-xl font-eb-garamond-italic track-2">hazel</div>
+      <div class="size-md font-eb-garamond-italic track-2">hazel</div>
+      <div class="size-sm">hazel flower studio · seoul</div>
+    </div>
+  </section>
+
+  <!-- Composition preview using #1 Fraunces Light + Anthurium etched -->
+  <section class="trial">
+    <div class="trial-meta">
+      <div class="number">09</div>
+      <div class="name">Composition preview · <em>Fraunces Light + Anthurium B (etched)</em></div>
+      <div class="note">확정 방향. 워드마크 상단에 라인 에칭 anthurium을 소형으로 얹고, 아래 캡션 라인은 세리프 대문자 + oxblood 점.</div>
+    </div>
+    <div class="composition">
+      <svg class="ornament-mark" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1F1A16" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" aria-label="Anthurium" style="width: 40px; height: auto;">
+        <path d="M30 55 C18 50 8 38 8 28 C8 21 13 16 20 16 C24 16 28 18 30 22 C32 18 36 16 40 16 C47 16 52 21 52 28 C52 38 42 50 30 55 Z"/>
+        <path d="M30 22 L30 54" stroke-width="0.5" opacity="0.55"/>
+        <path d="M30 32 Q20 34 12 31" stroke-width="0.45" opacity="0.35"/>
+        <path d="M30 32 Q40 34 48 31" stroke-width="0.45" opacity="0.35"/>
+        <path d="M30 41 Q22 42 15 38" stroke-width="0.45" opacity="0.35"/>
+        <path d="M30 41 Q38 42 45 38" stroke-width="0.45" opacity="0.35"/>
+        <path d="M30 22 Q31 14 33 6" stroke-width="1.2"/>
+        <path d="M30 55 L30 75" stroke-width="0.8"/>
+      </svg>
+      <div class="font-fraunces-light track-2" style="font-size: 96px; line-height: 1; color: var(--charcoal);">hazel</div>
+      <div class="cap">flower studio <span class="dot">·</span> seoul</div>
+    </div>
+  </section>
+
+  <footer>
+    <div>HAZEL — WORDMARK TRIAL · v0.1</div>
+    <div class="mark">hazel</div>
+    <div>2026.04.22</div>
+  </footer>
+
+</div>
+</body>
+</html>

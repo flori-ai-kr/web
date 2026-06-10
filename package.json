@@ -1,5 +1,5 @@
 {
-  "name": "hazel-admin-next",
+  "name": "flori-ai-admin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,9 +8,13 @@
     "start": "next start -p 3100",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
@@ -18,9 +22,12 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
-    "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.86.0",
-    "browser-image-compression": "^2.0.2",
+    "@tiptap/extension-image": "^3.23.6",
+    "@tiptap/extension-link": "^3.23.6",
+    "@tiptap/extension-placeholder": "^3.23.6",
+    "@tiptap/pm": "^3.23.6",
+    "@tiptap/react": "^3.23.6",
+    "@tiptap/starter-kit": "^3.23.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -34,10 +41,9 @@
     "react": "19.2.0",
     "react-day-picker": "^9.11.3",
     "react-dom": "19.2.0",
-    "recharts": "^3.5.1",
+    "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
-    "web-push": "^3.6.7",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -47,9 +53,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/web-push": "^3.6.4",
+    "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "fast-check": "^4.3.0",
     "jsdom": "^27.2.0",
     "tailwindcss": "^4",

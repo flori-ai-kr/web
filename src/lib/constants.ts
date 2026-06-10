@@ -7,6 +7,7 @@ export const PAYMENT_LABELS: Record<string, string> = {
   transfer: '계좌이체',
   naverpay: '네이버페이',
   kakaopay: '카카오페이',
+  unpaid: '미수',
 } satisfies Record<PaymentMethod | 'kakaopay', string>;
 
 // ─── 채널 라벨 ─────────────────────────────────────────────────
@@ -17,6 +18,10 @@ export const CHANNEL_LABELS: Record<string, string> = {
   road: '로드',
   other: '기타',
 } satisfies Record<ReservationChannel, string>;
+
+// ─── "오늘만" 활성 필터 칩 스타일 (매출/지출 공용, 다크 세이프) ──────
+export const TODAY_FILTER_ACTIVE_CLASS =
+  'h-9 shrink-0 bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background';
 
 // ─── 지출 카테고리 라벨 ────────────────────────────────────────
 export const EXPENSE_LABELS: Record<string, string> = {

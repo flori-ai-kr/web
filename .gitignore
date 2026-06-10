@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/.cov-tmp
+# jsPDF가 테스트 중 루트에 떨구는 PDF 아티팩트
+/*.pdf
 
 # next.js
 /.next/
@@ -47,9 +50,32 @@ next-env.d.ts
 # mcp (contains access tokens)
 .mcp.json
 
-### Claude ###
+# Claude Code 로컬 설정/아티팩트 (프레임워크 자산은 커밋, 로컬만 제외)
 .serena
-/docs
+.superpowers
+.scratch/
+.claude/settings.local.json
+.claude/settings.local.*.json
+.claude/.env.local*
+.claude/local/
+.claude/plans/
+.claude/agent-memory/
+.claude/worktrees/
+
+# 스킬별 시크릿
+.claude/skills/*/.env*
+.claude/skills/*/secrets/
+.claude/skills/*/*/*secret*
+.claude/skills/*/*/*key*
+.claude/skills/*/*/*token*
+!.claude/skills/*/modules/*token*.md
+
+# /html 등 임시 시각화 산출물
+docs/_tmp/
 
 ### IDE ####
 .idea
+
+### Design ###
+# 디자인 리서치 raw 데이터 (스크래핑 원본, 9MB+)
+docs/design/research/

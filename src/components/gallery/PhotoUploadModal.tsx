@@ -1,33 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { PhotoCard, PhotoTag, PhotoFile } from '@/types/database';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { X, Upload, Loader2, Plus, GripVertical } from 'lucide-react';
-import { toast } from 'sonner';
-import imageCompression from 'browser-image-compression';
-import { createPhotoCard, updatePhotoCard, uploadPhotos, reorderPhotos } from '@/lib/actions/photo-cards';
-import { createPhotoTag } from '@/lib/actions/photo-tags';
-import { cn } from '@/lib/utils';
+import {useCallback, useEffect, useState} from 'react';
+import {PhotoCard, PhotoFile, PhotoTag} from '@/types/database';
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {Label} from '@/components/ui/label';
+import {Badge} from '@/components/ui/badge';
+import {GripVertical, Loader2, Plus, Upload, X} from 'lucide-react';
+import {toast} from 'sonner';
+import {createPhotoCard, reorderPhotos, updatePhotoCard} from '@/lib/actions/photo-cards';
+import {uploadPhotoFiles, uploadPhotoFilesStandalone} from '@/lib/photo-upload';
+import {createPhotoTag} from '@/lib/actions/photo-tags';
+import {cn} from '@/lib/utils';
 
-const MAX_FILE_SIZE_MB = 3;
-
-// 3MB 기준 압축 옵션
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: MAX_FILE_SIZE_MB,
-  maxWidthOrHeight: 2560,
-  useWebWorker: true,
-};
+const MAX_FILE_SIZE_MB = 5;
 
 // 통합 사진 아이템 타입 (기존 PhotoFile 또는 새 파일)
 type PhotoItem =
@@ -54,7 +42,7 @@ export function PhotoUploadModal({
   onTagsChange,
 }: PhotoUploadModalProps) {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [memo, setMemo] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
@@ -76,12 +64,12 @@ export function PhotoUploadModal({
   useEffect(() => {
     if (editingCard) {
       setTitle(editingCard.title);
-      setDescription(editingCard.description || '');
+      setMemo(editingCard.memo || '');
       setSelectedTags(editingCard.tags);
       setPhotoItems(editingCard.photos.map(photo => ({ type: 'existing', photo })));
     } else {
       setTitle('');
-      setDescription('');
+      setMemo('');
       setSelectedTags([]);
       setPhotoItems([]);
     }
@@ -92,52 +80,40 @@ export function PhotoUploadModal({
     setAvailableTags(tags);
   }, [tags]);
 
-  const [isCompressing, setIsCompressing] = useState(false);
-
-  const addFiles = useCallback(async (files: File[]) => {
+  const addFiles = useCallback((files: File[]) => {
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    const totalCount = photoItems.length + imageFiles.length;
 
+    const oversized = imageFiles.filter(f => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+    const validFiles = imageFiles.filter(f => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024);
+
+    if (oversized.length > 0) {
+      toast.error(`${MAX_FILE_SIZE_MB}MB를 초과하는 이미지는 등록할 수 없습니다`);
+    }
+    if (validFiles.length === 0) return;
+
+    const totalCount = photoItems.length + validFiles.length;
     if (totalCount > MAX_PHOTOS) {
       toast.error(`사진은 최대 ${MAX_PHOTOS}장까지 등록할 수 있습니다`);
       return;
     }
 
-    setIsCompressing(true);
-    try {
-      const newItems: PhotoItem[] = [];
+    const newItems: PhotoItem[] = validFiles.map(file => ({
+      type: 'new',
+      file,
+      preview: URL.createObjectURL(file),
+    }));
 
-      for (const file of imageFiles) {
-        let processedFile = file;
-
-        // 3MB 초과 시 압축
-        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-          processedFile = await imageCompression(file, COMPRESSION_OPTIONS);
-        }
-
-        newItems.push({
-          type: 'new',
-          file: new File([processedFile], file.name, { type: processedFile.type }),
-          preview: URL.createObjectURL(processedFile),
-        });
-      }
-
-      setPhotoItems(prev => [...prev, ...newItems]);
-    } catch (error) {
-      toast.error('이미지 처리 중 오류가 발생했습니다');
-    } finally {
-      setIsCompressing(false);
-    }
+    setPhotoItems(prev => [...prev, ...newItems]);
   }, [photoItems.length]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    await addFiles(Array.from(e.target.files || []));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files || []));
     e.target.value = ''; // Reset input
   };
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    await addFiles(Array.from(e.dataTransfer.files));
+    addFiles(Array.from(e.dataTransfer.files));
   }, [addFiles]);
 
   const removePhoto = (index: number) => {
@@ -236,7 +212,7 @@ export function PhotoUploadModal({
 
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('description', description);
+      formData.append('memo', memo);
       formData.append('tags', JSON.stringify(selectedTags));
       formData.append('photos', JSON.stringify(existingPhotos));
 
@@ -244,12 +220,10 @@ export function PhotoUploadModal({
         await updatePhotoCard(editingCard.id, formData);
 
         if (newFileItems.length > 0) {
-          const uploadFormData = new FormData();
-          newFileItems.forEach(item => {
-            uploadFormData.append('files', item.file);
-            uploadFormData.append('originalNames', item.file.name);
-          });
-          const uploadedPhotos = await uploadPhotos(editingCard.id, uploadFormData);
+          const uploadedPhotos = await uploadPhotoFiles(
+            editingCard.id,
+            newFileItems.map(({ file }) => file),
+          );
 
           // 새 파일들이 업로드된 후, 전체 순서를 반영
           const uploadedQueue = [...uploadedPhotos];
@@ -261,23 +235,20 @@ export function PhotoUploadModal({
 
         toast.success('카드가 수정되었습니다');
       } else {
-        const card = await createPhotoCard(formData);
+        // 업로드 먼저 → 성공한 뒤에 카드 생성(DB). 업로드 실패 시 createPhotoCard를 호출하지 않으므로
+        // DB에 고아 카드가 남지 않는다(presigned 업로드는 브라우저→S3 직접이라 서버 트랜잭션으로 못 묶음).
+        const uploadedPhotos =
+          newFileItems.length > 0
+            ? await uploadPhotoFilesStandalone(newFileItems.map(({ file }) => file))
+            : [];
 
-        if (newFileItems.length > 0) {
-          const uploadFormData = new FormData();
-          newFileItems.forEach(item => {
-            uploadFormData.append('files', item.file);
-            uploadFormData.append('originalNames', item.file.name);
-          });
-          const uploadedPhotos = await uploadPhotos(card.id, uploadFormData);
+        const uploadedQueue = [...uploadedPhotos];
+        const finalPhotos: PhotoFile[] = photoItems.map(item =>
+          item.type === 'existing' ? item.photo : uploadedQueue.shift()!
+        );
+        formData.set('photos', JSON.stringify(finalPhotos));
 
-          // 새 카드의 경우에도 순서 반영
-          const uploadedQueue = [...uploadedPhotos];
-          const finalPhotos: PhotoFile[] = photoItems.map(item =>
-            item.type === 'existing' ? item.photo : uploadedQueue.shift()!
-          );
-          await reorderPhotos(card.id, finalPhotos);
-        }
+        await createPhotoCard(formData);
 
         toast.success('카드가 생성되었습니다');
       }
@@ -296,13 +267,13 @@ export function PhotoUploadModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>{editingCard ? '카드 수정' : '새 카드 추가'}</DialogTitle>
-          <p className="text-sm text-muted-foreground">사진은 최대 10장, 태그는 3개까지 가능해요. 큰 사진은 자동으로 줄여져요.</p>
+          <p className="text-sm text-muted-foreground">사진은 최대 10장, 태그는 3개까지 가능해요.</p>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -318,18 +289,18 @@ export function PhotoUploadModal({
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="description">설명</Label>
+              <Label htmlFor="memo">설명</Label>
               <span className={cn(
                 "text-xs",
-                description.length > 200 ? "text-destructive" : "text-muted-foreground"
+                memo.length > 200 ? "text-danger" : "text-muted-foreground"
               )}>
-                {description.length}/200
+                {memo.length}/200
               </span>
             </div>
             <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 200))}
+              id="memo"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value.slice(0, 200))}
               placeholder="설명을 입력하세요 (선택)"
               className="min-h-[100px] resize-none"
               maxLength={200}
@@ -383,43 +354,34 @@ export function PhotoUploadModal({
             <div
               className={cn(
                 "border-2 border-dashed border-border rounded-lg p-6 text-center transition-colors",
-                isCompressing ? "opacity-50 pointer-events-none" : "hover:border-brand/50"
+                "hover:border-brand/50"
               )}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
             >
-              {isCompressing ? (
-                <>
-                  <Loader2 className="w-8 h-8 mx-auto text-brand mb-2 animate-spin" />
-                  <p className="text-sm text-muted-foreground">이미지 처리 중...</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    이미지를 드래그하거나 클릭하여 업로드
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {MAX_FILE_SIZE_MB}MB 초과 시 자동 압축
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('photo-upload')?.click()}
-                  >
-                    파일 선택
-                  </Button>
-                </>
-              )}
+              <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground mb-1">
+                이미지를 드래그하거나 클릭하여 업로드
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {MAX_FILE_SIZE_MB}MB 이하 이미지만 등록할 수 있습니다
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+                id="photo-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('photo-upload')?.click()}
+              >
+                파일 선택
+              </Button>
             </div>
 
             {photoItems.length > 0 && (
@@ -451,14 +413,14 @@ export function PhotoUploadModal({
                       </div>
                       <div className={cn(
                         'absolute bottom-1 left-1 text-white text-xs px-1 rounded',
-                        item.type === 'new' ? 'bg-blue-500' : 'bg-black/50'
+                        item.type === 'new' ? 'bg-info' : 'bg-black/50'
                       )}>
                         {item.type === 'new' ? 'NEW' : index + 1}
                       </div>
                       <button
                         type="button"
                         onClick={() => removePhoto(index)}
-                        className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 hover:bg-destructive/90"
+                        className="absolute top-1 -right-2 bg-danger text-danger-foreground rounded-full p-1 hover:bg-danger/90"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -470,12 +432,12 @@ export function PhotoUploadModal({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isCompressing || isSubmitting}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               취소
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isCompressing || isSubmitting}
+              disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingCard ? '수정' : '저장'}

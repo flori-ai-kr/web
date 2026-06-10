@@ -1,30 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import NextImage from 'next/image';
+import {usePathname} from 'next/navigation';
 import {
-  LayoutDashboard,
-  CalendarDays,
-  Receipt,
-  Wallet,
-  Users,
-  CreditCard,
-  Settings,
-  X,
-  Flower2,
-  Image,
-  ChevronsLeft,
-  ChevronsRight,
-  LogOut,
+    BarChart3,
+    CalendarDays,
+    ChevronsLeft,
+    ChevronsRight,
+    Image,
+    LayoutDashboard,
+    MessagesSquare,
+    Receipt,
+    Settings,
+    User,
+    Users,
+    Wallet,
 } from 'lucide-react';
-import { signOut } from '@/lib/actions/auth';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import {cn} from '@/lib/utils';
+import {Tooltip, TooltipContent, TooltipTrigger,} from '@/components/ui/tooltip';
 
 interface NavItem {
   href: string;
@@ -37,32 +31,39 @@ interface NavSection {
   items: NavItem[];
 }
 
-const dashboardItem: NavItem = { href: '/', icon: LayoutDashboard, label: '대시보드' };
+const dashboardItem: NavItem = { href: '/admin', icon: LayoutDashboard, label: '대시보드' };
 
 const navSections: NavSection[] = [
   {
     title: '매장 운영',
     items: [
-      { href: '/calendar', icon: CalendarDays, label: '캘린더' },
-      { href: '/sales', icon: Receipt, label: '매출관리' },
-      { href: '/expenses', icon: Wallet, label: '지출관리' },
-      { href: '/deposits', icon: CreditCard, label: '입금대조' },
+      { href: '/admin/calendar', icon: CalendarDays, label: '캘린더' },
+      { href: '/admin/sales', icon: Receipt, label: '매출' },
+      { href: '/admin/expenses', icon: Wallet, label: '지출' },
+      { href: '/admin/statistics', icon: BarChart3, label: '통계' },
     ],
   },
   {
     title: '고객 기록',
     items: [
-      { href: '/customers', icon: Users, label: '고객관리' },
-      { href: '/gallery', icon: Image, label: '사진첩' },
+      { href: '/admin/customers', icon: Users, label: '고객' },
+      { href: '/admin/gallery', icon: Image, label: '사진첩' },
+    ],
+  },
+  {
+    title: '소통',
+    items: [
+      { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티' },
     ],
   },
 ];
 
 interface SidebarProps {
-  isOpen: boolean;
   isCollapsed: boolean;
-  onClose: () => void;
   onToggleCollapse: () => void;
+  userEmail: string;
+  userName?: string;
+  userImage?: string;
 }
 
 function NavLink({
@@ -71,21 +72,20 @@ function NavLink({
   label,
   isActive,
   isCollapsed,
-  onClick,
 }: {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   isActive: boolean;
   isCollapsed: boolean;
-  onClick?: () => void;
 }) {
   const link = (
     <Link
       href={href}
-      onClick={onClick}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'relative flex items-center gap-3 rounded-lg text-[13px] font-medium transition-colors',
+        'relative flex items-center gap-3 min-h-[44px] rounded-lg text-[13px] font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-sidebar',
         isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2',
         isActive
           ? 'bg-accent text-foreground font-semibold'
@@ -118,47 +118,33 @@ function NavLink({
   return link;
 }
 
-export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: SidebarProps) {
+function getInitial(name?: string, email?: string): string {
+  const source = name || email || '?'
+  return source[0].toUpperCase()
+}
+
+export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, userImage }: SidebarProps) {
   const pathname = usePathname();
+
+  // 가장 구체적으로 매칭되는 항목 하나만 활성화 (중첩 라우트 대응)
+  const allHrefs: string[] = [
+    dashboardItem.href,
+    ...navSections.flatMap((s) => s.items.map((i) => i.href)),
+  ];
+  const bestMatchHref = allHrefs
+    .filter((href) => pathname === href || (href !== '/admin' && pathname.startsWith(href + '/')))
+    .reduce<string | null>((best, cur) => (best && best.length >= cur.length ? best : cur), null);
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Desktop sidebar only — mobile uses BottomNav */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out',
-          isCollapsed ? 'w-16' : 'w-60',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-          'lg:translate-x-0'
+          'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] border-r border-sidebar-border bg-sidebar transition-[width,transform] duration-200 ease-in-out hidden lg:block',
+          isCollapsed ? 'w-16' : 'w-60'
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className={cn(
-            'h-14 flex items-center border-b border-sidebar-border shrink-0',
-            isCollapsed ? 'justify-center px-2' : 'justify-between px-4'
-          )}>
-            <Link href="/" className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shrink-0">
-                <Flower2 className="h-4.5 w-4.5 text-brand-foreground" />
-              </div>
-              {!isCollapsed && (
-                <span className="text-base font-bold text-foreground truncate">Hazel</span>
-              )}
-            </Link>
-            <Button variant="ghost" size="icon-sm" className="lg:hidden shrink-0" onClick={onClose} aria-label="사이드바 닫기">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4" aria-label="주요 네비게이션">
             {/* Dashboard (standalone) */}
@@ -167,9 +153,8 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
                 href={dashboardItem.href}
                 icon={dashboardItem.icon}
                 label={dashboardItem.label}
-                isActive={pathname === '/'}
+                isActive={bestMatchHref === dashboardItem.href}
                 isCollapsed={isCollapsed}
-                onClick={onClose}
               />
             </div>
 
@@ -190,8 +175,7 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
                 {/* Items */}
                 <div className={cn('space-y-0.5', isCollapsed ? 'px-2' : 'px-3')}>
                   {section.items.map((item) => {
-                    const isActive = pathname === item.href ||
-                      (item.href !== '/' && pathname.startsWith(item.href));
+                    const isActive = bestMatchHref === item.href;
                     return (
                       <NavLink
                         key={item.href}
@@ -200,7 +184,6 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
                         label={item.label}
                         isActive={isActive}
                         isCollapsed={isCollapsed}
-                        onClick={onClose}
                       />
                     );
                   })}
@@ -211,40 +194,54 @@ export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: Side
 
           {/* Bottom section */}
           <div className={cn('border-t border-sidebar-border py-3', isCollapsed ? 'px-2' : 'px-3')}>
-            <NavLink
-              href="/settings"
-              icon={Settings}
-              label="설정"
-              isActive={pathname === '/settings'}
-              isCollapsed={isCollapsed}
-              onClick={onClose}
-            />
-
-            {/* Logout */}
+            {/* User avatar + email */}
             {isCollapsed ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    onClick={() => signOut()}
-                    className="flex items-center justify-center rounded-lg text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full mt-1 px-2 py-2.5"
-                    aria-label="로그아웃"
-                  >
-                    <LogOut className="h-4 w-4 shrink-0" />
-                  </button>
+                  <div className="flex items-center justify-center py-1.5">
+                    <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
+                      {userImage ? (
+                        <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                      ) : (
+                        <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
+                      )}
+                    </div>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" sideOffset={8}>
-                  로그아웃
+                  {userEmail}
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <button
-                onClick={() => signOut()}
-                className="flex items-center gap-3 rounded-lg text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full mt-1 px-3 py-2"
-              >
-                <LogOut className="h-4 w-4 shrink-0" />
-                <span>로그아웃</span>
-              </button>
+              <div className="flex items-center gap-2.5 px-3 py-1.5">
+                <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
+                  {userImage ? (
+                    <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                  ) : (
+                    <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground truncate">{userEmail}</span>
+              </div>
             )}
+
+            {/* Profile & Settings links */}
+            <div className={cn('space-y-0.5 mt-2', isCollapsed ? 'px-0' : '')}>
+              <NavLink
+                href="/admin/profile"
+                icon={User}
+                label="프로필 정보"
+                isActive={pathname === '/admin/profile'}
+                isCollapsed={isCollapsed}
+              />
+              <NavLink
+                href="/admin/settings"
+                icon={Settings}
+                label="설정"
+                isActive={pathname === '/admin/settings' || pathname.startsWith('/admin/settings/')}
+                isCollapsed={isCollapsed}
+              />
+            </div>
 
             {/* Collapse toggle (desktop only) */}
             <button

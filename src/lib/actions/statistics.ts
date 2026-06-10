@@ -1,20 +1,146 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import type { PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
-import { withErrorLogging } from '@/lib/errors';
-import { getMonthDateRange } from '@/lib/utils';
-import { PAYMENT_LABELS, CHANNEL_LABELS, EXPENSE_LABELS } from '@/lib/constants';
+import {withErrorLogging, AppError, ErrorCode} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
+import {requireAuth} from '@/lib/auth-guard';
+
+// ─── ISO date guard ──────────────────────────────────────────
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function assertIsoDate(...vals: string[]) {
+  for (const v of vals) {
+    if (!ISO_DATE.test(v)) throw new AppError(ErrorCode.VALIDATION, '잘못된 날짜 형식입니다');
+  }
+}
+
+// ─── BFF /statistics/* 응답 DTO 미러 (camelCase, 서버가 그대로 반환 → 재매핑 불필요) ─
+
+export interface DistributionItem {
+  id: number | null;
+  label: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+export interface SalesStatistics {
+  kpi: {
+    totalAmount: number;
+    totalAmountDeltaPct: number;
+    count: number;
+    countDelta: number;
+    avgOrderValue: number;
+    avgOrderValueDeltaPct: number;
+    unpaidBalance: number;
+    unpaidCount: number;
+  };
+  timeseries: { date: string; amount: number; count: number }[];
+  categoryDistribution: DistributionItem[];
+  paymentDistribution: DistributionItem[];
+  channelDistribution: DistributionItem[];
+}
+
+export interface ExpensesStatistics {
+  kpi: {
+    totalAmount: number;
+    totalAmountDeltaPct: number;
+    count: number;
+    countDelta: number;
+    expenseRatioPct: number;
+    netProfit: number;
+    netProfitDeltaPct: number;
+  };
+  timeseries: { date: string; expense: number; netProfit: number }[];
+  categoryDistribution: DistributionItem[];
+}
+
+export interface ReservationStatistics {
+  kpi: {
+    total: number;
+    totalDeltaPct: number;
+    dailyAvg: number;
+    busiestDow: number;
+    busiestDowPct: number;
+    peakHourBucket: string;
+    peakHourPct: number;
+  };
+  timeseries: { date: string; count: number }[];
+  heatmap: { dow: number; hourBucket: string; count: number }[];
+  dowDistribution: { dow: number; count: number }[];
+  hourDistribution: { hourBucket: string; count: number }[];
+}
+
+export interface CustomerStatistics {
+  kpi: {
+    total: number;
+    newCustomers: number;
+    newDelta: number;
+    returningCustomers: number;
+    returningDelta: number;
+    returningRatePct: number;
+  };
+  timeseries: { date: string; newCustomers: number }[];
+  gradeDistribution: { grade: string; count: number }[];
+  genderDistribution: { gender: string | null; count: number }[];
+  topCustomers: {
+    customerId: number | null;
+    name: string;
+    phone: string;
+    grade: string;
+    purchaseCount: number;
+    totalAmount: number;
+  }[];
+}
+
+// ─── Server Actions ──────────────────────────────────────────
+// BFF가 camelCase 응답을 그대로 반환하므로 필드 재매핑 없이 apiFetch 결과를 그대로 돌려준다.
+// 테넌트 격리는 BFF가 JWT(TenantContext) 기준으로 수행한다.
+
+async function _getSalesStatistics(from: string, to: string): Promise<SalesStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
+  return apiFetch<SalesStatistics>(`/statistics/sales?from=${from}&to=${to}`);
+}
+
+export const getSalesStatistics = withErrorLogging('getSalesStatistics', _getSalesStatistics);
+
+async function _getExpensesStatistics(from: string, to: string): Promise<ExpensesStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
+  return apiFetch<ExpensesStatistics>(`/statistics/expenses?from=${from}&to=${to}`);
+}
+
+export const getExpensesStatistics = withErrorLogging('getExpensesStatistics', _getExpensesStatistics);
+
+async function _getReservationStatistics(from: string, to: string): Promise<ReservationStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
+  return apiFetch<ReservationStatistics>(`/statistics/reservations?from=${from}&to=${to}`);
+}
+
+export const getReservationStatistics = withErrorLogging('getReservationStatistics', _getReservationStatistics);
+
+async function _getCustomerStatistics(from: string, to: string): Promise<CustomerStatistics> {
+  await requireAuth();
+  assertIsoDate(from, to);
+  return apiFetch<CustomerStatistics>(`/statistics/customers?from=${from}&to=${to}`);
+}
+
+export const getCustomerStatistics = withErrorLogging('getCustomerStatistics', _getCustomerStatistics);
+
+// ─── 레거시 타입 shim (B5–B10에서 대시보드 월간 분석 섹션 제거 시 함께 삭제 예정) ──
+// dashboard.ts(DashboardMonthData)·dashboard-client.tsx가 아직 이 타입들을 참조한다.
+// 'use server' 파일은 값/타입 모두 비동기 함수 형태가 아니어도 type export는 허용된다.
 
 export interface CategoryStat {
-  name: string;
+  categoryId: string | null;
+  label: string;
   count: number;
   amount: number;
   percentage: number;
 }
 
 export interface PaymentMethodStat {
-  method: PaymentMethod;
+  paymentMethodId: string | null;
   label: string;
   count: number;
   amount: number;
@@ -22,7 +148,7 @@ export interface PaymentMethodStat {
 }
 
 export interface ChannelStat {
-  channel: ReservationChannel;
+  channelId: string | null;
   label: string;
   count: number;
   amount: number;
@@ -36,310 +162,8 @@ export interface CustomerStat {
 }
 
 export interface ExpenseCategoryStat {
-  category: ExpenseCategory;
+  categoryId: string | null;
   label: string;
   amount: number;
   percentage: number;
 }
-
-// 라벨 상수는 @/lib/constants에서 가져옴
-
-
-async function _getCategoryStats(month?: string): Promise<CategoryStat[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('product_category, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const categoryMap = new Map<string, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const category = sale.product_category || '기타';
-    const existing = categoryMap.get(category) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    categoryMap.set(category, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(categoryMap.entries())
-    .map(([name, stats]) => ({
-      name,
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-}
-
-export const getCategoryStats = withErrorLogging('getCategoryStats', _getCategoryStats);
-
-async function _getPaymentMethodStats(month?: string): Promise<PaymentMethodStat[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('payment_method, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const methodMap = new Map<PaymentMethod, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const method = sale.payment_method as PaymentMethod;
-    const existing = methodMap.get(method) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    methodMap.set(method, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(methodMap.entries())
-    .map(([method, stats]) => ({
-      method,
-      label: PAYMENT_LABELS[method] || method,
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-}
-
-export const getPaymentMethodStats = withErrorLogging('getPaymentMethodStats', _getPaymentMethodStats);
-
-
-async function _getChannelStats(month?: string): Promise<ChannelStat[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('sales')
-    .select('reservation_channel, amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const channelMap = new Map<ReservationChannel, { count: number; amount: number }>();
-  let totalAmount = 0;
-
-  (data || []).forEach((sale) => {
-    const channel = (sale.reservation_channel || 'other') as ReservationChannel;
-    const existing = channelMap.get(channel) || { count: 0, amount: 0 };
-    existing.count += 1;
-    existing.amount += sale.amount;
-    channelMap.set(channel, existing);
-    totalAmount += sale.amount;
-  });
-
-  return Array.from(channelMap.entries())
-    .map(([channel, stats]) => ({
-      channel,
-      label: CHANNEL_LABELS[channel],
-      count: stats.count,
-      amount: stats.amount,
-      percentage: totalAmount > 0 ? Math.round((stats.amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-}
-
-export const getChannelStats = withErrorLogging('getChannelStats', _getChannelStats);
-
-async function _getCustomerStats(month?: string): Promise<CustomerStat> {
-  const supabase = await createClient();
-  const { startDate, endDate } = getMonthDateRange(month);
-
-  // 해당 월에 구매한 고객들의 연락처 가져오기
-  const { data: monthSales, error: salesError } = await supabase
-    .from('sales')
-    .select('customer_phone, customer_id')
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .not('customer_phone', 'is', null);
-
-  if (salesError) throw salesError;
-
-  // 고유 고객 연락처 추출
-  const uniquePhones = new Set<string>();
-  (monthSales || []).forEach((sale) => {
-    if (sale.customer_phone) {
-      uniquePhones.add(sale.customer_phone);
-    }
-  });
-
-  const totalCustomers = uniquePhones.size;
-
-  if (totalCustomers === 0) {
-    return { newCustomers: 0, returningCustomers: 0, totalCustomers: 0 };
-  }
-
-  // 단일 쿼리로 이전 구매 이력 확인 (N+1 제거)
-  const { data: previousSales, error: prevError } = await supabase
-    .from('sales')
-    .select('customer_phone')
-    .in('customer_phone', Array.from(uniquePhones))
-    .lt('date', startDate);
-
-  if (prevError) throw prevError;
-
-  const returningPhones = new Set(
-    (previousSales || []).map((s) => s.customer_phone)
-  );
-  const returningCustomers = returningPhones.size;
-
-  return {
-    newCustomers: totalCustomers - returningCustomers,
-    returningCustomers,
-    totalCustomers,
-  };
-}
-
-export const getCustomerStats = withErrorLogging('getCustomerStats', _getCustomerStats);
-
-
-async function _getExpenseCategoryStats(month?: string): Promise<ExpenseCategoryStat[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('expenses')
-    .select('category, total_amount');
-
-  if (month) {
-    const { startDate, endDate } = getMonthDateRange(month);
-    query = query.gte('date', startDate).lte('date', endDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const categoryMap = new Map<ExpenseCategory, number>();
-  let totalAmount = 0;
-
-  (data || []).forEach((expense) => {
-    const category = expense.category as ExpenseCategory;
-    const existing = categoryMap.get(category) || 0;
-    categoryMap.set(category, existing + expense.total_amount);
-    totalAmount += expense.total_amount;
-  });
-
-  return Array.from(categoryMap.entries())
-    .map(([category, amount]) => ({
-      category,
-      label: EXPENSE_LABELS[category] || category,
-      amount,
-      percentage: totalAmount > 0 ? Math.round((amount / totalAmount) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-}
-
-export const getExpenseCategoryStats = withErrorLogging('getExpenseCategoryStats', _getExpenseCategoryStats);
-
-export interface MonthlySalesTrend {
-  month: string;
-  label: string;
-  totalAmount: number;
-  salesCount: number;
-}
-
-async function _getMonthlySalesTrend(months: number = 6): Promise<MonthlySalesTrend[]> {
-  const supabase = await createClient();
-  const now = new Date();
-
-  // 전체 기간을 단일 쿼리로 조회 (N+1 제거)
-  const startMonth = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
-  const startDate = startMonth.toISOString().split('T')[0];
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-
-  const { data, error } = await supabase
-    .from('sales')
-    .select('date, amount')
-    .gte('date', startDate)
-    .lte('date', endDate);
-
-  if (error) throw error;
-
-  // JS에서 월별 그룹핑
-  const monthMap = new Map<string, { amount: number; count: number }>();
-  (data || []).forEach((sale) => {
-    const [year, m] = sale.date.split('-');
-    const monthKey = `${year}-${m}`;
-    const existing = monthMap.get(monthKey) || { amount: 0, count: 0 };
-    existing.amount += sale.amount;
-    existing.count += 1;
-    monthMap.set(monthKey, existing);
-  });
-
-  const trends: MonthlySalesTrend[] = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const label = `${date.getMonth() + 1}월`;
-    const stats = monthMap.get(monthKey) || { amount: 0, count: 0 };
-    trends.push({ month: monthKey, label, totalAmount: stats.amount, salesCount: stats.count });
-  }
-
-  return trends;
-}
-
-export const getMonthlySalesTrend = withErrorLogging('getMonthlySalesTrend', _getMonthlySalesTrend);
-
-export interface DailySalesTrend {
-  date: string;
-  label: string;
-  totalAmount: number;
-  salesCount: number;
-}
-
-async function _getDailySalesTrend(month?: string): Promise<DailySalesTrend[]> {
-  const supabase = await createClient();
-  const { startDate, endDate } = getMonthDateRange(month);
-
-  const { data, error } = await supabase
-    .from('sales')
-    .select('date, amount')
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .order('date');
-
-  if (error) throw error;
-
-  const dailyMap = new Map<string, { amount: number; count: number }>();
-
-  (data || []).forEach((sale) => {
-    const existing = dailyMap.get(sale.date) || { amount: 0, count: 0 };
-    existing.amount += sale.amount;
-    existing.count += 1;
-    dailyMap.set(sale.date, existing);
-  });
-
-  return Array.from(dailyMap.entries())
-    .map(([date, stats]) => ({
-      date,
-      label: new Date(date).getDate() + '일',
-      totalAmount: stats.amount,
-      salesCount: stats.count,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-export const getDailySalesTrend = withErrorLogging('getDailySalesTrend', _getDailySalesTrend);

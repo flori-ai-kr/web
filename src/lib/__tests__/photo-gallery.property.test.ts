@@ -27,8 +27,9 @@ const arbitraryPhotoTag = (): fc.Arbitrary<PhotoTag> => {
 const arbitraryPhotoCard = (): fc.Arbitrary<PhotoCard> => {
   return fc.record({
     id: fc.uuid(),
+    user_id: fc.uuid(),
     title: fc.string({ minLength: 1, maxLength: 255 }).filter(s => s.trim().length > 0),
-    description: fc.option(fc.string({ maxLength: 500 }), { nil: null }),
+    memo: fc.option(fc.string({ maxLength: 500 }), { nil: null }),
     tags: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { maxLength: 10 }),
     photos: fc.array(arbitraryPhotoFile(), { minLength: 0, maxLength: MAX_PHOTOS_PER_CARD }),
     sale_id: fc.option(fc.uuid(), { nil: null }),

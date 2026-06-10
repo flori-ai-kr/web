@@ -1,21 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { PhotoCard } from '@/types/database';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Edit, Trash2, Loader2, Download, ExternalLink } from 'lucide-react';
+import {useState} from 'react';
+import {PhotoCard} from '@/types/database';
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Loader2, Trash2} from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { toast } from 'sonner';
-import { deletePhotoCard, deletePhotosFromStorage, downloadPhoto, downloadAllPhotos } from '@/lib/actions/photo-cards';
+import Image from 'next/image';
+import {format} from 'date-fns';
+import {ko} from '@/lib/date-locale';
+import {toast} from 'sonner';
+import {deletePhotoCard, downloadAllPhotos, downloadPhoto} from '@/lib/actions/photo-cards';
 
 interface PhotoCardDialogProps {
   card: PhotoCard | null;
@@ -43,8 +39,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const photoUrls = await deletePhotoCard(card.id);
-      await deletePhotosFromStorage(photoUrls);
+      await deletePhotoCard(card.id);
       toast.success('카드가 삭제되었습니다');
       onDelete();
       onClose();
@@ -74,7 +69,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
     setIsDownloading(true);
     try {
-      const result = await downloadPhoto(card.photos[currentIndex]);
+      const result = await downloadPhoto(card.id, card.photos[currentIndex]);
       if (result) {
         await downloadBlob(result.url, result.filename);
         toast.success('다운로드 완료');
@@ -109,7 +104,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
   return (
     <Dialog open={!!card} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{card.title}</DialogTitle>
         </DialogHeader>
@@ -117,11 +112,14 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
         <div className="space-y-4">
           {card.photos.length > 0 && (
             <div className="relative">
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                <img
+              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                <Image
                   src={card.photos[currentIndex].url}
                   alt={`${card.title} - ${currentIndex + 1}`}
-                  className="w-full h-full object-contain"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-contain"
+                  priority={currentIndex === 0}
                 />
               </div>
 
@@ -153,11 +151,18 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                 <button
                   key={photo.url}
                   onClick={() => setCurrentIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${
+                  aria-label={`${index + 1}번째 사진 보기`}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${
                     index === currentIndex ? 'border-brand' : 'border-transparent'
                   }`}
                 >
-                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  <Image
+                    src={photo.url}
+                    alt={`사진 ${index + 1}`}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -169,8 +174,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
               {isUpdated && <p>수정: {updatedDate}</p>}
             </div>
 
-            {card.description && (
-              <p className="text-foreground">{card.description}</p>
+            {card.memo && (
+              <p className="text-foreground">{card.memo}</p>
             )}
 
             {card.tags.length > 0 && (
@@ -185,7 +190,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
             {card.sale_id && (
               <Link
-                href={`/sales?highlight=${card.sale_id}`}
+                href={`/sales?saleId=${card.sale_id}`}
                 className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand hover:underline"
               >
                 <ExternalLink className="w-4 h-4" />

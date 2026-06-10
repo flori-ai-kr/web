@@ -1,15 +1,63 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth } from '@/lib/auth-guard';
-import { PhotoCard, PhotoFile } from '@/types/database';
-import { validateImageFile, photoCardSchema } from '@/lib/validations';
-import { withErrorLogging, AppError, ErrorCode } from '@/lib/errors';
-import { reportError } from '@/lib/logger';
+import {requireAuth} from '@/lib/auth-guard';
+import {PhotoCard, PhotoFile} from '@/types/database';
+import {idSchema, photoCardSchema, validateImageMeta} from '@/lib/validations';
+import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
+import {apiFetch} from '@/lib/api/client';
 
 const MAX_PHOTOS_PER_CARD = 10;
 
-const PAGE_SIZE = 8;
+// ─── Kotlin DTO 미러 (camelCase) ───────────────────────────────
+// Kotlin은 camelCase로 직렬화한다. 웹 타입(snake_case)으로 매핑한다.
+
+interface PhotoFileDto {
+  url: string;
+  originalName: string;
+}
+
+interface PhotoCardDto {
+  id: string;
+  title: string;
+  memo: string | null;
+  tags: string[];
+  photos: PhotoFileDto[];
+  saleId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PhotoCardsPageDto {
+  cards: PhotoCardDto[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+interface UploadTargetDto {
+  uploadUrl: string;
+  fileUrl: string;
+  originalName: string;
+}
+
+interface PhotoDownloadDto {
+  downloadUrl: string;
+}
+
+/** Kotlin PhotoCardResponse(camelCase) → 웹 PhotoCard(snake_case) 매핑. */
+function toPhotoCard(dto: PhotoCardDto): PhotoCard {
+  return {
+    id: dto.id,
+    // user_id는 멀티테넌시상 서버에서만 사용되며 모든 클라이언트가 무시한다 (안전한 기본값)
+    user_id: '',
+    title: dto.title,
+    memo: dto.memo,
+    tags: dto.tags || [],
+    photos: dto.photos || [],
+    sale_id: dto.saleId,
+    created_at: dto.createdAt,
+    updated_at: dto.updatedAt,
+  };
+}
 
 export interface PhotoCardsResponse {
   cards: PhotoCard[];
@@ -19,62 +67,51 @@ export interface PhotoCardsResponse {
 
 async function _getPhotoCards(
   tag?: string,
-  cursor?: string
+  cursor?: string,
+  customerId?: string
 ): Promise<PhotoCardsResponse> {
-  const supabase = await createClient();
+  await requireAuth();
 
-  let query = supabase
-    .from('photo_cards')
-    .select('*')
-    .order('updated_at', { ascending: false })
-    .limit(PAGE_SIZE + 1); // Fetch one extra to check if there's more
-
-  if (tag) {
-    query = query.contains('tags', [tag]);
+  if (customerId) {
+    const parsed = idSchema.safeParse(customerId);
+    if (!parsed.success) {
+      throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
+    }
   }
 
-  if (cursor) {
-    query = query.lt('updated_at', cursor);
-  }
+  const params = new URLSearchParams();
+  if (tag) params.append('tag', tag);
+  if (cursor) params.append('cursor', cursor);
+  if (customerId) params.append('customerId', customerId);
+  const qs = params.toString();
 
-  const { data, error } = await query;
+  const dto = await apiFetch<PhotoCardsPageDto>(`/photo-cards${qs ? `?${qs}` : ''}`);
 
-  if (error) throw error;
-
-  const cards = data || [];
-  const hasMore = cards.length > PAGE_SIZE;
-  const resultCards = hasMore ? cards.slice(0, PAGE_SIZE) : cards;
-  const nextCursor = hasMore && resultCards.length > 0
-    ? resultCards[resultCards.length - 1].updated_at
-    : null;
-
-  return { cards: resultCards, nextCursor, hasMore };
+  return {
+    cards: dto.cards.map(toPhotoCard),
+    nextCursor: dto.nextCursor,
+    hasMore: dto.hasMore,
+  };
 }
 
 export const getPhotoCards = withErrorLogging('getPhotoCards', _getPhotoCards);
 
 async function _getPhotoCardById(id: string): Promise<PhotoCard | null> {
-  const supabase = await createClient();
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  const { data, error } = await supabase
-    .from('photo_cards')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-
-  return data;
+  const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${id}`);
+  return toPhotoCard(dto);
 }
 
 export const getPhotoCardById = withErrorLogging('getPhotoCardById', _getPhotoCardById);
 
 async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
   await requireAuth();
-  const supabase = await createClient();
 
   const title = formData.get('title') as string;
-  const description = formData.get('description') as string | null;
+  const memo = formData.get('memo') as string | null;
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
@@ -90,7 +127,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
 
   const parsed = photoCardSchema.safeParse({
     title: title?.trim(),
-    description: description?.trim() || null,
+    memo: memo?.trim() || null,
     tags,
     photos,
   });
@@ -98,31 +135,29 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const { data, error } = await supabase
-    .from('photo_cards')
-    .insert({
+  const dto = await apiFetch<PhotoCardDto>('/photo-cards', {
+    method: 'POST',
+    body: JSON.stringify({
       title: parsed.data.title,
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
-      sale_id: saleId || null,
-    })
-    .select()
-    .single();
+      saleId: saleId || null,
+    }),
+  });
 
-  if (error) throw error;
-
-  return data;
+  return toPhotoCard(dto);
 }
 
 export const createPhotoCard = withErrorLogging('createPhotoCard', _createPhotoCard);
 
 async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
   await requireAuth();
-  const supabase = await createClient();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   const title = formData.get('title') as string;
-  const description = formData.get('description') as string | null;
+  const memo = formData.get('memo') as string | null;
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
@@ -138,7 +173,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
 
   const parsed = photoCardSchema.safeParse({
     title: title?.trim(),
-    description: description?.trim() || null,
+    memo: memo?.trim() || null,
     tags,
     photos,
   });
@@ -146,204 +181,150 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
-  const { error } = await supabase
-    .from('photo_cards')
-    .update({
+  await apiFetch<PhotoCardDto>(`/photo-cards/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
       title: parsed.data.title,
-      description: parsed.data.description || null,
+      memo: parsed.data.memo || null,
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
-      sale_id: saleId || null,
-    })
-    .eq('id', id);
-
-  if (error) throw error;
+      saleId: saleId || null,
+    }),
+  });
 }
 
 export const updatePhotoCard = withErrorLogging('updatePhotoCard', _updatePhotoCard);
 
-async function _deletePhotoCard(id: string): Promise<PhotoFile[]> {
+async function _deletePhotoCard(id: string): Promise<void> {
   await requireAuth();
-  const supabase = await createClient();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  // Get card to retrieve photo URLs for storage cleanup
-  const { data: card } = await supabase
-    .from('photo_cards')
-    .select('photos')
-    .eq('id', id)
-    .single();
-
-  const { error } = await supabase
-    .from('photo_cards')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
-
-  // Return photos for storage cleanup
-  return (card?.photos as PhotoFile[]) || [];
+  // BFF가 DB 레코드와 S3 객체를 함께 정리한다
+  await apiFetch<void>(`/photo-cards/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export const deletePhotoCard = withErrorLogging('deletePhotoCard', _deletePhotoCard);
 
 
-async function _uploadPhotos(cardId: string, formData: FormData): Promise<PhotoFile[]> {
+async function _createPhotoUploadTargets(
+  cardId: string,
+  files: { name: string; type: string; size: number }[],
+): Promise<{ uploadUrl: string; publicUrl: string; originalName: string }[]> {
   await requireAuth();
-  const supabase = await createClient();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  // Get current card to check photo count
-  const { data: card } = await supabase
-    .from('photo_cards')
-    .select('photos')
-    .eq('id', cardId)
-    .single();
-
-  const currentPhotos = (card?.photos as PhotoFile[]) || [];
-  const files = formData.getAll('files') as File[];
-  const originalNames = formData.getAll('originalNames') as string[];
-
-  if (currentPhotos.length + files.length > MAX_PHOTOS_PER_CARD) {
-    throw new AppError(ErrorCode.VALIDATION, `사진은 최대 ${MAX_PHOTOS_PER_CARD}장까지 등록할 수 있습니다. 현재 ${currentPhotos.length}장 등록됨.`);
+  // 앱 레이어 사전 검증(서버도 검증하지만 빠른 실패 + 한국어 메시지 일관성)
+  if (files.length > MAX_PHOTOS_PER_CARD) {
+    throw new AppError(ErrorCode.VALIDATION, `사진은 최대 ${MAX_PHOTOS_PER_CARD}장까지 등록할 수 있습니다.`);
   }
-
-  const uploadedPhotos: PhotoFile[] = [];
-
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const imageError = validateImageFile(file);
+  for (const file of files) {
+    const imageError = validateImageMeta(file);
     if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
-
-    const originalName = originalNames[i] || file.name;
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${cardId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    const arrayBuffer = await file.arrayBuffer();
-
-    const { error: uploadError } = await supabase.storage
-      .from('photo-cards')
-      .upload(fileName, arrayBuffer, {
-        contentType: file.type || 'image/jpeg',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      await reportError(uploadError, { action: 'uploadPhotos', extra: { file: originalName } });
-      continue;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('photo-cards')
-      .getPublicUrl(fileName);
-
-    uploadedPhotos.push({ url: publicUrl, originalName });
   }
 
-  // Update card with new photos
-  const newPhotos = [...currentPhotos, ...uploadedPhotos];
+  // Kotlin이 소유권·최대 10장·이미지 메타 검증 후 presigned PUT URL을 발급한다
+  const targets = await apiFetch<UploadTargetDto[]>(`/photo-cards/${cardId}/upload-targets`, {
+    method: 'POST',
+    body: JSON.stringify({
+      files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+    }),
+  });
 
-  const { error: updateError } = await supabase
-    .from('photo_cards')
-    .update({ photos: newPhotos })
-    .eq('id', cardId);
-
-  if (updateError) throw updateError;
-
-  return uploadedPhotos;
+  return targets.map((t) => ({
+    uploadUrl: t.uploadUrl,
+    publicUrl: t.fileUrl,
+    originalName: t.originalName,
+  }));
 }
 
-export const uploadPhotos = withErrorLogging('uploadPhotos', _uploadPhotos);
+export const createPhotoUploadTargets = withErrorLogging('createPhotoUploadTargets', _createPhotoUploadTargets);
+
+/**
+ * 카드 생성 전(신규) presigned PUT URL 발급. 카드 id가 없으므로 userId 기준 키로 발급된다.
+ * 업로드를 먼저 끝낸 뒤 imageUrls를 담아 카드를 생성하면, 업로드 실패 시 DB에 카드가 남지 않는다.
+ */
+async function _createPhotoUploadTargetsStandalone(
+  files: { name: string; type: string; size: number }[],
+): Promise<{ uploadUrl: string; publicUrl: string; originalName: string }[]> {
+  await requireAuth();
+
+  if (files.length > MAX_PHOTOS_PER_CARD) {
+    throw new AppError(ErrorCode.VALIDATION, `사진은 최대 ${MAX_PHOTOS_PER_CARD}장까지 등록할 수 있습니다.`);
+  }
+  for (const file of files) {
+    const imageError = validateImageMeta(file);
+    if (imageError) throw new AppError(ErrorCode.VALIDATION, imageError);
+  }
+
+  const targets = await apiFetch<UploadTargetDto[]>('/photo-cards/upload-targets', {
+    method: 'POST',
+    body: JSON.stringify({
+      files: files.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+    }),
+  });
+
+  return targets.map((t) => ({
+    uploadUrl: t.uploadUrl,
+    publicUrl: t.fileUrl,
+    originalName: t.originalName,
+  }));
+}
+
+export const createPhotoUploadTargetsStandalone = withErrorLogging(
+  'createPhotoUploadTargetsStandalone',
+  _createPhotoUploadTargetsStandalone,
+);
 
 async function _deletePhoto(cardId: string, photoUrl: string): Promise<void> {
   await requireAuth();
-  const supabase = await createClient();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  // Get current card
-  const { data: card } = await supabase
-    .from('photo_cards')
-    .select('photos')
-    .eq('id', cardId)
-    .single();
-
-  if (!card) {
-    throw new AppError(ErrorCode.NOT_FOUND, '카드를 찾을 수 없습니다');
-  }
-
-  // Remove photo from array
-  const photos = card.photos as PhotoFile[];
-  const newPhotos = photos.filter((p) => p.url !== photoUrl);
-
-  // Update card
-  const { error: updateError } = await supabase
-    .from('photo_cards')
-    .update({ photos: newPhotos })
-    .eq('id', cardId);
-
-  if (updateError) throw updateError;
-
-  // Delete from storage
-  try {
-    const urlParts = photoUrl.split('/photo-cards/');
-    if (urlParts.length > 1) {
-      const filePath = urlParts[1];
-      await supabase.storage.from('photo-cards').remove([filePath]);
-    }
-  } catch {
-    // Storage 삭제 실패는 무시 (DB 레코드는 이미 삭제됨)
-  }
+  // BFF가 photos 배열에서 URL을 제거하고 S3 객체도 함께 삭제한다
+  await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos?url=${encodeURIComponent(photoUrl)}`, {
+    method: 'DELETE',
+  });
 }
 
 export const deletePhoto = withErrorLogging('deletePhoto', _deletePhoto);
 
-async function _deletePhotosFromStorage(photos: PhotoFile[]): Promise<void> {
-  await requireAuth();
-  const supabase = await createClient();
-
-  const filePaths = photos
-    .map(photo => {
-      const parts = photo.url.split('/photo-cards/');
-      return parts.length > 1 ? parts[1] : null;
-    })
-    .filter((path): path is string => path !== null);
-
-  if (filePaths.length > 0) {
-    await supabase.storage.from('photo-cards').remove(filePaths);
-  }
-}
-
-export const deletePhotosFromStorage = withErrorLogging('deletePhotosFromStorage', _deletePhotosFromStorage);
-
 async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void> {
   await requireAuth();
-  const supabase = await createClient();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  const { error } = await supabase
-    .from('photo_cards')
-    .update({ photos })
-    .eq('id', cardId);
-
-  if (error) throw error;
+  await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      photos: photos.map((p) => ({ url: p.url, originalName: p.originalName })),
+    }),
+  });
 }
 
 export const reorderPhotos = withErrorLogging('reorderPhotos', _reorderPhotos);
 
 
-async function _downloadPhoto(photo: PhotoFile): Promise<{ url: string; filename: string } | null> {
-  const supabase = await createClient();
+async function _downloadPhoto(
+  cardId: string,
+  photo: PhotoFile,
+): Promise<{ url: string; filename: string } | null> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
   try {
-    const urlParts = photo.url.split('/photo-cards/');
-    if (urlParts.length <= 1) return null;
-
-    const filePath = urlParts[1];
-
-    const { data, error } = await supabase.storage
-      .from('photo-cards')
-      .createSignedUrl(filePath, 60);
-
-    if (error || !data) return null;
+    // BFF가 소유권 검증 후 서명된 다운로드 URL(presigned GET)을 발급한다
+    const dto = await apiFetch<PhotoDownloadDto>(
+      `/photo-cards/${cardId}/photos/download?url=${encodeURIComponent(photo.url)}`,
+    );
+    if (!dto?.downloadUrl) return null;
 
     return {
-      url: data.signedUrl,
+      url: dto.downloadUrl,
       filename: photo.originalName,
     };
   } catch {
@@ -354,21 +335,19 @@ async function _downloadPhoto(photo: PhotoFile): Promise<{ url: string; filename
 export const downloadPhoto = withErrorLogging('downloadPhoto', _downloadPhoto);
 
 async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: string; filename: string }> }> {
-  const supabase = await createClient();
+  await requireAuth();
+  const idParsed = idSchema.safeParse(cardId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  const { data: card } = await supabase
-    .from('photo_cards')
-    .select('photos, title')
-    .eq('id', cardId)
-    .single();
-
-  const photos = (card?.photos as PhotoFile[]) || [];
+  const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}`);
+  const photos = dto.photos || [];
   if (!photos.length) {
     return { urls: [] };
   }
 
-  // 병렬 다운로드 (순차 → Promise.all)
-  const results = await Promise.all(photos.map((photo) => downloadPhoto(photo)));
+  const results = await Promise.all(
+    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName })),
+  );
   const downloadUrls = results.filter((r): r is { url: string; filename: string } => r !== null);
 
   return { urls: downloadUrls };
@@ -378,72 +357,77 @@ export const downloadAllPhotos = withErrorLogging('downloadAllPhotos', _download
 
 
 async function _getPhotoCardBySaleId(saleId: string): Promise<PhotoCard | null> {
-  const supabase = await createClient();
+  await requireAuth();
+  const idParsed = idSchema.safeParse(saleId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
 
-  const { data, error } = await supabase
-    .from('photo_cards')
-    .select('*')
-    .eq('sale_id', saleId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') return null;
-    throw error;
-  }
-
-  return data;
+  // 카드 없으면 204 No Content → apiFetch가 undefined 반환
+  const dto = await apiFetch<PhotoCardDto | undefined>(`/photo-cards/by-sale/${saleId}`);
+  if (!dto) return null;
+  return toPhotoCard(dto);
 }
 
 export const getPhotoCardBySaleId = withErrorLogging('getPhotoCardBySaleId', _getPhotoCardBySaleId);
+
+// @MX:WARN: [AUTO] saleIds 길이만큼 by-sale 엔드포인트를 병렬 호출한다 (N개 요청)
+// @MX:REASON: Kotlin에 sale_id 일괄 조회 엔드포인트가 없어 단건 조회로 대체했다. 페이지당
+//   매출 수(통상 8~50)만큼 동시 요청이 발생하므로, 추후 일괄 엔드포인트 추가 시 단일 호출로 교체해야 한다.
+async function _getSaleIdsWithPhotos(saleIds: string[]): Promise<string[]> {
+  if (saleIds.length === 0) return [];
+  await requireAuth();
+
+  // 사일별 카드 존재 여부 조회: by-sale 엔드포인트를 병렬 조회한다.
+  // (Kotlin에 일괄 조회 엔드포인트가 없어 sale_id 단건 조회로 대체)
+  const results = await Promise.all(
+    saleIds.map(async (saleId) => {
+      const dto = await apiFetch<PhotoCardDto | undefined>(`/photo-cards/by-sale/${saleId}`);
+      return dto ? saleId : null;
+    }),
+  );
+
+  return results.filter((s): s is string => s !== null);
+}
+
+export const getSaleIdsWithPhotos = withErrorLogging('getSaleIdsWithPhotos', _getSaleIdsWithPhotos);
 
 async function _createOrUpdatePhotoCardForSale(
   saleId: string,
   title: string,
   photos: PhotoFile[],
-  description?: string | null,
+  memo?: string | null,
   tags?: string[]
 ): Promise<PhotoCard> {
   await requireAuth();
-  const supabase = await createClient();
 
-  // Check if card already exists for this sale
+  const photoPayload = photos.map((p) => ({ url: p.url, originalName: p.originalName }));
+
+  // 기존 카드 존재 여부 확인
   const existingCard = await getPhotoCardBySaleId(saleId);
 
   if (existingCard) {
-    // Update existing card
-    const { data, error } = await supabase
-      .from('photo_cards')
-      .update({
+    const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${existingCard.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
         title,
-        photos,
-        ...(description !== undefined && { description }),
+        photos: photoPayload,
+        ...(memo !== undefined && { memo }),
         ...(tags !== undefined && { tags }),
-      })
-      .eq('id', existingCard.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
-  } else {
-    // Create new card
-    const { data, error } = await supabase
-      .from('photo_cards')
-      .insert({
-        title,
-        description: description || null,
-        tags: tags || [],
-        photos,
-        sale_id: saleId,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return data;
+      }),
+    });
+    return toPhotoCard(dto);
   }
+
+  const dto = await apiFetch<PhotoCardDto>('/photo-cards', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      memo: memo || null,
+      tags: tags || [],
+      photos: photoPayload,
+      saleId,
+    }),
+  });
+  return toPhotoCard(dto);
 }
 
 export const createOrUpdatePhotoCardForSale = withErrorLogging('createOrUpdatePhotoCardForSale', _createOrUpdatePhotoCardForSale);

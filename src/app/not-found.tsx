@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { FileQuestion } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {FileQuestion} from 'lucide-react';
+import {Button} from '@/components/ui/button';
 
 export default function NotFound() {
   return (
@@ -15,7 +15,7 @@ export default function NotFound() {
         요청하신 페이지가 존재하지 않거나 이동되었을 수 있습니다.
       </p>
       <Button asChild>
-        <Link href="/">대시보드로 돌아가기</Link>
+        <Link href="/">홈으로 돌아가기</Link>
       </Button>
     </div>
   );

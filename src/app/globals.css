@@ -38,8 +38,40 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  /* Tier 2 semantic status tokens — enables bg-success / text-success-foreground / bg-success-soft etc.
+     (danger reuses the existing --destructive; --danger below is an AA-legible alias on cream) */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-pretendard), "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  /* admin 디스플레이: Cormorant Garamond 우선, 공개사이트 Fraunces 폴백 유지 */
+  --font-serif: var(--font-cormorant), var(--font-fraunces), "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Public site palette v2 (hazel 공개 사이트 전용 — 다크모드와 무관하게 고정) */
+  --color-site-paper: var(--site-paper);
+  --color-site-paper-soft: var(--site-paper-soft);
+  --color-site-ink: var(--site-ink);
+  --color-site-ink-soft: var(--site-ink-soft);
+  --color-site-accent: var(--site-accent);
+  --color-site-accent-soft: var(--site-accent-soft);
+  --color-site-leaf: var(--site-leaf);
+  --color-site-muted: var(--site-muted);
+  /* Legacy aliases */
+  --color-site-ivory: var(--site-ivory);
+  --color-site-parchment: var(--site-parchment);
+  --color-site-charcoal: var(--site-charcoal);
+  --color-site-oxblood: var(--site-oxblood);
+  --color-site-pewter: var(--site-pewter);
+  --color-site-olive: var(--site-olive);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -48,89 +80,249 @@
 
 :root {
   --radius: 0.75rem;
-  /* 따뜻한 크림 배경 */
-  --background: #FAFAF8;
-  --foreground: #2D2D2A;
+
+  /* ============================================================
+     DESIGN TOKEN FOUNDATION (3-tier) — ADDITIVE, 2026-05-27
+     Tier 1 = primitives (raw scales) → Tier 2 = semantic tokens
+     (the shadcn vars below: --background/--foreground/--brand/…)
+     → Tier 3 = components consume semantic tokens only.
+     RULE: components never reference Tier-1 primitives or hardcode
+     hex; they use semantic tokens. Dark mode overrides the SAME
+     semantic token names in `.dark` (never re-derives primitives).
+     This file is the single source of truth; Pencil mirrors it.
+     ============================================================ */
+
+  /* --- Tier 1: Rose primitive scale ---------------------------
+     Brand hue (dusty deep rose). Anchored on existing semantics:
+       --rose-600 == --brand        (#A85475)
+       --rose-50  == --brand-muted   (#FBEFF3)
+     Perceptually graded light→dark; 600 = white-text AA (5.01:1). */
+  --rose-50:  #FBEFF3;
+  --rose-100: #F6DCE5;
+  --rose-200: #ECBACD;
+  --rose-300: #DD93AF;
+  --rose-400: #C9728F;
+  --rose-500: #B85F7F;
+  --rose-600: #A85475; /* = --brand */
+  --rose-700: #8A4361;
+  --rose-800: #6B344C;
+  --rose-900: #4C2536;
+
+  /* --- Tier 1: Neutral (cool slate) primitive scale -----------
+     Cool slate-gray ramp. Anchored on existing semantics:
+       --neutral-50  ≈ --background     (#EEF1F5 cool canvas)
+       --neutral-200 == --border         (#DDE2E9)
+       --neutral-500 == --muted-foreground (#717B88)
+       --neutral-900 == --foreground      (#1C2024 ink) */
+  --neutral-50:  #F4F6F9;
+  --neutral-100: #E8ECF1;
+  --neutral-200: #DDE2E9;
+  --neutral-300: #C7CDD6;
+  --neutral-400: #A4ADB9;
+  --neutral-500: #717B88;
+  --neutral-600: #58616D;
+  --neutral-700: #424A54;
+  --neutral-800: #2C333D;
+  --neutral-900: #1C2024; /* = --foreground */
+
+  /* --- Tier 1 + Tier 2: Status hues ---------------------------
+     Each base verified AA on cream (#FBF8F3) for text AND
+     white-on-base for fills; base also AA on its own *-soft bg.
+       success  #3B7A57  cream 4.83:1 · white-on 5.11:1 · on-soft 4.55:1
+       warning  #B45309  cream 4.74:1 · white-on 5.02:1 · on-soft 4.50:1
+       info     #2B6CB0  cream 5.12:1 · white-on 5.42:1 · on-soft 4.80:1
+       danger   #C42B30  cream 5.31:1 · white-on 5.62:1 · on-soft 4.91:1
+     (existing --destructive #E5484D is kept untouched for fills;
+      --danger is the AA-legible text variant.) */
+  --success: #3B7A57;
+  --success-foreground: #FFFFFF;
+  --success-soft: #EAF4EE;
+  --warning: #B45309;
+  --warning-foreground: #FFFFFF;
+  --warning-soft: #FCF1E3;
+  --info: #2B6CB0;
+  --info-foreground: #FFFFFF;
+  --info-soft: #EAF2FA;
+  --danger: #C42B30;
+  --danger-foreground: #FFFFFF;
+  --danger-soft: #FCECEC;
+
+  /* --- Typography scale (role → size / line-height) -----------
+     Family mapping: display + h1/h2/h3 = Cormorant (--font-serif)
+     where the design uses serif headings; body/label/caption =
+     Pretendard (--font-sans). Pair size with line-height var. */
+  --text-display: 2.25rem;   /* 36px */
+  --leading-display: 1.05;
+  --text-h1: 1.75rem;        /* 28px */
+  --leading-h1: 1.1;
+  --text-h2: 1.375rem;       /* 22px */
+  --leading-h2: 1.15;
+  --text-h3: 1.125rem;       /* 18px */
+  --leading-h3: 1.25;
+  --text-body: 0.9375rem;    /* 15px */
+  --leading-body: 1.55;
+  --text-label: 0.8125rem;   /* 13px */
+  --leading-label: 1.4;
+  --text-caption: 0.71875rem;/* 11.5px */
+  --leading-caption: 1.4;
+
+  /* --- Spacing -------------------------------------------------
+     Use Tailwind v4's built-in 4pt spacing scale (p-1 = 4px,
+     p-2 = 8px, gap-4 = 16px, …). Do NOT add redundant spacing
+     vars and do NOT use arbitrary values like p-[13px]. */
+
+  /* flori 랜딩 팔레트 — cool-rose white (어드민 팔레트 기반, 고정 라이트)
+     어드민 cool slate 캔버스 + dusty rose 액센트를 랜딩에도 통일. */
+  --site-paper: #FAFAF9;          /* cool 오프화이트 — 페이지 베이스 */
+  --site-paper-soft: #FFFFFF;     /* 카드/섹션 표면 — 순백 */
+  --site-ink: #1C2024;            /* 잉크 (cool 다크 — 어드민 --foreground 동일) */
+  --site-ink-soft: #5A6472;       /* 본문 보조 */
+  --site-accent: #A85475;         /* dusty rose 포인트 — 어드민 --brand 동일 */
+  --site-accent-deep: #8E3F5F;    /* 로즈 딥 (호버/강조) */
+  --site-accent-soft: #F7E9EF;    /* 소프트 로즈 틴트 — 어드민 --brand-muted 동일 */
+  --site-slate: #8A929E;          /* cool slate 보조 — 어드민 --sage 동일 */
+  --site-leaf: #A85475;           /* leaf alias → rose (구 olive 대체) */
+  --site-muted: #9A9690;          /* 캡션/마이크로 */
+  --site-line: #ECEAE6;           /* 디바이더 */
+
+  /* Legacy aliases (점진 마이그레이션용 — 추후 제거 예정) */
+  --site-ivory: var(--site-paper);          /* #FAFAF9 */
+  --site-parchment: var(--site-paper-soft); /* #FFFFFF */
+  --site-charcoal: var(--site-ink);         /* #1C2024 */
+  --site-oxblood: var(--site-accent);       /* #A85475 (구 oxblood → rose) */
+  --site-pewter: var(--site-muted);         /* #9A9690 */
+  --site-olive: var(--site-leaf);           /* #A85475 (구 olive → rose) */
+  --site-oxblood-light: var(--site-accent-soft);  /* #F7E9EF */
+  --site-oxblood-soft: var(--site-accent-soft);   /* #F7E9EF */
+  /* 어드민 로즈 테마 — Rose reskin 2026-05-26
+     --brand        : #A85475  (dusty deep rose — white text contrast ~5.01:1 ✅ WCAG AA)
+     --brand-muted  : #FBEFF3  (soft rose tint bg)
+     --sage         : #A09080  (warm taupe neutral, replaces sage green — no green hue)
+     --sage-muted   : #F2EDE8  (warm light hairline)
+     --chart-1      : #A85475  (rose peak)
+     --chart-2..5   : ink opacity ladder (monochrome)
+  */
+  /* Cool 캔버스 (slate 오프화이트 — 흰 카드가 떠오르는 elevation) */
+  --background: #EEF1F5;
+  --foreground: #1C2024;
   /* 카드: 순백 */
   --card: #FFFFFF;
-  --card-foreground: #2D2D2A;
+  --card-foreground: #1C2024;
   --popover: #FFFFFF;
-  --popover-foreground: #2D2D2A;
-  /* 프라이머리: 차콜 */
-  --primary: #2D2D2A;
-  --primary-foreground: #FAFAF8;
-  --secondary: #F3F3F0;
-  --secondary-foreground: #2D2D2A;
-  /* 뮤트: 따뜻한 회색 */
-  --muted: #F3F3F0;
-  --muted-foreground: #9B9B93;
-  --accent: #F3F3F0;
-  --accent-foreground: #2D2D2A;
+  --popover-foreground: #1C2024;
+  /* 프라이머리: cool near-black */
+  --primary: #1C2024;
+  --primary-foreground: #F6F8FA;
+  --secondary: #E8ECF1;
+  --secondary-foreground: #1C2024;
+  /* 뮤트: cool slate 회색 */
+  --muted: #E8ECF1;
+  --muted-foreground: #717B88;
+  --accent: #E8ECF1;
+  --accent-foreground: #1C2024;
   --destructive: #E5484D;
-  --border: #EBEBEA;
-  --input: #EBEBEA;
-  --ring: #2D2D2A;
-  /* 브랜드: Warm Coral */
-  --brand: #E5614E;
+  --border: #DDE2E9;
+  --input: #DDE2E9;
+  --ring: #A85475;
+  /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1 (유지) */
+  --brand: #A85475;
   --brand-foreground: #FFFFFF;
-  --brand-muted: #FEF0EE;
-  /* 서브: Sage Green */
-  --sage: #8B9D83;
-  --sage-muted: #F0F4EE;
-  /* 차트 */
-  --chart-1: #E5614E;
-  --chart-2: #8B9D83;
-  --chart-3: #F5A623;
-  --chart-4: #5B8DEF;
-  --chart-5: #C084CF;
+  --brand-muted: #F7E9EF;
+  /* 서브: cool slate 중립 (cool 베이스 위 조용한 보조) */
+  --sage: #8A929E;
+  --sage-muted: #E8ECF1;
+  /* 차트: 로즈 피크 + cool 잉크 불투명도 사다리 */
+  --chart-1: #A85475;
+  --chart-2: rgba(28, 32, 36, 0.55);
+  --chart-3: rgba(28, 32, 36, 0.38);
+  --chart-4: rgba(28, 32, 36, 0.22);
+  --chart-5: rgba(28, 32, 36, 0.12);
   /* 사이드바 */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #6B6B65;
-  --sidebar-primary: #2D2D2A;
-  --sidebar-primary-foreground: #FAFAF8;
-  --sidebar-accent: #F3F3F0;
-  --sidebar-accent-foreground: #2D2D2A;
-  --sidebar-border: #EBEBEA;
-  --sidebar-ring: #2D2D2A;
+  --sidebar-foreground: #5C636E;
+  --sidebar-primary: #1C2024;
+  --sidebar-primary-foreground: #F6F8FA;
+  --sidebar-accent: #E8ECF1;
+  --sidebar-accent-foreground: #1C2024;
+  --sidebar-border: #DDE2E9;
+  --sidebar-ring: #A85475;
+  /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
+  --ai-grad-from: #E89BB6;
+  --ai-grad-to: #D2789A;
 }
 
 .dark {
-  --background: #1A1A19;
-  --foreground: #EDEDEC;
-  --card: #242422;
-  --card-foreground: #EDEDEC;
-  --popover: #242422;
-  --popover-foreground: #EDEDEC;
-  --primary: #EDEDEC;
-  --primary-foreground: #1A1A19;
-  --secondary: #2D2D2A;
-  --secondary-foreground: #EDEDEC;
-  --muted: #2D2D2A;
-  --muted-foreground: #9B9B95;
-  --accent: #2D2D2A;
-  --accent-foreground: #EDEDEC;
+  --background: #101317;
+  --foreground: #E7EBF0;
+  --card: #1E242C;
+  --card-foreground: #E7EBF0;
+  --popover: #1E242C;
+  --popover-foreground: #E7EBF0;
+  --primary: #E7EBF0;
+  --primary-foreground: #101317;
+  --secondary: #252C35;
+  --secondary-foreground: #E7EBF0;
+  --muted: #252C35;
+  --muted-foreground: #8B95A2;
+  --accent: #252C35;
+  --accent-foreground: #E7EBF0;
   --destructive: #E5484D;
-  --border: #333330;
-  --input: #333330;
-  --ring: #EDEDEC;
-  --brand: #E87461;
-  --brand-foreground: #FFFFFF;
-  --brand-muted: #3D2420;
-  --sage: #8B9D83;
-  --sage-muted: #1E2A1C;
-  --chart-1: #E87461;
-  --chart-2: #8B9D83;
-  --chart-3: #F5A623;
-  --chart-4: #5B8DEF;
-  --chart-5: #C084CF;
-  --sidebar: #1F1F1E;
-  --sidebar-foreground: #8B8B85;
-  --sidebar-primary: #EDEDEC;
-  --sidebar-primary-foreground: #1A1A19;
-  --sidebar-accent: #2D2D2A;
-  --sidebar-accent-foreground: #EDEDEC;
-  --sidebar-border: #333330;
-  --sidebar-ring: #EDEDEC;
+  /* Tier 2 status — dark overrides: brighter base for AA on dark
+     surfaces (#1C1819), soft = low-alpha tint of the base. */
+  --success: #5FB088;
+  --success-foreground: #0F2418;
+  --success-soft: rgba(95, 176, 136, 0.16);
+  --warning: #E0973B;
+  --warning-foreground: #2A1A05;
+  --warning-soft: rgba(224, 151, 59, 0.16);
+  --info: #5C9FE0;
+  --info-foreground: #0A1A2A;
+  --info-soft: rgba(92, 159, 224, 0.16);
+  --danger: #F0686C;
+  --danger-foreground: #2A0A0B;
+  --danger-soft: rgba(240, 104, 108, 0.16);
+  --border: #2C333D;
+  --input: #2C333D;
+  --ring: #DB8FA9;
+  /* 다크 브랜드: 라이트 더스티 로즈 (어두운 배경 위 — white-on-brand 불필요, 버튼 bg-brand 대비 확인:
+     #DB8FA9 on #1C1819: bg가 어두움→ 텍스트는 dark bg 위 light rose, 버튼은 rose bg 위 dark text 권장.
+     dark 모드 bg-brand 버튼은 dark text(--foreground) 사용 권장. brand-foreground = dark ink) */
+  --brand: #DB8FA9;
+  --brand-foreground: #101317;
+  --brand-muted: #3A2430;
+  /* 다크 서브: cool slate 뉴트럴 */
+  --sage: #8B95A2;
+  --sage-muted: #252C35;
+  /* 다크 차트 */
+  --chart-1: #DB8FA9;
+  --chart-2: rgba(231, 235, 240, 0.50);
+  --chart-3: rgba(231, 235, 240, 0.35);
+  --chart-4: rgba(231, 235, 240, 0.20);
+  --chart-5: rgba(231, 235, 240, 0.10);
+  --sidebar: #15181D;
+  --sidebar-foreground: #7E8794;
+  --sidebar-primary: #E7EBF0;
+  --sidebar-primary-foreground: #101317;
+  --sidebar-accent: #252C35;
+  --sidebar-accent-foreground: #E7EBF0;
+  --sidebar-border: #2C333D;
+  --sidebar-ring: #DB8FA9;
+  /* 다크 AI 그라데이션 — 어두운 배경 위 과도한 채도 방지 */
+  --ai-grad-from: #C77A98;
+  --ai-grad-to: #A85475;
+}
+
+/* 도메인 배지(매출/지출/고객 카테고리·결제·채널) 공통 표면.
+   색은 인라인 --badge 커스텀 프로퍼티로 주입한다.
+   - 라이트: 기존 `${color}40` bg + 풀채도 텍스트를 그대로 재현(시각 변화 없음)
+   - 다크: 투명 틴트 대신 카드색과 혼합 + 텍스트를 흰색쪽으로 보정해 대비 확보 */
+.domain-badge {
+  background-color: color-mix(in srgb, var(--badge) 25%, transparent);
+  color: var(--badge);
+}
+.dark .domain-badge {
+  background-color: color-mix(in srgb, var(--badge) 22%, var(--card));
+  color: color-mix(in srgb, var(--badge) 68%, white);
 }
 
 @layer base {
@@ -148,12 +340,59 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* react-remove-scroll-bar가 body[data-scroll-locked]에 overscroll-behavior: contain을 설정함.
+     Safari는 이를 공격적으로 적용하여 fixed 자식(다이얼로그)의 스크롤까지 차단.
+     !important로 y축만 해제하여 다이얼로그 내부 터치 스크롤 허용.
+     라이브러리 업그레이드 시 재테스트 필요. */
+  body[data-scroll-locked] {
+    overscroll-behavior-y: auto !important;
+  }
 }
 
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* 공개 사이트 래퍼: 배경·전경을 고정 팔레트로 덮어 다크모드 영향 차단 */
+.site-public {
+  background-color: var(--site-paper);
+  color: var(--site-ink);
+  color-scheme: light;
+  font-family: var(--font-serif-kr), 'Noto Serif KR', 'Pretendard', system-ui, serif;
+  font-feature-settings: 'kern', 'liga', 'palt';
+}
+
+.site-public ::selection {
+  background: var(--site-accent);
+  color: var(--site-paper);
+}
+
+/* Display 폰트 헬퍼 */
+.site-public .font-display {
+  font-family: var(--font-display), 'Cormorant Garamond', 'Noto Serif KR', serif;
+  font-feature-settings: 'kern', 'liga', 'lnum';
+}
+
+.site-public .font-sans {
+  font-family: var(--font-pretendard), 'Pretendard', -apple-system, system-ui, sans-serif;
+}
+
+/* Subtle reveal on scroll */
+@keyframes site-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.site-public .animate-fade-up {
+  animation: site-fade-up 1s ease-out both;
+}
+
+/* Order CTA button hover (Claude Design spec) */
+.site-public .btn-order:hover {
+  background: var(--site-ink) !important;
+  color: var(--site-paper-soft) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,4 +404,288 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── 랜딩 페이지 컴포넌트 (.site-public 스코프) ───────────
+   시안: docs/superpowers/specs/26-06-09-landing-mockup.html
+   팔레트 변수 매핑:
+     --rose      → --site-accent
+     --rose-deep → --site-accent-deep
+     --rose-soft → --site-accent-soft
+     --bg        → --site-paper
+     --card      → --site-paper-soft
+     --ink       → --site-ink
+     --muted     → --site-ink-soft
+     --faint     → --site-muted
+     --line      → --site-line
+     --slate     → --site-slate
+     --accent2   → #F3F1ED (light neutral)
+   ──────────────────────────────────────────────────────── */
+
+.site-public .wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 40px);
+}
+
+.site-public .eyebrow {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--site-muted);
+  font-weight: 700;
+}
+
+.site-public .btn-rose {
+  background: var(--site-accent);
+  color: #fff;
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .15s;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+.site-public .btn-rose:hover {
+  background: var(--site-accent-deep);
+}
+
+.site-public .btn-ghost {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  color: var(--site-ink);
+  border-radius: 11px;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.site-public .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--site-accent-deep);
+  background: var(--site-accent-soft);
+  border-radius: 999px;
+  padding: 7px 15px;
+}
+
+.site-public .card {
+  background: var(--site-paper-soft);
+  border: 1px solid var(--site-line);
+  border-radius: 18px;
+}
+
+/* 공개 폼 입력 포커스 링(접근성 — WCAG 2.4.11). 인라인 outline:none 제거 후 가시 포커스 복구. */
+.site-public input:focus-visible {
+  outline: 2px solid var(--site-accent);
+  outline-offset: 2px;
+  border-color: var(--site-accent);
+}
+
+/* Asset placeholder */
+.site-public .ph {
+  border: 1.5px dashed #C9A3B4;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    135deg,
+    #FBEFF3,
+    #FBEFF3 12px,
+    #F7E6ED 12px,
+    #F7E6ED 24px
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #9A5E76;
+  text-align: center;
+  padding: 24px;
+}
+.site-public .ph b {
+  font-size: 13px;
+  font-weight: 700;
+}
+.site-public .ph span {
+  font-size: 11px;
+  color: #B07E92;
+}
+.site-public .ph .ico {
+  font-size: 26px;
+}
+
+/* Browser chrome */
+.site-public .browser {
+  border: 1px solid var(--site-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 30px 70px -34px rgba(28,32,36,.40);
+}
+.site-public .browser .bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  background: #F6F8FA;
+  border-bottom: 1px solid var(--site-line);
+}
+.site-public .browser .d {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+/* FAQ details/summary */
+.site-public details {
+  background: #fff;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  padding: 0 20px;
+  transition: box-shadow .15s, border-color .15s;
+}
+.site-public details[open] {
+  border-color: #EAD3DD;
+  box-shadow: 0 8px 24px -16px rgba(168,84,117,.35);
+}
+.site-public details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 20px 0;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.site-public details > summary::-webkit-details-marker {
+  display: none;
+}
+.site-public details > summary::after {
+  content: "+";
+  color: var(--site-accent);
+  font-size: 24px;
+  font-weight: 300;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.site-public details[open] > summary::after {
+  transform: rotate(45deg);
+}
+.site-public details .ans {
+  padding: 0 0 20px;
+  color: var(--site-ink-soft);
+  font-size: 15px;
+  max-width: 64ch;
+}
+
+/* Feature icon badge */
+.site-public .feat-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F1ED;
+  font-size: 22px;
+}
+
+/* Feature row responsive */
+@media (max-width: 760px) {
+  .site-public .feat-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ─── Tiptap 커뮤니티 본문 렌더링 ─────────────────────────── */
+.tiptap-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--foreground);
+}
+.tiptap-content p {
+  margin: 0.5rem 0;
+}
+.tiptap-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.tiptap-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.4rem;
+}
+.tiptap-content ul,
+.tiptap-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.4rem;
+}
+.tiptap-content ul {
+  list-style: disc;
+}
+.tiptap-content ol {
+  list-style: decimal;
+}
+.tiptap-content blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0.5rem 0;
+}
+.tiptap-content img {
+  border-radius: 0.5rem;
+  max-width: 100%;
+  height: auto;
+}
+.tiptap-content pre {
+  background: var(--muted);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+.tiptap-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.tiptap-content :not(pre) > code {
+  background: var(--muted);
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+.tiptap-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+}
+.tiptap-content a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+/* Placeholder (빈 에디터 첫 줄) */
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  height: 0;
 }

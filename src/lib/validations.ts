@@ -1,12 +1,16 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 // 공통 유틸리티
 const koreanPhoneRegex = /^01[016789]-?\d{3,4}-?\d{4}$/;
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
 
-export const uuidSchema = z.string().regex(uuidRegex, 'UUID 형식이 올바르지 않습니다');
+// BFF 엔티티 id는 Long(숫자). JSON 응답에선 number, URL/FormData에선 string으로 들어오므로
+// 양쪽을 받아 문자열로 정규화한다(웹은 id를 string으로 다룬다).
+export const idSchema = z
+  .union([z.string(), z.number()])
+  .transform((v) => String(v))
+  .pipe(z.string().regex(/^[1-9]\d*$/, 'ID 형식이 올바르지 않습니다'));
 export const dateSchema = z.string().regex(dateRegex, '날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)');
 export const phoneSchema = z.string().regex(koreanPhoneRegex, '전화번호 형식이 올바르지 않습니다');
 export const colorSchema = z.string().regex(hexColorRegex, '색상 형식이 올바르지 않습니다');
@@ -14,20 +18,15 @@ export const colorSchema = z.string().regex(hexColorRegex, '색상 형식이 올
 // 매출 생성/수정
 export const saleSchema = z.object({
   date: dateSchema,
-  product_category: z.string().min(1).max(100),
+  category_id: idSchema,
   amount: z.number().int().min(0).max(100_000_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
-  card_company: z.string().max(50).nullable().optional(),
-  fee: z.number().int().min(0).nullable().optional(),
-  expected_deposit: z.number().int().min(0).nullable().optional(),
-  expected_deposit_date: dateSchema.nullable().optional(),
-  deposit_status: z.enum(['pending', 'completed', 'not_applicable']).optional(),
-  reservation_channel: z.enum(['phone', 'kakaotalk', 'naver_booking', 'road', 'other']).optional(),
+  payment_method_id: idSchema.nullable().optional(),
+  is_unpaid: z.boolean().optional(),
+  channel_id: idSchema.nullable().optional(),
   customer_name: z.string().max(100).nullable().optional(),
   customer_phone: z.string().max(20).nullable().optional(),
-  customer_id: uuidSchema.nullable().optional(),
-  reservation_id: uuidSchema.nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  customer_id: idSchema.nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
 // 고객 생성/수정
@@ -36,39 +35,88 @@ export const customerSchema = z.object({
   phone: z.string().min(10).max(20),
   grade: z.enum(['new', 'regular', 'vip', 'blacklist']).optional(),
   gender: z.enum(['male', 'female']).nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
 
 // 지출 생성/수정
 export const expenseSchema = z.object({
   date: dateSchema,
   item_name: z.string().min(1, '품명을 입력해주세요').max(200),
-  category: z.string().min(1).max(30),
+  category_id: idSchema,
   unit_price: z.number().int().min(0).max(100_000_000),
   quantity: z.number().int().min(1).max(10_000),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'naverpay', 'kakaopay']),
+  payment_method_id: idSchema,
   card_company: z.string().max(50).nullable().optional(),
   vendor: z.string().max(100).nullable().optional(),
-  note: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
 });
+
+// 고정비(반복 지출) 템플릿 — 다중값 지원
+export const yearlyDateSchema = z.object({
+  m: z.number().int().min(1).max(12),
+  d: z.number().int().min(1).max(31),
+});
+
+export const recurringExpenseSchema = z.object({
+  item_name: z.string().min(1, '품명을 입력해주세요').max(200),
+  category_id: idSchema,
+  unit_price: z.number().int().min(0).max(100_000_000),
+  quantity: z.number().int().min(1).max(10_000),
+  payment_method_id: idSchema,
+  vendor: z.string().max(100).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
+  frequency: z.enum(['weekly', 'monthly', 'yearly']),
+  interval_count: z.number().int().min(1).max(99).default(1),
+  days_of_week: z.array(z.number().int().min(0).max(6)).default([]),
+  days_of_month: z.array(z.number().int().min(1).max(31)).default([]),
+  yearly_dates: z.array(yearlyDateSchema).default([]),
+  start_date: dateSchema,
+  end_date: dateSchema.nullable().optional(),
+  is_active: z.boolean().default(true),
+}).refine(
+  (d) => d.frequency !== 'weekly' || d.days_of_week.length > 0,
+  { message: '매주 반복은 요일을 1개 이상 선택해야 합니다', path: ['days_of_week'] },
+).refine(
+  (d) => d.frequency !== 'monthly' || d.days_of_month.length > 0,
+  { message: '매월 반복은 날짜를 1개 이상 선택해야 합니다', path: ['days_of_month'] },
+).refine(
+  (d) => d.frequency !== 'yearly' || d.yearly_dates.length > 0,
+  { message: '매년 반복은 일자를 1개 이상 선택해야 합니다', path: ['yearly_dates'] },
+).refine(
+  (d) => !d.end_date || d.end_date >= d.start_date,
+  { message: '종료일은 시작일 이후여야 합니다', path: ['end_date'] },
+);
 
 // 예약 생성
 export const reservationSchema = z.object({
   date: dateSchema,
-  time: z.string().max(10).optional(),
+  time: z.string().max(10).nullable().optional(),
   customer_name: z.string().min(1, '고객명을 입력해주세요').max(100),
-  customer_phone: z.string().max(20).optional(),
+  customer_phone: z.string().max(20).nullable().optional(),
   title: z.string().min(1, '제목을 입력해주세요').max(255),
-  description: z.string().max(1000).optional(),
-  estimated_amount: z.number().int().min(0).max(100_000_000).optional(),
+  memo: z.string().max(1000).nullable().optional(),
+  amount: z.number().int().min(0).max(100_000_000).optional(),
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
   reminder_at: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-// 카테고리 설정
-export const categorySettingSchema = z.object({
-  label: z.string().min(1).max(100),
+// 캘린더 이벤트
+export const scheduleBaseSchema = z.object({
+  title: z.string().min(1, '제목을 입력해주세요').max(255),
+  start_date: dateSchema,
+  end_date: dateSchema,
   color: colorSchema.optional(),
+  memo: z.string().max(1000).nullable().optional(),
+});
+
+export const scheduleSchema = scheduleBaseSchema.refine(
+  (data) => data.end_date >= data.start_date,
+  { message: '종료일은 시작일보다 이전일 수 없습니다', path: ['end_date'] },
+);
+
+// 라벨 설정(카테고리·결제방식·채널) — 색상은 제거됨, label만 관리
+export const labelSettingSchema = z.object({
+  label: z.string().min(1).max(100),
 });
 
 // 카드사 설정
@@ -81,7 +129,7 @@ export const cardCompanySettingSchema = z.object({
 // 사진 카드
 export const photoCardSchema = z.object({
   title: z.string().min(1, '제목을 입력해주세요').max(255),
-  description: z.string().max(1000).nullable().optional(),
+  memo: z.string().max(1000).nullable().optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
   photos: z.array(z.object({
     url: z.string().url(),
@@ -96,7 +144,7 @@ export const photoTagSchema = z.object({
 });
 
 // ID 배열 (입금 확인 등)
-export const idsSchema = z.array(uuidSchema).min(1).max(100);
+export const idsSchema = z.array(idSchema).min(1).max(100);
 
 // 검색 쿼리
 export const searchQuerySchema = z.string().min(1).max(100);
@@ -110,19 +158,130 @@ const ALLOWED_IMAGE_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
 ];
 
+const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+
 export function validateImageFile(file: File): string | null {
+  if (file.size > MAX_IMAGE_FILE_SIZE) {
+    return `파일 크기는 5MB 이하여야 합니다 (현재: ${(file.size / 1024 / 1024).toFixed(1)}MB)`;
+  }
   const ext = file.name.split('.').pop()?.toLowerCase();
   if (!ext || !ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
     return `허용되지 않는 파일 형식입니다: .${ext || '(없음)'}`;
   }
-  if (file.type && !ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
-    return `허용되지 않는 MIME 타입입니다: ${file.type}`;
+  if (!file.type || !ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
+    return `허용되지 않는 MIME 타입입니다: ${file.type || '(없음)'}`;
+  }
+  return null;
+}
+
+export function validateImageMeta(meta: { name: string; type: string; size: number }): string | null {
+  if (meta.size > MAX_IMAGE_FILE_SIZE) {
+    return `파일 크기는 5MB 이하여야 합니다 (현재: ${(meta.size / 1024 / 1024).toFixed(1)}MB)`;
+  }
+  const ext = meta.name.split('.').pop()?.toLowerCase();
+  if (!ext || !ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    return `허용되지 않는 파일 형식입니다: .${ext || '(없음)'}`;
+  }
+  if (!meta.type || !ALLOWED_IMAGE_MIME_TYPES.includes(meta.type)) {
+    return `허용되지 않는 MIME 타입입니다: ${meta.type || '(없음)'}`;
   }
   return null;
 }
 
 // 고객 등급 단독 검증
 export const customerGradeSchema = z.enum(['new', 'regular', 'vip', 'blacklist']);
+
+// ─── 인사이트 섹션 ──────────────────────────────────────────
+
+// javascript:/data: URI 차단 — DB에 저장되어 <a href>로 렌더링되므로 XSS 방지.
+const httpUrlSchema = z
+  .string()
+  .url()
+  .max(1000)
+  .refine((u) => /^https?:\/\//i.test(u), {
+    message: 'http 또는 https URL만 허용됩니다',
+  });
+
+// 트렌드 기사 (루틴이 POST로 저장)
+export const trendArticleInputSchema = z.object({
+  category: z.enum(['flower', 'inspiration', 'business', 'industry']),
+  title: z.string().min(1).max(300),
+  summary: z.string().min(1).max(2000),
+  key_points: z.array(z.string().max(500)).max(20).optional().default([]),
+  source_url: httpUrlSchema,
+  source_name: z.string().max(100).nullable().optional(),
+  published_at: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export const trendArticlesBulkSchema = z.object({
+  articles: z.array(trendArticleInputSchema).min(1).max(20),
+});
+
+// Instagram 포스트 (루틴이 POST로 저장)
+export const instagramPostInputSchema = z.object({
+  username: z.string().min(1).max(60),
+  shortcode: z.string().min(1).max(60),
+  permalink: httpUrlSchema,
+  image_urls: z.array(httpUrlSchema).min(1).max(20),
+  caption: z.string().max(5000).nullable().optional(),
+  like_count: z.number().int().nonnegative().default(0),
+  posted_at: z.string().datetime({ offset: true }),
+});
+
+export const instagramPostsBulkSchema = z.object({
+  posts: z.array(instagramPostInputSchema).min(1).max(500),
+});
+
+// Instagram 계정 관리 (유저용)
+export const instagramAccountCreateSchema = z.object({
+  username: z
+    .string()
+    .min(1, '유저네임을 입력해주세요')
+    .max(60)
+    .regex(/^[a-zA-Z0-9._]+$/, 'Instagram 유저네임 형식만 허용됩니다'),
+  display_name: z.string().max(100).nullable().optional(),
+  region: z.enum(['domestic', 'international']),
+  sort_order: z.number().int().min(0).max(10_000).optional(),
+  active: z.boolean().optional(),
+  memo: z.string().max(500).nullable().optional(),
+});
+
+export const instagramAccountUpdateSchema = instagramAccountCreateSchema.partial();
+
+// 하단바 커스터마이즈
+// types/database.ts 의 NavItemKey 와 동기화할 것
+export const navItemKeySchema = z.enum([
+  'dashboard',
+  'calendar',
+  'sales',
+  'expenses',
+  'statistics',
+  'customers',
+  'gallery',
+  'community',
+]);
+
+export const bottomNavItemsSchema = z
+  .array(navItemKeySchema)
+  .min(4, '최소 4개 선택해야 합니다')
+  .max(6, '최대 6개까지 선택 가능합니다')
+  .refine((items) => new Set(items).size === items.length, {
+    message: '중복된 메뉴가 있습니다',
+  });
+
+// 스크랩/메모
+export const scrapTargetTypeSchema = z.enum(['trend', 'post']);
+
+export const scrapToggleSchema = z.object({
+  target_type: scrapTargetTypeSchema,
+  target_id: idSchema,
+});
+
+export const scrapMemoSchema = z.object({
+  target_type: scrapTargetTypeSchema,
+  target_id: idSchema,
+  memo: z.string().max(1000, '메모는 1000자 이내로 입력해주세요').nullable(),
+});
 
 // FormData에서 값을 안전하게 추출하는 헬퍼
 export function getFormString(formData: FormData, key: string): string {
@@ -136,3 +295,10 @@ export function getFormInt(formData: FormData, key: string): number | null {
   const parsed = parseInt(val, 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
+
+// 사전등록(waitlist) — 가게명 + 전화번호
+export const waitlistSchema = z.object({
+  shop_name: z.string().min(1, '가게명을 입력해주세요').max(50, '가게명은 50자 이내여야 합니다'),
+  phone: phoneSchema,
+});
+export type WaitlistInput = z.infer<typeof waitlistSchema>;
