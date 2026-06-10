@@ -360,7 +360,16 @@
   background-color: var(--site-paper);
   color: var(--site-ink);
   color-scheme: light;
-  font-family: var(--font-serif-kr), 'Noto Serif KR', 'Pretendard', system-ui, serif;
+  /* 본문·UI 기본 = Pretendard(sans). 헤딩(h1~h3)만 명조로 별도 지정 — 아래 규칙. */
+  font-family: var(--font-pretendard), 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-feature-settings: 'kern', 'liga';
+}
+
+/* 헤딩 = Noto Serif KR(명조) — 에디토리얼 감성. 로고(flori)는 .font-display(Cormorant)로 별도 처리. */
+.site-public h1,
+.site-public h2,
+.site-public h3 {
+  font-family: var(--font-serif-kr), 'Noto Serif KR', serif;
   font-feature-settings: 'kern', 'liga', 'palt';
 }
 
@@ -369,9 +378,9 @@
   color: var(--site-paper);
 }
 
-/* Display 폰트 헬퍼 */
-.site-public .font-display {
-  font-family: var(--font-display), 'Cormorant Garamond', 'Noto Serif KR', serif;
+/* Display 폰트 헬퍼 (flori 워드마크 로고) — public(--font-display)·admin(--font-cormorant) 공통 */
+.font-display {
+  font-family: var(--font-display), var(--font-cormorant), 'Cormorant Garamond', 'Noto Serif KR', serif;
   font-feature-settings: 'kern', 'liga', 'lnum';
 }
 
@@ -387,6 +396,17 @@
 
 .site-public .animate-fade-up {
   animation: site-fade-up 1s ease-out both;
+}
+
+/* 등록 완료 등 성공 피드백 — 살짝 튀어오르는 팝 */
+@keyframes site-pop {
+  0% { opacity: 0; transform: scale(.9) translateY(6px); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.site-public .animate-pop {
+  animation: site-pop .45s cubic-bezier(.2, .8, .3, 1.15) both;
 }
 
 /* Order CTA button hover (Claude Design spec) */
@@ -425,7 +445,7 @@
 .site-public .wrap {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 40px);
+  padding: 0 clamp(24px, 5.5vw, 40px);
 }
 
 .site-public .eyebrow {
@@ -548,6 +568,35 @@
   height: 10px;
   border-radius: 99px;
   display: inline-block;
+}
+
+/* 푸터 링크 블록 — 데스크탑 우측 정렬, 모바일(세로 스택)에서는 좌측 정렬 */
+.site-public .footer-links {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .site-public .footer-links {
+    width: 100%;
+    text-align: left;
+  }
+}
+
+/* Hero 제품 미리보기 배치 — 데스크탑은 중앙 정렬, 모바일은 .wrap 패딩을 뚫고 풀블리드 */
+.site-public .hero-preview {
+  margin: clamp(44px, 7vw, 76px) auto 0;
+  max-width: 980px;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .site-public .hero-preview {
+    margin-left: calc(-1 * clamp(24px, 5.5vw, 40px));
+    margin-right: calc(-1 * clamp(24px, 5.5vw, 40px));
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 }
 
 /* FAQ details/summary */

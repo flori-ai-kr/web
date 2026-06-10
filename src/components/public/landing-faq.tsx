@@ -11,7 +11,7 @@ export function LandingFaq() {
           <h2
             style={{
               fontSize: 'clamp(28px,4.4vw,46px)',
-              fontWeight: 800,
+              fontWeight: 700,
               letterSpacing: '-.03em',
               margin: 0,
             }}

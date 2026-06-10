@@ -12,7 +12,12 @@ export function AuthHeader({ subtitle }: { subtitle: ReactNode }) {
         <Image src="/flori-logo.png" alt="flori" width={38} height={38} priority className="object-contain" />
       </div>
       <div className="text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">flori</h1>
+        <h1
+          className="font-display text-3xl font-semibold leading-none text-foreground"
+          style={{ letterSpacing: '-.01em' }}
+        >
+          flori<span className="text-brand">.</span>
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import {getWaitlistCount, submitWaitlist, type WaitlistCount} from '@/lib/actions/waitlist';
 
@@ -69,6 +69,14 @@ export function WaitlistSection({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
+  const step2Ref = useRef<HTMLDivElement>(null);
+
+  // 등록 완료 시 다음 행동(오픈채팅 참여)으로 시선을 끌고 간다.
+  useEffect(() => {
+    if (registered) {
+      step2Ref.current?.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+  }, [registered]);
 
   const closed = count.closed;
   const pct = Math.min(100, Math.round((count.count / count.capacity) * 100));
@@ -104,7 +112,11 @@ export function WaitlistSection({
         background: 'linear-gradient(180deg,#FBEFF3,#F7E9EF)',
       }}
     >
-      <div className="wrap" style={{padding: 'clamp(40px,6vw,64px) 0'}}>
+      {/* padding shorthand는 .wrap의 가로 패딩을 0으로 덮어쓰므로 세로만 지정 */}
+      <div
+        className="wrap"
+        style={{paddingTop: 'clamp(40px,6vw,64px)', paddingBottom: 'clamp(40px,6vw,64px)'}}
+      >
         <div style={{maxWidth: '560px', margin: '0 auto', textAlign: 'center'}}>
           <span
             className="chip"
@@ -115,7 +127,7 @@ export function WaitlistSection({
           <h2
             style={{
               fontSize: 'clamp(24px,3.6vw,38px)',
-              fontWeight: 800,
+              fontWeight: 700,
               letterSpacing: '-.02em',
               margin: '0 0 8px',
               color: 'var(--site-ink)',
@@ -130,7 +142,7 @@ export function WaitlistSection({
               margin: '0 0 22px',
             }}
           >
-            지금 사전등록하면 한 달간 <b>모든 기능을 무료로</b> 써보세요
+            지금 사전등록하고, 한 달간 <b>모든 기능을 무료로</b> 써보세요
           </p>
 
           {/* 진행 게이지 */}
@@ -270,16 +282,48 @@ export function WaitlistSection({
                 </div>
 
                 {registered ? (
-                  <p
+                  <div
+                    className="animate-pop"
+                    role="status"
                     style={{
-                      fontSize: '14px',
-                      color: 'var(--site-accent-deep)',
-                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'var(--site-accent-soft)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
                       margin: '0 0 4px',
                     }}
                   >
-                    ✓ 등록 완료! 마지막으로 오픈채팅에 참여하면 끝이에요.
-                  </p>
+                    <span
+                      aria-hidden
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '99px',
+                        background: 'var(--site-accent)',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      ✓
+                    </span>
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--site-accent-deep)',
+                        fontWeight: 700,
+                        margin: 0,
+                      }}
+                    >
+                      등록 완료! 마지막으로 아래 오픈채팅에 참여하면 끝이에요.
+                    </p>
+                  </div>
                 ) : (
                   <form onSubmit={onSubmit} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                     <label htmlFor="wl-email" className="sr-only">이메일</label>
@@ -331,14 +375,14 @@ export function WaitlistSection({
                 )}
 
                 <p style={{fontSize: '12px', color: 'var(--site-ink-soft)', margin: '12px 0 0'}}>
-                  입력하신 이메일은 <b>출시·사전등록 안내</b>에만 써요. 등록 시{' '}
+                  이메일은 출시 안내에만 쓰이며, 등록 시{' '}
                   <Link
                     href="/policy/privacy"
                     style={{color: 'var(--site-accent)', textDecoration: 'underline'}}
                   >
                     개인정보처리방침
                   </Link>
-                  에 동의하게 됩니다.
+                  에 동의합니다.
                 </p>
               </div>
 
@@ -346,6 +390,7 @@ export function WaitlistSection({
 
               {/* STEP 2 */}
               <div
+                ref={step2Ref}
                 className="card"
                 style={{
                   padding: '22px',

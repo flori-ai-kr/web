@@ -94,7 +94,12 @@ export function Header({ userEmail, userName, userImage }: HeaderProps) {
           <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center shrink-0">
             <Image src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
           </div>
-          <span className="text-lg font-semibold text-foreground tracking-tight">flori</span>
+          <span
+            className="font-display text-[24px] font-semibold text-foreground leading-none"
+            style={{letterSpacing: '-.01em'}}
+          >
+            flori<span className="text-brand">.</span>
+          </span>
         </Link>
 
         {/* Right side */}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {FLORI_LEGAL} from '@/lib/legal-config';
 
 export function LandingFooter() {
   return (
@@ -27,10 +28,22 @@ export function LandingFooter() {
             flori<span style={{color: 'var(--site-accent)'}}>.</span>
           </div>
           <p style={{fontSize: '13px', color: 'var(--site-ink-soft)', margin: '6px 0 0'}}>
-            꽃집 사장님을 위한 운영 앱
+            꽃집 사장님을 위한 운영 서비스
+          </p>
+          {/* 운영자·문의 표기 — 값은 lib/legal-config.ts SSOT.
+              사업자등록 후 상호·사업자등록번호·통신판매업신고·주소를 여기에 추가한다. */}
+          <p style={{fontSize: '12px', color: 'var(--site-muted)', margin: '14px 0 0', lineHeight: 1.9}}>
+            대표 {FLORI_LEGAL.ceo} · 문의{' '}
+            <a
+              href={`mailto:${FLORI_LEGAL.contactEmail}`}
+              style={{color: 'var(--site-muted)', textDecoration: 'underline', textUnderlineOffset: '3px'}}
+            >
+              {FLORI_LEGAL.contactEmail}
+            </a>
           </p>
         </div>
-        <div style={{textAlign: 'right', fontSize: '13px', color: 'var(--site-ink-soft)', lineHeight: 2}}>
+        {/* 데스크탑은 우측 정렬, 모바일(줄바꿈 시)은 좌측 정렬 — globals.css .footer-links */}
+        <div className="footer-links" style={{fontSize: '13px', color: 'var(--site-ink-soft)', lineHeight: 2}}>
           <Link
             href="/policy/privacy"
             style={{color: 'var(--site-ink-soft)', textDecoration: 'none'}}

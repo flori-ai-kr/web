@@ -14,7 +14,6 @@ import {Loader2, Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {ExpensesFiltersUI} from './components/ExpensesFilters';
 import {ExpensesSummary} from './components/ExpensesSummary';
-import {QuickAddRecurring} from '@/components/expenses/quick-add-recurring';
 import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
 import {
   deleteExpenseInstanceOnly,
@@ -446,9 +445,6 @@ export function ExpensesClient({
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 lg:-mx-6 xl:-mx-8">
-      {/* 고정비 자동등록 안내 */}
-      <QuickAddRecurring />
-
       {/* 필터(월네비+기간) → 요약 → 드롭다운/검색 — 매출과 동일 */}
       <ExpensesFiltersUI
         currentYear={currentYear}

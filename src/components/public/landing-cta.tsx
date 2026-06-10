@@ -12,7 +12,7 @@ export function LandingCta() {
         <h2
           style={{
             fontSize: 'clamp(26px,4vw,42px)',
-            fontWeight: 800,
+            fontWeight: 700,
             margin: '0 0 10px',
             letterSpacing: '-.02em',
           }}
@@ -20,7 +20,7 @@ export function LandingCta() {
           지금 사전등록하면 첫 달 무료
         </h2>
         <p style={{fontSize: '15px', color: '#A8B0BC', margin: '0 0 28px'}}>
-          선착순 100명 · 소셜 계정으로 30초 시작
+          선착순 100명 · 6월 내 출시 예정
         </p>
         <a
           href="#waitlist"

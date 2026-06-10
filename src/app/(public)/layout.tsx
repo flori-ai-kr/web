@@ -14,7 +14,8 @@ const cormorant = Cormorant_Garamond({
 const notoSerifKr = Noto_Serif_KR({
   subsets: ['latin'],
   variable: '--font-serif-kr',
-  weight: ['300', '400', '500'],
+  // 헤딩용으로 굵은 weight(600/700)까지 로드 — 명조 제목 faux-bold 방지.
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 

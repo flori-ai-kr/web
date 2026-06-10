@@ -16,6 +16,16 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+// flori 워드마크 로고 전용 — (public) 랜딩과 동일 weight 세트(300/400/500)를 로드해
+// admin·로그인 헤더의 .font-display 가 랜딩과 픽셀 단위로 동일하게 렌더되도록 한다.
+const cormorantDisplay = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+  display: "swap",
+});
+
 // Pretendard 가변 폰트 self-host (외부 CDN 제거 + next/font의 swap·size-adjust로 레이아웃 시프트 감소).
 const pretendard = localFont({
   src: "./fonts/PretendardVariable.woff2",
@@ -52,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${cormorant.variable} ${pretendard.variable}`}>
+    <html lang="ko" suppressHydrationWarning className={`${cormorant.variable} ${cormorantDisplay.variable} ${pretendard.variable}`}>
       <body className="antialiased">
         <ThemeProvider>
           <TooltipProvider delayDuration={0}>

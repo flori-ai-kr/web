@@ -19,6 +19,7 @@ export function LandingHeader() {
         >
           flori<span style={{color: 'var(--site-accent)'}}>.</span>
         </Link>
+        {/* 로그인/서비스 바로가기는 homepage 프로젝트 이관 후 추가 예정 — 현재는 앵커 링크만 */}
         <nav className="flex items-center" style={{gap: '28px'}}>
           <a
             href="#features"
@@ -34,9 +35,6 @@ export function LandingHeader() {
           >
             자주 묻는 질문
           </a>
-          <Link href="/login" className="btn-rose" style={{padding: '9px 20px', fontSize: '14px'}}>
-            로그인
-          </Link>
         </nav>
       </div>
     </header>

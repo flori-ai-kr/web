@@ -1,10 +1,10 @@
 import {LANDING_FEATURES} from '@/lib/landing-content';
 
 const AUX_CARDS = [
-  {icon: '📈', title: '인사이트 · 트렌드', desc: '시즌 트렌드와 인기 작품을 스크랩.'},
-  {icon: '📑', title: '엑셀 · PDF 내보내기', desc: '매출·지출을 파일로 정산·보고.'},
-  {icon: '📲', title: '폰·PC 어디서나', desc: '어디서 켜도 같은 기록으로 이어서.'},
+  {icon: '📑', title: '장부 내보내기', desc: '세무 신고·정산 자료가 필요할 때 엑셀·PDF로 바로.'},
+  {icon: '📲', title: '설치 없이 폰·PC 어디서나', desc: '어디서 켜도 같은 기록으로 이어서.'},
   {icon: '🔔', title: '푸시 알림', desc: '예약·정산을 놓치지 않게.'},
+  {icon: '🌸', title: 'flori AI (준비 중)', desc: '음성으로 예약·완료 처리부터 매출 분석까지, 비서처럼.'},
 ];
 
 export function LandingFeatures() {
@@ -19,7 +19,7 @@ export function LandingFeatures() {
             <h2
               style={{
                 fontSize: 'clamp(28px,4.4vw,46px)',
-                fontWeight: 800,
+                fontWeight: 700,
                 letterSpacing: '-.03em',
                 margin: 0,
               }}
@@ -90,7 +90,7 @@ export function LandingFeatures() {
             <h2
               style={{
                 fontSize: 'clamp(24px,3.4vw,36px)',
-                fontWeight: 800,
+                fontWeight: 700,
                 letterSpacing: '-.02em',
                 margin: 0,
               }}
@@ -130,7 +130,7 @@ function FeatureText({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
       <h3
         style={{
           fontSize: 'clamp(22px,3vw,30px)',
-          fontWeight: 800,
+          fontWeight: 700,
           letterSpacing: '-.02em',
           margin: '0 0 12px',
         }}

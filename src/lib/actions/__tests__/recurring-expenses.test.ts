@@ -15,7 +15,6 @@ import {
   updateRecurringExpense,
   deleteRecurringExpense,
   toggleRecurringExpenseActive,
-  quickAddFromRecurring,
   updateExpenseInstanceOnly,
   updateRecurringFromInstance,
   deleteExpenseInstanceOnly,
@@ -146,7 +145,7 @@ describe('updateRecurringExpense', () => {
   })
 })
 
-describe('delete/toggle/quickAdd', () => {
+describe('delete/toggle', () => {
   it('deleteRecurringExpense DELETE', async () => {
     mockApiFetch.mockResolvedValue(undefined)
     await deleteRecurringExpense('1')
@@ -160,16 +159,9 @@ describe('delete/toggle/quickAdd', () => {
     expect(body()).toEqual({ isActive: false })
   })
 
-  it('quickAdd POST', async () => {
-    mockApiFetch.mockResolvedValue(undefined)
-    await quickAddFromRecurring('1')
-    expect(mockApiFetch).toHaveBeenCalledWith('/recurring-expenses/1/quick-add', { method: 'POST' })
-  })
-
   it('잘못된 id 거부', async () => {
     await expect(deleteRecurringExpense('x')).rejects.toThrow('ID가 올바르지')
     await expect(toggleRecurringExpenseActive('x', true)).rejects.toThrow('ID가 올바르지')
-    await expect(quickAddFromRecurring('x')).rejects.toThrow('ID가 올바르지')
   })
 })
 
