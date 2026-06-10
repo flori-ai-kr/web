@@ -2,8 +2,14 @@
 
 import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
-import type {Customer, CustomerGender, CustomerGrade, Sale,} from '@/types/database';
-import {customerGradeSchema, customerSchema, idSchema} from '@/lib/validations';
+import type {Customer, CustomerGender, Sale,} from '@/types/database';
+
+// Kotlin CustomerResponse.photoThumbnails 항목 (camelCase). { url, cardId } 객체 배열.
+interface KotlinPhotoThumbnail {
+  url: string;
+  cardId: number | string;
+}
+import {customerSchema, idSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
 
@@ -12,13 +18,17 @@ interface KotlinCustomer {
   id: string;
   name: string;
   phone: string;
-  grade: string;
+  grade: string | null;
+  gradeId: number | string | null;
+  gradeLocked: boolean;
   gender: string | null;
   memo: string | null;
   totalPurchaseCount: number;
   totalPurchaseAmount: number;
   firstPurchaseDate: string | null;
   lastPurchaseDate: string | null;
+  photoThumbnails: (KotlinPhotoThumbnail | string)[] | null;
+  photoCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,7 +37,7 @@ interface KotlinCustomerSearchResult {
   id: string;
   name: string;
   phone: string;
-  grade: string;
+  grade: string | null;
 }
 
 // camelCase(Kotlin) → snake_case(웹 Customer 타입) 매핑.
@@ -38,12 +48,23 @@ function mapKotlinCustomer(c: KotlinCustomer): Customer {
     user_id: '',
     name: c.name,
     phone: c.phone,
-    grade: c.grade as CustomerGrade,
+    grade: c.grade ?? null,
+    grade_id: c.gradeId != null ? String(c.gradeId) : null,
+    grade_locked: c.gradeLocked ?? false,
     gender: (c.gender as CustomerGender | null) ?? null,
     total_purchase_count: c.totalPurchaseCount,
     total_purchase_amount: c.totalPurchaseAmount,
     first_purchase_date: c.firstPurchaseDate ?? undefined,
     last_purchase_date: c.lastPurchaseDate ?? undefined,
+    // BFF가 신형({url,cardId} 객체) 또는 구형(문자열 URL) 어느 쪽을 줘도 안전하게 정규화하고, url 없는 항목은 제거
+    photo_thumbnails: (c.photoThumbnails ?? [])
+      .map((t) =>
+        typeof t === 'string'
+          ? { url: t, card_id: '' }
+          : { url: t?.url ?? '', card_id: t?.cardId != null ? String(t.cardId) : '' },
+      )
+      .filter((t) => t.url),
+    photo_count: c.photoCount ?? 0,
     memo: c.memo ?? undefined,
     created_at: c.createdAt,
     updated_at: c.updatedAt,
@@ -61,7 +82,10 @@ export const getCustomers = withErrorLogging('getCustomers', _getCustomers);
 
 async function _getCustomerById(id: string) {
   await requireAuth();
-  const customer = await apiFetch<KotlinCustomer>(`/customers/${id}`);
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  const customer = await apiFetch<KotlinCustomer>(`/customers/${idParsed.data}`);
   return mapKotlinCustomer(customer);
 }
 
@@ -78,7 +102,6 @@ async function _createCustomer(formData: FormData) {
   const parsed = customerSchema.safeParse({
     name: formData.get('name'),
     phone: formData.get('phone'),
-    grade: formData.get('grade') || 'new',
     gender: parseGender(formData),
     memo: formData.get('memo') || null,
   });
@@ -86,12 +109,12 @@ async function _createCustomer(formData: FormData) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 등급은 더 이상 생성 요청에 포함하지 않는다 (서버가 자동 산정/시드).
   const created = await apiFetch<KotlinCustomer>('/customers', {
     method: 'POST',
     body: JSON.stringify({
       name: parsed.data.name,
       phone: parsed.data.phone,
-      grade: parsed.data.grade || 'new',
       gender: parsed.data.gender ?? null,
       memo: parsed.data.memo || null,
     }),
@@ -112,7 +135,6 @@ async function _updateCustomer(id: string, formData: FormData) {
   const parsed = customerSchema.partial().safeParse({
     name: formData.get('name') || undefined,
     phone: formData.get('phone') || undefined,
-    grade: formData.get('grade') || undefined,
     gender: parseGender(formData),
     memo: formData.get('memo') || null,
   });
@@ -120,13 +142,13 @@ async function _updateCustomer(id: string, formData: FormData) {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 등급은 별도 엔드포인트(assignCustomerGrade/revertCustomerGradeAuto)로만 변경한다.
   // 제공된(non-null) 필드만 PATCH (서버가 null 필드는 미반영)
   await apiFetch<KotlinCustomer>(`/customers/${idParsed.data}`, {
     method: 'PATCH',
     body: JSON.stringify({
       name: parsed.data.name ?? null,
       phone: parsed.data.phone ?? null,
-      grade: parsed.data.grade ?? null,
       gender: parsed.data.gender ?? null,
       memo: parsed.data.memo ?? null,
     }),
@@ -137,23 +159,40 @@ async function _updateCustomer(id: string, formData: FormData) {
 
 export const updateCustomer = withErrorLogging('updateCustomer', _updateCustomer);
 
-async function _updateCustomerGrade(id: string, grade: CustomerGrade) {
+// 고객 등급 수동 고정(특정 등급으로 잠금). gradeId는 등급 설정 id.
+async function _assignCustomerGrade(customerId: string, gradeId: string) {
   await requireAuth();
 
-  const idParsed = idSchema.safeParse(id);
+  const idParsed = idSchema.safeParse(customerId);
   if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
-  const gradeParsed = customerGradeSchema.safeParse(grade);
+  const gradeParsed = idSchema.safeParse(gradeId);
   if (!gradeParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 등급입니다');
 
   await apiFetch<KotlinCustomer>(`/customers/${idParsed.data}/grade`, {
     method: 'PATCH',
-    body: JSON.stringify({ grade: gradeParsed.data }),
+    body: JSON.stringify({ gradeId: Number(gradeParsed.data) }),
   });
 
   revalidatePath('/admin/customers');
 }
 
-export const updateCustomerGrade = withErrorLogging('updateCustomerGrade', _updateCustomerGrade);
+export const assignCustomerGrade = withErrorLogging('assignCustomerGrade', _assignCustomerGrade);
+
+// 고객 등급을 자동 산정 모드로 되돌린다(수동 고정 해제).
+async function _revertCustomerGradeAuto(customerId: string) {
+  await requireAuth();
+
+  const idParsed = idSchema.safeParse(customerId);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  await apiFetch<KotlinCustomer>(`/customers/${idParsed.data}/grade/auto`, {
+    method: 'PATCH',
+  });
+
+  revalidatePath('/admin/customers');
+}
+
+export const revertCustomerGradeAuto = withErrorLogging('revertCustomerGradeAuto', _revertCustomerGradeAuto);
 
 async function _deleteCustomer(id: string) {
   await requireAuth();
@@ -256,7 +295,7 @@ async function _searchCustomersByName(query: string) {
     id: r.id,
     name: r.name,
     phone: r.phone,
-    grade: r.grade as CustomerGrade,
+    grade: r.grade ?? null,
   })) as Pick<Customer, 'id' | 'name' | 'phone' | 'grade'>[];
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {PhotoCard, PhotoFile, PhotoTag} from '@/types/database';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {toast} from 'sonner';
 import {createPhotoCard, reorderPhotos, updatePhotoCard} from '@/lib/actions/photo-cards';
 import {uploadPhotoFiles, uploadPhotoFilesStandalone} from '@/lib/photo-upload';
 import {createPhotoTag} from '@/lib/actions/photo-tags';
+import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
 import {cn} from '@/lib/utils';
 
 const MAX_FILE_SIZE_MB = 5;
@@ -44,9 +45,10 @@ export function PhotoUploadModal({
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTags, setAvailableTags] = useState<PhotoTag[]>(tags);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -66,11 +68,15 @@ export function PhotoUploadModal({
       setTitle(editingCard.title);
       setMemo(editingCard.memo || '');
       setSelectedTags(editingCard.tags);
+      setCustomerName(editingCard.customer_name || '');
+      setCustomerId(editingCard.customer_id || null);
       setPhotoItems(editingCard.photos.map(photo => ({ type: 'existing', photo })));
     } else {
       setTitle('');
       setMemo('');
       setSelectedTags([]);
+      setCustomerName('');
+      setCustomerId(null);
       setPhotoItems([]);
     }
     setNewTagName('');
@@ -139,26 +145,30 @@ export function PhotoUploadModal({
     });
   };
 
+  const addingTagRef = useRef(false);
   const handleAddNewTag = async () => {
-    if (!newTagName.trim()) return;
+    const name = newTagName.trim();
+    if (!name || addingTagRef.current) return;
+    // 중복 생성 방지(IME 중복 keydown·이미 존재하는 태그) — 추가만 하고 자동 선택은 하지 않는다.
+    if (availableTags.some(t => t.name === name)) {
+      toast.error('이미 등록된 태그입니다.');
+      setNewTagName('');
+      return;
+    }
 
-    // 이미 3개 선택된 경우 자동 선택 안 함
-    const canAutoSelect = selectedTags.length < MAX_TAGS;
-
+    addingTagRef.current = true;
     try {
-      const newTag = await createPhotoTag(newTagName.trim(), newTagColor || undefined);
+      const newTag = await createPhotoTag(name);
       if (newTag) {
         setAvailableTags(prev => [...prev, newTag]);
-        if (canAutoSelect) {
-          setSelectedTags(prev => [...prev, newTag.name]);
-        }
         setNewTagName('');
-        setNewTagColor('');
-        toast.success(canAutoSelect ? '태그가 추가되었습니다' : '태그가 추가되었습니다 (최대 3개 선택됨)');
+        toast.success('태그가 추가되었습니다');
         onTagsChange?.();
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '태그 추가에 실패했습니다');
+    } finally {
+      addingTagRef.current = false;
     }
   };
 
@@ -215,6 +225,8 @@ export function PhotoUploadModal({
       formData.append('memo', memo);
       formData.append('tags', JSON.stringify(selectedTags));
       formData.append('photos', JSON.stringify(existingPhotos));
+      // 고객 연결: 선택된 고객 id만 전송. 비우면 액션이 연결 해제(clearCustomer) 처리한다.
+      formData.append('customer_id', customerId || '');
 
       if (editingCard) {
         await updatePhotoCard(editingCard.id, formData);
@@ -289,7 +301,7 @@ export function PhotoUploadModal({
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="memo">설명</Label>
+              <Label htmlFor="memo">메모</Label>
               <span className={cn(
                 "text-xs",
                 memo.length > 200 ? "text-danger" : "text-muted-foreground"
@@ -301,7 +313,7 @@ export function PhotoUploadModal({
               id="memo"
               value={memo}
               onChange={(e) => setMemo(e.target.value.slice(0, 200))}
-              placeholder="설명을 입력하세요 (선택)"
+              placeholder="메모를 입력하세요 (선택)"
               className="min-h-[100px] resize-none"
               maxLength={200}
             />
@@ -332,14 +344,11 @@ export function PhotoUploadModal({
                 onChange={(e) => setNewTagName(e.target.value)}
                 placeholder="새 태그 추가"
                 className="flex-1 max-w-xs"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddNewTag()}
-              />
-              <input
-                type="color"
-                value={newTagColor || '#6b7280'}
-                onChange={(e) => setNewTagColor(e.target.value)}
-                className="w-9 h-9 rounded border cursor-pointer"
-                title="색상 선택 (비워두면 랜덤)"
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  handleAddNewTag();
+                }}
               />
               <Button type="button" size="icon" variant="outline" onClick={handleAddNewTag}>
                 <Plus className="w-4 h-4" />
@@ -347,6 +356,18 @@ export function PhotoUploadModal({
             </div>
           </div>
 
+
+          <div className="space-y-2">
+            <Label>고객 연결 (선택)</Label>
+            <CustomerAutocomplete
+              value={customerName}
+              onChange={(name, id) => {
+                setCustomerName(name);
+                setCustomerId(id);
+              }}
+              placeholder="고객명 또는 연락처로 검색"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label>사진 ({totalPhotos}/{MAX_PHOTOS}) *</Label>

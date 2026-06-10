@@ -10,7 +10,7 @@ interface CustomerOption {
   id: string;
   name: string;
   phone: string;
-  grade: string;
+  grade: string | null;
 }
 
 interface CustomerAutocompleteProps {
@@ -19,13 +19,6 @@ interface CustomerAutocompleteProps {
   placeholder?: string;
   className?: string;
 }
-
-const gradeLabels: Record<string, { label: string; icon: string }> = {
-  new: { label: '신규', icon: '' },
-  regular: { label: '단골', icon: '🌟' },
-  vip: { label: 'VIP', icon: '👑' },
-  blacklist: { label: '블랙', icon: '⚠️' },
-};
 
 export function CustomerAutocomplete({
   value,
@@ -136,26 +129,25 @@ export function CustomerAutocomplete({
               {options.length === 0 && inputValue && (
                 <div className="px-3 py-2 text-sm text-muted-foreground">일치하는 고객이 없습니다</div>
               )}
-              {options.map((customer) => {
-                const grade = gradeLabels[customer.grade] || gradeLabels.new;
-                return (
-                  <button
-                    key={customer.id}
-                    type="button"
-                    className="w-full px-3 py-2 text-left hover:bg-muted flex items-center gap-2 border-b border-border last:border-0"
-                    onClick={() => handleSelect(customer)}
-                  >
-                    <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium text-foreground">{customer.name}</span>
-                        {grade.icon && <span className="text-xs">{grade.icon}</span>}
-                      </div>
-                      <span className="text-xs text-muted-foreground">{customer.phone}</span>
+              {options.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  className="w-full px-3 py-2 text-left hover:bg-muted flex items-center gap-2 border-b border-border last:border-0"
+                  onClick={() => handleSelect(customer)}
+                >
+                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-foreground">{customer.name}</span>
+                      {customer.grade && (
+                        <span className="text-xs text-muted-foreground">{customer.grade}</span>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
+                    <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                  </div>
+                </button>
+              ))}
 
             </>
           )}

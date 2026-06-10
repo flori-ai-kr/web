@@ -188,8 +188,21 @@ export function validateImageMeta(meta: { name: string; type: string; size: numb
   return null;
 }
 
-// 고객 등급 단독 검증
+// 고객 등급 단독 검증 (레거시 union — gradeLabels 기본값 등에서 사용)
 export const customerGradeSchema = z.enum(['new', 'regular', 'vip', 'blacklist']);
+
+// 등급 설정(테넌트별 CRUD) 검증
+export const customerGradeConfigCreateSchema = z.object({
+  name: z.string().min(1, '등급명을 입력해주세요').max(50),
+  threshold: z.number().int().min(0).max(1_000_000_000).nullable(),
+});
+
+export const customerGradeConfigUpdateSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  threshold: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  clearThreshold: z.boolean().optional(),
+});
 
 // ─── 인사이트 섹션 ──────────────────────────────────────────
 

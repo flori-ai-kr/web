@@ -9,11 +9,12 @@ import {PhotoUploadModal} from '@/components/gallery/PhotoUploadModal';
 import {PhotoCardDialog} from '@/components/gallery/PhotoCardDialog';
 import {TagManageModal} from '@/components/gallery/TagManageModal';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
 import {getPhotoCardById, getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
+import {PeriodHeader} from '@/components/layout/PeriodHeader';
+import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
 
 interface CustomerOption {
@@ -25,9 +26,11 @@ interface GalleryClientProps {
   initialData: PhotoCardsResponse;
   tags: PhotoTag[];
   customers: CustomerOption[];
+  initialYear: number;
+  initialMonth: number;
 }
 
-export function GalleryClient({ initialData, tags: initialTags, customers }: GalleryClientProps) {
+export function GalleryClient({ initialData, tags: initialTags, customers, initialYear, initialMonth }: GalleryClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialCustomerId = searchParams.get('customer');
@@ -35,9 +38,17 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     ? customers.find(c => c.id === initialCustomerId) || null
     : null;
 
+  // 기간(월 네비/커스텀 범위) — 기본 현재 월(서버와 동일).
+  const [periodYear, setPeriodYear] = useState(initialYear);
+  const [periodMonth, setPeriodMonth] = useState(initialMonth);
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null);
+  const range = useMemo(() => periodToRange(periodYear, periodMonth, customRange), [periodYear, periodMonth, customRange]);
+
   const [cards, setCards] = useState<PhotoCard[]>(initialData.cards);
   const [cursor, setCursor] = useState<string | null>(initialData.nextCursor);
   const [hasMore, setHasMore] = useState(initialData.hasMore);
+  const [totalCards, setTotalCards] = useState(initialData.totalCards);
+  const [totalPhotos, setTotalPhotos] = useState(initialData.totalPhotos);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(initialCustomer);
@@ -49,9 +60,12 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
   const [editingCard, setEditingCard] = useState<PhotoCard | null>(null);
   const [tags, setTags] = useState<PhotoTag[]>(initialTags);
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  // 이미 로드한 카드 id 추적 — 중복 추가 방지 + 진전 없으면(무한로딩) 정지
+  const loadedIdsRef = useRef<Set<string>>(new Set(initialData.cards.map((c) => c.id)));
 
   // 고객 검색 결과 메모이제이션
   const filteredCustomers = useMemo(() => {
@@ -77,18 +91,28 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 딥링크(?card=<id>)로 진입 시 해당 포토카드 바로 열기 (매출 상세 등에서 연결)
+  // 딥링크(?customer=<id> / ?card=<id>)로 진입 시 고객 자동 필터 + 해당 포토카드 바로 열기.
+  // (useState 초기화는 첫 렌더에 searchParams가 비어있으면 누락될 수 있어 useEffect에서 확실히 적용)
   useEffect(() => {
+    const customerId = searchParams.get('customer');
     const cardId = searchParams.get('card');
-    if (!cardId) return;
-    getPhotoCardById(cardId)
-      .then((card) => { if (card) setSelectedCard(card); })
-      .catch(() => {});
-    // URL 정리(뒤로가기 시 재오픈 방지)
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('card');
-    const qs = params.toString();
-    router.replace(qs ? `/admin/gallery?${qs}` : '/admin/gallery', { scroll: false });
+    if (customerId) {
+      const found = customers.find((c) => c.id === customerId);
+      if (found) setSelectedCustomer(found);
+    }
+    if (cardId) {
+      getPhotoCardById(cardId)
+        .then((card) => { if (card) setSelectedCard(card); })
+        .catch(() => {});
+    }
+    if (customerId || cardId) {
+      // URL 정리(뒤로가기 시 재오픈/재적용 방지). 필터는 state로 유지됨.
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('customer');
+      params.delete('card');
+      const qs = params.toString();
+      router.replace(qs ? `/admin/gallery?${qs}` : '/admin/gallery', { scroll: false });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,26 +121,42 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id);
-      setCards(prev => [...prev, ...response.cards]);
-      setCursor(response.nextCursor);
-      setHasMore(response.hasMore);
+      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id, range.from, range.to);
+      // 무한로딩 차단(api 상태 무관): ①새 카드 0개 ②커서가 전진하지 않음 ③에러 → 즉시 정지.
+      const fresh = response.cards.filter(c => !loadedIdsRef.current.has(c.id));
+      const cursorAdvanced = !!response.nextCursor && response.nextCursor !== cursor;
+      if (fresh.length === 0 || !cursorAdvanced) {
+        if (fresh.length > 0) {
+          fresh.forEach(c => loadedIdsRef.current.add(c.id));
+          setCards(prev => [...prev, ...fresh]);
+        }
+        setHasMore(false);
+      } else {
+        fresh.forEach(c => loadedIdsRef.current.add(c.id));
+        setCards(prev => [...prev, ...fresh]);
+        setCursor(response.nextCursor);
+        setHasMore(response.hasMore);
+      }
     } catch (error) {
       console.error('Error loading more cards:', error);
+      setHasMore(false); // 에러 시 무한 재시도 방지
     } finally {
       setIsLoading(false);
     }
-  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer]);
+  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer, range.from, range.to]);
 
-  // Reset and reload when tag or customer changes
+  // Reset and reload when tag·customer·기간 changes
   useEffect(() => {
     const loadInitial = async () => {
       setIsLoading(true);
       try {
-        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
+        loadedIdsRef.current = new Set(response.cards.map(c => c.id));
         setCards(response.cards);
         setCursor(response.nextCursor);
         setHasMore(response.hasMore);
+        setTotalCards(response.totalCards);
+        setTotalPhotos(response.totalPhotos);
       } catch (error) {
         console.error('Error loading cards:', error);
         toast.error('사진 카드를 불러오는데 실패했습니다');
@@ -125,7 +165,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       }
     };
     loadInitial();
-  }, [selectedTag, selectedCustomer]);
+  }, [selectedTag, selectedCustomer, range.from, range.to]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -156,10 +196,13 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
   const refreshCards = async () => {
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
+      loadedIdsRef.current = new Set(response.cards.map(c => c.id));
       setCards(response.cards);
       setCursor(response.nextCursor);
       setHasMore(response.hasMore);
+      setTotalCards(response.totalCards);
+      setTotalPhotos(response.totalPhotos);
     } catch (error) {
       console.error('Error refreshing cards:', error);
     } finally {
@@ -172,6 +215,15 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setCustomerSearch('');
     setShowCustomerDropdown(false);
     router.push(`/admin/gallery?customer=${customer.id}`, { scroll: false });
+  };
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    setCustomRange(null);
+    let m = periodMonth + direction;
+    let y = periodYear;
+    if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
+    setPeriodYear(y);
+    setPeriodMonth(m);
   };
 
   const handleClearCustomer = () => {
@@ -197,11 +249,26 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setIsUploadModalOpen(true)} className="w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          새 카드 추가
-        </Button>
+      {/* 기간 헤더 — 매출/고객과 동일한 월 네비 + 기간 셀렉터 (등록일 기준) */}
+      <PeriodHeader
+        periodYear={periodYear}
+        periodMonth={periodMonth}
+        customRange={customRange}
+        onMonthNav={handleMonthNav}
+        onRangeApply={setCustomRange}
+        onRangeReset={() => setCustomRange(null)}
+      />
+
+      {/* 요약 — 현재 기간·필터 기준 총 카드 수 + 총 사진 장수 */}
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">
+          {totalCards}<span className="text-base font-medium">개</span>
+        </p>
+        {totalPhotos > 0 && (
+          <p className="text-xs text-muted-foreground tabular-nums">
+            사진 <span className="font-semibold text-foreground">{totalPhotos}</span>장
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -211,16 +278,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
             selectedTag={selectedTag}
             onSelectTag={setSelectedTag}
           />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsTagModalOpen(true)}
-            className="shrink-0"
-            title="태그 관리"
-            aria-label="태그 관리"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
         </div>
 
         {/* 고객 필터 */}
@@ -304,7 +361,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       {(cards.length > 0 || !selectedCustomer) && (
         <PhotoCardGrid
           cards={cards}
-          tags={tags}
           onCardClick={handleCardClick}
         />
       )}
@@ -340,8 +396,43 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
         onClose={() => setIsTagModalOpen(false)}
         tags={tags}
         onTagsChange={refreshTags}
-        onTagSelect={setSelectedTag}
       />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsUploadModalOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              새 카드 추가
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsTagModalOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              태그 관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+          aria-haspopup="menu"
+          aria-expanded={fabOpen}
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }
