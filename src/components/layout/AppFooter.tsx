@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {BookOpen, FileText, MessageCircle, ShieldCheck} from 'lucide-react';
+import {PRIVACY_POLICY_URL, TERMS_URL} from '@/lib/constants';
 
 /**
  * 어드민 공통 푸터. 본문 하단(짧은 페이지에선 화면 바닥)에 구분선과 함께 붙는다.
@@ -17,16 +18,16 @@ export function AppFooter() {
       >
         <Link href="/admin/guide" className={linkClass}>
           <BookOpen className="h-4 w-4" aria-hidden="true" />
-          사용 가이드
+          이용 가이드
         </Link>
-        <Link href="/policy/privacy" target="_blank" rel="noopener noreferrer" className={linkClass}>
+        <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
           개인정보 처리방침
-        </Link>
-        <Link href="/policy/terms" target="_blank" rel="noopener noreferrer" className={linkClass}>
+        </a>
+        <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
           <FileText className="h-4 w-4" aria-hidden="true" />
           이용약관
-        </Link>
+        </a>
         {/* 버그 제보/문의 — 연결 대상 미정(추후 활성화) */}
         <span
           className="inline-flex cursor-not-allowed items-center gap-1.5 text-muted-foreground/50"

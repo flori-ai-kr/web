@@ -28,7 +28,7 @@ function isExpiredOrExpiring(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 루트 분기: 인증 쿠키 있으면 /admin, 없으면 랜딩 렌더
+  // 루트 분기: 인증 쿠키 있으면 /admin, 없으면 /login (랜딩은 flori.ai.kr 로 이관)
   const rootTarget = rootRedirectTarget(pathname, {
     hasAccess: request.cookies.has(ACCESS_COOKIE),
     hasRefresh: request.cookies.has(REFRESH_COOKIE),
@@ -118,6 +118,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|healthz|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

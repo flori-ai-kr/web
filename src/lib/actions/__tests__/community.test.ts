@@ -67,10 +67,10 @@ describe('getCommunityPosts', () => {
 })
 
 describe('getLatestCommunityPosts', () => {
-  it('limit을 쿼리로 전달하고 최소 형태로 매핑', async () => {
+  it('limit을 쿼리로 전달하고 최소 형태로 매핑 (비밀글 필터 대비 ×3 오버페치)', async () => {
     mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: false })
     const res = await getLatestCommunityPosts(3)
-    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=3')
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=9')
     expect(res).toEqual([{ id: '42', title: '제목', category: 'daily', createdAt: '2026-01-01' }])
   })
 
@@ -83,10 +83,10 @@ describe('getLatestCommunityPosts', () => {
     expect(res.map((p) => p.id)).toEqual(['1'])
   })
 
-  it('기본 limit은 4', async () => {
+  it('기본 limit은 8 (비밀글 필터 대비 ×3 오버페치 → 24)', async () => {
     mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
     await getLatestCommunityPosts()
-    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=4')
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=24')
   })
 })
 

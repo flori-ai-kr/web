@@ -91,10 +91,26 @@ export function Header({ userEmail, userName, userImage }: HeaderProps) {
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Left: brand (탭 → 대시보드) */}
         <Link href="/admin" className="flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
-          <div className="w-8 h-8 bg-brand-muted rounded-lg flex items-center justify-center shrink-0">
-            <Image src="/flori-logo.png" alt="flori" width={26} height={26} className="object-contain" />
-          </div>
-          <span className="text-lg font-semibold text-foreground tracking-tight">flori</span>
+          <svg viewBox="0 0 100 100" width={28} height={28} aria-hidden="true" className="shrink-0">
+            <defs>
+              <path id="flori-petal" d="M50 50 C 42 44 39 27 49 15 C 53 11 60 14 60 22 C 60 35 55 44 50 50 Z" />
+            </defs>
+            <g transform="translate(0 3.5)">
+              <use href="#flori-petal" fill="#A85475" />
+              <use href="#flori-petal" transform="rotate(72 50 50)" fill="#E0739A" />
+              <use href="#flori-petal" transform="rotate(144 50 50)" fill="#A85475" />
+              <use href="#flori-petal" transform="rotate(216 50 50)" fill="#E0739A" />
+              <use href="#flori-petal" transform="rotate(288 50 50)" fill="#8E3F5F" />
+              <circle cx="50" cy="50" r="6" fill="#ffffff" />
+              <circle cx="50" cy="50" r="3.2" fill="#A85475" />
+            </g>
+          </svg>
+          <span
+            className="font-display text-[24px] font-semibold text-foreground leading-none"
+            style={{fontVariantLigatures: 'none', letterSpacing: '0.2rem'}}
+          >
+            flori<span className="text-brand">.</span>
+          </span>
         </Link>
 
         {/* Right side */}

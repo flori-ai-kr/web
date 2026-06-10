@@ -254,17 +254,6 @@ async function _toggleRecurringExpenseActive(id: string, isActive: boolean): Pro
 
 export const toggleRecurringExpenseActive = withErrorLogging('toggleRecurringExpenseActive', _toggleRecurringExpenseActive);
 
-// 빠른 추가: 오늘 날짜로 expense 즉시 생성 (서버가 템플릿에서 복제)
-async function _quickAddFromRecurring(recurringId: string): Promise<void> {
-  await requireAuth();
-  const parsed = idSchema.safeParse(recurringId);
-  if (!parsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID가 올바르지 않습니다');
-  await apiFetch<unknown>(`/recurring-expenses/${recurringId}/quick-add`, { method: 'POST' });
-  revalidatePath('/admin/expenses');
-}
-
-export const quickAddFromRecurring = withErrorLogging('quickAddFromRecurring', _quickAddFromRecurring);
-
 // ─────────────────────────────────────────────────────────────
 // iOS 스타일 "이것만 / 이후 모두" 분기 (scope=this|all)
 // ─────────────────────────────────────────────────────────────

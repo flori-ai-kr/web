@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useSyncExternalStore} from 'react';
 import {Sidebar} from './Sidebar';
 import {Header} from './Header';
 import {BottomNav} from './BottomNav';
@@ -9,6 +9,28 @@ import {cn} from '@/lib/utils';
 import type {NavItemKey} from '@/types/database';
 
 const SIDEBAR_COLLAPSED_KEY = 'hazel-sidebar-collapsed';
+
+// 사이드바 접힘 상태를 localStorage에 보관하고 useSyncExternalStore로 구독한다.
+// 렌더 중에 localStorage를 읽지 않으므로 하이드레이션 불일치가 없다(서버 스냅샷=false).
+const collapseListeners = new Set<() => void>();
+
+function getCollapsedSnapshot(): boolean {
+  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+}
+
+function subscribeCollapsed(callback: () => void): () => void {
+  collapseListeners.add(callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    collapseListeners.delete(callback);
+    window.removeEventListener('storage', callback);
+  };
+}
+
+function setCollapsedValue(next: boolean): void {
+  localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+  collapseListeners.forEach((l) => l()); // 동일 탭 구독자에게 통지(storage 이벤트는 타 탭만 발생)
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -19,19 +41,11 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, userEmail, userName, userImage, bottomNavItems }: AppLayoutProps) {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
-    }
-    return false;
-  });
+  // 서버 스냅샷은 항상 false(펼침) → 하이드레이션 일치. 하이드레이션 후 클라 값으로 전환.
+  const isCollapsed = useSyncExternalStore(subscribeCollapsed, getCollapsedSnapshot, () => false);
 
   const handleToggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-      return next;
-    });
+    setCollapsedValue(!isCollapsed);
   };
 
   return (

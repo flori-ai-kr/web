@@ -4,6 +4,8 @@ import localFont from "next/font/local";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { Analytics } from "@/components/analytics";
+import { ScrollbarAutohide } from "@/components/scrollbar-autohide";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -12,6 +14,16 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
+  display: "swap",
+});
+
+// flori 워드마크 로고 전용 — (public) 랜딩과 동일 weight 세트(300/400/500)를 로드해
+// admin·로그인 헤더의 .font-display 가 랜딩과 픽셀 단위로 동일하게 렌더되도록 한다.
+const cormorantDisplay = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -51,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning className={`${cormorant.variable} ${pretendard.variable}`}>
+    <html lang="ko" suppressHydrationWarning className={`${cormorant.variable} ${cormorantDisplay.variable} ${pretendard.variable}`}>
       <body className="antialiased">
         <ThemeProvider>
           <TooltipProvider delayDuration={0}>
@@ -60,6 +72,8 @@ export default function RootLayout({
           <Toaster position="bottom-center" richColors duration={2000} />
           <ServiceWorkerRegister />
         </ThemeProvider>
+        <ScrollbarAutohide />
+        <Analytics />
       </body>
     </html>
   );

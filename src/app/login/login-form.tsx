@@ -74,7 +74,15 @@ export function LoginForm({ available }: { available: SocialProviders }) {
     <div className="min-h-dvh flex items-center justify-center overflow-y-auto bg-background px-4 py-10">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
-        <AuthHeader subtitle="관리자 계정으로 로그인하세요" />
+        <AuthHeader
+          subtitle={
+            <>
+              꽃에만 집중하세요.
+              <br />
+              <span className="text-brand">운영은 flori가</span> 챙길게요.
+            </>
+          }
+        />
 
         {/* OAuth 에러 (쿼리 파라미터) */}
         {oauthMessage && (
