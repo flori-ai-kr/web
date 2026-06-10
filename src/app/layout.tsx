@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { Analytics } from "@/components/analytics";
+import { ScrollbarAutohide } from "@/components/scrollbar-autohide";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -71,6 +72,7 @@ export default function RootLayout({
           <Toaster position="bottom-center" richColors duration={2000} />
           <ServiceWorkerRegister />
         </ThemeProvider>
+        <ScrollbarAutohide />
         <Analytics />
       </body>
     </html>

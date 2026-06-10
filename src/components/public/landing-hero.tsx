@@ -75,15 +75,21 @@ export function LandingHero() {
             flori.ai.kr
           </span>
         </div>
-        <div
-          className="ph"
-          style={{aspectRatio: '16/9', border: 'none', borderRadius: 0, margin: 0}}
-          aria-label="flori 대시보드 미리보기"
-        >
-          <div className="ico">🌷</div>
-          <b>flori 대시보드 미리보기</b>
-          <span>오늘 번 돈·예약·단골을 한 화면에서. 곧 실제 화면으로 보여드릴게요.</span>
-        </div>
+        <img
+          src="/preview-dashboard.webp"
+          alt="flori 대시보드 — 오늘 매출·예약·단골을 한 화면에서"
+          width={2272}
+          height={1894}
+          loading="eager"
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 'auto',
+            border: 'none',
+            borderRadius: 0,
+            margin: 0,
+          }}
+        />
       </div>
     </section>
   );

@@ -379,9 +379,40 @@
 }
 
 /* Display 폰트 헬퍼 (flori 워드마크 로고) — public(--font-display)·admin(--font-cormorant) 공통 */
+/* 'liga' 비활성 + font-variant-ligatures:none → "fl" 합자(f·l 붙음) 방지 */
 .font-display {
   font-family: var(--font-display), var(--font-cormorant), 'Cormorant Garamond', 'Noto Serif KR', serif;
-  font-feature-settings: 'kern', 'liga', 'lnum';
+  font-feature-settings: 'kern', 'lnum';
+  font-variant-ligatures: none;
+}
+
+/* 얇은 스크롤바 (브랜드 로즈 톤) — 평소엔 투명, 스크롤할 때만 표시.
+   JS(ScrollbarAutohide)가 스크롤 시 html.scrolling 을 토글하고 ~1.2초 뒤 제거.
+   트랙 폭은 항상 4px 예약 → thumb 만 페이드되어 레이아웃 시프트 없음. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+html.scrolling {
+  scrollbar-color: rgba(168, 84, 117, 0.4) transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background 0.4s ease;
+}
+html.scrolling *::-webkit-scrollbar-thumb {
+  background: rgba(168, 84, 117, 0.35);
+}
+html.scrolling *::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 84, 117, 0.55);
 }
 
 .site-public .font-sans {
@@ -587,6 +618,44 @@
   margin: clamp(44px, 7vw, 76px) auto 0;
   max-width: 980px;
   text-align: left;
+  position: relative;
+  /* 깊은 그림자 + 로즈 글로우(box-shadow라 overflow:hidden에도 안 잘림) */
+  box-shadow:
+    0 2px 6px rgba(28, 32, 36, 0.05),
+    0 28px 60px -26px rgba(28, 32, 36, 0.45),
+    0 0 120px -22px rgba(168, 84, 117, 0.42);
+  /* 등장 후 은은히 떠 있는 플로팅 */
+  animation:
+    hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both,
+    hero-float 7s ease-in-out 0.9s infinite;
+  will-change: transform;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-public .hero-preview {
+    animation: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -656,10 +725,47 @@
   font-size: 22px;
 }
 
-/* Feature row responsive */
+/* Feature row — 데스크탑 2단(텍스트 | 이미지). grid-areas로 제목/이미지/설명 배치.
+   column-gap = 텍스트↔이미지(넓게), row-gap = 제목↔설명(좁게). */
+.site-public .feat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(28px, 5vw, 64px);
+  row-gap: 12px;
+  align-items: center;
+  grid-template-areas:
+    "header image"
+    "detail image";
+}
+.site-public .feat-row.feat-row--rev {
+  grid-template-areas:
+    "image header"
+    "image detail";
+}
+.site-public .feat-header { grid-area: header; }
+.site-public .feat-detail { grid-area: detail; }
+.site-public .feat-visual { grid-area: image; align-self: center; }
+
+/* 모바일: 제목 → 이미지 → 설명 1열 스택 */
 @media (max-width: 760px) {
-  .site-public .feat-row {
-    grid-template-columns: 1fr !important;
+  .site-public .feat-row,
+  .site-public .feat-row.feat-row--rev {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "image"
+      "detail";
+    row-gap: 18px;
+  }
+  /* 화면 미리보기를 .wrap 패딩을 뚫고 풀블리드로 키워 가독성↑ */
+  .site-public .feat-visual {
+    margin-left: calc(-1 * clamp(24px, 5.5vw, 40px));
+    margin-right: calc(-1 * clamp(24px, 5.5vw, 40px));
+  }
+  .site-public .feat-visual .feat-frame {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 }
 

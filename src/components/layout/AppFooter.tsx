@@ -17,7 +17,7 @@ export function AppFooter() {
       >
         <Link href="/admin/guide" className={linkClass}>
           <BookOpen className="h-4 w-4" aria-hidden="true" />
-          사용 가이드
+          이용 가이드
         </Link>
         <Link href="/policy/privacy" target="_blank" rel="noopener noreferrer" className={linkClass}>
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />

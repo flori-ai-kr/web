@@ -4,6 +4,7 @@ export interface LandingFeature {
   title: string;
   body: string;
   bullets: string[];
+  images?: string[];  // 실제 화면 캡처(public/ 경로). 2장 이상이면 좌우 캐러셀, 없으면 placeholder.
 }
 
 export const LANDING_FEATURES: LandingFeature[] = [
@@ -12,18 +13,20 @@ export const LANDING_FEATURES: LandingFeature[] = [
     title: '감으로 하던 정산, 숫자로 끝내세요',
     body: '하루 10초면 장부 정리 끝. 현금·카드·채널별 매출과 재료비·고정비가 자동으로 모여 월별·카테고리별로 정리돼요.',
     bullets: ['현금·카드·채널별 매출 통계', '월별·카테고리별 자동 집계', '매달 나가는 고정비 자동 기록'],
-  },
-  {
-    icon: '👥',
-    title: '“그때 그 손님” — flori는 기억해요',
-    body: '전화번호만 입력하면 단골을 알아보고 구매 이력이 자동으로 쌓여요. 누가 자주 오시는지, 지난번엔 어떤 꽃을 사 가셨는지 — 메모로 취향까지 기억하세요.',
-    bullets: ['전화번호 기반 단골 자동 인식', '구매 횟수·총액 자동 누적', '고객별 메모로 취향 기록'],
+    images: ['/landing/feature1-sales.png'],
   },
   {
     icon: '📅',
     title: '픽업·배송, 이제 손으로 쓰지 마세요',
     body: '예약을 캘린더에 등록하면 픽업·배송 전에 알림이 와요. 매일 아침 8시엔 오늘의 예약 요약까지. 등록한 예약은 매출에도 바로 반영돼 두 번 적을 일이 없어요.',
     bullets: ['픽업·배송 전 리마인더 알림', '매일 아침 8시 오늘 예약 브리핑', '예약 등록 시 매출 자동 반영'],
+    images: ['/landing/feature-calendar.png'],
+  },
+  {
+    icon: '👥',
+    title: '“그때 그 손님” — flori는 기억해요',
+    body: '전화번호만 입력하면 단골을 알아보고 구매 이력이 자동으로 쌓여요. 누가 자주 오시는지, 지난번엔 어떤 꽃을 사 가셨는지 — 메모로 취향까지 기억하세요.',
+    bullets: ['전화번호 기반 단골 자동 인식', '구매 횟수·총액 자동 누적', '고객별 메모로 취향 기록'],
   },
   {
     icon: '🌷',

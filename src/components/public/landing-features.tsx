@@ -1,10 +1,23 @@
 import {LANDING_FEATURES} from '@/lib/landing-content';
+import {FeatureCarousel} from './feature-carousel';
 
-const AUX_CARDS = [
+const AUX_CARDS: {
+  icon: string;
+  title: string;
+  desc: string;
+  badge?: string;
+  accent?: boolean;
+}[] = [
   {icon: '📑', title: '장부 내보내기', desc: '세무 신고·정산 자료가 필요할 때 엑셀·PDF로 바로.'},
   {icon: '📲', title: '설치 없이 폰·PC 어디서나', desc: '어디서 켜도 같은 기록으로 이어서.'},
   {icon: '🔔', title: '푸시 알림', desc: '예약·정산을 놓치지 않게.'},
-  {icon: '🌸', title: 'flori AI (준비 중)', desc: '음성으로 예약·완료 처리부터 매출 분석까지, 비서처럼.'},
+  {
+    icon: '🌸',
+    title: 'flori AI',
+    badge: '준비 중',
+    desc: '음성으로 예약·완료 처리부터 매출 분석까지, 사장님만을 위한 비서.',
+    accent: true,
+  },
 ];
 
 export function LandingFeatures() {
@@ -24,7 +37,7 @@ export function LandingFeatures() {
                 margin: 0,
               }}
             >
-              흩어진 꽃집 살림, 하나로
+              흩어진 꽃집 운영, flori 하나로
             </h2>
           </div>
 
@@ -33,40 +46,15 @@ export function LandingFeatures() {
             return (
               <div
                 key={feature.title}
-                className="feat-row"
+                className={`feat-row${isReversed ? ' feat-row--rev' : ''}`}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 'clamp(28px,5vw,64px)',
-                  alignItems: 'center',
                   marginBottom: i < LANDING_FEATURES.length - 1 ? 'clamp(48px,7vw,88px)' : 0,
                 }}
               >
-                {isReversed ? (
-                  <>
-                    <div
-                      className="ph"
-                      style={{aspectRatio: '4/3', order: -1}}
-                      aria-label={`${feature.title} 미리보기`}
-                    >
-                      <div className="ico">🌷</div>
-                      <b>{feature.title}</b>
-                    </div>
-                    <FeatureText feature={feature} />
-                  </>
-                ) : (
-                  <>
-                    <FeatureText feature={feature} />
-                    <div
-                      className="ph"
-                      style={{aspectRatio: '4/3'}}
-                      aria-label={`${feature.title} 미리보기`}
-                    >
-                      <div className="ico">🌷</div>
-                      <b>{feature.title}</b>
-                    </div>
-                  </>
-                )}
+                {/* 데스크탑: 텍스트 | 이미지 2단. 모바일: 제목 → 이미지 → 설명 (grid-areas) */}
+                <FeatureHeader feature={feature} />
+                <FeatureVisual feature={feature} />
+                <FeatureDetail feature={feature} />
               </div>
             );
           })}
@@ -106,9 +94,47 @@ export function LandingFeatures() {
             }}
           >
             {AUX_CARDS.map((card) => (
-              <div className="card" key={card.title} style={{padding: '22px'}}>
-                <div style={{fontSize: '22px', marginBottom: '10px'}}>{card.icon}</div>
-                <b style={{fontSize: '15px'}}>{card.title}</b>
+              <div
+                className="card"
+                key={card.title}
+                style={{
+                  padding: '22px',
+                  ...(card.accent
+                    ? {
+                        background: 'linear-gradient(135deg, var(--site-accent-soft), #fff)',
+                        border: '1px solid var(--site-accent)',
+                      }
+                    : {}),
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <span style={{fontSize: '22px'}}>{card.icon}</span>
+                  {card.badge && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#fff',
+                        background: 'var(--site-accent)',
+                        padding: '2px 9px',
+                        borderRadius: '999px',
+                        letterSpacing: '.02em',
+                      }}
+                    >
+                      {card.badge}
+                    </span>
+                  )}
+                </div>
+                <b style={{fontSize: '15px', color: card.accent ? 'var(--site-accent-deep)' : undefined}}>
+                  {card.title}
+                </b>
                 <p style={{fontSize: '13px', color: 'var(--site-ink-soft)', margin: '6px 0 0'}}>
                   {card.desc}
                 </p>
@@ -121,9 +147,27 @@ export function LandingFeatures() {
   );
 }
 
-function FeatureText({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
+// 화면 미리보기: images 있으면 캐러셀, 없으면 placeholder(.ph). grid-area:image로 배치.
+function FeatureVisual({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
+  if (feature.images?.length) {
+    return <FeatureCarousel images={feature.images} title={feature.title} />;
+  }
   return (
-    <div>
+    <div
+      className="ph feat-visual feat-frame"
+      style={{aspectRatio: '4/3'}}
+      aria-label={`${feature.title} 미리보기`}
+    >
+      <div className="ico">🌷</div>
+      <b>{feature.title}</b>
+    </div>
+  );
+}
+
+// 아이콘 + 제목 (grid-area:header). 모바일에선 이미지 위에 표시된다.
+function FeatureHeader({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
+  return (
+    <div className="feat-header">
       <div className="feat-ico" style={{marginBottom: '16px'}}>
         {feature.icon}
       </div>
@@ -132,11 +176,19 @@ function FeatureText({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
           fontSize: 'clamp(22px,3vw,30px)',
           fontWeight: 700,
           letterSpacing: '-.02em',
-          margin: '0 0 12px',
+          margin: 0,
         }}
       >
         {feature.title}
       </h3>
+    </div>
+  );
+}
+
+// 설명 + 체크리스트 (grid-area:detail). 모바일에선 이미지 아래에 표시된다.
+function FeatureDetail({feature}: {feature: (typeof LANDING_FEATURES)[number]}) {
+  return (
+    <div className="feat-detail">
       <p
         style={{
           fontSize: '15px',

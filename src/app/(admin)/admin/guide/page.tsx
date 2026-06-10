@@ -14,7 +14,7 @@ import {
 import {PageHeader} from '@/components/layout/PageHeader';
 import {GUIDE_FAQS, GUIDE_SECTIONS} from '@/lib/guide-content';
 
-export const metadata: Metadata = {title: '사용 가이드'};
+export const metadata: Metadata = {title: '이용 가이드'};
 
 const ICONS: Record<string, LucideIcon> = {
   receipt: Receipt,
@@ -30,7 +30,7 @@ export default function GuidePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="사용 가이드"
+        title="이용 가이드"
         description="flori 주요 기능과 자주 묻는 질문을 모았어요."
       />
 
