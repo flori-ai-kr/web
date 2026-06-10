@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-10 | 세션3: 고객·사진첩 리디자인 + 커스텀 등급 + 사진첩 v2(앨범표지·기간 헤더·#해시태그·총계) · 단일 도메인 랜딩 + 사전등록(waitlist) + 미들웨어 루트 `/` 인증 분기
+> 최종 업데이트: 2026-06-11 | session1-launch: 랜딩·정책 페이지를 별도 홈페이지(flori.ai.kr) 정적 사이트로 분리. 루트 `/` 미인증 → `/login` redirect. GA4/Clarity 애널리틱스 추가. AWS 자체 호스팅(Docker/EC2/ALB) 전환 완료
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -70,7 +70,7 @@ graph TB
 
 - **Server Components**: `page.tsx`에서 Server Action(`apiFetch`)으로 BFF에서 데이터를 fetch한 뒤 props로 Client Component에 내린다. 브라우저용 별도 API 엔드포인트를 만들 필요가 없다. 초기 페이지 로딩 시 JavaScript 번들에 데이터 fetching 로직이 포함되지 않아 클라이언트 번들이 작아진다.
 - **Server Actions**: `'use server'` 함수 하나로 BFF 호출이 가능하다. 브라우저용 API Routes 없이 `createSale()`, `updateCustomer()` 같은 함수를 직접 호출한다. FormData를 받아서 Zod로 검증하고, `apiFetch`로 BFF에 요청하고, 결과를 반환하는 것이 한 파일 안에서 끝난다.
-- **Route Group**: `(admin)/admin` 그룹으로 사이드바 레이아웃 + 인증 경계를 적용하고, `(public)` 그룹으로 공개 홈페이지 레이아웃을 분리한다. `/login`은 별도 레이아웃을 쓴다. App Router의 중첩 레이아웃 시스템이 이걸 자연스럽게 지원한다.
+- **Route Group**: `(admin)/admin` 그룹으로 사이드바 레이아웃 + 인증 경계를 적용하고, `(console)/console` 그룹으로 슈퍼어드민 콘솔 레이아웃을 분리한다. `/login`·`/onboarding`은 별도 레이아웃을 쓴다. 랜딩·정책 문서는 이 앱에 없으며 `flori.ai.kr` 정적 사이트가 담당한다. App Router의 중첩 레이아웃 시스템이 이를 자연스럽게 지원한다.
 
 **왜 Vite + React SPA가 아닌가:** SPA로 만들면 클라이언트에서 BFF를 직접 호출하며 JWT를 브라우저에 노출하거나 별도 BFF 레이어를 또 두어야 한다. Server Components/Actions 패턴이 서버↔서버 호출 레이어를 자연스럽게 제공해 토큰을 httpOnly 쿠키에 가둘 수 있다.
 
@@ -178,7 +178,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 2. **레지스트리**: ECR `flori-dev/web` 로 push (타임스탬프+커밋 해시 태그).
 3. **배포**: EC2 `flori-dev-app`에 SSH → `deploy.web.sh`가 ECR pull + `docker compose`(`--env-file .env.web`)로 web 컨테이너 기동(host `:3001` → container `:3000`).
 4. **진입**: ALB host 라우팅으로 `admin.flori.ai.kr` → web TG(:3001). 랜딩 apex `flori.ai.kr` 은 별도 nginx 컨테이너(`flori-dev/homepage`)가 담당한다.
-5. **빌드타임 환경변수**: `NEXT_PUBLIC_*`(VAPID·GA·Clarity·카카오 오픈채팅 URL)는 `next build` 시점에 클라이언트 번들에 baked되므로 **Docker build-arg**(GitHub `dev` 환경 Variables/Secrets)로 주입한다. 런타임 `.env.web`로는 바꿀 수 없다.
+5. **빌드타임 환경변수**: `NEXT_PUBLIC_*`(VAPID·GA·Clarity)는 `next build` 시점에 클라이언트 번들에 baked되므로 **Docker build-arg**(GitHub `dev` 환경 Variables/Secrets)로 주입한다. 런타임 `.env.web`로는 바꿀 수 없다.
 
 > 인프라 정본: `aws-infra/flori-ai-tf/`(Terraform) · `aws-infra/docs/flori/infra-overview.md`. 데이터·인증은 Supabase가 아니라 Kotlin BFF→RDS PostgreSQL(서울 리전)이 소유한다.
 
@@ -188,7 +188,7 @@ TypeScript만으로는 런타임 타입 안전성이 없다. 사용자 입력(Fo
 
 ### Middleware (루트 인증 분기)
 
-`src/middleware.ts`는 Next.js 서버(self-host standalone)에서 두 단계로 동작한다. ① **루트 분기**: `pathname === '/'`일 때 인증 쿠키(`flori_access` 또는 `flori_refresh`) 존재하면 `/admin` redirect, 없으면 랜딩 렌더(통과). 분기 로직은 `src/lib/middleware-routing.ts`의 순수 함수 `rootRedirectTarget`으로 분리(런타임 안전, 단위 테스트 포함). ② **어드민 인증**: `/admin/*` 요청에서 refresh 쿠키 존재 여부 검사 → 없으면 `/login` redirect. 토큰 갱신은 API 클라이언트가 처리. `/onboarding`·`/policy/*`·`/auth/*`는 인증 검사 없이 통과. (파일 위치: `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
+`src/middleware.ts`는 Next.js 서버(self-host standalone)에서 두 단계로 동작한다. ① **루트 분기**: `pathname === '/'`일 때 인증 쿠키(`flori_access` 또는 `flori_refresh`) 존재하면 `/admin` redirect, 없으면 `/login` redirect (랜딩은 별도 사이트 `flori.ai.kr`로 이관됨). 분기 로직은 `src/lib/middleware-routing.ts`의 순수 함수 `rootRedirectTarget`으로 분리(런타임 안전, 단위 테스트 포함). ② **어드민 인증**: `/admin/*` 요청에서 refresh 쿠키 존재 여부 검사 → 없으면 `/login` redirect. 토큰 갱신은 API 클라이언트가 처리. `/onboarding`·`/auth/*`·`/healthz`는 인증 검사 없이 통과. (파일 위치: `src/middleware.ts` — Next.js `src/` 구조에서 루트 middleware는 무시되기 때문)
 
 ---
 
@@ -339,7 +339,7 @@ sequenceDiagram
     end
 ```
 
-인증은 3중 방어로 구성된다. `/`·`(public)/*`·`/login`·`/onboarding`·`/policy/*`는 인증 불필요, `/admin/*`만 인증 강제:
+인증은 3중 방어로 구성된다. `/login`·`/onboarding`·`/auth/*`·`/healthz`는 인증 불필요, `/admin/*`·`/console/*`만 인증 강제:
 1. **Middleware**: `/admin/*` 접근 시 비인증 사용자를 `/login`으로 리다이렉트 (페이지 접근 차단)
 2. **requireAuth()**: **읽기 포함 모든** Server Action에서 인증 확인 + 온보딩 게이트 (`onboarded === false` → `/onboarding`)
 3. **BFF 테넌트 격리**: Kotlin 서버가 JWT 기준으로 사용자별 데이터를 격리 (DB 접근은 BFF만 수행)
@@ -624,7 +624,7 @@ erDiagram
 
 | 경로 | 페이지 | 설명 |
 |------|--------|------|
-| `/` | flori 제품 랜딩 | 인증 쿠키 있으면 `/admin` redirect (미들웨어), 없으면 랜딩 렌더. 섹션: Hero · 사전등록(waitlist) · 기능 교차 4행 · FAQ · CTA 밴드 · Footer. cool-rose white 팔레트. 사전등록: 가게명+전화번호 → BFF `POST /waitlist` (공개, 선착순 100명). |
+| `/` | 루트 리다이렉트 | 인증 쿠키 있으면 `/admin` redirect, 없으면 `/login` redirect (미들웨어). 랜딩은 별도 정적 사이트 `flori.ai.kr`이 담당. |
 | `/admin` | 대시보드 | 시간대별 인사말 + 이번 달 4 KPI + 다가오는 예약 + 커뮤니티 최신글 + flori AI 브리핑('개발 중'). 월별 분석은 `/admin/statistics`로 분리됨 |
 | `/admin/statistics` | 통계 | 빠른 선택 기간 셀렉터(이번 달/지난달/최근 3개월/올해/직접 선택) + 매출·지출·예약·고객 4탭 (URL `?range&from&to&tab`). BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=` 호출. 예약 탭에 요일×시간대 히트맵 포함 |
 | `/admin/sales` | 매출 관리 | 미니멀 로우 리스트 (일자별 그룹) + 썸네일 + 서버사이드 필터(id 기반) + 기간 범위 필터 + 무한 스크롤 + FAB |
@@ -643,9 +643,8 @@ erDiagram
 | `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
 | `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
 | `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드). Step1에 전화번호 필수 입력 포함 |
-| `/policy/privacy` | 개인정보 처리방침 | flori 개인정보 처리방침 (인증 불필요) |
-| `/policy/terms` | 서비스 이용약관 | flori 서비스 이용약관 (인증 불필요) |
 | `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
+| `/healthz` | 헬스체크 | ALB/Docker 헬스체크 전용. 외부 의존 없는 정적 200 반환. |
 
 > 예약 리마인더·고정비 생성(구 `/api/cron/*`)과 트렌드·인스타 수집(구 `/api/internal/*`)은 web에서 제거되어 Kotlin BFF가 담당한다(`@Scheduled` + `/internal/*`).
 
@@ -830,7 +829,6 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | `OAUTH_GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID — 없으면 구글 로그인 비활성 |
 | `OAUTH_NAVER_CLIENT_ID` | 네이버 OAuth 클라이언트 ID — 없으면 네이버 로그인 비활성 |
 | `STORAGE_PUBLIC_URL` | CloudFront 공개 URL (옵션) — `next.config.ts` 이미지 허용 호스트 및 스토리지 URL 검증에 사용. S3 자격증명은 BFF가 보유 |
-| `NEXT_PUBLIC_KAKAO_OPENCHAT_URL` | 사전등록 완료 후 안내할 카카오톡 오픈채팅 URL (옵션) — 미설정 시 버튼 비활성 |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 측정 ID(`G-…`) (옵션) — 프로덕션 빌드에서만 로드, 미설정 시 미동작 |
 | `NEXT_PUBLIC_CLARITY_PROJECT_ID` | Microsoft Clarity 프로젝트 ID (옵션) — 프로덕션 빌드에서만 로드, 미설정 시 미동작 |
 
