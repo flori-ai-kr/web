@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {PhotoCard, PhotoFile, PhotoTag} from '@/types/database';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
@@ -49,7 +49,6 @@ export function PhotoUploadModal({
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [photoItems, setPhotoItems] = useState<PhotoItem[]>([]);
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTags, setAvailableTags] = useState<PhotoTag[]>(tags);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -146,26 +145,30 @@ export function PhotoUploadModal({
     });
   };
 
+  const addingTagRef = useRef(false);
   const handleAddNewTag = async () => {
-    if (!newTagName.trim()) return;
+    const name = newTagName.trim();
+    if (!name || addingTagRef.current) return;
+    // 중복 생성 방지(IME 중복 keydown·이미 존재하는 태그) — 추가만 하고 자동 선택은 하지 않는다.
+    if (availableTags.some(t => t.name === name)) {
+      toast.error('이미 등록된 태그입니다.');
+      setNewTagName('');
+      return;
+    }
 
-    // 이미 3개 선택된 경우 자동 선택 안 함
-    const canAutoSelect = selectedTags.length < MAX_TAGS;
-
+    addingTagRef.current = true;
     try {
-      const newTag = await createPhotoTag(newTagName.trim(), newTagColor || undefined);
+      const newTag = await createPhotoTag(name);
       if (newTag) {
         setAvailableTags(prev => [...prev, newTag]);
-        if (canAutoSelect) {
-          setSelectedTags(prev => [...prev, newTag.name]);
-        }
         setNewTagName('');
-        setNewTagColor('');
-        toast.success(canAutoSelect ? '태그가 추가되었습니다' : '태그가 추가되었습니다 (최대 3개 선택됨)');
+        toast.success('태그가 추가되었습니다');
         onTagsChange?.();
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '태그 추가에 실패했습니다');
+    } finally {
+      addingTagRef.current = false;
     }
   };
 
@@ -341,14 +344,11 @@ export function PhotoUploadModal({
                 onChange={(e) => setNewTagName(e.target.value)}
                 placeholder="새 태그 추가"
                 className="flex-1 max-w-xs"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddNewTag()}
-              />
-              <input
-                type="color"
-                value={newTagColor || '#6b7280'}
-                onChange={(e) => setNewTagColor(e.target.value)}
-                className="w-9 h-9 rounded border cursor-pointer"
-                title="색상 선택 (비워두면 랜덤)"
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                  e.preventDefault();
+                  handleAddNewTag();
+                }}
               />
               <Button type="button" size="icon" variant="outline" onClick={handleAddNewTag}>
                 <Plus className="w-4 h-4" />
@@ -365,9 +365,8 @@ export function PhotoUploadModal({
                 setCustomerName(name);
                 setCustomerId(id);
               }}
-              placeholder="고객명 검색 또는 입력"
+              placeholder="고객명 또는 연락처로 검색"
             />
-            <p className="text-xs text-muted-foreground">이름·연락처로 검색해 연결. 연결 안 해도 저장 가능.</p>
           </div>
 
           <div className="space-y-2">

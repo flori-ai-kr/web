@@ -9,11 +9,12 @@ import {PhotoUploadModal} from '@/components/gallery/PhotoUploadModal';
 import {PhotoCardDialog} from '@/components/gallery/PhotoCardDialog';
 import {TagManageModal} from '@/components/gallery/TagManageModal';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
 import {getPhotoCardById, getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
+import {PeriodHeader} from '@/components/layout/PeriodHeader';
+import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
 
 interface CustomerOption {
@@ -25,9 +26,11 @@ interface GalleryClientProps {
   initialData: PhotoCardsResponse;
   tags: PhotoTag[];
   customers: CustomerOption[];
+  initialYear: number;
+  initialMonth: number;
 }
 
-export function GalleryClient({ initialData, tags: initialTags, customers }: GalleryClientProps) {
+export function GalleryClient({ initialData, tags: initialTags, customers, initialYear, initialMonth }: GalleryClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialCustomerId = searchParams.get('customer');
@@ -35,9 +38,17 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     ? customers.find(c => c.id === initialCustomerId) || null
     : null;
 
+  // 기간(월 네비/커스텀 범위) — 기본 현재 월(서버와 동일).
+  const [periodYear, setPeriodYear] = useState(initialYear);
+  const [periodMonth, setPeriodMonth] = useState(initialMonth);
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null);
+  const range = useMemo(() => periodToRange(periodYear, periodMonth, customRange), [periodYear, periodMonth, customRange]);
+
   const [cards, setCards] = useState<PhotoCard[]>(initialData.cards);
   const [cursor, setCursor] = useState<string | null>(initialData.nextCursor);
   const [hasMore, setHasMore] = useState(initialData.hasMore);
+  const [totalCards, setTotalCards] = useState(initialData.totalCards);
+  const [totalPhotos, setTotalPhotos] = useState(initialData.totalPhotos);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(initialCustomer);
@@ -110,7 +121,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id);
+      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id, range.from, range.to);
       // 무한로딩 차단(api 상태 무관): ①새 카드 0개 ②커서가 전진하지 않음 ③에러 → 즉시 정지.
       const fresh = response.cards.filter(c => !loadedIdsRef.current.has(c.id));
       const cursorAdvanced = !!response.nextCursor && response.nextCursor !== cursor;
@@ -132,18 +143,20 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     } finally {
       setIsLoading(false);
     }
-  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer]);
+  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer, range.from, range.to]);
 
-  // Reset and reload when tag or customer changes
+  // Reset and reload when tag·customer·기간 changes
   useEffect(() => {
     const loadInitial = async () => {
       setIsLoading(true);
       try {
-        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
         loadedIdsRef.current = new Set(response.cards.map(c => c.id));
         setCards(response.cards);
         setCursor(response.nextCursor);
         setHasMore(response.hasMore);
+        setTotalCards(response.totalCards);
+        setTotalPhotos(response.totalPhotos);
       } catch (error) {
         console.error('Error loading cards:', error);
         toast.error('사진 카드를 불러오는데 실패했습니다');
@@ -152,7 +165,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       }
     };
     loadInitial();
-  }, [selectedTag, selectedCustomer]);
+  }, [selectedTag, selectedCustomer, range.from, range.to]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -183,11 +196,13 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
   const refreshCards = async () => {
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id);
+      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
       loadedIdsRef.current = new Set(response.cards.map(c => c.id));
       setCards(response.cards);
       setCursor(response.nextCursor);
       setHasMore(response.hasMore);
+      setTotalCards(response.totalCards);
+      setTotalPhotos(response.totalPhotos);
     } catch (error) {
       console.error('Error refreshing cards:', error);
     } finally {
@@ -200,6 +215,15 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
     setCustomerSearch('');
     setShowCustomerDropdown(false);
     router.push(`/admin/gallery?customer=${customer.id}`, { scroll: false });
+  };
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    setCustomRange(null);
+    let m = periodMonth + direction;
+    let y = periodYear;
+    if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
+    setPeriodYear(y);
+    setPeriodMonth(m);
   };
 
   const handleClearCustomer = () => {
@@ -225,6 +249,28 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
+      {/* 기간 헤더 — 매출/고객과 동일한 월 네비 + 기간 셀렉터 (등록일 기준) */}
+      <PeriodHeader
+        periodYear={periodYear}
+        periodMonth={periodMonth}
+        customRange={customRange}
+        onMonthNav={handleMonthNav}
+        onRangeApply={setCustomRange}
+        onRangeReset={() => setCustomRange(null)}
+      />
+
+      {/* 요약 — 현재 기간·필터 기준 총 카드 수 + 총 사진 장수 */}
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">
+          {totalCards}<span className="text-base font-medium">개</span>
+        </p>
+        {totalPhotos > 0 && (
+          <p className="text-xs text-muted-foreground tabular-nums">
+            사진 <span className="font-semibold text-foreground">{totalPhotos}</span>장
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <TagFilter
@@ -315,7 +361,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
       {(cards.length > 0 || !selectedCustomer) && (
         <PhotoCardGrid
           cards={cards}
-          tags={tags}
           onCardClick={handleCardClick}
         />
       )}
@@ -351,7 +396,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers }: Gal
         onClose={() => setIsTagModalOpen(false)}
         tags={tags}
         onTagsChange={refreshTags}
-        onTagSelect={setSelectedTag}
       />
 
       {/* FAB — Speed Dial */}

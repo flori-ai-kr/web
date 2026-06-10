@@ -33,6 +33,8 @@ interface PhotoCardsPageDto {
   cards: PhotoCardDto[];
   nextCursor: string | null;
   hasMore: boolean;
+  totalCards: number;
+  totalPhotos: number;
 }
 
 interface UploadTargetDto {
@@ -67,12 +69,17 @@ export interface PhotoCardsResponse {
   cards: PhotoCard[];
   nextCursor: string | null;
   hasMore: boolean;
+  // 상단 요약 헤더용 — 현재 필터 기준 전체 카드 수·전체 사진 장수(페이지 무관).
+  totalCards: number;
+  totalPhotos: number;
 }
 
 async function _getPhotoCards(
   tag?: string,
   cursor?: string,
-  customerId?: string
+  customerId?: string,
+  from?: string,
+  to?: string
 ): Promise<PhotoCardsResponse> {
   await requireAuth();
 
@@ -87,6 +94,8 @@ async function _getPhotoCards(
   if (tag) params.append('tag', tag);
   if (cursor) params.append('cursor', cursor);
   if (customerId) params.append('customerId', customerId);
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
   const qs = params.toString();
 
   const dto = await apiFetch<PhotoCardsPageDto>(`/photo-cards${qs ? `?${qs}` : ''}`);
@@ -95,6 +104,8 @@ async function _getPhotoCards(
     cards: dto.cards.map(toPhotoCard),
     nextCursor: dto.nextCursor,
     hasMore: dto.hasMore,
+    totalCards: dto.totalCards ?? dto.cards.length,
+    totalPhotos: dto.totalPhotos ?? 0,
   };
 }
 

@@ -260,7 +260,7 @@ export function SaleFormDialog({
                     setCustomerId(id);
                     setCustomerPhone(phone);
                   }}
-                  placeholder="고객명 검색 또는 입력"
+                  placeholder="고객명 또는 연락처로 검색"
                 />
               </div>
               <div className="space-y-2">
