@@ -158,10 +158,12 @@ export interface LatestCommunityPost {
 }
 
 // BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 비밀글은 제외하고 상위 limit개만 반환.
-async function _getLatestCommunityPosts(limit = 4): Promise<LatestCommunityPost[]> {
+async function _getLatestCommunityPosts(limit = 8): Promise<LatestCommunityPost[]> {
   await requireAuth();
 
-  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${limit}`);
+  // 비밀글이 상위에 끼면 결과가 limit개 미만으로 줄어드므로, 넉넉히 받아온 뒤 필터링하고 자른다.
+  const fetchSize = Math.min(limit * 3, 100);
+  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${fetchSize}`);
   return (page.posts || [])
     .filter((p) => !p.isSecret)
     .slice(0, limit)

@@ -33,6 +33,8 @@ const arbitraryPhotoCard = (): fc.Arbitrary<PhotoCard> => {
     tags: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { maxLength: 10 }),
     photos: fc.array(arbitraryPhotoFile(), { minLength: 0, maxLength: MAX_PHOTOS_PER_CARD }),
     sale_id: fc.option(fc.uuid(), { nil: null }),
+    customer_id: fc.option(fc.uuid(), { nil: null }),
+    customer_name: fc.option(fc.string({ minLength: 1, maxLength: 100 }), { nil: null }),
     created_at: fc.constant(new Date().toISOString()),
     updated_at: fc.constant(new Date().toISOString()),
   })

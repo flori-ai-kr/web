@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PhotoTag, PHOTO_TAG_COLORS } from '@/types/database';
+import { PhotoTag } from '@/types/database';
 import {
   Dialog,
   DialogContent,
@@ -19,36 +19,31 @@ interface TagManageModalProps {
   onClose: () => void;
   tags: PhotoTag[];
   onTagsChange: () => void;
-  onTagSelect?: (tagName: string) => void;
 }
 
-export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect }: TagManageModalProps) {
+export function TagManageModal({ open, onClose, tags, onTagsChange }: TagManageModalProps) {
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editColor, setEditColor] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAdd = async () => {
-    if (!newTagName.trim()) return;
-
     const tagName = newTagName.trim();
+    if (!tagName || isAdding) return;
+    // 중복 생성 방지(IME 중복 keydown·이미 존재하는 태그)
+    if (tags.some(t => t.name === tagName)) {
+      toast.error('이미 등록된 태그입니다.');
+      return;
+    }
     setIsAdding(true);
     try {
-      await createPhotoTag(tagName, newTagColor || undefined);
+      await createPhotoTag(tagName);
       setNewTagName('');
-      setNewTagColor('');
       onTagsChange();
       toast.success('태그가 추가되었습니다');
-      // 추가된 태그 선택
-      if (onTagSelect) {
-        onTagSelect(tagName);
-        onClose();
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '태그 추가 실패');
     } finally {
@@ -59,7 +54,6 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
   const handleStartEdit = (tag: PhotoTag) => {
     setEditingId(tag.id);
     setEditName(tag.name);
-    setEditColor(tag.color);
   };
 
   const handleSaveEdit = async () => {
@@ -67,7 +61,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
 
     setIsSaving(true);
     try {
-      await updatePhotoTag(editingId, editName.trim(), editColor);
+      await updatePhotoTag(editingId, editName.trim());
       setEditingId(null);
       onTagsChange();
       toast.success('태그가 수정되었습니다');
@@ -108,15 +102,12 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
               placeholder="새 태그 이름"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+                e.preventDefault();
+                handleAdd();
+              }}
               className="flex-1"
-            />
-            <input
-              type="color"
-              value={newTagColor || '#6b7280'}
-              onChange={(e) => setNewTagColor(e.target.value)}
-              className="w-10 h-9 rounded border cursor-pointer"
-              title="색상 선택 (비워두면 랜덤)"
             />
             <Button
               onClick={handleAdd}
@@ -140,12 +131,6 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
                 >
                   {editingId === tag.id ? (
                     <>
-                      <input
-                        type="color"
-                        value={editColor}
-                        onChange={(e) => setEditColor(e.target.value)}
-                        className="w-8 h-8 rounded border cursor-pointer"
-                      />
                       <Input
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
@@ -195,11 +180,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange, onTagSelect 
                     </div>
                   ) : (
                     <>
-                      <div
-                        className="w-6 h-6 rounded-full border"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      <span className="flex-1 text-sm font-medium">{tag.name}</span>
+                      <span className="flex-1 text-sm font-medium text-muted-foreground">#{tag.name}</span>
                       <Button
                         size="icon"
                         variant="ghost"

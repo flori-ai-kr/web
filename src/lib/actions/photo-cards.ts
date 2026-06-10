@@ -23,6 +23,8 @@ interface PhotoCardDto {
   tags: string[];
   photos: PhotoFileDto[];
   saleId: string | null;
+  customerId: number | string | null;
+  customerName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +33,8 @@ interface PhotoCardsPageDto {
   cards: PhotoCardDto[];
   nextCursor: string | null;
   hasMore: boolean;
+  totalCards: number;
+  totalPhotos: number;
 }
 
 interface UploadTargetDto {
@@ -54,6 +58,8 @@ function toPhotoCard(dto: PhotoCardDto): PhotoCard {
     tags: dto.tags || [],
     photos: dto.photos || [],
     sale_id: dto.saleId,
+    customer_id: dto.customerId != null ? String(dto.customerId) : null,
+    customer_name: dto.customerName ?? null,
     created_at: dto.createdAt,
     updated_at: dto.updatedAt,
   };
@@ -63,12 +69,17 @@ export interface PhotoCardsResponse {
   cards: PhotoCard[];
   nextCursor: string | null;
   hasMore: boolean;
+  // 상단 요약 헤더용 — 현재 필터 기준 전체 카드 수·전체 사진 장수(페이지 무관).
+  totalCards: number;
+  totalPhotos: number;
 }
 
 async function _getPhotoCards(
   tag?: string,
   cursor?: string,
-  customerId?: string
+  customerId?: string,
+  from?: string,
+  to?: string
 ): Promise<PhotoCardsResponse> {
   await requireAuth();
 
@@ -83,6 +94,8 @@ async function _getPhotoCards(
   if (tag) params.append('tag', tag);
   if (cursor) params.append('cursor', cursor);
   if (customerId) params.append('customerId', customerId);
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
   const qs = params.toString();
 
   const dto = await apiFetch<PhotoCardsPageDto>(`/photo-cards${qs ? `?${qs}` : ''}`);
@@ -91,6 +104,8 @@ async function _getPhotoCards(
     cards: dto.cards.map(toPhotoCard),
     nextCursor: dto.nextCursor,
     hasMore: dto.hasMore,
+    totalCards: dto.totalCards ?? dto.cards.length,
+    totalPhotos: dto.totalPhotos ?? 0,
   };
 }
 
@@ -115,6 +130,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
+  const customerId = formData.get('customer_id') as string | null;
 
   let tags: string[];
   let photos: PhotoFile[];
@@ -135,6 +151,16 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 고객 연결: 값이 있으면 검증 후 연결, 비어 있으면 null(미연결).
+  let customerIdNum: number | null = null;
+  if (customerId) {
+    const customerParsed = idSchema.safeParse(customerId);
+    if (!customerParsed.success) {
+      throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
+    }
+    customerIdNum = Number(customerParsed.data);
+  }
+
   const dto = await apiFetch<PhotoCardDto>('/photo-cards', {
     method: 'POST',
     body: JSON.stringify({
@@ -143,6 +169,7 @@ async function _createPhotoCard(formData: FormData): Promise<PhotoCard> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
+      customerId: customerIdNum,
     }),
   });
 
@@ -161,6 +188,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
   const tagsJson = formData.get('tags') as string;
   const photosJson = formData.get('photos') as string;
   const saleId = formData.get('sale_id') as string | null;
+  const customerId = formData.get('customer_id') as string | null;
 
   let tags: string[];
   let photos: PhotoFile[];
@@ -181,6 +209,19 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
     throw new AppError(ErrorCode.VALIDATION, `입력값이 올바르지 않습니다: ${parsed.error.issues[0]?.message}`);
   }
 
+  // 고객 연결: 값이 있으면 검증 후 연결, 진짜로 비어 있을 때만 연결 해제(clearCustomer).
+  // 수정 모달은 기존 고객을 미리 선택해 두므로, 사용자가 직접 비우지 않는 한 customerId가 유지된다.
+  let customerLink: { customerId: number } | { clearCustomer: true };
+  if (customerId) {
+    const customerParsed = idSchema.safeParse(customerId);
+    if (!customerParsed.success) {
+      throw new AppError(ErrorCode.VALIDATION, '잘못된 고객 ID 형식입니다');
+    }
+    customerLink = { customerId: Number(customerParsed.data) };
+  } else {
+    customerLink = { clearCustomer: true };
+  }
+
   await apiFetch<PhotoCardDto>(`/photo-cards/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -189,6 +230,7 @@ async function _updatePhotoCard(id: string, formData: FormData): Promise<void> {
       tags: parsed.data.tags || [],
       photos: parsed.data.photos || [],
       saleId: saleId || null,
+      ...customerLink,
     }),
   });
 }

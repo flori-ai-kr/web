@@ -173,7 +173,7 @@ export function AiBriefingCard() {
           </span>
           <p className="text-[13px] font-semibold text-foreground">아직 개발 중인 기능이에요</p>
           <p className="text-xs leading-snug text-muted-foreground">
-            flori AI가 매출·재고·고객을 매일 브리핑해요
+            두 손은 꽃에, 지시는 음성으로 — 예약·완료·분석까지 비서처럼
             <br />
             <span className="text-brand">곧 만나요</span>
           </p>

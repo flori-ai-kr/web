@@ -1,26 +1,28 @@
 'use client';
 
+import Image from 'next/image';
 import {useRouter} from 'next/navigation';
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Skeleton} from '@/components/ui/skeleton';
 import {
     ExternalLink,
-    Image as ImageIcon,
+    FileText,
     Loader2,
+    Lock,
     Pencil,
     Phone,
     ShoppingBag,
     Trash2,
-    TrendingUp,
-    Users
+    TrendingUp
 } from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
+import {revertCustomerGradeAuto} from '@/lib/actions/customers';
 import type {Customer, Sale} from '@/types/database';
-import {GenderBadge, gradeLabels} from './CustomerCard';
+import {GenderBadge} from './CustomerCard';
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -49,6 +51,18 @@ export function CustomerDetailDialog({
 }: CustomerDetailDialogProps) {
   const router = useRouter();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isReverting, setIsReverting] = useState(false);
+
+  const handleRevertGrade = useCallback(async () => {
+    if (!customer || isReverting) return;
+    setIsReverting(true);
+    try {
+      await revertCustomerGradeAuto(customer.id);
+      router.refresh();
+    } finally {
+      setIsReverting(false);
+    }
+  }, [customer, isReverting, router]);
 
   const handleIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -75,39 +89,107 @@ export function CustomerDetailDialog({
         </DialogHeader>
         {customer && (
           <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-muted-foreground" />
-              </div>
+            <div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-lg text-foreground">{customer.name}</span>
-                  <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded ${gradeLabels[customer.grade].bg} ${gradeLabels[customer.grade].color}`}>
-                    {(() => {
-                      const GradeIcon = gradeLabels[customer.grade].icon;
-                      return GradeIcon ? <GradeIcon className="h-3.5 w-3.5" aria-hidden="true" /> : null;
-                    })()}
-                    {gradeLabels[customer.grade].label}
-                  </span>
+                  {customer.grade && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-brand-muted text-brand">
+                      {customer.grade}
+                      {customer.grade_locked && <Lock className="h-3 w-3" aria-label="수동 고정됨" />}
+                    </span>
+                  )}
                   <GenderBadge gender={customer.gender} size="md" />
                 </div>
                 <a href={`tel:${customer.phone.replace(/-/g, '')}`} className="flex items-center gap-1 text-muted-foreground text-sm hover:text-brand transition-colors">
                   <Phone className="w-3 h-3" />
                   <span>{customer.phone}</span>
                 </a>
+                {customer.grade_locked && (
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-0.5">
+                      <Lock className="h-3 w-3" aria-hidden="true" />
+                      수동 고정됨
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      onClick={handleRevertGrade}
+                      disabled={isReverting}
+                      className="inline-flex items-center gap-1 text-brand hover:underline disabled:opacity-60"
+                    >
+                      {isReverting && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
+                      자동 등급으로 되돌리기
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-              <div className="text-center">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center rounded-xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">구매 횟수</p>
                 <p className="text-xl font-bold text-foreground tabular-nums">{customer.total_purchase_count}회</p>
               </div>
-              <div className="text-center">
+              <div className="text-center rounded-xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">총 구매액</p>
                 <p className="text-xl font-bold text-brand tabular-nums">{formatCurrency(customer.total_purchase_amount)}</p>
               </div>
             </div>
+
+            {customer.photo_count > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">연결된 사진 · {customer.photo_count}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      router.push(`/admin/gallery?customer=${customer.id}`);
+                    }}
+                    className="text-xs text-brand hover:underline"
+                  >
+                    사진첩에서 보기 →
+                  </button>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {customer.photo_thumbnails.slice(0, 6).map((thumb, i, arr) => {
+                    const isLast = i === arr.length - 1;
+                    const overflow = customer.photo_count - customer.photo_thumbnails.length;
+                    return (
+                      <button
+                        key={`${thumb.card_id}-${i}`}
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          router.push(
+                            thumb.card_id
+                              ? `/admin/gallery?customer=${customer.id}&card=${thumb.card_id}`
+                              : `/admin/gallery?customer=${customer.id}`,
+                          );
+                        }}
+                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card cursor-pointer hover:opacity-80 hover:border-brand/50 transition-opacity"
+                        aria-label="사진첩에서 이 카드 열기"
+                      >
+                        <Image
+                          src={thumb.url}
+                          alt=""
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                        {isLast && overflow > 0 && (
+                          <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-sm font-semibold text-white">
+                            +{overflow}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {customer.first_purchase_date && (
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -125,9 +207,12 @@ export function CustomerDetailDialog({
             )}
 
             {customer.memo && (
-              <div className="space-y-1 pt-2 border-t">
+              <div className="space-y-1.5 pt-2 border-t">
                 <p className="text-sm text-muted-foreground">메모</p>
-                <p className="text-foreground">{customer.memo}</p>
+                <div className="flex items-start gap-1.5 rounded-xl border border-border bg-card p-3">
+                  <FileText className="w-3.5 h-3.5 shrink-0 text-brand/85 mt-0.5" aria-hidden />
+                  <p className="text-sm leading-snug text-foreground/90 whitespace-pre-wrap">{customer.memo}</p>
+                </div>
               </div>
             )}
 
@@ -140,7 +225,7 @@ export function CustomerDetailDialog({
               {isLoadingSales ? (
                 <div className="space-y-2 py-1">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex justify-between items-center p-2 bg-muted rounded">
+                    <div key={i} className="flex justify-between items-center rounded-xl border border-border bg-card p-2.5">
                       <div className="flex items-center gap-2">
                         <Skeleton className="h-3.5 w-8" />
                         <Skeleton className="h-5 w-16 rounded" />
@@ -154,16 +239,16 @@ export function CustomerDetailDialog({
                   {sales.map((sale) => (
                     <div
                       key={sale.id}
-                      className="flex justify-between items-center text-sm p-2 bg-muted rounded"
+                      className="flex justify-between items-center text-sm rounded-xl border border-border bg-card p-2.5"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{format(new Date(sale.date), 'yy/MM/dd')}</span>
-                        <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted-foreground/10">
+                        <span className="text-muted-foreground tabular-nums">{format(new Date(sale.date), 'yy/MM/dd')}</span>
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground">
                           {sale.category_label ?? '미분류'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(sale.amount)}</span>
+                        <span className="font-semibold text-foreground tabular-nums">{formatCurrency(sale.amount)}</span>
                         <button
                           type="button"
                           className="text-brand hover:text-brand p-1"
@@ -205,16 +290,6 @@ export function CustomerDetailDialog({
                 >
                   <ShoppingBag className="w-4 h-4 mr-2" />
                   매출 등록
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onClose();
-                    router.push(`/admin/gallery?customer=${customer.id}`);
-                  }}
-                >
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  사진 보기
                 </Button>
                 <Button variant="outline" onClick={() => onEdit(customer)}>
                   <Pencil className="w-4 h-4 mr-2" />

@@ -9,21 +9,32 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/
 import {Textarea} from '@/components/ui/textarea';
 import {Loader2} from 'lucide-react';
 import {toast} from 'sonner';
-import {checkPhoneDuplicate, createCustomer, updateCustomer} from '@/lib/actions/customers';
+import {
+  assignCustomerGrade,
+  checkPhoneDuplicate,
+  createCustomer,
+  revertCustomerGradeAuto,
+  updateCustomer,
+} from '@/lib/actions/customers';
 import {cn, formatPhoneNumber} from '@/lib/utils';
-import type {Customer} from '@/types/database';
+import type {Customer, CustomerGradeConfig} from '@/types/database';
+
+// '자동(구매횟수 기준)' 선택지를 나타내는 sentinel 값.
+const AUTO_GRADE = 'auto';
 
 interface CustomerFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer?: Customer | null;
+  grades: CustomerGradeConfig[];
   onSuccess: () => void;
 }
 
-export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: CustomerFormDialogProps) {
+export function CustomerFormDialog({ open, onOpenChange, customer, grades, onSuccess }: CustomerFormDialogProps) {
   const [phoneValue, setPhoneValue] = useState('');
   const [phoneDuplicate, setPhoneDuplicate] = useState<{ name: string } | null>(null);
   const [noteValue, setNoteValue] = useState('');
+  const [gradeValue, setGradeValue] = useState<string>(AUTO_GRADE);
   const [isSubmitting, startTransition] = useTransition();
   const phoneCheckRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -34,9 +45,12 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
       if (customer) {
         setPhoneValue(formatPhoneNumber(customer.phone || ''));
         setNoteValue(customer.memo || '');
+        // 수동 고정 + 등급 id가 있을 때만 특정 등급 선택, 그 외엔 자동.
+        setGradeValue(customer.grade_locked && customer.grade_id ? customer.grade_id : AUTO_GRADE);
       } else {
         setPhoneValue('');
         setNoteValue('');
+        setGradeValue(AUTO_GRADE);
       }
       setPhoneDuplicate(null);
     }
@@ -62,12 +76,29 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       try {
-        if (isEditMode) {
-          await updateCustomer(customer.id, formData);
-          toast.success('고객 정보가 수정되었습니다');
-        } else {
-          await createCustomer(formData);
-          toast.success('고객이 등록되었습니다');
+        // 고객 본 정보 저장(이름/연락처/성별/메모). 실패 시 아래 catch로.
+        const savedCustomerId = isEditMode
+          ? (await updateCustomer(customer.id, formData), customer.id)
+          : (await createCustomer(formData))?.id;
+
+        // 등급 조정은 별도 엔드포인트 호출이므로 독립 try/catch로 분리한다.
+        // 고객 정보는 이미 저장됐으므로, 등급 조정만 실패해도 폼은 닫고 새로고침한다.
+        try {
+          if (isEditMode) {
+            if (gradeValue !== AUTO_GRADE) {
+              if (gradeValue !== customer.grade_id || !customer.grade_locked) {
+                await assignCustomerGrade(customer.id, gradeValue);
+              }
+            } else if (customer.grade_locked) {
+              await revertCustomerGradeAuto(customer.id);
+            }
+          } else if (gradeValue !== AUTO_GRADE && savedCustomerId) {
+            await assignCustomerGrade(savedCustomerId, gradeValue);
+          }
+          toast.success(isEditMode ? '고객 정보가 수정되었습니다' : '고객이 등록되었습니다');
+        } catch (gradeError) {
+          console.error('Failed to adjust customer grade:', gradeError);
+          toast.error('고객 정보는 저장됐지만 등급 설정에 실패했습니다.');
         }
 
         onOpenChange(false);
@@ -128,15 +159,15 @@ export function CustomerFormDialog({ open, onOpenChange, customer, onSuccess }: 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>등급</Label>
-              <Select name="grade" defaultValue={customer?.grade || 'new'}>
+              <Select value={gradeValue} onValueChange={setGradeValue}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">신규</SelectItem>
-                  <SelectItem value="regular">단골</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                  <SelectItem value="blacklist">블랙리스트</SelectItem>
+                  <SelectItem value={AUTO_GRADE}>자동(구매횟수 기준)</SelectItem>
+                  {grades.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

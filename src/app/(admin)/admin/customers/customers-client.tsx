@@ -4,39 +4,328 @@ import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition}
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {PageHeader} from '@/components/layout/PageHeader';
-import {Card, CardContent} from '@/components/ui/card';
+import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {AlertTriangle, CalendarDays, Crown, Plus, Search, Star, UserPlus, Users} from 'lucide-react';
-import {format, subDays} from 'date-fns';
+import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
+import {Calendar} from '@/components/ui/calendar';
+import {CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, RotateCcw, Search, Settings, UserPlus, Users} from 'lucide-react';
+import {format} from 'date-fns';
+import {ko} from 'date-fns/locale';
 import {toast} from 'sonner';
-import {deleteCustomer, getCustomerSales} from '@/lib/actions/customers';
-import {cn} from '@/lib/utils';
-import type {Customer, Sale} from '@/types/database';
+import {deleteCustomer, getCustomerById, getCustomerSales} from '@/lib/actions/customers';
+import type {Customer, CustomerGradeConfig, Sale} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
-import {CustomerCard, genderLabels, gradeLabels} from './components/CustomerCard';
+import {CustomerCard, genderLabels} from './components/CustomerCard';
 import {CustomerFormDialog} from './components/CustomerFormDialog';
 import {CustomerDetailDialog} from './components/CustomerDetailDialog';
+import {CustomerGradesModal} from './components/CustomerGradesModal';
 
-const gradeSections = [
-  { key: 'vip', label: 'VIP', icon: Crown, iconColor: 'text-purple-600 dark:text-purple-400' },
-  { key: 'regular', label: '단골', icon: Star, iconColor: 'text-yellow-600 dark:text-yellow-400' },
-  { key: 'new', label: '신규', icon: UserPlus, iconColor: 'text-muted-foreground' },
-  { key: 'blacklist', label: '블랙리스트', icon: AlertTriangle, iconColor: 'text-danger' },
-] as const;
-
-type SortBy = 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
+type SortBy = 'recent' | 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
 type GenderFilter = 'all' | 'male' | 'female';
+type CustomRange = { start: string; end: string };
+
+const PRESETS = [
+  { label: '오늘', days: 0 },
+  { label: '지난 7일', days: 7 },
+  { label: '지난 30일', days: 30 },
+  { label: '지난 90일', days: 90 },
+];
+
+function formatDate(date: Date): string {
+  // 로컬(KST) 기준. toISOString()은 UTC라 새벽 시간대에 하루 밀리므로 사용 금지.
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatDisplayDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-');
+  return `${y}.${m}.${d}`;
+}
+
+// 매출 페이지의 DatePickerButton 과 동일한 UX(Popover + Calendar).
+function DatePickerButton({
+  value,
+  onChange,
+  placeholder,
+  minDate,
+  maxDate,
+}: {
+  value: string;
+  onChange: (date: string) => void;
+  placeholder: string;
+  minDate?: string;
+  maxDate?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? new Date(value + 'T00:00:00') : undefined;
+  const disabled = [];
+  if (minDate) disabled.push({ before: new Date(minDate + 'T00:00:00') });
+  if (maxDate) disabled.push({ after: new Date(maxDate + 'T00:00:00') });
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`flex-1 h-8 px-3 rounded-md border text-xs text-left transition-colors ${
+            value
+              ? 'border-brand/40 text-foreground'
+              : 'border-border text-muted-foreground'
+          } bg-background hover:border-brand/60`}
+        >
+          {value ? formatDisplayDate(value) : placeholder}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <Calendar
+          mode="single"
+          locale={ko}
+          captionLayout="dropdown"
+          selected={selected}
+          defaultMonth={selected}
+          startMonth={new Date(2020, 0)}
+          endMonth={new Date(2030, 11)}
+          disabled={disabled}
+          onSelect={(date) => {
+            if (date) {
+              onChange(formatDate(date));
+              setOpen(false);
+            }
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// 매출 페이지(SalesFiltersUI)의 월 네비 + 기간 헤더를 고객 페이지(최근 방문 기준)에 맞춘 컴포넌트.
+function PeriodHeader({
+  periodYear,
+  periodMonth,
+  customRange,
+  onMonthNav,
+  onRangeApply,
+  onRangeReset,
+}: {
+  periodYear: number;
+  periodMonth: number;
+  customRange: CustomRange | null;
+  onMonthNav: (direction: -1 | 1) => void;
+  onRangeApply: (range: CustomRange) => void;
+  onRangeReset: () => void;
+}) {
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const isRangeApplied = customRange !== null;
+
+  const monthDisplay = `${periodYear}년 ${periodMonth}월`;
+
+  const handlePreset = (days: number) => {
+    const today = new Date();
+    const to = today;
+    let from: Date;
+    if (days === 0) {
+      from = today;
+    } else {
+      from = new Date(today);
+      from.setDate(from.getDate() - days + 1);
+    }
+    const s = formatDate(from);
+    const e = formatDate(to);
+    setStartDate(s);
+    setEndDate(e);
+    onRangeApply({ start: s, end: e });
+    setShowDateRange(false);
+  };
+
+  const handleApplyRange = () => {
+    if (startDate && endDate) {
+      onRangeApply({ start: startDate, end: endDate });
+      setShowDateRange(false);
+    }
+  };
+
+  const handleResetRange = () => {
+    setStartDate('');
+    setEndDate('');
+    setShowDateRange(false);
+    onRangeReset();
+  };
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    setStartDate('');
+    setEndDate('');
+    setShowDateRange(false);
+    onMonthNav(direction);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Row 1: 월 네비 (중앙) + 기간 버튼 (우측) */}
+      <div className="flex flex-col sm:relative sm:flex-row items-center gap-2 sm:justify-center">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleMonthNav(-1)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted text-muted-foreground"
+            aria-label="이전 달"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-semibold text-foreground min-w-[100px] text-center">
+            {monthDisplay}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleMonthNav(1)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted text-muted-foreground"
+            aria-label="다음 달"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowDateRange(!showDateRange)}
+          className={`sm:absolute sm:right-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            showDateRange
+              ? 'bg-foreground text-background'
+              : isRangeApplied
+                ? 'bg-brand/10 text-brand border border-brand/30'
+                : 'bg-background border border-border text-muted-foreground hover:border-foreground/30'
+          }`}
+          aria-expanded={showDateRange}
+        >
+          <CalendarDays className="w-3.5 h-3.5 inline-block -mt-px" />
+          <span className="ml-1">
+            {isRangeApplied && customRange
+              ? `${formatDisplayDate(customRange.start)} ~ ${formatDisplayDate(customRange.end)}`
+              : '기간'}
+          </span>
+        </button>
+      </div>
+
+      {/* 기간 셀렉터 — 프리셋 + date picker */}
+      {showDateRange && (
+        <div className="bg-card border border-border rounded-xl p-3 space-y-3">
+          {/* 프리셋 퀵 버튼 */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {PRESETS.map(preset => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handlePreset(preset.days)}
+                className="px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:bg-muted transition-colors"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          {/* 날짜 선택 */}
+          <div className="flex items-center gap-2">
+            <DatePickerButton
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="시작일"
+              maxDate={endDate || undefined}
+            />
+            <span className="text-muted-foreground text-xs shrink-0">~</span>
+            <DatePickerButton
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="종료일"
+              minDate={startDate || undefined}
+            />
+          </div>
+          {/* 적용/초기화 */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleApplyRange}
+              disabled={!startDate || !endDate}
+              className="h-8 px-4 rounded-md bg-brand text-white text-xs font-medium whitespace-nowrap disabled:opacity-50"
+            >
+              적용
+            </button>
+            {isRangeApplied && (
+              <button
+                type="button"
+                onClick={handleResetRange}
+                className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-colors whitespace-nowrap"
+              >
+                <RotateCcw className="w-3 h-3" />
+                초기화
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 매출 페이지(SalesFilters)의 FilterDropdown 과 동일한 트리거+팝오버 스타일의 단일 선택 드롭다운.
+function FilterSelect({
+  label,
+  value,
+  options,
+  defaultValue,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  defaultValue: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const displayLabel = options.find(o => o.value === value)?.label ?? value;
+  const isCustom = value !== defaultValue;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-background text-xs hover:bg-muted transition-colors"
+        >
+          <span className="text-muted-foreground">{label}</span>
+          <span className={`font-medium ${isCustom ? 'text-brand' : 'text-foreground'}`}>
+            {displayLabel}
+          </span>
+          <ChevronDown className="w-3 h-3 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-44 p-1">
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => { onChange(opt.value); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors"
+          >
+            <span className={`w-3.5 h-3.5 flex items-center justify-center ${value === opt.value ? 'text-brand' : 'text-transparent'}`}>
+              <Check className="w-3 h-3" />
+            </span>
+            {opt.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface Props {
   initialCustomers: Customer[];
   initialCategories: SaleCategory[];
+  initialGrades: CustomerGradeConfig[];
 }
 
-export function CustomersClient({ initialCustomers, initialCategories }: Props) {
+export function CustomersClient({ initialCustomers, initialCategories, initialGrades }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -44,8 +333,15 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [gradeFilter, setGradeFilter] = useState('all');
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all');
-  const [sortBy, setSortBy] = useState<SortBy>('newest');
+  const [sortBy, setSortBy] = useState<SortBy>('recent');
   const [searchQuery, setSearchQuery] = useState('');
+  // 기간 헤더(최근 방문 시기 기준). 기본 = 이번 달.
+  const now = new Date();
+  const [periodYear, setPeriodYear] = useState(now.getFullYear());
+  const [periodMonth, setPeriodMonth] = useState(now.getMonth() + 1);
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
+  const [isGradesOpen, setIsGradesOpen] = useState(false);
   const [customerSales, setCustomerSales] = useState<Sale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(false);
   const [isLoadingMoreSales, setIsLoadingMoreSales] = useState(false);
@@ -64,6 +360,12 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
   const sortCustomers = useCallback((customers: Customer[]) => {
     return [...customers].sort((a, b) => {
       switch (sortBy) {
+        case 'recent': {
+          // 최근 구매순 (nulls last)
+          const aTime = a.last_purchase_date ? new Date(a.last_purchase_date).getTime() : -Infinity;
+          const bTime = b.last_purchase_date ? new Date(b.last_purchase_date).getTime() : -Infinity;
+          return bTime - aTime;
+        }
         case 'newest':
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
@@ -80,46 +382,113 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     });
   }, [sortBy]);
 
+  // 기간 매칭 — 최근 방문일(last_purchase_date) 기준. 단, 방문 기록이 없는 고객은
+  // 등록일(created_at)로 대체해 '이 기간에 새로 등록한 고객'이 목록에서 사라지지 않게 한다.
+  const matchesPeriod = useCallback((c: Customer) => {
+    const ref = c.last_purchase_date ?? c.created_at;
+    if (!ref) return false;
+    const date = ref.slice(0, 10); // 'YYYY-MM-DD'
+    if (customRange) {
+      return customRange.start <= date && date <= customRange.end;
+    }
+    // 월 뷰: 연·월 비교
+    const ym = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
+    return date.slice(0, 7) === ym;
+  }, [customRange, periodYear, periodMonth]);
+
   const filteredCustomers = useMemo(() => {
+    const isSearching = searchQuery.trim() !== '';
     const filtered = optimisticCustomers
-      .filter(c => gradeFilter === 'all' || c.grade === gradeFilter)
+      .filter(c => gradeFilter === 'all' || c.grade_id === gradeFilter)
       .filter(c => genderFilter === 'all' || c.gender === genderFilter)
+      // 검색어가 있으면 기간 필터를 무시하고 전체 고객에서 찾는다(이름/연락처로 항상 검색 가능).
+      .filter(c => isSearching || matchesPeriod(c))
       .filter(c => {
-        if (!searchQuery) return true;
+        if (!isSearching) return true;
         const q = searchQuery.toLowerCase();
         const qDigits = q.replace(/-/g, '');
-        return c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.phone.replace(/-/g, '').includes(qDigits);
+        return c.name.toLowerCase().includes(q)
+          || c.phone.includes(q)
+          || c.phone.replace(/-/g, '').includes(qDigits)
+          || (c.memo?.toLowerCase().includes(q) ?? false);
       });
     return sortCustomers(filtered);
-  }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, sortCustomers]);
+  }, [optimisticCustomers, gradeFilter, genderFilter, searchQuery, matchesPeriod, sortCustomers]);
 
-  // Group by grade (only when grade filter is 'all')
-  const groupedByGrade = useMemo(() => {
+  // 등급 표시 순서: 구매횟수 임계값 높은 등급 먼저(많이 온 순). 임계값 없는(수동전용) 등급은 맨 뒤.
+  const gradeOrder = useMemo(() => {
+    return [...initialGrades].sort((a, b) => {
+      if (a.threshold == null && b.threshold == null) return a.sort_order - b.sort_order;
+      if (a.threshold == null) return 1;
+      if (b.threshold == null) return -1;
+      return b.threshold - a.threshold;
+    });
+  }, [initialGrades]);
+
+  // 전체 등급 보기일 때만 등급별 그룹핑(구분선). 특정 등급 필터 시엔 평면 그리드(null).
+  const groupedCustomers = useMemo(() => {
     if (gradeFilter !== 'all') return null;
-    const groups: Record<string, Customer[]> = {};
-    for (const customer of filteredCustomers) {
-      const grade = customer.grade || 'new';
-      if (!groups[grade]) groups[grade] = [];
-      groups[grade].push(customer);
+    const byGrade = new Map<string, typeof filteredCustomers>();
+    for (const c of filteredCustomers) {
+      const key = c.grade_id ?? '__none__';
+      (byGrade.get(key) ?? byGrade.set(key, []).get(key)!).push(c);
+    }
+    const groups = gradeOrder
+      .filter(g => byGrade.has(g.id))
+      .map(g => ({ id: g.id, name: g.name, customers: byGrade.get(g.id)! }));
+    if (byGrade.has('__none__')) {
+      groups.push({ id: '__none__', name: '미지정', customers: byGrade.get('__none__')! });
     }
     return groups;
-  }, [filteredCustomers, gradeFilter]);
+  }, [filteredCustomers, gradeFilter, gradeOrder]);
 
-  const stats = useMemo(() => {
-    const total = initialCustomers.length;
-    const regularVip = initialCustomers.filter(c => c.grade === 'regular' || c.grade === 'vip').length;
-    const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-    const recentBuyers = initialCustomers.filter(c => c.last_purchase_date && c.last_purchase_date >= thirtyDaysAgo).length;
-    return { total, regularVip, recentBuyers };
-  }, [initialCustomers]);
+  // 헤더 보조 지표용 — 날짜 문자열이 활성 기간에 포함되는지(first_purchase_date 등에 사용).
+  const inActivePeriod = useCallback((dateStr?: string | null) => {
+    if (!dateStr) return false;
+    const date = dateStr.slice(0, 10);
+    if (customRange) return customRange.start <= date && date <= customRange.end;
+    const ym = `${periodYear}-${String(periodMonth).padStart(2, '0')}`;
+    return date.slice(0, 7) === ym;
+  }, [customRange, periodYear, periodMonth]);
 
-  const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'newest';
+  const isSearching = searchQuery.trim() !== '';
+
+  // 헤더: 큰 숫자 + 보조(신규/재방문/평균구매액). 기간 뷰 기준.
+  const headerStats = useMemo(() => {
+    const total = filteredCustomers.length;
+    // 신규 = 이 기간에 '등록'한 고객(검색 모드에선 기간 개념이 없어 0).
+    const newCount = isSearching
+      ? 0
+      : filteredCustomers.filter(c => inActivePeriod(c.created_at)).length;
+    const revisit = total - newCount;
+    const sum = filteredCustomers.reduce((s, c) => s + (c.total_purchase_amount || 0), 0);
+    const avgManwon = total > 0 ? Math.round(sum / total / 10000) : 0;
+    return { total, newCount, revisit, avgManwon };
+  }, [filteredCustomers, isSearching, inActivePeriod]);
+
+  const isDefaultPeriod = customRange === null
+    && periodYear === now.getFullYear()
+    && periodMonth === now.getMonth() + 1;
+  const hasActiveFilters = gradeFilter !== 'all' || genderFilter !== 'all' || searchQuery !== '' || sortBy !== 'recent' || !isDefaultPeriod;
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    setCustomRange(null);
+    let y = periodYear;
+    let m = periodMonth + direction;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    setPeriodYear(y);
+    setPeriodMonth(m);
+  };
 
   const resetFilters = () => {
     setGradeFilter('all');
     setGenderFilter('all');
     setSearchQuery('');
-    setSortBy('newest');
+    setSortBy('recent');
+    setCustomRange(null);
+    setPeriodYear(now.getFullYear());
+    setPeriodMonth(now.getMonth() + 1);
   };
 
   const getExportConfig = useCallback((): ExportConfig<Customer> => ({
@@ -128,7 +497,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     columns: [
       { header: '이름', accessor: (c) => String(c.name || '') },
       { header: '전화번호', accessor: (c) => String(c.phone || '') },
-      { header: '등급', accessor: (c) => gradeLabels[c.grade]?.label || c.grade || '' },
+      { header: '등급', accessor: (c) => c.grade || '' },
       { header: '성별', accessor: (c) => c.gender ? genderLabels[c.gender] || '' : '' },
       { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
       { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },
@@ -171,20 +540,33 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
     }
   };
 
-  // URL 파라미터로 고객 상세 자동 오픈 (매출 페이지에서 연결)
+  // URL 파라미터로 고객 상세 자동 오픈 (매출·사진첩 페이지에서 연결)
   useEffect(() => {
     const customerId = searchParams.get('customerId');
-    if (customerId) {
-      const customer = initialCustomers.find(c => c.id === customerId);
-      if (customer) {
-        handleSelectCustomer(customer);
-      }
-      router.replace('/admin/customers', { scroll: false });
+    if (!customerId) return;
+    router.replace('/admin/customers', { scroll: false });
+
+    const customer = initialCustomers.find(c => c.id === customerId);
+    if (customer) {
+      handleSelectCustomer(customer);
+      return;
     }
+    // 현재 로드된 목록에 없으면(다른 페이지 고객) 단건 조회로 상세를 연다.
+    void getCustomerById(customerId)
+      .then((fetched) => {
+        if (fetched) handleSelectCustomer(fetched);
+      })
+      .catch((error) => {
+        console.error('Failed to load customer for deep link:', error);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFormSuccess = () => {
+    router.refresh();
+  };
+
+  const handleGradesChanged = () => {
     router.refresh();
   };
 
@@ -233,107 +615,96 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        <ExportButton getExportConfig={getExportConfig} className="flex-1 sm:flex-initial" />
-        <Button onClick={handleOpenCreateForm} className="flex-1 sm:flex-initial">
-          <Plus className="w-4 h-4 mr-2" />
-          고객 등록
-        </Button>
+      {/* 기간 헤더 — 매출 페이지와 동일한 월 네비 + 기간(최근 방문 기준) */}
+      <PeriodHeader
+        periodYear={periodYear}
+        periodMonth={periodMonth}
+        customRange={customRange}
+        onMonthNav={handleMonthNav}
+        onRangeApply={setCustomRange}
+        onRangeReset={() => setCustomRange(null)}
+      />
+
+      {/* 헤더: 큰 숫자 + 보조 미니스탯 */}
+      <div>
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <p className="text-[28px] font-bold tracking-tight text-brand tabular-nums leading-none">
+            {headerStats.total}<span className="text-base font-medium">명</span>
+          </p>
+          {headerStats.total > 0 && (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {!isSearching && (
+                <>신규 <span className="font-semibold text-foreground">{headerStats.newCount}</span> · 재방문 <span className="font-semibold text-foreground">{headerStats.revisit}</span> · </>
+              )}
+              평균 <span className="font-semibold text-foreground">{headerStats.avgManwon}만</span>
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">전체 고객</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.total}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <span className="text-base sm:text-lg">🌟</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">단골/VIP</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.regularVip}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col items-center text-center gap-1.5 sm:flex-row sm:text-left sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center shrink-0">
-                <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">최근 30일</p>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{stats.recentBuyers}<span className="text-sm font-medium">명</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={gradeFilter} onValueChange={setGradeFilter}>
-          <SelectTrigger className="w-[120px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 등급</SelectItem>
-            <SelectItem value="new">신규</SelectItem>
-            <SelectItem value="regular">단골</SelectItem>
-            <SelectItem value="vip">VIP</SelectItem>
-            <SelectItem value="blacklist">블랙리스트</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
-          <SelectTrigger className="w-[110px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 성별</SelectItem>
-            <SelectItem value="male">남성</SelectItem>
-            <SelectItem value="female">여성</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-          <SelectTrigger className="w-[130px] bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">최신순</SelectItem>
-            <SelectItem value="oldest">오래된순</SelectItem>
-            <SelectItem value="name">가나다순</SelectItem>
-            <SelectItem value="purchase_count">구매횟수순</SelectItem>
-            <SelectItem value="purchase_amount">구매금액순</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="이름/연락처 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-background"
-            aria-label="고객 검색"
+      {/* Filters — 데탑: 한 줄(드롭다운 + 검색 flex-1) / 모바일: 드롭다운 줄 + 검색 줄 */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* 드롭다운 — 한 줄(넘치면 가로 스크롤) */}
+        <div className="flex items-center gap-2 overflow-x-auto shrink-0">
+          <FilterSelect
+            label="등급"
+            value={gradeFilter}
+            defaultValue="all"
+            options={[
+              { value: 'all', label: '전체' },
+              ...initialGrades.map((g) => ({ value: g.id, label: g.name })),
+            ]}
+            onChange={setGradeFilter}
+          />
+          <FilterSelect
+            label="성별"
+            value={genderFilter}
+            defaultValue="all"
+            options={[
+              { value: 'all', label: '전체' },
+              { value: 'male', label: '남성' },
+              { value: 'female', label: '여성' },
+            ]}
+            onChange={(v) => setGenderFilter(v as GenderFilter)}
+          />
+          <FilterSelect
+            label="정렬"
+            value={sortBy}
+            defaultValue="recent"
+            options={[
+              { value: 'recent', label: '최근 구매순' },
+              { value: 'newest', label: '최신 등록순' },
+              { value: 'oldest', label: '오래된순' },
+              { value: 'name', label: '가나다순' },
+              { value: 'purchase_count', label: '구매횟수순' },
+              { value: 'purchase_amount', label: '구매금액순' },
+            ]}
+            onChange={(v) => setSortBy(v as SortBy)}
           />
         </div>
-        <p className="text-sm text-muted-foreground ml-auto shrink-0">
-          {filteredCustomers.length}명{filteredCustomers.length !== optimisticCustomers.length && ` / 전체 ${optimisticCustomers.length}명`}
-        </p>
+        {/* 검색 + 초기화 — 데탑에선 검색바 폭 제한(매출과 동일 220px) */}
+        <div className="flex items-center gap-2 sm:flex-1 min-w-0">
+          <div className="relative flex-1 sm:max-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="이름, 연락처, 메모 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-sm bg-background rounded-full"
+              aria-label="고객 검색"
+            />
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium shrink-0 hover:bg-muted transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              초기화
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Customer Card Grid */}
@@ -361,37 +732,32 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
             </div>
           )}
         </Card>
-      ) : groupedByGrade ? (
-        // Group by grade section
+      ) : groupedCustomers ? (
+        // 전체 보기: 등급별 그룹(임계값 높은 순) + 구분선
         <div className="space-y-6">
-          {gradeSections.map(({ key, label, icon: Icon, iconColor }) => {
-            const customers = groupedByGrade[key];
-            if (!customers || customers.length === 0) return null;
-            return (
-              <div key={key}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon className={cn('w-4 h-4', iconColor)} />
-                  <h2 className="text-sm font-semibold text-foreground">{label}</h2>
-                  <span className="text-xs text-muted-foreground">{customers.length}명</span>
-                  <div className="flex-1 border-t border-border ml-2" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {customers.map((customer) => (
-                    <CustomerCard
-                      key={customer.id}
-                      customer={customer}
-                      onSelect={handleSelectCustomer}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
+          {groupedCustomers.map((group) => (
+            <div key={group.id} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground shrink-0">{group.name}</span>
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">{group.customers.length}</span>
+                <div className="flex-1 h-px bg-border" />
               </div>
-            );
-          })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {group.customers.map((customer) => (
+                  <CustomerCard
+                    key={customer.id}
+                    customer={customer}
+                    onSelect={handleSelectCustomer}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        // Specific grade filter → flat grid
+        // 특정 등급 필터: 평면 그리드
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredCustomers.map((customer) => (
             <CustomerCard
@@ -415,6 +781,7 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
           }
         }}
         customer={editingCustomer}
+        grades={initialGrades}
         onSuccess={handleFormSuccess}
       />
 
@@ -454,6 +821,53 @@ export function CustomersClient({ initialCustomers, initialCategories }: Props) 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 등급 관리 모달 */}
+      <CustomerGradesModal
+        open={isGradesOpen}
+        onOpenChange={setIsGradesOpen}
+        onChanged={handleGradesChanged}
+      />
+
+      {/* FAB — Speed Dial */}
+      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); handleOpenCreateForm(); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
+            >
+              <UserPlus className="w-4 h-4" />
+              고객 등록
+            </button>
+            <ExportButton
+              getExportConfig={getExportConfig}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            />
+            <button
+              type="button"
+              onClick={() => { setFabOpen(false); setIsGradesOpen(true); }}
+              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+              등급 관리
+            </button>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
+            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
+          }`}
+          aria-label="액션 메뉴"
+          aria-haspopup="menu"
+          aria-expanded={fabOpen}
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
+      </div>
     </div>
   );
 }

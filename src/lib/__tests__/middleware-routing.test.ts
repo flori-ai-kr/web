@@ -10,7 +10,7 @@ describe('rootRedirectTarget', () => {
     expect(rootRedirectTarget('/', {hasAccess: true, hasRefresh: false})).toBe('/admin');
     expect(rootRedirectTarget('/', {hasAccess: false, hasRefresh: true})).toBe('/admin');
   });
-  it('루트 + 쿠키 없으면 null(랜딩 렌더)', () => {
-    expect(rootRedirectTarget('/', {hasAccess: false, hasRefresh: false})).toBeNull();
+  it('루트 + 쿠키 없으면 /login (랜딩은 별도 사이트로 이관)', () => {
+    expect(rootRedirectTarget('/', {hasAccess: false, hasRefresh: false})).toBe('/login');
   });
 });

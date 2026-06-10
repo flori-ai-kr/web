@@ -50,7 +50,7 @@ export default async function DashboardPage() {
   }
 
   try {
-    initialCommunityPosts = await getLatestCommunityPosts(4);
+    initialCommunityPosts = await getLatestCommunityPosts(8);
   } catch {
     // 커뮤니티 게이트(미인증/미배포) 실패 시 대시보드 크래시 방지 — 빈 배열로 폴백
     initialCommunityPosts = [];

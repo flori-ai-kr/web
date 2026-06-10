@@ -5,22 +5,22 @@ import { PhotoCardGrid } from '../gallery/PhotoCardGrid'
 import type { PhotoTag, PhotoCard } from '@/types/database'
 
 const tags: PhotoTag[] = [
-  { id: '1', name: '봄', color: '#ec4899', created_at: '' },
-  { id: '2', name: '여름', color: '#3b82f6', created_at: '' },
+  { id: '1', name: '봄', created_at: '' },
+  { id: '2', name: '여름', created_at: '' },
 ]
 
 describe('TagFilter', () => {
-  it('전체 + 각 태그를 렌더한다', () => {
+  it('전체 + 각 태그를 #해시태그로 렌더한다', () => {
     render(<TagFilter tags={tags} selectedTag={null} onSelectTag={() => {}} />)
     expect(screen.getByText('전체')).toBeInTheDocument()
-    expect(screen.getByText('봄')).toBeInTheDocument()
-    expect(screen.getByText('여름')).toBeInTheDocument()
+    expect(screen.getByText('#봄')).toBeInTheDocument()
+    expect(screen.getByText('#여름')).toBeInTheDocument()
   })
 
   it('태그 클릭 시 이름으로 콜백한다', () => {
     const onSelect = vi.fn()
     render(<TagFilter tags={tags} selectedTag={null} onSelectTag={onSelect} />)
-    fireEvent.click(screen.getByText('봄'))
+    fireEvent.click(screen.getByText('#봄'))
     expect(onSelect).toHaveBeenCalledWith('봄')
   })
 
@@ -30,16 +30,11 @@ describe('TagFilter', () => {
     fireEvent.click(screen.getByText('전체'))
     expect(onSelect).toHaveBeenCalledWith(null)
   })
-
-  it('선택되지 않은 태그는 색상 보더를 적용한다', () => {
-    render(<TagFilter tags={tags} selectedTag={null} onSelectTag={() => {}} />)
-    expect(screen.getByText('봄')).toHaveStyle({ borderLeft: '3px solid #ec4899' })
-  })
 })
 
 describe('PhotoCardGrid', () => {
   it('카드가 없으면 빈 상태 안내를 렌더한다', () => {
-    render(<PhotoCardGrid cards={[]} tags={tags} onCardClick={() => {}} />)
+    render(<PhotoCardGrid cards={[]} onCardClick={() => {}} />)
     expect(screen.getByText('등록된 사진이 없습니다')).toBeInTheDocument()
   })
 
@@ -51,7 +46,7 @@ describe('PhotoCardGrid', () => {
         sale_id: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
       } as PhotoCard,
     ]
-    render(<PhotoCardGrid cards={cards} tags={tags} onCardClick={() => {}} />)
+    render(<PhotoCardGrid cards={cards} onCardClick={() => {}} />)
     expect(screen.getByText('봄 부케')).toBeInTheDocument()
     expect(screen.queryByText('등록된 사진이 없습니다')).not.toBeInTheDocument()
   })

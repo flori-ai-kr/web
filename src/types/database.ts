@@ -81,20 +81,43 @@ export interface RecurringExpense {
   updated_at: string;
 }
 
+/** 고객 대표 썸네일 한 장. card_id로 사진첩 해당 카드 딥링크 가능. (BFF id-as-string 규약) */
+export interface PhotoThumbnail {
+  url: string;
+  card_id: string;
+}
+
 export interface Customer {
   id: string;
   user_id: string;
   name: string;
   phone: string;
-  grade: CustomerGrade;
+  /** 등급명(자유 문자열). 더 이상 고정 union이 아니며, 등급 미지정 시 null. */
+  grade: string | null;
+  /** 적용된 등급 설정 id (자동/수동 모두). 미지정 시 null. */
+  grade_id: string | null;
+  /** true면 사용자가 수동으로 고정한 등급(자동 재계산 제외). */
+  grade_locked: boolean;
   gender?: CustomerGender | null;
   total_purchase_count: number;
   total_purchase_amount: number;
   first_purchase_date?: string;
   last_purchase_date?: string;
+  /** 대표 사진 썸네일(카드 id 포함, 딥링크용). 서버 집계값. */
+  photo_thumbnails: PhotoThumbnail[];
+  /** 연결된 사진 카드 수. 서버 집계값. */
+  photo_count: number;
   memo?: string;
   created_at: string;
   updated_at: string;
+}
+
+/** 등급 설정(테넌트별 CRUD 대상). 서버 /customer-grades 계약 미러. */
+export interface CustomerGradeConfig {
+  id: string;
+  name: string;
+  threshold: number | null;
+  sort_order: number;
 }
 
 // Sale Settings Types
@@ -121,7 +144,6 @@ export interface SalePaymentMethod {
 export interface PhotoTag {
   id: string;
   name: string;
-  color: string;
   created_at: string;
 }
 
@@ -138,6 +160,8 @@ export interface PhotoCard {
   tags: string[];
   photos: PhotoFile[];
   sale_id: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -190,18 +214,6 @@ export const SCHEDULE_COLORS = [
   { value: '#3b82f6', label: '블루' },
   { value: '#10b981', label: '그린' },
   { value: '#f59e0b', label: '앰버' },
-  { value: '#6b7280', label: '그레이' },
-] as const;
-
-export const PHOTO_TAG_COLORS = [
-  { value: '#f5f5f5', label: '화이트' },
-  { value: '#ec4899', label: '핑크' },
-  { value: '#ef4444', label: '레드' },
-  { value: '#eab308', label: '옐로우' },
-  { value: '#a855f7', label: '퍼플' },
-  { value: '#6366f1', label: '인디고' },
-  { value: '#14b8a6', label: '틸' },
-  { value: '#f97316', label: '오렌지' },
   { value: '#6b7280', label: '그레이' },
 ] as const;
 

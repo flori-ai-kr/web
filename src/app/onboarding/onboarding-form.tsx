@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,6 +16,7 @@ import {
 import { AuthHeader } from '@/components/auth/auth-header'
 import { cn } from '@/lib/utils'
 import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
+import { PRIVACY_POLICY_URL } from '@/lib/constants'
 import { checkNickname, completeRegistration } from './actions'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -265,14 +265,14 @@ export function OnboardingForm({
         {/* 안내 */}
         <p className="text-center text-xs text-muted-foreground">
           입력 정보는 맞춤 추천에 사용돼요.{' '}
-          <Link
-            href="/policy/privacy"
+          <a
+            href={PRIVACY_POLICY_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
           >
             개인정보 처리방침
-          </Link>
+          </a>
         </p>
 
         <StepIndicator step={step} />

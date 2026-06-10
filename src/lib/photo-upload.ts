@@ -27,8 +27,8 @@ export async function uploadPhotoFilesStandalone(files: File[]): Promise<PhotoFi
 }
 
 /**
- * presigned PUT URL을 발급받아 브라우저에서 R2로 직접 업로드한다.
- * Vercel Server Action 본문 4.5MB 제한을 우회하기 위한 경로.
+ * presigned PUT URL을 발급받아 브라우저에서 S3로 직접 업로드한다.
+ * Next.js Server Action 본문 크기 제한을 우회하기 위한 경로.
  * 입력 순서대로 PhotoFile[]을 반환한다 (순서 보존).
  */
 export async function uploadPhotoFiles(
