@@ -30,8 +30,6 @@ const serverEnvSchema = z.object({
   OAUTH_KAKAO_REST_API_KEY: z.string().min(1).optional(),
   OAUTH_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   OAUTH_NAVER_CLIENT_ID: z.string().min(1).optional(),
-  // 사전등록 후 안내할 카카오톡 오픈채팅 링크(공개 URL). 미설정 시 버튼 비활성.
-  NEXT_PUBLIC_KAKAO_OPENCHAT_URL: emptyToUndefined(z.string().url().optional()),
   // 웹 애널리틱스(공개 ID). 미설정 시 해당 도구 미로드. 프로덕션 빌드에서만 실제 동작.
   NEXT_PUBLIC_GA_MEASUREMENT_ID: emptyToUndefined(z.string().min(1).optional()), // Google Analytics 4 (G-XXXXXXXXXX)
   NEXT_PUBLIC_CLARITY_PROJECT_ID: emptyToUndefined(z.string().min(1).optional()), // Microsoft Clarity 프로젝트 ID
