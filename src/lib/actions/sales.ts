@@ -4,7 +4,6 @@ import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {findOrCreateCustomer} from './customers';
 import type {Sale} from '@/types/database';
-import {z} from 'zod';
 import {idSchema, saleSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';

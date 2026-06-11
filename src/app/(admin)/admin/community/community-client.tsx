@@ -6,7 +6,6 @@ import {Lock, MessageSquare, MessagesSquare, PenSquare, Pin, Search} from 'lucid
 import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
 import {cn} from '@/lib/utils';
 import {PostCard} from '@/components/community/post-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';

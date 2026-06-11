@@ -173,7 +173,6 @@ function FilterDropdown({
 export function SalesFiltersUI({
   currentYear,
   currentMonth,
-  currentDay,
   categoryFilter,
   paymentFilter,
   channelFilter,
@@ -182,7 +181,6 @@ export function SalesFiltersUI({
   payments,
   channels,
   onMonthNav,
-  onTodayOnly,
   onDateRangeApply,
   onCategoryChange,
   onPaymentChange,

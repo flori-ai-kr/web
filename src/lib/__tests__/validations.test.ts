@@ -190,7 +190,7 @@ describe('Sale Schema (매출)', () => {
         fc.integer({ min: 1, max: 100000 }),
         fc.integer({ min: 0, max: 100_000_000 }),
         fc.constantFrom('cash', 'card', 'transfer', 'naverpay', 'kakaopay'),
-        (date, categoryId, amount, method) => {
+        (date, categoryId, amount, _method) => {
           return saleSchema.safeParse({
             date,
             category_id: String(categoryId),

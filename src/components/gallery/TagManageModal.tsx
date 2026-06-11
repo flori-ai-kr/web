@@ -81,7 +81,7 @@ export function TagManageModal({ open, onClose, tags, onTagsChange }: TagManageM
       setDeletingId(null);
       onTagsChange();
       toast.success('태그가 삭제되었습니다');
-    } catch (error) {
+    } catch {
       toast.error('태그 삭제 실패');
     } finally {
       setIsDeleting(false);

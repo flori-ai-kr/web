@@ -22,7 +22,6 @@ import {
     ChevronRight,
     Loader2,
     Plus,
-    Trash2,
     X
 } from 'lucide-react';
 import {toast} from 'sonner';

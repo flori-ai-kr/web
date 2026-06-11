@@ -3,7 +3,6 @@
 import {useCallback, useEffect, useMemo, useOptimistic, useState, useTransition} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
 import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -325,7 +324,7 @@ interface Props {
   initialGrades: CustomerGradeConfig[];
 }
 
-export function CustomersClient({ initialCustomers, initialCategories, initialGrades }: Props) {
+export function CustomersClient({ initialCustomers, initialGrades }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);

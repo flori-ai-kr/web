@@ -1,9 +1,8 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition} from 'react';
+import {useCallback, useEffect, useOptimistic, useRef, useState, useTransition} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Plus, Settings} from 'lucide-react';
 import {format} from 'date-fns';
@@ -31,13 +30,6 @@ const SalePhotoModal = dynamic(
   () => import('@/components/sales/SalePhotoModal').then(mod => ({ default: mod.SalePhotoModal })),
   { loading: () => null, ssr: false },
 );
-
-// Year options: 2024 ~ 2030
-const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
-// Month options: 1 ~ 12
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
-// Day options: 1 ~ 31
-const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 interface Props {
   initialSales: Sale[];
@@ -249,7 +241,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
   const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
-  const isDayDisabled = yearParam === 'all' || monthParam === 'all';
 
   // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
   const buildUrl = useCallback((overrides: {
@@ -276,18 +267,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     if (p.channel.length > 0) params.set('channel', p.channel.join(','));
     return `/admin/sales?${params.toString()}`;
   }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
-
-  const handleYearChange = (year: string) => {
-    router.push(buildUrl({ year, day: 'all' }));
-  };
-
-  const handleMonthChange = (month: string) => {
-    router.push(buildUrl({ month, day: 'all' }));
-  };
-
-  const handleDayChange = (day: string) => {
-    router.push(buildUrl({ day }));
-  };
 
   const handleTodayOnly = () => {
     const now = new Date();

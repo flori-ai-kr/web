@@ -14,7 +14,6 @@ const RANGES: StatRange[] = ['7d', '30d', '90d', 'all'];
 
 export function OverviewClient({
   overview,
-  health,
   signups,
   sales,
   range,

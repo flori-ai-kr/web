@@ -42,7 +42,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
       toast.success('카드가 삭제되었습니다');
       onDelete();
       onClose();
-    } catch (error) {
+    } catch {
       toast.error('삭제에 실패했습니다');
     } finally {
       setIsDeleting(false);
@@ -72,7 +72,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       toast.success(`${urls.length}개 사진 다운로드 완료`);
-    } catch (error) {
+    } catch {
       toast.error('다운로드에 실패했습니다');
     } finally {
       setIsDownloading(false);
