@@ -5,10 +5,9 @@ import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
-import {Plus, RotateCcw, Search, Settings, UserPlus, Users} from 'lucide-react';
+import {RotateCcw, Search, Users} from 'lucide-react';
 import {format} from 'date-fns';
 import type {Customer, CustomerGradeConfig} from '@/types/database';
-import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
 import {PeriodHeader} from '@/components/layout/PeriodHeader';
@@ -18,6 +17,7 @@ import {CustomerFormDialog} from './components/CustomerFormDialog';
 import {CustomerDetailDialog} from './components/CustomerDetailDialog';
 import {CustomerGradesModal} from './components/CustomerGradesModal';
 import {CustomerDeleteDialog} from './components/customer-delete-dialog';
+import {CustomerFab} from './components/customer-fab';
 import {useCustomerFilters} from './hooks/use-customer-filters';
 import type {GenderFilter, SortBy} from './hooks/use-customer-filters';
 import {useCustomerDetail} from './hooks/use-customer-detail';
@@ -33,7 +33,6 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
   const router = useRouter();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [fabOpen, setFabOpen] = useState(false);
   const [isGradesOpen, setIsGradesOpen] = useState(false);
   const {
     selectedCustomer,
@@ -323,44 +322,11 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
       />
 
       {/* FAB — Speed Dial */}
-      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
-        {fabOpen && (
-          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); handleOpenCreateForm(); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
-            >
-              <UserPlus className="w-4 h-4" />
-              고객 등록
-            </button>
-            <ExportButton
-              getExportConfig={getExportConfig}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            />
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); setIsGradesOpen(true); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            >
-              <Settings className="w-4 h-4" />
-              등급 관리
-            </button>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setFabOpen(!fabOpen)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
-            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
-          }`}
-          aria-label="액션 메뉴"
-          aria-haspopup="menu"
-          aria-expanded={fabOpen}
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <CustomerFab
+        onOpenForm={handleOpenCreateForm}
+        onOpenGrades={() => setIsGradesOpen(true)}
+        getExportConfig={getExportConfig}
+      />
     </div>
   );
 }
