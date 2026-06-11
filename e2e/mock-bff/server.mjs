@@ -226,21 +226,7 @@ const routes = [
     return { sales: list.slice(offset, offset + limit), hasMore: offset + limit < list.length };
   }],
   ['POST', /^\/sales$/, (q, m, body) => {
-    const sale = {
-      id: db.nid(), date: body.date,
-      categoryId: body.categoryId ?? null,
-      categoryLabel: db.saleCategories.find((c) => c.id === Number(body.categoryId))?.label ?? null,
-      amount: body.amount,
-      paymentMethodId: body.isUnpaid ? null : (body.paymentMethodId ?? null),
-      paymentMethodLabel: body.isUnpaid ? null
-        : (db.paymentMethods.find((p) => p.id === Number(body.paymentMethodId))?.label ?? null),
-      channelId: body.channelId ?? null,
-      channelLabel: db.saleChannels.find((c) => c.id === Number(body.channelId))?.label ?? null,
-      customerName: body.customerName ?? null, customerPhone: body.customerPhone ?? null,
-      customerId: body.customerId ?? null, memo: body.memo ?? null,
-      isUnpaid: !!body.isUnpaid, hasReview: false, photos: null,
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-    };
+    const sale = newSale(body);
     db.sales.push(sale);
     return sale;
   }],
@@ -308,6 +294,25 @@ const routes = [
       .filter((c) => c.name.toLowerCase().includes(query))
       .map((c) => ({ id: c.id, name: c.name, phone: c.phone, grade: c.grade }));
   }],
+  // 연락처 중복 체크 (customers.ts checkPhoneDuplicate) — 중복 없으면 204
+  ['GET', /^\/customers\/check-phone$/, (q) => {
+    const phone = q.get('phone');
+    const excludeId = q.get('excludeId');
+    const found = db.customers.find((c) => c.phone === phone && c.id !== excludeId);
+    return found ? { id: found.id, name: found.name, phone: found.phone, grade: found.grade } : undefined;
+  }],
+  // 고객 매출 목록 (customers.ts getCustomerSales — KotlinCustomerSalesPage)
+  ['GET', /^\/customers\/([^/]+)\/sales$/, (q, match) => {
+    const page = Number(q.get('page') ?? 0);
+    const size = Number(q.get('size') ?? 10);
+    const list = db.sales
+      .filter((s) => String(s.customerId) === match[1])
+      .sort((a, b) => b.date.localeCompare(a.date));
+    return {
+      sales: list.slice(page * size, (page + 1) * size),
+      hasMore: (page + 1) * size < list.length,
+    };
+  }],
   ['POST', /^\/customers\/find-or-create$/, (q, m, body) => {
     const found = db.customers.find((c) => c.phone === body.phone);
     if (found) return found;
@@ -338,6 +343,36 @@ const routes = [
     let list = [...db.reservations];
     if (month) list = list.filter((r) => r.date.startsWith(month));
     return list;
+  }],
+  // 매출에 연결된 예약(픽업) 목록 (reservations.ts getReservationsForSale)
+  ['GET', /^\/reservations\/by-sale\/([^/]+)$/, (q, match) =>
+    db.reservations.filter((r) => r.saleId === match[1])],
+  // 예약 부분 업데이트 (reservations.ts updateReservation — non-undefined 필드만 반영)
+  ['PATCH', /^\/reservations\/([^/]+)$/, (q, match, body) => {
+    const r = db.reservations.find((x) => x.id === match[1]);
+    if (!r) return undefined;
+    for (const key of ['date', 'time', 'customerName', 'customerPhone', 'title', 'memo', 'amount', 'status', 'reminderAt', 'pickupCompleted', 'saleId']) {
+      if (body[key] !== undefined) r[key] = body[key];
+    }
+    r.updatedAt = new Date().toISOString();
+    return r;
+  }],
+  // 예약 → 매출 변환 (reservations.ts convertReservationToSale): 매출 생성 + 예약 enrichment
+  ['POST', /^\/reservations\/([^/]+)\/convert-to-sale$/, (q, match, body) => {
+    const sale = newSale(body);
+    db.sales.push(sale);
+    const r = db.reservations.find((x) => x.id === match[1]);
+    if (r) {
+      r.saleId = sale.id;
+      r.saleDate = sale.date;
+      r.productCategory = sale.categoryLabel;
+      r.customerId = sale.customerId;
+      r.saleIsUnpaid = sale.isUnpaid;
+      r.salePaymentMethod = sale.paymentMethodLabel;
+      r.saleReservationChannel = sale.channelLabel;
+      r.updatedAt = new Date().toISOString();
+    }
+    return sale;
   }],
   ['POST', /^\/reservations$/, (q, m, body) => {
     const reservation = {
@@ -482,6 +517,26 @@ function rangeSales(q) {
   const from = q.get('from') ?? `${db.ym}-01`;
   const to = q.get('to') ?? `${db.ym}-31`;
   return { from, to, list: db.sales.filter((s) => s.date >= from && s.date <= to) };
+}
+
+// sales.ts SaleCreateRequest(camelCase) → KotlinSale 미러. POST /sales · convert-to-sale 공용.
+function newSale(body) {
+  const nowIso = new Date().toISOString();
+  return {
+    id: db.nid(), date: body.date,
+    categoryId: body.categoryId ?? null,
+    categoryLabel: db.saleCategories.find((c) => c.id === Number(body.categoryId))?.label ?? null,
+    amount: body.amount,
+    paymentMethodId: body.isUnpaid ? null : (body.paymentMethodId ?? null),
+    paymentMethodLabel: body.isUnpaid ? null
+      : (db.paymentMethods.find((p) => p.id === Number(body.paymentMethodId))?.label ?? null),
+    channelId: body.channelId ?? null,
+    channelLabel: db.saleChannels.find((c) => c.id === Number(body.channelId))?.label ?? null,
+    customerName: body.customerName ?? null, customerPhone: body.customerPhone ?? null,
+    customerId: body.customerId ?? null, memo: body.memo ?? null,
+    isUnpaid: !!body.isUnpaid, hasReview: false, photos: null,
+    createdAt: nowIso, updatedAt: nowIso,
+  };
 }
 
 function newCustomer(body) {
