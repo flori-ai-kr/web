@@ -338,6 +338,8 @@ const routes = [
     db.reservations
       .filter((r) => r.status !== 'cancelled' && r.date >= todayStr())
       .sort((a, b) => (a.date + (a.time ?? '')).localeCompare(b.date + (b.time ?? '')))],
+  // 헤더 알림(리마인더 발동 목록) — e2e에서는 항상 빈 목록
+  ['GET', /^\/reservations\/reminders$/, () => []],
   ['GET', /^\/reservations$/, (q) => {
     const month = q.get('month');
     let list = [...db.reservations];
@@ -554,9 +556,17 @@ function newCustomer(body) {
 
 // ─── HTTP 서버 ───────────────────────────────────────────────
 
+// 의도적으로 404를 주는 경로 — 경고 없이 응답 (운영자 아님 판정용. unhandled 노이즈 방지)
+const KNOWN_404 = [/^\/admin\/me$/];
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const route = routes.find(([method, pattern]) => method === req.method && pattern.test(url.pathname));
+
+  if (!route && KNOWN_404.some((p) => p.test(url.pathname))) {
+    json(res, 404, { message: 'not found' });
+    return;
+  }
 
   if (!route) {
     console.warn('[mock-bff] unhandled:', req.method, req.url);
