@@ -11,7 +11,8 @@ const MOCK_BFF_PORT = 18080;
 const webEnv = {
   API_URL: `http://127.0.0.1:${MOCK_BFF_PORT}`,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'e2e-dummy-vapid-public-key',
-  INTERNAL_API_KEY: 'e2e-dummy-internal-api-key-0123456789abcdef',
+  // CI build job과 동일한 placeholder 패턴 사용 (실키 아님 — 검증 길이 32자만 충족)
+  INTERNAL_API_KEY: 'ci-placeholder-internal-api-key-32-chars-minimum',
   STORAGE_PUBLIC_URL: 'https://cdn.example.com',
   // .env.local의 실제 ID가 베이크되지 않도록 비활성화 (빈 값 → 미로드)
   NEXT_PUBLIC_GA_MEASUREMENT_ID: '',

@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-11 | session1-launch: 랜딩·정책 페이지를 별도 홈페이지(flori.ai.kr) 정적 사이트로 분리. 루트 `/` 미인증 → `/login` redirect. GA4/Clarity 애널리틱스 추가. AWS 자체 호스팅(Docker/EC2/ALB) 전환 완료
+> 최종 업데이트: 2026-06-11 | refactor/with-fable5: Playwright e2e(mock BFF) 신설, types 도메인 8분할, lib/api/mappers/ 통합, hooks/ 공용 훅 2종(use-infinite-list·use-quick-create), 4개 거대 클라이언트 분해(≤300줄), 파일명 kebab-case + colocation 정비, ESLint ignore 정비(0 errors)
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -258,11 +258,13 @@ CUD(Create/Update/Delete) 후 `router.refresh()`를 호출하면 Server Componen
 
 ---
 
-### vitest + fast-check (테스트)
+### vitest + fast-check + Playwright (테스트)
 
 **왜 vitest인가:** Vite 기반이라 ESM 설정 문제 없이 바로 동작한다. Jest는 Next.js 환경에서 ESM 설정이 복잡하다. HMR 속도로 테스트가 실행된다.
 
 **왜 fast-check인가:** 속성 기반 테스트(Property-Based Testing)로 "모든 유효한 매출 금액에 대해 포맷팅이 정상 동작한다" 같은 테스트를 작성한다. 수동으로 테스트 케이스를 나열하는 대신 fast-check가 자동으로 엣지 케이스를 탐색해준다.
+
+**왜 Playwright + mock BFF인가:** `apiFetch`는 Next.js 서버 → Kotlin BFF의 서버 간 호출이라 브라우저 레이어(`page.route()`)로는 가로챌 수 없다. 소셜 OAuth도 실 플로우를 탈 수 없다. `e2e/mock-bff/server.mjs`가 외부 의존성 0인 순수 Node HTTP 서버로 BFF 엔드포인트를 fixture 응답하고, `playwright.config.ts`의 webServer가 mock BFF(18080)와 next(3110, `API_URL=mock`)를 함께 기동한다. 로그인은 `e2e/helpers/auth.ts`의 쿠키 주입으로 처리. CI에 e2e job 추가됨.
 
 ---
 
@@ -688,7 +690,8 @@ erDiagram
 ## 타입 시스템
 
 ```typescript
-// src/types/database.ts
+// src/types/ (도메인별 파일: sales/expenses/customers/gallery/reservations/insights/community/user)
+// database.ts는 기존 import 호환용 re-export 배럴 — 신규 코드는 도메인 파일 직접 import 권장
 // ※ id 기반 계약 이후: PaymentMethod 문자열 enum 폐지, ProductCategory enum 폐지,
 //   ReservationChannel 문자열 enum 폐지. 카테고리·결제방식·채널은 모두 id(string) + label(string) 쌍으로 전달.
 // ※ 세션3: CustomerGrade 고정 union 폐지 → 테넌트별 커스텀 등급(string | null). grade_id·grade_locked 추가.
@@ -838,19 +841,16 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 
 - **파일**: `.github/workflows/ci.yml`
 - **트리거**: PR to main/dev + push to main/dev
-- **잡**: Lint -> Type Check -> Test -> Build (Node 22)
+- **잡**: Lint → Type Check → Test → Build → **E2E** (Node 22). E2E job은 Playwright chromium만 설치(`npx playwright install --with-deps chromium`), `npm run e2e` 실행, 실패 시 `playwright-report/` 아티팩트 7일 보존.
 - **동시성**: 같은 브랜치에서 새 push 시 이전 실행 취소
 - **보안**: `actions/checkout`, `actions/setup-node`는 커밋 해시로 고정 (supply chain attack 방지)
 
 ## 테스트
 
-- **프레임워크**: vitest + jsdom
-- **PBT**: fast-check (속성 기반 테스트)
-- **테스트 파일**: `src/lib/__tests__/`
-  - `sales.property.test.ts`
-  - `photo-gallery.property.test.ts`
-  - `validations.test.ts`
-- **실행**: `npm test` / `npm run test:watch`
+- **단위/PBT**: vitest + jsdom + fast-check (속성 기반 테스트)
+- **테스트 파일**: `src/lib/__tests__/`(validations, property 등), `src/lib/api/mappers/__tests__/`(DTO 매퍼 9개), `src/hooks/__tests__/`(use-infinite-list, use-quick-create)
+- **e2e**: Playwright (`e2e/`) — 렌더 스모크 12개 + 핵심 CRUD 9개 = 21개. mock BFF(`e2e/mock-bff/`) + 쿠키 주입 로그인(`e2e/helpers/auth.ts`)
+- **실행**: `npm test` / `npm run test:watch` / `pnpm e2e`
 
 ---
 
@@ -883,3 +883,4 @@ src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubsc
 | @dnd-kit/utilities | ^3.x | CSS Transform 유틸 (SortableRow 드래그 애니메이션) |
 | vitest | ^4.0.15 | 테스트 프레임워크 |
 | fast-check | ^4.3.0 | 속성 기반 테스트 |
+| @playwright/test | ^1.x | e2e 테스트 (mock BFF + Chromium) |
