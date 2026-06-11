@@ -52,12 +52,7 @@ import {
     getReservationSuggestions,
     updateReservation,
 } from '@/lib/actions/reservations';
-import {
-    createSchedule,
-    deleteSchedule,
-    getSchedules,
-    updateSchedule,
-} from '@/lib/actions/schedules';
+import {getSchedules} from '@/lib/actions/schedules';
 import {completeUnpaidSale, deleteSale, getSaleById, revertUnpaidSale, updateSale} from '@/lib/actions/sales';
 import {checkPhoneDuplicate} from '@/lib/actions/customers';
 import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
@@ -65,11 +60,12 @@ import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
 import type {PaymentMethod as PaymentMethodType, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import type {Schedule, Reservation, ReservationStatus} from '@/types/database';
-import {SCHEDULE_COLORS} from '@/types/database';
 import type {CalendarReservation} from './types';
 import {ScheduleCard} from './components/ScheduleCard';
 import {ReservationCard} from './components/ReservationCard';
 import {TimeSelect} from './components/time-select';
+import {ScheduleFormDialog} from './components/schedule-form-dialog';
+import {useScheduleForm} from './hooks/use-schedule-form';
 import {
     DeleteScheduleDialog,
     DeleteReservationDialog,
@@ -141,16 +137,6 @@ export function CalendarClient() {
 
   // Calendar events
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
-  const [scheduleForm, setScheduleForm] = useState({
-    title: '',
-    start_date: '',
-    end_date: '',
-    color: '#f43f5e',
-    memo: '',
-  });
-  const [deleteScheduleTarget, setDeleteScheduleTarget] = useState<Schedule | null>(null);
 
   const monthStr = format(currentMonth, 'yyyy-MM');
 
@@ -159,8 +145,7 @@ export function CalendarClient() {
     setSelectedDate(date);
     setShowForm(false);
     setEditingId(null);
-    setShowScheduleForm(false);
-    setEditingScheduleId(null);
+    closeScheduleForm();
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
     }
@@ -215,6 +200,17 @@ export function CalendarClient() {
     load();
   }, [fetchData]);
 
+  // 일정(캘린더 이벤트) 폼 — 상태/제출/삭제 로직은 훅이 보유
+  const scheduleFormController = useScheduleForm({ onSaved: fetchData });
+  const {
+    closeScheduleForm,
+    openCreateSchedule,
+    startEditSchedule,
+    setDeleteScheduleTarget,
+    deleteScheduleTarget,
+    handleDeleteSchedule,
+  } = scheduleFormController;
+
   // 카테고리/결제방식 1회 로드
   useEffect(() => {
     const loadSettings = async () => {
@@ -255,7 +251,7 @@ export function CalendarClient() {
       setDeletedPickupIds([]);
       setEditingId(null);
       setEditingSaleId(null);
-      setShowScheduleForm(false);
+      closeScheduleForm();
       setShowForm(true);
       const url = new URL(window.location.href);
       url.searchParams.delete('new');
@@ -798,77 +794,6 @@ export function CalendarClient() {
     fetchData();
   }
 
-  // === Calendar Event handlers ===
-  function resetScheduleForm() {
-    setScheduleForm({ title: '', start_date: '', end_date: '', color: '#f43f5e', memo: '' });
-    setEditingScheduleId(null);
-    setShowScheduleForm(false);
-  }
-
-  function startEditSchedule(s: Schedule) {
-    setEditingScheduleId(s.id);
-    setScheduleForm({
-      title: s.title,
-      start_date: s.start_date,
-      end_date: s.end_date,
-      color: s.color,
-      memo: s.memo || '',
-    });
-    setShowScheduleForm(true);
-    // 일정 폼 열 때 예약 폼은 닫기
-    setShowForm(false);
-  }
-
-  async function handleScheduleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!scheduleForm.title.trim()) { toast.error('제목을 입력해주세요'); return; }
-    if (!scheduleForm.start_date || !scheduleForm.end_date) { toast.error('시작일과 종료일을 입력해주세요'); return; }
-    if (scheduleForm.end_date < scheduleForm.start_date) { toast.error('종료일은 시작일보다 이전일 수 없습니다'); return; }
-
-    setIsSaving(true);
-    try {
-      if (editingScheduleId) {
-        await updateSchedule(editingScheduleId, {
-          title: scheduleForm.title,
-          start_date: scheduleForm.start_date,
-          end_date: scheduleForm.end_date,
-          color: scheduleForm.color,
-          memo: scheduleForm.memo || null,
-        });
-        toast.success('일정이 수정되었습니다');
-      } else {
-        await createSchedule({
-          title: scheduleForm.title,
-          start_date: scheduleForm.start_date,
-          end_date: scheduleForm.end_date,
-          color: scheduleForm.color,
-          memo: scheduleForm.memo || undefined,
-        });
-        toast.success('일정이 등록되었습니다');
-      }
-      resetScheduleForm();
-      fetchData();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : (editingScheduleId ? '수정 실패' : '등록 실패'));
-    }
-    setIsSaving(false);
-  }
-
-  async function handleDeleteSchedule() {
-    if (!deleteScheduleTarget) return;
-    setIsDeleting(true);
-    try {
-      await deleteSchedule(deleteScheduleTarget.id);
-      toast.success('일정이 삭제되었습니다');
-      setDeleteScheduleTarget(null);
-      resetScheduleForm();
-      fetchData();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : '삭제 실패');
-    }
-    setIsDeleting(false);
-  }
-
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
@@ -1069,21 +994,15 @@ export function CalendarClient() {
                     setDeletedPickupIds([]);
                     setEditingId(null);
                     setEditingSaleId(null);
-                    setShowScheduleForm(false);
+                    closeScheduleForm();
                     setShowForm(true);
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     예약
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
-                    resetScheduleForm();
-                    setScheduleForm(prev => ({
-                      ...prev,
-                      start_date: format(selectedDate, 'yyyy-MM-dd'),
-                      end_date: format(selectedDate, 'yyyy-MM-dd'),
-                    }));
+                    openCreateSchedule(format(selectedDate, 'yyyy-MM-dd'));
                     setShowForm(false);
-                    setShowScheduleForm(true);
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     일정
@@ -1120,88 +1039,7 @@ export function CalendarClient() {
           )}
 
           {/* 일정 Form (modal) */}
-          <Dialog open={showScheduleForm} onOpenChange={(open) => { if (!open) resetScheduleForm(); }}>
-            <DialogContent
-              className="sm:max-w-md max-h-[90vh] overflow-y-auto"
-              onInteractOutside={(e) => e.preventDefault()}
-            >
-              <DialogHeader>
-                <DialogTitle>{editingScheduleId ? '일정 수정' : '새 일정'}</DialogTitle>
-              </DialogHeader>
-                <form onSubmit={handleScheduleSubmit} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
-                    <Input
-                      value={scheduleForm.title}
-                      onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
-                      placeholder="졸업 시즌"
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">시작일 <span className="text-brand">*</span></Label>
-                      <DatePicker
-                        value={scheduleForm.start_date}
-                        onChange={(d) => setScheduleForm({ ...scheduleForm, start_date: d })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">종료일 <span className="text-brand">*</span></Label>
-                      <DatePicker
-                        value={scheduleForm.end_date}
-                        onChange={(d) => setScheduleForm({ ...scheduleForm, end_date: d })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">색상</Label>
-                    <div className="flex gap-2">
-                      {SCHEDULE_COLORS.map((c) => (
-                        <button
-                          key={c.value}
-                          type="button"
-                          onClick={() => setScheduleForm({ ...scheduleForm, color: c.value })}
-                          className={cn(
-                            'w-7 h-7 rounded-full border-2 transition-transform',
-                            scheduleForm.color === c.value ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'
-                          )}
-                          style={{ backgroundColor: c.value }}
-                          aria-label={c.label}
-                          title={c.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-xs text-muted-foreground">메모</Label>
-                      <span className="text-[11px] text-muted-foreground">
-                        {scheduleForm.memo.length}/200
-                      </span>
-                    </div>
-                    <textarea
-                      value={scheduleForm.memo}
-                      onChange={(e) => setScheduleForm({ ...scheduleForm, memo: e.target.value })}
-                      placeholder="메모를 입력하세요"
-                      maxLength={200}
-                      rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring field-sizing-content min-h-[60px] max-h-[160px]"
-                      aria-label="일정 메모"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button type="button" variant="outline" size="sm" className="flex-1 h-9" onClick={resetScheduleForm}>
-                      취소
-                    </Button>
-                    <Button type="submit" size="sm" className="flex-1 h-9" disabled={isSaving}>
-                      {isSaving && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
-                      {editingScheduleId ? '수정' : '등록'}
-                    </Button>
-                  </div>
-                </form>
-            </DialogContent>
-          </Dialog>
+          <ScheduleFormDialog form={scheduleFormController} />
 
           {/* Reservation Form (modal) */}
           <Dialog open={showForm} onOpenChange={(open) => { if (!open) resetForm(); }}>
@@ -1479,7 +1317,11 @@ export function CalendarClient() {
                   <ScheduleCard
                     key={s.id}
                     schedule={s}
-                    onEdit={startEditSchedule}
+                    onEdit={(sched) => {
+                      startEditSchedule(sched);
+                      // 일정 폼 열 때 예약 폼은 닫기
+                      setShowForm(false);
+                    }}
                     onDelete={setDeleteScheduleTarget}
                   />
                 ))}
@@ -1579,7 +1421,7 @@ export function CalendarClient() {
       <DeleteScheduleDialog
         open={!!deleteScheduleTarget}
         scheduleTitle={deleteScheduleTarget?.title}
-        isDeleting={isDeleting}
+        isDeleting={scheduleFormController.isDeleting}
         onConfirm={handleDeleteSchedule}
         onClose={() => setDeleteScheduleTarget(null)}
       />
