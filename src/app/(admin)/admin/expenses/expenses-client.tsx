@@ -3,7 +3,6 @@
 import {useCallback, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {Plus, Repeat, Settings} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {ExpensesFiltersUI} from './components/ExpensesFilters';
 import {ExpensesSummary} from './components/ExpensesSummary';
@@ -11,6 +10,7 @@ import {ExpenseFormDialog} from './components/expense-form-dialog';
 import {ExpenseEditDialog} from './components/expense-edit-dialog';
 import {ExpenseDetailDialog} from './components/expense-detail-dialog';
 import {ExpenseDeleteDialog} from './components/expense-delete-dialog';
+import {ExpenseFab} from './components/expense-fab';
 import {useExpenseForm} from './hooks/use-expense-form';
 import {useExpenseDelete} from './hooks/use-expense-delete';
 import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
@@ -25,7 +25,6 @@ import {
 } from '@/lib/actions/expense-settings';
 import {ExpenseSettingsModal} from '@/components/expenses/ExpenseSettingsModal';
 import type {Expense} from '@/types/database';
-import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
 import {useQuickCreate} from '@/hooks/use-quick-create';
@@ -69,7 +68,6 @@ export function ExpensesClient({
   const paymentFilter: string[] = initialFilters.payment ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
 
@@ -273,50 +271,12 @@ export function ExpensesClient({
       />
 
       {/* FAB — Speed Dial */}
-      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
-        {fabOpen && (
-          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); form.handleOpenForm(); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              지출 등록
-            </button>
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); setIsRecurringOpen(true); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            >
-              <Repeat className="w-4 h-4" />
-              고정비
-            </button>
-            <ExportButton
-              getExportConfig={getExportConfig}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            />
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); setIsSettingsOpen(true); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            >
-              <Settings className="w-4 h-4" />
-              설정
-            </button>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setFabOpen(!fabOpen)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
-            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
-          }`}
-          aria-label="액션 메뉴"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <ExpenseFab
+        onOpenForm={form.handleOpenForm}
+        onOpenRecurring={() => setIsRecurringOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        getExportConfig={getExportConfig}
+      />
     </div>
   );
 }
