@@ -114,7 +114,6 @@ export function ExpensesClient({
     hasMore,
     isLoadingMore,
     isSearching,
-    debouncedSearch,
     loadMore: handleLoadMore,
   } = useInfiniteList<Expense>({
     initialItems: initialExpenses,

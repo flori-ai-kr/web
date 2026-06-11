@@ -79,7 +79,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     hasMore,
     isLoadingMore,
     isSearching,
-    debouncedSearch,
     loadMore: handleLoadMore,
   } = useInfiniteList<Sale>({
     initialItems: initialSales,

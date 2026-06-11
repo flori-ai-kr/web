@@ -1,11 +1,7 @@
 'use server';
 
 import {requireAuth} from '@/lib/auth-guard';
-import type {
-    Reservation,
-    ReservationStatus,
-    Sale,
-} from '@/types/database';
+import type {Reservation, Sale} from '@/types/database';
 import type {CategoryStat, ChannelStat, CustomerStat, ExpenseCategoryStat, PaymentMethodStat,} from './statistics';
 import {withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
