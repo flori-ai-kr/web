@@ -1,36 +1,25 @@
 'use client';
 
-import {useCallback, useEffect, useOptimistic, useState, useTransition} from 'react';
+import {useCallback, useOptimistic, useState, useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {AmountInput} from '@/components/ui/amount-input';
-import {SuggestionInput} from '@/components/ui/suggestion-input';
-import {DatePicker} from '@/components/ui/date-picker';
-import {Loader2, Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
+import {Pencil, Plus, Repeat, Settings, Trash2} from 'lucide-react';
 import {ExpensesList} from './components/ExpensesList';
 import {ExpensesFiltersUI} from './components/ExpensesFilters';
 import {ExpensesSummary} from './components/ExpensesSummary';
+import {ExpenseFormDialog} from './components/expense-form-dialog';
+import {ExpenseEditDialog} from './components/expense-edit-dialog';
+import {useExpenseForm} from './hooks/use-expense-form';
 import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
 import {
   deleteExpenseInstanceOnly,
   deleteRecurringFromInstance,
-  updateExpenseInstanceOnly,
-  updateRecurringFromInstance,
 } from '@/lib/actions/recurring-expenses';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
-import {
-  createExpense,
-  deleteExpense,
-  getExpenseSuggestions,
-  loadMoreExpenses,
-  updateExpense,
-} from '@/lib/actions/expenses';
+import {deleteExpense, loadMoreExpenses} from '@/lib/actions/expenses';
 import type {ExpenseFilters} from '@/lib/actions/expenses';
 import {
   ExpenseCategory,
@@ -79,33 +68,20 @@ export function ExpensesClient({
 }: Props) {
   const router = useRouter();
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   // 필터는 URL 파라미터 기반(서버 쿼리에 반영)
   const categoryFilter: string[] = initialFilters.category ?? [];
   const paymentFilter: string[] = initialFilters.payment ?? [];
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSubmitting, startSubmitTransition] = useTransition();
-  const [noteValue, setNoteValue] = useState('');
-  const [editNoteValue, setEditNoteValue] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(initialPayments[0]?.id ?? '');
-  const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [, startDeleteTransition] = useTransition();
 
-  // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
-  const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
-  const [scopeBusy, startScopeTransition] = useTransition();
-  const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; memos: string[] }>({ itemNames: [], vendors: [], memos: [] });
-  const [createItemName, setCreateItemName] = useState('');
-  const [createVendor, setCreateVendor] = useState('');
-  const [editItemName, setEditItemName] = useState('');
-  const [editVendor, setEditVendor] = useState('');
+  // 등록/수정 폼 상태 + 제출 + 고정비 '이것만/이후 모두' 분기
+  const form = useExpenseForm({ payments, onCloseDetail: () => setSelectedExpense(null) });
 
   // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
   const {
@@ -129,11 +105,7 @@ export function ExpensesClient({
   });
 
   // ?new=1 — 빠른 등록(대시보드)에서 진입 시 지출 등록 폼을 즉시 오픈
-  useQuickCreate(() => {
-    setIsFormOpen(true);
-    setNoteValue('');
-    setSelectedPaymentMethod(payments[0]?.id ?? '');
-  });
+  useQuickCreate(form.handleOpenForm);
 
   // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
   const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
@@ -142,31 +114,6 @@ export function ExpensesClient({
   );
 
   const summary = initialSummary;
-
-  // 폼/수정 다이얼로그 열릴 때 자동완성 데이터 로드
-  useEffect(() => {
-    if (isFormOpen || editingExpense) {
-      getExpenseSuggestions().then(setExpenseSuggestions).catch(() => {});
-    }
-  }, [isFormOpen, editingExpense]);
-
-  // 등록 폼 닫힐 때 controlled 값 초기화
-  useEffect(() => {
-    if (!isFormOpen) {
-      setCreateItemName('');
-      setCreateVendor('');
-      setNoteValue('');
-    }
-  }, [isFormOpen]);
-
-  // 수정 폼 열릴 때 controlled 값 초기화
-  useEffect(() => {
-    if (editingExpense) {
-      setEditItemName(editingExpense.item_name);
-      setEditVendor(editingExpense.vendor || '');
-      setEditNoteValue(editingExpense.memo || '');
-    }
-  }, [editingExpense]);
 
   const filteredExpenses = optimisticExpenses;
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== '';
@@ -262,96 +209,6 @@ export function ExpensesClient({
     router.push(buildUrl({ category: [], payment: [] }));
   };
 
-  const handleOpenForm = () => {
-    setIsFormOpen(true);
-    setNoteValue('');
-    setSelectedPaymentMethod(payments[0]?.id ?? '');
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    startSubmitTransition(async () => {
-      try {
-        await createExpense(formData);
-        setIsFormOpen(false);
-        router.refresh();
-        toast.success('지출이 등록되었습니다');
-      } catch (error) {
-        console.error('Failed to create expense:', error);
-        toast.error('지출 등록에 실패했습니다');
-      }
-    });
-  };
-
-  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingExpense) return;
-
-    const formData = new FormData(e.currentTarget);
-    const isRecurringInstance = !!editingExpense.recurring_id;
-
-    if (isRecurringInstance) {
-      const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
-      const quantity = parseInt(formData.get('quantity') as string) || 1;
-      const fields = {
-        date: String(formData.get('date') ?? editingExpense.date),
-        item_name: String(formData.get('item_name') ?? ''),
-        category_id: String(formData.get('category_id') ?? ''),
-        unit_price: unitPrice,
-        quantity,
-        payment_method_id: String(formData.get('payment_method_id') ?? ''),
-        vendor: (formData.get('vendor') as string) || null,
-        note: (formData.get('memo') as string) || null,
-      };
-      setPendingScopeEdit({ expenseId: editingExpense.id, fields });
-      return;
-    }
-
-    const target = editingExpense;
-    startSubmitTransition(async () => {
-      try {
-        await updateExpense(target.id, formData);
-        setEditingExpense(null);
-        setSelectedExpense(null);
-        router.refresh();
-        toast.success('지출이 수정되었습니다');
-      } catch (error) {
-        console.error('Failed to update expense:', error);
-        toast.error('지출 수정에 실패했습니다');
-      }
-    });
-  };
-
-  const handleScopeEditConfirm = (scope: 'instance' | 'future') => {
-    if (!pendingScopeEdit) return;
-    const pending = pendingScopeEdit;
-    startScopeTransition(async () => {
-      try {
-        if (scope === 'instance') {
-          await updateExpenseInstanceOnly(pending.expenseId, pending.fields);
-          toast.success('이 항목만 수정되었습니다');
-        } else {
-          await updateRecurringFromInstance(pending.expenseId, pending.fields);
-          toast.success('이후 모든 항목에 반영되었습니다');
-        }
-        setPendingScopeEdit(null);
-        setEditingExpense(null);
-        setSelectedExpense(null);
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : '수정에 실패했습니다');
-      }
-    });
-  };
-
-  const handleEdit = (expense: Expense) => {
-    setEditingExpense(expense);
-    setEditNoteValue(expense.memo || '');
-    setEditPaymentMethod(expense.payment_method_id ?? '');
-    setSelectedExpense(null);
-  };
-
   const handleDelete = (expense: Expense) => {
     setDeleteTarget(expense);
   };
@@ -418,7 +275,7 @@ export function ExpensesClient({
         onLoadMore={handleLoadMore}
         onSelectExpense={handleSelectExpense}
         onResetFilters={handleResetFilters}
-        onOpenForm={handleOpenForm}
+        onOpenForm={form.handleOpenForm}
       />
 
       {/* 고정비 관리 모달 (FAB에서 진입) */}
@@ -432,111 +289,7 @@ export function ExpensesClient({
       </Dialog>
 
       {/* Create Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-xl">지출 등록</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(e); }} className="space-y-5 pt-2">
-            <div className="grid grid-cols-[3fr_2fr] gap-4">
-              <div className="space-y-2">
-                <Label>날짜 *</Label>
-                <DatePicker name="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required />
-              </div>
-              <div className="space-y-2">
-                <Label>카테고리 *</Label>
-                <Select name="category_id" defaultValue={categories[0]?.id}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="카테고리 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>물품명 *</Label>
-              <SuggestionInput
-                name="item_name"
-                value={createItemName}
-                onChange={setCreateItemName}
-                suggestions={expenseSuggestions.itemNames}
-                placeholder="예: 장미 50송이, 배달비"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>단가 *</Label>
-                <AmountInput name="unit_price" placeholder="0" required />
-              </div>
-              <div className="space-y-2">
-                <Label>수량</Label>
-                <Input type="number" name="quantity" defaultValue="1" min="1" />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
-            <div className="space-y-2">
-              <Label>결제방식 *</Label>
-              <input type="hidden" name="payment_method_id" value={selectedPaymentMethod} />
-              <div className="flex flex-wrap gap-2">
-                {payments.map(pm => (
-                  <button
-                    key={pm.id}
-                    type="button"
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                      selectedPaymentMethod === pm.id
-                        ? "bg-brand/10 text-brand border-brand ring-2 ring-offset-1 ring-brand/50"
-                        : "border-border text-muted-foreground hover:border-foreground/30"
-                    )}
-                    onClick={() => setSelectedPaymentMethod(pm.id)}
-                  >
-                    {pm.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>거래처</Label>
-              <SuggestionInput
-                name="vendor"
-                value={createVendor}
-                onChange={setCreateVendor}
-                suggestions={expenseSuggestions.vendors}
-                placeholder="예: 고속터미널 꽃시장"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>메모</Label>
-                <span className={cn("text-xs", noteValue.length > 200 ? "text-danger" : "text-muted-foreground")}>
-                  {noteValue.length}/200
-                </span>
-              </div>
-              <SuggestionInput
-                name="memo"
-                value={noteValue}
-                onChange={setNoteValue}
-                suggestions={expenseSuggestions.memos}
-                placeholder="메모를 입력하세요"
-                maxLength={200}
-                multiline
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>취소</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isSubmitting ? '저장 중...' : '저장'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ExpenseFormDialog form={form} categories={categories} payments={payments} />
 
       {/* Expense Detail Dialog */}
       <Dialog open={!!selectedExpense} onOpenChange={(open) => !open && setSelectedExpense(null)}>
@@ -588,7 +341,7 @@ export function ExpensesClient({
               )}
 
               <div className="flex gap-2 pt-4 border-t">
-                <Button variant="outline" className="flex-1" onClick={() => handleEdit(selectedExpense)}>
+                <Button variant="outline" className="flex-1" onClick={() => form.handleEdit(selectedExpense)}>
                   <Pencil className="w-4 h-4 mr-2" />
                   수정
                 </Button>
@@ -606,114 +359,8 @@ export function ExpensesClient({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-xl">지출 수정</DialogTitle>
-          </DialogHeader>
-          {editingExpense && (
-            <form onSubmit={(e) => { e.preventDefault(); handleUpdate(e); }} className="space-y-5 pt-2">
-              <div className="grid grid-cols-[3fr_2fr] gap-4">
-                <div className="space-y-2">
-                  <Label>날짜 *</Label>
-                  <DatePicker name="date" defaultValue={editingExpense.date} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>카테고리 *</Label>
-                  <Select name="category_id" defaultValue={editingExpense.category_id ?? undefined} key={`cat-${editingExpense.id}`}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="카테고리 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>물품명 *</Label>
-                <SuggestionInput
-                  name="item_name"
-                  value={editItemName}
-                  onChange={setEditItemName}
-                  suggestions={expenseSuggestions.itemNames}
-                  placeholder="물품명"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>단가 *</Label>
-                  <AmountInput name="unit_price" value={editingExpense.unit_price} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>수량</Label>
-                  <Input type="number" name="quantity" defaultValue={editingExpense.quantity} min="1" />
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground -mt-2.5">총액은 단가 x 수량으로 자동 계산돼요.</p>
-              <div className="space-y-2">
-                <Label>결제방식 *</Label>
-                <input type="hidden" name="payment_method_id" value={editPaymentMethod} />
-                <div className="flex flex-wrap gap-2">
-                  {payments.map(pm => (
-                    <button
-                      key={pm.id}
-                      type="button"
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                        editPaymentMethod === pm.id
-                          ? "bg-brand/10 text-brand border-brand ring-2 ring-offset-1 ring-brand/50"
-                          : "border-border text-muted-foreground hover:border-foreground/30"
-                      )}
-                      onClick={() => setEditPaymentMethod(pm.id)}
-                    >
-                      {pm.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>거래처</Label>
-                <SuggestionInput
-                  name="vendor"
-                  value={editVendor}
-                  onChange={setEditVendor}
-                  suggestions={expenseSuggestions.vendors}
-                  placeholder="거래처명"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label>메모</Label>
-                  <span className={cn("text-xs", editNoteValue.length > 200 ? "text-danger" : "text-muted-foreground")}>
-                    {editNoteValue.length}/200
-                  </span>
-                </div>
-                <SuggestionInput
-                  name="memo"
-                  value={editNoteValue}
-                  onChange={setEditNoteValue}
-                  suggestions={expenseSuggestions.memos}
-                  placeholder="메모를 입력하세요"
-                  maxLength={200}
-                  multiline
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setEditingExpense(null)}>취소</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {isSubmitting ? '저장 중...' : '저장'}
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Edit Dialog (+ 고정비 이것만/이후 모두 분기) */}
+      <ExpenseEditDialog form={form} categories={categories} payments={payments} />
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
@@ -756,31 +403,6 @@ export function ExpensesClient({
         </DialogContent>
       </Dialog>
 
-      {/* 자동생성된 지출 수정 — 이것만 / 이후 모두 분기 */}
-      <Dialog open={!!pendingScopeEdit} onOpenChange={(open) => !open && setPendingScopeEdit(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>반복되는 지출입니다</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            고정비 자동생성으로 등록된 지출이에요. 어떻게 저장할까요?
-          </p>
-          <div className="flex flex-col gap-2">
-            <Button onClick={() => handleScopeEditConfirm('instance')} disabled={scopeBusy}>
-              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              이 항목만 저장
-            </Button>
-            <Button onClick={() => handleScopeEditConfirm('future')} disabled={scopeBusy}>
-              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              이후 모두 저장 (고정비 템플릿 변경)
-            </Button>
-            <Button variant="outline" onClick={() => setPendingScopeEdit(null)} disabled={scopeBusy}>
-              취소
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Expense Settings Modal */}
       <ExpenseSettingsModal
         open={isSettingsOpen}
@@ -796,7 +418,7 @@ export function ExpensesClient({
           <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <button
               type="button"
-              onClick={() => { setFabOpen(false); handleOpenForm(); }}
+              onClick={() => { setFabOpen(false); form.handleOpenForm(); }}
               className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
             >
               <Plus className="w-4 h-4" />
