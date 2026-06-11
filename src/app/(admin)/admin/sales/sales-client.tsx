@@ -1,19 +1,18 @@
 'use client';
 
-import {useCallback, useEffect, useOptimistic, useState, useTransition} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Plus, Settings} from 'lucide-react';
 import {format} from 'date-fns';
-import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
-import {deleteSale, loadMoreSales} from '@/lib/actions/sales';
+import {loadMoreSales} from '@/lib/actions/sales';
 import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
-import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
+import {isUnsettledUnpaid} from '@/lib/utils';
 import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {ExportButton} from '@/components/ui/export-button';
@@ -23,7 +22,9 @@ import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
 import {SaleDetailDialog} from './components/SaleDetailDialog';
 import {SalesFiltersUI} from './components/SalesFilters';
+import {SaleDeleteDialog} from './components/sale-delete-dialog';
 import {useSaleDetail} from './hooks/use-sale-detail';
+import {useSaleDelete} from './hooks/use-sale-delete';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
 import {useQuickCreate} from '@/hooks/use-quick-create';
 
@@ -64,8 +65,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
   const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
-  const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
-  const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
 
   // 매출 상세 선택 + 연결 사진/예약 로드 + URL saleId 딥링크
@@ -97,11 +96,18 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     onSearchError: () => toast.error('검색에 실패했습니다'),
   });
 
-  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
-  const [optimisticSales, removeOptimisticSale] = useOptimistic(
-    allSales,
-    (sales, deletedId: string) => sales.filter((s) => s.id !== deletedId),
-  );
+  // 삭제 확인 + 낙관적 목록 제거(서버 실패 시 자동 롤백)
+  const {
+    optimisticSales,
+    deleteTarget,
+    setDeleteTarget,
+    handleDelete,
+    confirmDelete,
+  } = useSaleDelete({
+    sales: allSales,
+    setSales: setAllSales,
+    onCloseDetail: () => setSelectedSale(null),
+  });
 
   // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
 
@@ -264,30 +270,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setSelectedSale(null);
   };
 
-  const handleDelete = (sale: Sale) => {
-    setDeleteTarget(sale);
-  };
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget;
-    setDeleteTarget(null);
-    setSelectedSale(null);
-    startDeleteTransition(async () => {
-      removeOptimisticSale(target.id);
-      try {
-        await deleteSale(target.id);
-        // 로컬 목록에서도 제거해 새로고침 전까지 깜빡임 없이 유지(요약은 refresh로 갱신).
-        setAllSales((prev) => prev.filter((s) => s.id !== target.id));
-        router.refresh();
-        toast.success('매출이 삭제되었습니다');
-      } catch (error) {
-        console.error('Failed to delete sale:', error);
-        toast.error('매출 삭제에 실패했습니다');
-      }
-    });
-  };
-
   const handleFormSuccess = (newSale?: Sale) => {
     router.refresh();
     if (newSale) {
@@ -412,31 +394,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       )}
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>매출 삭제</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">
-              이 매출 기록을 삭제하시겠습니까?
-            </p>
-            {deleteTarget && (
-              <p className="text-muted-foreground text-xs mt-2">
-                {format(new Date(deleteTarget.date), 'M월 d일', { locale: ko })} · {formatCurrency(deleteTarget.amount)}
-              </p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              취소
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              삭제
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SaleDeleteDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
 
       {/* Sales Settings Modal */}
       <SalesSettingsModal
