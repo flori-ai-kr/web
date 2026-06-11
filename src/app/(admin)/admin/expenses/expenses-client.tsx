@@ -3,9 +3,9 @@
 import {useCallback, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {ExpensesList} from './components/ExpensesList';
-import {ExpensesFiltersUI} from './components/ExpensesFilters';
-import {ExpensesSummary} from './components/ExpensesSummary';
+import {ExpensesList} from './components/expenses-list';
+import {ExpensesFiltersUI} from './components/expenses-filters';
+import {ExpensesSummary} from './components/expenses-summary';
 import {ExpenseFormDialog} from './components/expense-form-dialog';
 import {ExpenseEditDialog} from './components/expense-edit-dialog';
 import {ExpenseDetailDialog} from './components/expense-detail-dialog';

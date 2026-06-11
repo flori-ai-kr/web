@@ -22,7 +22,7 @@ import {ko} from '@/lib/date-locale';
 import {formatCurrency} from '@/lib/utils';
 import {revertCustomerGradeAuto} from '@/lib/actions/customers';
 import type {Customer, Sale} from '@/types/database';
-import {GenderBadge} from './CustomerCard';
+import {GenderBadge} from './customer-card';
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;

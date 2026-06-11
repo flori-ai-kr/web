@@ -1,12 +1,12 @@
 'use client';
 
 import type { ReservationStatistics } from '@/lib/actions/statistics';
-import { StatKpiCard } from './StatKpiCard';
-import { StatAreaChart } from './StatAreaChart';
-import { StatBarList } from './StatBarList';
-import { StatSectionHeader } from './StatSectionHeader';
-import { ReservationHeatmap } from './ReservationHeatmap';
-import type { DeltaTone } from './StatKpiCard';
+import { StatKpiCard } from './stat-kpi-card';
+import { StatAreaChart } from './stat-area-chart';
+import { StatBarList } from './stat-bar-list';
+import { StatSectionHeader } from './stat-section-header';
+import { ReservationHeatmap } from './reservation-heatmap';
+import type { DeltaTone } from './stat-kpi-card';
 
 // ─── DOW mapping (Postgres: 0=일,1=월,...,6=토) ───────────────────────────────
 

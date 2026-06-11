@@ -23,7 +23,7 @@ import {
     DeleteReservationDialog,
     DeleteSaleDialog,
     UnpaidPaymentDialog,
-} from './components/CalendarDialogs';
+} from './components/calendar-dialogs';
 
 export function CalendarClient() {
   const router = useRouter();

@@ -1,11 +1,11 @@
 'use client';
 
 import type { CustomerStatistics } from '@/lib/actions/statistics';
-import { StatKpiCard } from './StatKpiCard';
-import { StatAreaChart } from './StatAreaChart';
-import { StatBarList } from './StatBarList';
-import { StatSectionHeader } from './StatSectionHeader';
-import type { DeltaTone } from './StatKpiCard';
+import { StatKpiCard } from './stat-kpi-card';
+import { StatAreaChart } from './stat-area-chart';
+import { StatBarList } from './stat-bar-list';
+import { StatSectionHeader } from './stat-section-header';
+import type { DeltaTone } from './stat-kpi-card';
 import { formatManwon } from '@/lib/utils';
 
 // ─── Grade / gender label helpers ────────────────────────────────────────────

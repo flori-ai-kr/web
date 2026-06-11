@@ -13,8 +13,8 @@ import {cn} from '@/lib/utils';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
 import type {Schedule} from '@/types/database';
 import type {CalendarReservation} from '../types';
-import {ScheduleCard} from './ScheduleCard';
-import {ReservationCard} from './ReservationCard';
+import {ScheduleCard} from './schedule-card';
+import {ReservationCard} from './reservation-card';
 
 /**
  * 선택한 날짜 패널(헤더 + 예약/일정 탭 + 탭 콘텐츠). 폼 다이얼로그는 children으로 받는다.

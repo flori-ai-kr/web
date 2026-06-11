@@ -1,12 +1,12 @@
 'use client';
 
 import type { SalesStatistics } from '@/lib/actions/statistics';
-import { StatKpiCard } from './StatKpiCard';
-import { StatBarList } from './StatBarList';
-import { StatAreaChart } from './StatAreaChart';
-import { StatDonut } from './StatDonut';
-import { StatSectionHeader } from './StatSectionHeader';
-import type { DeltaTone } from './StatKpiCard';
+import { StatKpiCard } from './stat-kpi-card';
+import { StatBarList } from './stat-bar-list';
+import { StatAreaChart } from './stat-area-chart';
+import { StatDonut } from './stat-donut';
+import { StatSectionHeader } from './stat-section-header';
+import type { DeltaTone } from './stat-kpi-card';
 import { formatManwon } from '@/lib/utils';
 
 // ─── Brand-derived donut palette ─────────────────────────────────────────────
