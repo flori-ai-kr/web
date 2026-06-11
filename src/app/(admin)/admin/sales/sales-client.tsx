@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useOptimistic, useRef, useState, useTransition} from 'react';
+import {useCallback, useEffect, useOptimistic, useState, useTransition} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
@@ -25,6 +25,8 @@ import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
 import {SaleDetailDialog} from './components/SaleDetailDialog';
 import {SalesFiltersUI} from './components/SalesFilters';
+import {useInfiniteList} from '@/hooks/use-infinite-list';
+import {useQuickCreate} from '@/hooks/use-quick-create';
 
 const SalePhotoModal = dynamic(
   () => import('@/components/sales/SalePhotoModal').then(mod => ({ default: mod.SalePhotoModal })),
@@ -70,25 +72,32 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
 
-  // 무한스크롤 상태
-  const [allSales, setAllSales] = useState<Sale[]>(initialSales);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const dataVersionRef = useRef(0);
+  // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
+  const {
+    items: allSales,
+    setItems: setAllSales,
+    hasMore,
+    isLoadingMore,
+    isSearching,
+    debouncedSearch,
+    loadMore: handleLoadMore,
+  } = useInfiniteList<Sale>({
+    initialItems: initialSales,
+    initialHasMore,
+    loadPage: async (offset, search) => {
+      const filters = search ? { ...initialFilters, search } : initialFilters;
+      const result = await loadMoreSales(serverMonthParam, offset, filters);
+      return { items: result.sales, hasMore: result.hasMore };
+    },
+    searchQuery,
+    onSearchError: () => toast.error('검색에 실패했습니다'),
+  });
 
   // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
   const [optimisticSales, removeOptimisticSale] = useOptimistic(
     allSales,
     (sales, deletedId: string) => sales.filter((s) => s.id !== deletedId),
   );
-
-  // initialSales가 변경되면(년/월/필터 변경) 리셋
-  useEffect(() => {
-    dataVersionRef.current += 1;
-    setAllSales(initialSales);
-    setHasMore(initialHasMore);
-    setIsLoadingMore(false);
-  }, [initialSales, initialHasMore]);
 
   // URL saleId로 직접 열린 경우 photos/reservations 로드
   useEffect(() => {
@@ -113,18 +122,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setChannels(chs);
   };
 
-  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setInitialCustomer(undefined);
-      setIsFormOpen(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('new');
-      router.replace(url.pathname + (url.search || ''), { scroll: false });
-    }
-  // 마운트 시 1회만 실행
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈
+  useQuickCreate(() => {
+    setInitialCustomer(undefined);
+    setIsFormOpen(true);
+  });
 
   // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
   useEffect(() => {
@@ -151,47 +153,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       router.replace(`/admin/sales?${cleanParams.toString()}`, { scroll: false });
     }
   }, [searchParams, router, currentYear, currentMonth, currentDay]);
-
-  // 검색어 디바운스 → 서버사이드 검색
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const searchVersionRef = useRef(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${(initialFilters.payment ?? []).join(',')}-${(initialFilters.channel ?? []).join(',')}`;
-
-  useEffect(() => {
-    if (debouncedSearch === '') {
-      // 검색어가 비어지면 초기 데이터로 복원
-      setIsSearching(false);
-      dataVersionRef.current += 1;
-      setAllSales(initialSales);
-      setHasMore(initialHasMore);
-      return;
-    }
-    const version = ++searchVersionRef.current;
-    setIsSearching(true);
-    loadMoreSales(serverMonthParam, 0, { ...initialFilters, search: debouncedSearch })
-      .then(result => {
-        if (version !== searchVersionRef.current) return;
-        dataVersionRef.current += 1;
-        setAllSales(result.sales);
-        setHasMore(result.hasMore);
-      })
-      .catch(() => {
-        toast.error('검색에 실패했습니다');
-      })
-      .finally(() => {
-        if (version === searchVersionRef.current) setIsSearching(false);
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, serverMonthParam, filtersKey, initialSales, initialHasMore]);
 
   // 내보내기·렌더 모두 낙관적 목록을 기준으로 한다(삭제 진행 중 ghost 행 방지).
   const filteredSales = optimisticSales;
@@ -355,28 +316,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       setShowPhotoPrompt(newSale);
     }
   };
-
-  const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    const version = dataVersionRef.current;
-    const filters = debouncedSearch
-      ? { ...initialFilters, search: debouncedSearch }
-      : initialFilters;
-    try {
-      const result = await loadMoreSales(serverMonthParam, allSales.length, filters);
-      // 로드 중 필터/네비게이션이 변경됐으면 stale 데이터 무시
-      if (version !== dataVersionRef.current) return;
-      setAllSales(prev => [...prev, ...result.sales]);
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error('Failed to load more sales:', error);
-    } finally {
-      if (version === dataVersionRef.current) {
-        setIsLoadingMore(false);
-      }
-    }
-  }, [isLoadingMore, hasMore, serverMonthParam, allSales.length, initialFilters, debouncedSearch]);
 
   const handleResetFilters = () => {
     setSearchQuery('');

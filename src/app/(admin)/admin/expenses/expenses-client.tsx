@@ -1,7 +1,7 @@
 'use client';
 
-import {useCallback, useEffect, useOptimistic, useRef, useState, useTransition} from 'react';
-import {useRouter, useSearchParams} from 'next/navigation';
+import {useCallback, useEffect, useOptimistic, useState, useTransition} from 'react';
+import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -43,6 +43,8 @@ import {cn, formatCurrency} from '@/lib/utils';
 import type {Expense} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
+import {useInfiniteList} from '@/hooks/use-infinite-list';
+import {useQuickCreate} from '@/hooks/use-quick-create';
 
 interface ExpensesSummaryData {
   total: number;
@@ -76,7 +78,6 @@ export function ExpensesClient({
   initialSelectedExpense,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(initialSelectedExpense || null);
@@ -106,25 +107,34 @@ export function ExpensesClient({
   const [editItemName, setEditItemName] = useState('');
   const [editVendor, setEditVendor] = useState('');
 
-  // 무한스크롤 상태
-  const [allExpenses, setAllExpenses] = useState<Expense[]>(initialExpenses);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const dataVersionRef = useRef(0);
+  // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
+  const {
+    items: allExpenses,
+    setItems: setAllExpenses,
+    hasMore,
+    isLoadingMore,
+    isSearching,
+    debouncedSearch,
+    loadMore: handleLoadMore,
+  } = useInfiniteList<Expense>({
+    initialItems: initialExpenses,
+    initialHasMore,
+    loadPage: async (offset, search) => {
+      const filters = search ? { ...initialFilters, search } : initialFilters;
+      const result = await loadMoreExpenses(serverMonthParam, offset, filters);
+      return { items: result.expenses, hasMore: result.hasMore };
+    },
+    searchQuery,
+    onSearchError: () => toast.error('검색에 실패했습니다'),
+    onLoadMoreError: () => toast.error('더 불러오기에 실패했습니다'),
+  });
 
-  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 지출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setIsFormOpen(true);
-      setNoteValue('');
-      setSelectedPaymentMethod(payments[0]?.id ?? '');
-      const url = new URL(window.location.href);
-      url.searchParams.delete('new');
-      router.replace(url.pathname + (url.search || ''), { scroll: false });
-    }
-  // 마운트 시 1회만 실행 — payments는 초기값이므로 의도적으로 deps 제외
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 지출 등록 폼을 즉시 오픈
+  useQuickCreate(() => {
+    setIsFormOpen(true);
+    setNoteValue('');
+    setSelectedPaymentMethod(payments[0]?.id ?? '');
+  });
 
   // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
   const [optimisticExpenses, removeOptimisticExpense] = useOptimistic(
@@ -133,14 +143,6 @@ export function ExpensesClient({
   );
 
   const summary = initialSummary;
-
-  // initialExpenses 변경(년/월/필터) 시 리셋
-  useEffect(() => {
-    dataVersionRef.current += 1;
-    setAllExpenses(initialExpenses);
-    setHasMore(initialHasMore);
-    setIsLoadingMore(false);
-  }, [initialExpenses, initialHasMore]);
 
   // 폼/수정 다이얼로그 열릴 때 자동완성 데이터 로드
   useEffect(() => {
@@ -166,44 +168,6 @@ export function ExpensesClient({
       setEditNoteValue(editingExpense.memo || '');
     }
   }, [editingExpense]);
-
-  // 검색어 디바운스 → 서버사이드 검색
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const searchVersionRef = useRef(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${(initialFilters.payment ?? []).join(',')}`;
-
-  useEffect(() => {
-    if (debouncedSearch === '') {
-      setIsSearching(false);
-      dataVersionRef.current += 1;
-      setAllExpenses(initialExpenses);
-      setHasMore(initialHasMore);
-      return;
-    }
-    const version = ++searchVersionRef.current;
-    setIsSearching(true);
-    loadMoreExpenses(serverMonthParam, 0, { ...initialFilters, search: debouncedSearch })
-      .then(result => {
-        if (version !== searchVersionRef.current) return;
-        dataVersionRef.current += 1;
-        setAllExpenses(result.expenses);
-        setHasMore(result.hasMore);
-      })
-      .catch(() => {
-        toast.error('검색에 실패했습니다');
-      })
-      .finally(() => {
-        if (version === searchVersionRef.current) setIsSearching(false);
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, serverMonthParam, filtersKey, initialExpenses, initialHasMore]);
 
   const filteredExpenses = optimisticExpenses;
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== '';
@@ -298,24 +262,6 @@ export function ExpensesClient({
     setSearchQuery('');
     router.push(buildUrl({ category: [], payment: [] }));
   };
-
-  const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    const version = dataVersionRef.current;
-    const filters = debouncedSearch ? { ...initialFilters, search: debouncedSearch } : initialFilters;
-    try {
-      const result = await loadMoreExpenses(serverMonthParam, allExpenses.length, filters);
-      if (version !== dataVersionRef.current) return;
-      setAllExpenses(prev => [...prev, ...result.expenses]);
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error('Failed to load more expenses:', error);
-      toast.error('더 불러오기에 실패했습니다');
-    } finally {
-      if (version === dataVersionRef.current) setIsLoadingMore(false);
-    }
-  }, [isLoadingMore, hasMore, serverMonthParam, allExpenses.length, initialFilters, debouncedSearch]);
 
   const handleOpenForm = () => {
     setIsFormOpen(true);
