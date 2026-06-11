@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useRouter} from 'next/navigation';
 
 import type {SalesFilters} from '@/lib/actions/sales';
@@ -21,9 +21,9 @@ export function useSalesUrlFilters({
   initialFilters: SalesFilters;
 }) {
   const router = useRouter();
-  const paymentFilter: string[] = initialFilters.payment ?? [];
-  const categoryFilter: string[] = initialFilters.category ?? [];
-  const channelFilter: string[] = initialFilters.channel ?? [];
+  const paymentFilter: string[] = useMemo(() => initialFilters.payment ?? [], [initialFilters.payment]);
+  const categoryFilter: string[] = useMemo(() => initialFilters.category ?? [], [initialFilters.category]);
+  const channelFilter: string[] = useMemo(() => initialFilters.channel ?? [], [initialFilters.channel]);
 
   const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
