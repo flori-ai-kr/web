@@ -6,6 +6,7 @@ import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {idSchema, recurringExpenseSchema} from '@/lib/validations';
 import type {RecurringExpense, RecurringFrequency, YearlyDate} from '@/types/database';
 import {apiFetch} from '@/lib/api/client';
+import {mapKotlinRecurring, type KotlinRecurringExpense} from '@/lib/api/mappers/expenses';
 
 type RuleShape = Pick<
   RecurringExpense,
@@ -95,57 +96,6 @@ export async function nextOccurrenceISO(rule: RecurringExpense, fromISO?: string
 // ─────────────────────────────────────────────────────────────
 // CRUD (Kotlin /recurring-expenses)
 // ─────────────────────────────────────────────────────────────
-
-// Kotlin /recurring-expenses 응답 (camelCase). RecurringExpenseResponse와 1:1.
-interface KotlinRecurringExpense {
-  id: string;
-  itemName: string;
-  categoryId: number | string | null;
-  categoryLabel: string | null;
-  unitPrice: number;
-  quantity: number;
-  paymentMethodId: number | string | null;
-  paymentMethodLabel: string | null;
-  vendor: string | null;
-  memo: string | null;
-  frequency: string;
-  intervalCount: number;
-  daysOfWeek: number[];
-  daysOfMonth: number[];
-  yearlyDates: YearlyDate[];
-  startDate: string;
-  endDate: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// camelCase(Kotlin) → snake_case(웹 RecurringExpense). 멀티테넌시는 서버가 처리하므로 user_id는 비운다.
-function mapKotlinRecurring(r: KotlinRecurringExpense): RecurringExpense {
-  return {
-    id: r.id,
-    user_id: '',
-    item_name: r.itemName,
-    category_id: r.categoryId != null ? String(r.categoryId) : null,
-    category_label: r.categoryLabel,
-    unit_price: r.unitPrice,
-    quantity: r.quantity,
-    payment_method_id: r.paymentMethodId != null ? String(r.paymentMethodId) : null,
-    payment_method_label: r.paymentMethodLabel,
-    vendor: r.vendor,
-    memo: r.memo,
-    frequency: r.frequency as RecurringFrequency,
-    interval_count: r.intervalCount,
-    days_of_week: r.daysOfWeek,
-    days_of_month: r.daysOfMonth,
-    yearly_dates: r.yearlyDates,
-    start_date: r.startDate,
-    end_date: r.endDate,
-    is_active: r.isActive,
-    created_at: r.createdAt,
-    updated_at: r.updatedAt,
-  };
-}
 
 async function _getRecurringExpenses(): Promise<RecurringExpense[]> {
   await requireAuth();
