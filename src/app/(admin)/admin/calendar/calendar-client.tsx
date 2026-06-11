@@ -17,12 +17,9 @@ import {
 } from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {
-    BellRing,
     ChevronLeft,
     ChevronRight,
-    Loader2,
     Plus,
-    X
 } from 'lucide-react';
 import {toast} from 'sonner';
 
@@ -30,53 +27,34 @@ import {Button} from '@/components/ui/button';
 // [AI 기능 비활성화] import {OcrReservationButton} from '@/components/ai/ocr-reservation-dialog';
 import {Card, CardContent} from '@/components/ui/card';
 import {Skeleton} from '@/components/ui/skeleton';
-import {Input} from '@/components/ui/input';
-import {DatePicker} from '@/components/ui/date-picker';
-import {Label} from '@/components/ui/label';
-import {SuggestionInput} from '@/components/ui/suggestion-input';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {cn, formatPhoneNumber} from '@/lib/utils';
-import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
+import {cn} from '@/lib/utils';
 
 import {
-    addPickupToSale,
-    convertReservationToSale,
-    createReservation,
     deleteReservation,
     getReservations,
-    getReservationSuggestions,
     updateReservation,
 } from '@/lib/actions/reservations';
 import {getSchedules} from '@/lib/actions/schedules';
-import {completeUnpaidSale, deleteSale, getSaleById, revertUnpaidSale, updateSale} from '@/lib/actions/sales';
-import {checkPhoneDuplicate} from '@/lib/actions/customers';
+import {completeUnpaidSale, deleteSale, revertUnpaidSale, updateSale} from '@/lib/actions/sales';
 import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
 import {getSaleIdsWithPhotos} from '@/lib/actions/photo-cards';
 import type {PaymentMethod as PaymentMethodType, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import type {Schedule, Reservation, ReservationStatus} from '@/types/database';
+import {useQuickCreate} from '@/hooks/use-quick-create';
 import type {CalendarReservation} from './types';
 import {ScheduleCard} from './components/ScheduleCard';
 import {ReservationCard} from './components/ReservationCard';
-import {TimeSelect} from './components/time-select';
 import {ScheduleFormDialog} from './components/schedule-form-dialog';
+import {ReservationFormDialog} from './components/reservation-form-dialog';
 import {useScheduleForm} from './hooks/use-schedule-form';
+import {useReservationForm} from './hooks/use-reservation-form';
 import {
     DeleteScheduleDialog,
     DeleteReservationDialog,
     DeleteSaleDialog,
     UnpaidPaymentDialog,
 } from './components/CalendarDialogs';
-
-function formatCurrency(amount: number): string {
-  if (!amount) return '';
-  return new Intl.NumberFormat('ko-KR').format(amount) + '원';
-}
 
 export function CalendarClient() {
   const router = useRouter();
@@ -96,26 +74,6 @@ export function CalendarClient() {
   const [reservations, setReservations] = useState<CalendarReservation[]>([]);
   const [saleIdsWithPhotos, setSaleIdsWithPhotos] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-
-  // Form states
-  type PickupItem = { id?: string; date: string; time: string; amount: string; reminder_date: string; reminder_time: string };
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    customer_phone: '',
-    title: '',
-    memo: '',
-    product_category: '',
-    payment_method: '',
-    reservation_channel: '',
-    sale_date: '',
-  });
-  const [pickups, setPickups] = useState<PickupItem[]>([{ date: '', time: '', amount: '', reminder_date: '', reminder_time: '' }]);
-  const [deletedPickupIds, setDeletedPickupIds] = useState<string[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [suggestions, setSuggestions] = useState<{ titles: string[]; memos: string[] }>({ titles: [], memos: [] });
 
   // Sale settings
   const [saleCategories, setSaleCategories] = useState<SaleCategory[]>([]);
@@ -143,8 +101,7 @@ export function CalendarClient() {
   // selectedDate 변경 시 currentMonth 동기화 + URL 반영
   function selectDate(date: Date) {
     setSelectedDate(date);
-    setShowForm(false);
-    setEditingId(null);
+    closeReservationForm();
     closeScheduleForm();
     if (!isSameMonth(date, currentMonth)) {
       setCurrentMonth(date);
@@ -222,43 +179,6 @@ export function CalendarClient() {
       } catch { /* ignore */ }
     };
     loadSettings();
-  }, []);
-
-  // 폼이 열릴 때 자동완성 후보 로드
-  useEffect(() => {
-    if (showForm) {
-      getReservationSuggestions().then(setSuggestions).catch(() => {});
-    }
-  }, [showForm]);
-
-  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 예약 등록 폼을 즉시 오픈 (오늘 날짜 프리필).
-  // selectedDate 초기값이 이미 new Date() 이므로 오늘 날짜는 자동으로 채워진다.
-  // 1회만 처리 후 파라미터 제거 (새로고침 재오픈 방지).
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      setFormData({
-        customer_name: '',
-        customer_phone: '',
-        title: '',
-        memo: '',
-        product_category: '',
-        payment_method: '',
-        reservation_channel: '',
-        sale_date: todayStr,
-      });
-      setPickups([{ date: todayStr, time: '', amount: '', reminder_date: todayStr, reminder_time: '' }]);
-      setDeletedPickupIds([]);
-      setEditingId(null);
-      setEditingSaleId(null);
-      closeScheduleForm();
-      setShowForm(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('new');
-      router.replace(url.pathname + (url.search || ''), { scroll: false });
-    }
-  // 마운트 시 1회만 실행
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 제작 완료 토글: pending ↔ confirmed
@@ -419,330 +339,24 @@ export function CalendarClient() {
     return map;
   }, [reservations]);
 
-  function resetForm() {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setFormData({
-      customer_name: '',
-      customer_phone: '',
-      title: '',
-      memo: '',
-      product_category: '',
-      payment_method: '',
-      reservation_channel: '',
-      sale_date: format(new Date(), 'yyyy-MM-dd'),
-    });
-    setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
-    setDeletedPickupIds([]);
-    setEditingId(null);
-    setEditingSaleId(null);
-    setShowForm(false);
-  }
+  // 예약 폼 — 상태/제출/수정 로직은 훅이 보유
+  const reservationFormController = useReservationForm({
+    selectedDate,
+    siblingReservations,
+    onSaved: fetchData,
+  });
+  const {
+    closeReservationForm,
+    openCreateReservation,
+    startEdit,
+  } = reservationFormController;
 
-  async function startEdit(reservation: Reservation & { sale_date?: string; product_category?: string; customer_id?: string; purchase_count?: number; sale_payment_method?: string; sale_reservation_channel?: string }) {
-    const saleId = reservation.sale_id;
-    setEditingId(reservation.id);
-    setEditingSaleId(saleId || null);
-
-    // 같은 매출의 모든 픽업을 로드 (각 픽업의 개별 금액 유지)
-    const allPickups: PickupItem[] = [];
-    if (saleId) {
-      const siblings = siblingReservations.get(saleId) || [];
-      for (const s of siblings) {
-        allPickups.push({
-          id: s.id,
-          date: s.date,
-          time: s.time?.slice(0, 5) || '',
-          amount: s.amount ? String(s.amount) : '',
-          reminder_date: s.reminder_at ? format(new Date(s.reminder_at), 'yyyy-MM-dd') : '',
-          reminder_time: s.reminder_at ? format(new Date(s.reminder_at), 'HH:mm') : '',
-        });
-      }
-    }
-    if (allPickups.length === 0) {
-      allPickups.push({
-        id: reservation.id,
-        date: reservation.date,
-        time: reservation.time?.slice(0, 5) || '',
-        amount: reservation.amount ? String(reservation.amount) : '',
-        reminder_date: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'yyyy-MM-dd') : '',
-        reminder_time: reservation.reminder_at ? format(new Date(reservation.reminder_at), 'HH:mm') : '',
-      });
-    }
-
-    // 매출 연결 시 매출 상세를 조회해서 카테고리/결제방식/채널/결제일자(id 기반)를 채운다
-    let saleDate = reservation.sale_date || '';
-    let categoryId = '';
-    let paymentMethodId = '';
-    let channelId = '';
-
-    if (saleId) {
-      try {
-        const sale = await getSaleById(saleId);
-        if (sale) {
-          saleDate = sale.date || saleDate;
-          categoryId = sale.category_id || categoryId;
-          paymentMethodId = sale.payment_method_id || paymentMethodId;
-          channelId = sale.channel_id || channelId;
-        }
-      } catch { /* 조회 실패 시 기존 값 유지 */ }
-    }
-
-    setFormData({
-      customer_name: reservation.customer_name,
-      customer_phone: reservation.customer_phone || '',
-      title: reservation.title,
-      memo: reservation.memo || '',
-      product_category: categoryId,
-      payment_method: paymentMethodId,
-      reservation_channel: channelId,
-      sale_date: saleDate,
-    });
-    setPickups(allPickups);
-    setDeletedPickupIds([]);
-    setShowForm(true);
-  }
-
-  // 금액 (픽업별 합산)
-  const totalAmount = useMemo(() => {
-    return pickups.reduce((sum, p) => sum + (parseInt(p.amount) || 0), 0);
-  }, [pickups]);
-
-  function updatePickup(index: number, field: keyof PickupItem, value: string) {
-    setPickups(prev => prev.map((p, i) => {
-      if (i !== index) return p;
-      const updated = { ...p, [field]: value };
-
-      // 미수 선택 시 첫 번째 픽업 날짜 변경하면 결제일자 동기화
-      if (field === 'date' && index === 0 && value && formData.payment_method === '__unpaid__') {
-        setFormData(prev => ({ ...prev, sale_date: value }));
-      }
-
-      // 날짜 변경 시 리마인더 날짜 동기화
-      if (field === 'date' && value) {
-        updated.reminder_date = value;
-        // 시간이 있으면 2시간 전 계산
-        if (updated.time) {
-          const [h, m] = updated.time.split(':').map(Number);
-          const beforeH = h - 2;
-          if (beforeH >= 0) {
-            updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          } else {
-            // 자정 넘어가면 전날 + 보정된 시간
-            const prevDate = new Date(value);
-            prevDate.setDate(prevDate.getDate() - 1);
-            updated.reminder_date = format(prevDate, 'yyyy-MM-dd');
-            updated.reminder_time = `${String(24 + beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          }
-        }
-      }
-
-      // 시간 변경 시 리마인더 시간 2시간 전으로 동기화
-      if (field === 'time' && value && updated.date) {
-        updated.reminder_date = updated.date;
-        const [h, m] = value.split(':').map(Number);
-        const beforeH = h - 2;
-        if (beforeH >= 0) {
-          updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        } else {
-          const prevDate = new Date(updated.date);
-          prevDate.setDate(prevDate.getDate() - 1);
-          updated.reminder_date = format(prevDate, 'yyyy-MM-dd');
-          updated.reminder_time = `${String(24 + beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        }
-      }
-
-      return updated;
-    }));
-  }
-
-  function addPickup() {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setPickups(prev => [...prev, { date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
-  }
-
-  function removePickup(index: number) {
-    const pickup = pickups[index];
-    if (pickup.id) {
-      setDeletedPickupIds(prev => [...prev, pickup.id!]);
-    }
-    setPickups(prev => prev.filter((_, i) => i !== index));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    // 검증
-    if (!formData.customer_name.trim()) {
-      toast.error('고객명을 입력해주세요');
-      return;
-    }
-    if (!formData.customer_phone.trim()) {
-      toast.error('전화번호를 입력해주세요');
-      return;
-    }
-    if (!formData.title.trim()) {
-      toast.error('제목을 입력해주세요');
-      return;
-    }
-    for (let i = 0; i < pickups.length; i++) {
-      const p = pickups[i];
-      if (!p.date) { toast.error(`픽업 ${i + 1}의 날짜를 입력해주세요`); return; }
-      // 불완전한 시간 검증 (시만 or 분만 선택한 경우)
-      if (p.time && !/^\d{2}:\d{2}$/.test(p.time)) {
-        toast.error(`픽업 ${i + 1}의 시간을 정확히 선택해주세요`);
-        return;
-      }
-      if (p.reminder_time && !/^\d{2}:\d{2}$/.test(p.reminder_time)) {
-        toast.error(`픽업 ${i + 1}의 리마인더 시간을 정확히 선택해주세요`);
-        return;
-      }
-    }
-    if (totalAmount <= 0) {
-      toast.error('금액을 입력해주세요');
-      return;
-    }
-    if (!editingId && !formData.product_category) {
-      toast.error('상품 카테고리를 선택해주세요');
-      return;
-    }
-    if (!editingId && !formData.payment_method) {
-      toast.error('결제방식을 선택해주세요');
-      return;
-    }
-
-    setIsSaving(true);
-
-    // 전화번호 중복 체크
-    try {
-      const existing = await checkPhoneDuplicate(formData.customer_phone);
-      if (existing && existing.name !== formData.customer_name.trim()) {
-        toast.error(`이 전화번호는 "${existing.name}" 고객에게 등록되어 있습니다`);
-        setIsSaving(false);
-        return;
-      }
-    } catch { /* 계속 진행 */ }
-
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
-    function cleanTime(t: string): string | null {
-      if (!t || !/^\d{2}:\d{2}$/.test(t)) return null;
-      return t;
-    }
-
-    function pickupReminderAt(p: PickupItem): string | null {
-      if (!p.reminder_date) return null;
-      const time = cleanTime(p.reminder_time) || '08:00';
-      return `${p.reminder_date}T${time}:00+09:00`;
-    }
-
-    try {
-      if (editingId) {
-        // === 수정 모드 ===
-        // 1. 기존 픽업 업데이트
-        for (const p of pickups) {
-          if (p.id) {
-            await updateReservation(p.id, {
-              date: p.date,
-              time: cleanTime(p.time),
-              title: formData.title,
-              amount: parseInt(p.amount) || 0,
-              customer_name: formData.customer_name,
-              customer_phone: formData.customer_phone || null,
-              memo: formData.memo || null,
-              reminder_at: pickupReminderAt(p),
-            });
-          }
-        }
-
-        // 2. 새 픽업 추가
-        if (editingSaleId) {
-          for (const p of pickups) {
-            if (!p.id) {
-              await addPickupToSale(editingSaleId, {
-                date: p.date,
-                time: cleanTime(p.time) || undefined,
-                title: formData.title,
-                amount: parseInt(p.amount) || 0,
-                reminder_at: pickupReminderAt(p),
-              });
-            }
-          }
-        }
-
-        // 3. 삭제된 픽업 제거
-        for (const id of deletedPickupIds) {
-          await deleteReservation(id);
-        }
-
-        // 4. 매출 동기화
-        if (editingSaleId) {
-          try {
-            const saleFormData = new FormData();
-            if (formData.sale_date) saleFormData.set('date', formData.sale_date);
-            saleFormData.set('amount', String(totalAmount));
-            saleFormData.set('memo', formData.memo || '');
-            if (formData.product_category) saleFormData.set('category_id', formData.product_category);
-            if (formData.payment_method === '__unpaid__') { saleFormData.set('is_unpaid', 'true'); } else if (formData.payment_method) { saleFormData.set('payment_method_id', formData.payment_method); }
-            if (formData.reservation_channel) saleFormData.set('channel_id', formData.reservation_channel);
-            saleFormData.set('customer_name', formData.customer_name);
-            if (formData.customer_phone) saleFormData.set('customer_phone', formData.customer_phone);
-            await updateSale(editingSaleId, saleFormData);
-          } catch {
-            toast.error('매출 동기화에 실패했습니다');
-          }
-        }
-
-        toast.success('예약이 수정되었습니다');
-      } else {
-        // === 생성 모드 ===
-        const first = pickups[0];
-
-        // 1. 첫 번째 픽업으로 예약 생성
-        const reservation = await createReservation({
-          date: first.date || dateStr,
-          time: cleanTime(first.time) || undefined,
-          customer_name: formData.customer_name,
-          title: formData.title,
-          memo: formData.memo || undefined,
-          amount: parseInt(first.amount) || 0,
-          customer_phone: formData.customer_phone || undefined,
-          reminder_at: pickupReminderAt(first),
-        });
-
-        // 2. 매출 생성
-        const saleFormData = new FormData();
-        saleFormData.set('date', formData.sale_date || dateStr);
-        saleFormData.set('category_id', formData.product_category);
-        saleFormData.set('amount', String(totalAmount));
-        if (formData.payment_method === '__unpaid__') { saleFormData.set('is_unpaid', 'true'); } else { saleFormData.set('payment_method_id', formData.payment_method); }
-        saleFormData.set('channel_id', formData.reservation_channel);
-        saleFormData.set('customer_name', formData.customer_name);
-        saleFormData.set('customer_phone', formData.customer_phone);
-        saleFormData.set('memo', formData.memo || '');
-
-        const sale = await convertReservationToSale(reservation.id, saleFormData);
-
-        // 3. 추가 픽업 생성
-        for (let i = 1; i < pickups.length; i++) {
-          const p = pickups[i];
-          await addPickupToSale(sale.id, {
-            date: p.date || dateStr,
-            time: cleanTime(p.time) || undefined,
-            title: formData.title,
-            amount: parseInt(p.amount) || 0,
-            reminder_at: pickupReminderAt(p),
-          });
-        }
-
-        toast.success('예약과 매출이 등록되었습니다');
-      }
-      resetForm();
-      fetchData();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : (editingId ? '수정 실패' : '등록 실패'));
-    }
-    setIsSaving(false);
-  }
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 예약 등록 폼을 즉시 오픈 (오늘 날짜 프리필).
+  // selectedDate 초기값이 이미 new Date() 이므로 오늘 날짜는 자동으로 채워진다.
+  useQuickCreate(() => {
+    openCreateReservation(format(new Date(), 'yyyy-MM-dd'));
+    closeScheduleForm();
+  });
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -979,30 +593,15 @@ export function CalendarClient() {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button size="sm" onClick={() => {
-                    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                    setFormData({
-                      customer_name: '',
-                      customer_phone: '',
-                      title: '',
-                      memo: '',
-                      product_category: '',
-                      payment_method: '',
-                      reservation_channel: '',
-                      sale_date: format(new Date(), 'yyyy-MM-dd'),
-                    });
-                    setPickups([{ date: dateStr, time: '', amount: '', reminder_date: dateStr, reminder_time: '' }]);
-                    setDeletedPickupIds([]);
-                    setEditingId(null);
-                    setEditingSaleId(null);
+                    openCreateReservation(format(selectedDate, 'yyyy-MM-dd'));
                     closeScheduleForm();
-                    setShowForm(true);
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     예약
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
                     openCreateSchedule(format(selectedDate, 'yyyy-MM-dd'));
-                    setShowForm(false);
+                    closeReservationForm();
                   }}>
                     <Plus className="h-3.5 w-3.5 mr-1" />
                     일정
@@ -1042,272 +641,12 @@ export function CalendarClient() {
           <ScheduleFormDialog form={scheduleFormController} />
 
           {/* Reservation Form (modal) */}
-          <Dialog open={showForm} onOpenChange={(open) => { if (!open) resetForm(); }}>
-            <DialogContent
-              className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
-              onInteractOutside={(e) => e.preventDefault()}
-            >
-              <DialogHeader>
-                <DialogTitle>{editingId ? '예약 수정' : '새 예약'}</DialogTitle>
-              </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  {/* 고객명 | 전화번호 */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">고객명 <span className="text-brand">*</span></Label>
-                      <CustomerAutocomplete
-                        value={formData.customer_name}
-                        onChange={(name, _customerId, phone) => {
-                          setFormData({
-                            ...formData,
-                            customer_name: name,
-                            customer_phone: phone || formData.customer_phone,
-                          });
-                        }}
-                        placeholder="홍길동"
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">전화번호 <span className="text-brand">*</span></Label>
-                      <Input
-                        value={formData.customer_phone}
-                        onChange={(e) => setFormData({ ...formData, customer_phone: formatPhoneNumber(e.target.value) })}
-                        placeholder="010-0000-0000"
-                        className="h-8"
-                        inputMode="tel"
-                        autoComplete="tel"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 카테고리 | 제목 */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">카테고리 {!editingId && <span className="text-brand">*</span>}</Label>
-                      <select
-                        value={formData.product_category}
-                        onChange={(e) => {
-                          const cat = saleCategories.find(c => c.id === e.target.value);
-                          setFormData({
-                            ...formData,
-                            product_category: e.target.value,
-                            title: cat ? cat.label : formData.title,
-                          });
-                        }}
-                        className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                        aria-label="상품 카테고리"
-                      >
-                        <option value="">선택</option>
-                        {saleCategories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">제목 <span className="text-brand">*</span></Label>
-                      <SuggestionInput
-                        value={formData.title}
-                        onChange={(val) => setFormData({ ...formData, title: val })}
-                        suggestions={suggestions.titles}
-                        placeholder="프로포즈 꽃다발"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 예약 채널 | 결제방식 */}
-                  {editingSaleId || !editingId ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">예약 채널</Label>
-                        <select
-                          value={formData.reservation_channel}
-                          onChange={(e) => setFormData({ ...formData, reservation_channel: e.target.value })}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                          aria-label="예약 채널"
-                        >
-                          <option value="">선택</option>
-                          {saleChannels.map((ch) => (
-                            <option key={ch.id} value={ch.id}>{ch.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">결제방식 <span className="text-brand">*</span></Label>
-                        <select
-                          value={formData.payment_method}
-                          onChange={(e) => {
-                            const newMethod = e.target.value;
-                            const updates: Partial<typeof formData> = { payment_method: newMethod };
-                            // 미수 선택 시 결제일자를 첫 번째 픽업 일자로 동기화
-                            if (newMethod === '__unpaid__' && pickups[0]?.date) {
-                              updates.sale_date = pickups[0].date;
-                            }
-                            setFormData({ ...formData, ...updates });
-                          }}
-                          className="flex h-8 w-full appearance-none rounded-md border border-input bg-transparent bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat pl-3 pr-8 text-base md:text-sm focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring"
-                          aria-label="결제방식"
-                        >
-                          <option value="">선택</option>
-                          {salePaymentMethods.map((pm) => (
-                            <option key={pm.id} value={pm.id}>{pm.label}</option>
-                          ))}
-                          <option value="__unpaid__">미수(외상)</option>
-                        </select>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* 결제일자 | 금액 */}
-                  <div className="grid grid-cols-[3fr_2fr] gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">결제일자</Label>
-                      <DatePicker
-                        value={formData.sale_date}
-                        onChange={(d) => setFormData({ ...formData, sale_date: d })}
-                        aria-label="결제일자"
-                      />
-                    </div>
-                    {pickups.length === 1 && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">금액 <span className="text-brand">*</span></Label>
-                        <Input
-                          type="number"
-                          step={10000}
-                          value={pickups[0].amount}
-                          onChange={(e) => updatePickup(0, 'amount', e.target.value)}
-                          placeholder="0"
-                          className="h-8"
-                          aria-label="금액"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 픽업 섹션 */}
-                  <div className="space-y-2">
-                    {pickups.map((pickup, idx) => (
-                      <div key={idx} className={cn('space-y-2', pickups.length > 1 && 'p-2.5 rounded-md border border-dashed border-input')}>
-                        {pickups.length > 1 && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-medium text-muted-foreground">픽업 {idx + 1}</span>
-                            <button
-                              type="button"
-                              onClick={() => removePickup(idx)}
-                              className="text-[10px] text-muted-foreground hover:text-danger transition-colors"
-                              aria-label={`픽업 ${idx + 1} 삭제`}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                        <div className="space-y-1">
-                          <div className="grid grid-cols-[3fr_2fr] gap-2">
-                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 일자' : '날짜'} <span className="text-brand">*</span></Label>
-                            <Label className="text-[10px] text-muted-foreground">{pickups.length === 1 ? '픽업 시간' : '시간'}</Label>
-                          </div>
-                          <div className="grid grid-cols-[3fr_2fr] gap-2">
-                            <DatePicker
-                              value={pickup.date}
-                              onChange={(d) => updatePickup(idx, 'date', d)}
-                              aria-label={`픽업 ${idx + 1} 날짜`}
-                            />
-                            <TimeSelect
-                              value={pickup.time}
-                              onChange={(val) => updatePickup(idx, 'time', val)}
-                            />
-                          </div>
-                        </div>
-                        {pickups.length > 1 && (
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">금액 <span className="text-brand">*</span></Label>
-                            <Input
-                              type="number"
-                              step={10000}
-                              value={pickup.amount}
-                              onChange={(e) => updatePickup(idx, 'amount', e.target.value)}
-                              placeholder="0"
-                              className="h-8 w-full"
-                              aria-label={`픽업 ${idx + 1} 금액`}
-                            />
-                          </div>
-                        )}
-                        {/* 리마인더 */}
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">
-                            <BellRing className="w-3 h-3 inline mr-0.5" />
-                            리마인더
-                          </Label>
-                          <div className="grid grid-cols-[3fr_2fr] gap-2">
-                            <DatePicker
-                              value={pickup.reminder_date}
-                              onChange={(d) => updatePickup(idx, 'reminder_date', d)}
-                              placeholder="없음"
-                              aria-label={`픽업 ${idx + 1} 리마인더 날짜`}
-                            />
-                            <TimeSelect
-                              value={pickup.reminder_time}
-                              onChange={(val) => updatePickup(idx, 'reminder_time', val)}
-                              disabled={!pickup.reminder_date}
-                            />
-                          </div>
-                          {pickup.reminder_date && (
-                            <p className="text-[10px] text-muted-foreground">
-                              {pickup.reminder_date} {pickup.reminder_time || '08:00'}에 알림
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addPickup}
-                      className="w-full py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-input rounded-md hover:bg-muted transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      픽업 추가
-                    </button>
-                    {pickups.length > 1 && (
-                      <div className="flex items-center justify-between px-1 pt-1">
-                        <span className="text-xs text-muted-foreground">합산 금액</span>
-                        <span className={cn('text-sm font-semibold', totalAmount > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-                          {totalAmount > 0 ? formatCurrency(totalAmount) : '0원'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 메모 */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-xs text-muted-foreground">메모</Label>
-                      <span className="text-[11px] text-muted-foreground">
-                        {formData.memo.length}/200
-                      </span>
-                    </div>
-                    <SuggestionInput
-                      value={formData.memo}
-                      onChange={(val) => setFormData({ ...formData, memo: val })}
-                      suggestions={suggestions.memos}
-                      placeholder="메모를 입력하세요"
-                      maxLength={200}
-                      multiline
-                      aria-label="메모"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button type="button" variant="outline" size="sm" className="flex-1 h-9" onClick={resetForm}>
-                      취소
-                    </Button>
-                    <Button type="submit" size="sm" className="flex-1 h-9" disabled={isSaving}>
-                      {isSaving && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
-                      {editingId ? '수정' : '등록'}
-                    </Button>
-                  </div>
-                </form>
-            </DialogContent>
-          </Dialog>
+          <ReservationFormDialog
+            form={reservationFormController}
+            saleCategories={saleCategories}
+            saleChannels={saleChannels}
+            salePaymentMethods={salePaymentMethods}
+          />
 
           {/* 탭 콘텐츠 */}
           {dayTab === 'schedule' ? (
@@ -1320,7 +659,7 @@ export function CalendarClient() {
                     onEdit={(sched) => {
                       startEditSchedule(sched);
                       // 일정 폼 열 때 예약 폼은 닫기
-                      setShowForm(false);
+                      closeReservationForm();
                     }}
                     onDelete={setDeleteScheduleTarget}
                   />
