@@ -56,3 +56,4 @@
 - 로그인: `signIn(context, baseURL)` — 무서명 JWT 쿠키 주입.
 - 모든 테스트에 `trackErrors`/`expectNoErrors`(런타임 에러 0 검증) 적용.
 - 새 화면/플로우 추가 시: 렌더 스모크(seed 데이터 표시) 1개 + 핵심 CRUD 1개를 기본으로.
+- **날짜 의존 테스트 규칙**: seed 날짜를 테스트에서 자체 계산(`오늘+1` 등)하지 말 것 — mock 서버 기동 시점과 어긋난다(자정/월 경계 플레이크). mock API를 직접 조회해 실제 날짜를 얻는다(`calendar.spec.ts`의 `seedReservationDate()` 참고). e2e 전 프로세스는 TZ=Asia/Seoul로 고정돼 있다(playwright.config.ts).

@@ -99,5 +99,6 @@ pnpm e2e           # 21 passed (Playwright)
 - [ ] 500줄 초과 잔여 파일: `profile-client.tsx`(564), `recurring-expenses-section.tsx`(557), `onboarding-form.tsx`(532), `sale-photo-modal.tsx`(508) — 같은 패턴으로 분해 가능
 - [ ] gallery 커서 기반 무한스크롤의 공용 훅 통합 검토 (use-infinite-list에 cursor 모드 추가)
 - [ ] lint warnings(~46) 점진 해소 후 해당 룰 error 승격
-- [ ] e2e 시나리오 확장: 설정(라벨 관리), 통계 탭 전환, 커뮤니티 작성 플로우
+- [ ] e2e 시나리오 확장: 설정(라벨 관리), 통계 탭 전환, 커뮤니티 작성 플로우, 수정/삭제 플로우, 고정비 분기
+- [ ] **캘린더 hydration 타임존 이슈 점검**: e2e CI(UTC 러너)에서 서버 렌더 날짜 ≠ 클라(KST) 날짜로 React #418 발생 확인 — e2e는 TZ 고정으로 해결했지만, **실서버 컨테이너 TZ가 UTC라면 KST 자정 전 시간대(UTC 15시~24시)에 실사용자도 동일한 hydration 경고**가 날 수 있다. 서버 TZ 확인 또는 캘린더 초기 날짜의 클라이언트 전용 처리 검토
 - [ ] `.claude/worktrees/{console-redesign,onboarding-console}` 고아 디렉터리 삭제 (git 미등록 잔여물, 12MB — 사용자 확인 필요)

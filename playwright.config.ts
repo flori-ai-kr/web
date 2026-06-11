@@ -9,6 +9,9 @@ const MOCK_BFF_PORT = 18080;
 // next build가 lib/env.ts 검증을 통과하기 위한 더미 값.
 // STORAGE_PUBLIC_URL은 seed 사진 URL 호스트(cdn.example.com)를 next/image 허용 목록에 올린다.
 const webEnv = {
+  // e2e 환경 전체를 KST로 고정 — CI(UTC) 러너에서 서버 렌더 날짜와 브라우저(timezoneId:
+  // Asia/Seoul) 하이드레이션 날짜가 어긋나며 나는 React #418 플레이크 방지
+  TZ: 'Asia/Seoul',
   API_URL: `http://127.0.0.1:${MOCK_BFF_PORT}`,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'e2e-dummy-vapid-public-key',
   // CI build job과 동일한 placeholder 패턴 사용 (실키 아님 — 검증 길이 32자만 충족)
@@ -37,7 +40,7 @@ export default defineConfig({
       command: 'node e2e/mock-bff/server.mjs',
       port: MOCK_BFF_PORT,
       reuseExistingServer: !process.env.CI,
-      env: { MOCK_BFF_PORT: String(MOCK_BFF_PORT) },
+      env: { MOCK_BFF_PORT: String(MOCK_BFF_PORT), TZ: 'Asia/Seoul' },
     },
     {
       command: `npx next build && npx next start -p ${WEB_PORT}`,
