@@ -10,13 +10,11 @@ import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
 import {deleteSale, loadMoreSales} from '@/lib/actions/sales';
-import {getReservationsForSale} from '@/lib/actions/reservations';
-import {getPhotoCardBySaleId} from '@/lib/actions/photo-cards';
 import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
-import type {PhotoCard, Reservation, Sale} from '@/types/database';
+import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
@@ -25,6 +23,7 @@ import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
 import {SaleDetailDialog} from './components/SaleDetailDialog';
 import {SalesFiltersUI} from './components/SalesFilters';
+import {useSaleDetail} from './hooks/use-sale-detail';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
 import {useQuickCreate} from '@/hooks/use-quick-create';
 
@@ -52,7 +51,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(initialSelectedSale || null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   // 필터는 URL 파라미터 기반 (서버 쿼리에 적용됨)
   const paymentFilter: string[] = initialFilters.payment ?? [];
@@ -61,8 +59,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [searchQuery, setSearchQuery] = useState('');
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
-  const [selectedSalePhotos, setSelectedSalePhotos] = useState<PhotoCard | null>(null);
-  const [selectedSaleReservations, setSelectedSaleReservations] = useState<Reservation[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
@@ -71,6 +67,15 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
   const [, startDeleteTransition] = useTransition();
   const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
+
+  // 매출 상세 선택 + 연결 사진/예약 로드 + URL saleId 딥링크
+  const {
+    selectedSale,
+    setSelectedSale,
+    selectedSalePhotos,
+    selectedSaleReservations,
+    handleSelectSale,
+  } = useSaleDetail({ initialSelectedSale });
 
   // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
   const {
@@ -97,19 +102,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     allSales,
     (sales, deletedId: string) => sales.filter((s) => s.id !== deletedId),
   );
-
-  // URL saleId로 직접 열린 경우 photos/reservations 로드
-  useEffect(() => {
-    if (initialSelectedSale) {
-      Promise.all([
-        getPhotoCardBySaleId(initialSelectedSale.id),
-        getReservationsForSale(initialSelectedSale.id),
-      ]).then(([photoCard, reservations]) => {
-        setSelectedSalePhotos(photoCard);
-        setSelectedSaleReservations(reservations);
-      });
-    }
-  }, [initialSelectedSale]);
 
   // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
 
@@ -184,19 +176,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     data: filteredSales,
     });
   }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
-
-  // 매출 상세 선택 시 사진 + 연결 예약 로드
-  const handleSelectSale = async (sale: Sale) => {
-    setSelectedSale(sale);
-    setSelectedSalePhotos(null);
-    setSelectedSaleReservations([]);
-    const [photoCard, reservations] = await Promise.all([
-      getPhotoCardBySaleId(sale.id),
-      getReservationsForSale(sale.id),
-    ]);
-    setSelectedSalePhotos(photoCard);
-    setSelectedSaleReservations(reservations);
-  };
 
   const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
