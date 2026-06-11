@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { PhotoCard as PhotoCardType } from '@/types/database';
-import { PhotoCard } from './PhotoCard';
+import { PhotoCard } from './photo-card';
 import { Image as ImageIcon } from 'lucide-react';
 import { EmptyState } from '@/components/layout/empty-state';
 

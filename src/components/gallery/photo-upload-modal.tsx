@@ -13,7 +13,7 @@ import {toast} from 'sonner';
 import {createPhotoCard, reorderPhotos, updatePhotoCard} from '@/lib/actions/photo-cards';
 import {uploadPhotoFiles, uploadPhotoFilesStandalone} from '@/lib/photo-upload';
 import {createPhotoTag} from '@/lib/actions/photo-tags';
-import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
+import {CustomerAutocomplete} from '@/components/sales/customer-autocomplete';
 import {cn} from '@/lib/utils';
 
 const MAX_FILE_SIZE_MB = 5;

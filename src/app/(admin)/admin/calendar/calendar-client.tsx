@@ -6,7 +6,7 @@ import {format, isSameMonth} from 'date-fns';
 import {toast} from 'sonner';
 
 // [AI 기능 비활성화] import {OcrReservationButton} from '@/components/ai/ocr-reservation-dialog';
-import {SalePhotoModal} from '@/components/sales/SalePhotoModal';
+import {SalePhotoModal} from '@/components/sales/sale-photo-modal';
 import type {PaymentMethod as PaymentMethodType, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import {useQuickCreate} from '@/hooks/use-quick-create';

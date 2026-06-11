@@ -1,1 +1,1 @@
-export { ExpenseSettingsModal } from './ExpenseSettingsModal';
+export { ExpenseSettingsModal } from './expense-settings-modal';

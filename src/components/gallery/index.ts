@@ -1,5 +1,5 @@
-export { PhotoCard } from './PhotoCard';
-export { PhotoCardGrid } from './PhotoCardGrid';
-export { PhotoCardDialog } from './PhotoCardDialog';
-export { PhotoUploadModal } from './PhotoUploadModal';
-export { TagFilter } from './TagFilter';
+export { PhotoCard } from './photo-card';
+export { PhotoCardGrid } from './photo-card-grid';
+export { PhotoCardDialog } from './photo-card-dialog';
+export { PhotoUploadModal } from './photo-upload-modal';
+export { TagFilter } from './tag-filter';

@@ -14,7 +14,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {cn, formatPhoneNumber} from '@/lib/utils';
-import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
+import {CustomerAutocomplete} from '@/components/sales/customer-autocomplete';
 import type {PaymentMethod as PaymentMethodType, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
 import {TimeSelect} from './time-select';
 import type {useReservationForm} from '../hooks/use-reservation-form';

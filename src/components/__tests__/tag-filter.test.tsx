@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TagFilter } from '../gallery/TagFilter'
-import { PhotoCardGrid } from '../gallery/PhotoCardGrid'
+import { TagFilter } from '../gallery/tag-filter'
+import { PhotoCardGrid } from '../gallery/photo-card-grid'
 import type { PhotoTag, PhotoCard } from '@/types/database'
 
 const tags: PhotoTag[] = [

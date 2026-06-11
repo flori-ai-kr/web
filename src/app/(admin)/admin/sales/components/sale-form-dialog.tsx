@@ -9,7 +9,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {AmountInput} from '@/components/ui/amount-input';
 import {SuggestionInput} from '@/components/ui/suggestion-input';
-import {CustomerAutocomplete} from '@/components/sales/CustomerAutocomplete';
+import {CustomerAutocomplete} from '@/components/sales/customer-autocomplete';
 import {Loader2} from 'lucide-react';
 import {format} from 'date-fns';
 import {toast} from 'sonner';

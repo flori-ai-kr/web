@@ -23,7 +23,7 @@ import {
   getExpenseCategories,
   getExpensePaymentMethods,
 } from '@/lib/actions/expense-settings';
-import {ExpenseSettingsModal} from '@/components/expenses/ExpenseSettingsModal';
+import {ExpenseSettingsModal} from '@/components/expenses/expense-settings-modal';
 import type {Expense} from '@/types/database';
 import type {ExportConfig} from '@/lib/export';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
