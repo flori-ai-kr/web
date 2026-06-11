@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { Users, Receipt, CreditCard, FileCheck, TriangleAlert } from 'lucide-react';
-import { StatCard } from '@/components/console/StatCard';
-import { TrendChart } from '@/components/console/TrendChart';
+import { StatCard } from '@/components/console/stat-card';
+import { TrendChart } from '@/components/console/trend-chart';
 import type { AdminOverview, AiHealthResponse, StatRange, TimeseriesPoint } from '@/types/admin';
 
 // 집계 금액은 만원 단위 표시(프로젝트 표준).
@@ -14,7 +14,6 @@ const RANGES: StatRange[] = ['7d', '30d', '90d', 'all'];
 
 export function OverviewClient({
   overview,
-  health,
   signups,
   sales,
   range,

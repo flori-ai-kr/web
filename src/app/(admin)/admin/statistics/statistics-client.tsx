@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { EmptyState } from '@/components/layout/EmptyState';
+import { EmptyState } from '@/components/layout/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { BarChart2, AlertCircle, RefreshCw } from 'lucide-react';
-import { DateRangeSelector } from './components/DateRangeSelector';
+import { DateRangeSelector } from './components/date-range-selector';
 import { type RangePreset } from './lib/range';
 import {
   getSalesStatistics,
@@ -18,10 +18,10 @@ import {
   type ReservationStatistics,
   type CustomerStatistics,
 } from '@/lib/actions/statistics';
-import { SalesStatPanel } from './components/SalesStatPanel';
-import { ExpenseStatPanel } from './components/ExpenseStatPanel';
-import { ReservationStatPanel } from './components/ReservationStatPanel';
-import { CustomerStatPanel } from './components/CustomerStatPanel';
+import { SalesStatPanel } from './components/sales-stat-panel';
+import { ExpenseStatPanel } from './components/expense-stat-panel';
+import { ReservationStatPanel } from './components/reservation-stat-panel';
+import { CustomerStatPanel } from './components/customer-stat-panel';
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@ import type {InstagramPostWithAccount, ScrapMap} from '@/types/database';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 import {ImageLightbox} from '@/components/ui/image-lightbox';
 import {normalizeInstagramImageUrl} from '@/lib/instagram-url';
-import {ScrapMemoEditor} from '@/components/insights/scrap-memo-editor';
+import {ScrapMemoEditor} from '@/app/(admin)/admin/insights/components/scrap-memo-editor';
 
 interface PostDetailDialogProps {
   post: InstagramPostWithAccount | null;

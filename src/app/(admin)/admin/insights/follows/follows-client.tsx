@@ -16,7 +16,7 @@ import {
     type ScrapMap,
 } from '@/types/database';
 import {normalizeInstagramImageUrl} from '@/lib/instagram-url';
-import {ScrapButton} from '@/components/insights/scrap-button';
+import {ScrapButton} from '@/app/(admin)/admin/insights/components/scrap-button';
 import {AccountManagerDialog} from './account-manager-dialog';
 import {PostDetailDialog} from './post-detail-dialog';
 

@@ -1,43 +1,36 @@
 'use client';
 
-import {useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition} from 'react';
-import {useRouter, useSearchParams} from 'next/navigation';
-import {Button} from '@/components/ui/button';
-import {PageHeader} from '@/components/layout/PageHeader';
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
-import {Plus, Settings} from 'lucide-react';
+import {useCallback, useState} from 'react';
+import {useRouter} from 'next/navigation';
 import {format} from 'date-fns';
-import {ko} from '@/lib/date-locale';
 import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
-import {deleteSale, loadMoreSales} from '@/lib/actions/sales';
-import {getReservationsForSale} from '@/lib/actions/reservations';
-import {getPhotoCardBySaleId} from '@/lib/actions/photo-cards';
+import {loadMoreSales} from '@/lib/actions/sales';
 import dynamic from 'next/dynamic';
-import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
+import {SalesSettingsModal} from '@/app/(admin)/admin/sales/components/sales-settings-modal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
-import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
-import type {PhotoCard, Reservation, Sale} from '@/types/database';
+import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
-import {ExportButton} from '@/components/ui/export-button';
-import type {ExportConfig} from '@/lib/export';
-import {SalesSummary} from './components/SalesSummary';
-import {SalesList} from './components/SalesList';
-import {SaleFormDialog} from './components/SaleFormDialog';
-import {SaleDetailDialog} from './components/SaleDetailDialog';
-import {SalesFiltersUI} from './components/SalesFilters';
+import {buildSalesExportConfig} from './sales-export';
+import {SalesSummary} from './components/sales-summary';
+import {SalesList} from './components/sales-list';
+import {SaleFormDialog} from './components/sale-form-dialog';
+import {SaleDetailDialog} from './components/sale-detail-dialog';
+import {SalesFiltersUI} from './components/sales-filters';
+import {SaleDeleteDialog} from './components/sale-delete-dialog';
+import {SalePhotoPromptDialog} from './components/sale-photo-prompt-dialog';
+import {SalesFab} from './components/sales-fab';
+import {useSaleDetail} from './hooks/use-sale-detail';
+import {useSaleDelete} from './hooks/use-sale-delete';
+import {useSalesUrlFilters} from './hooks/use-sales-url-filters';
+import {useSaleCreateParams, type SaleInitialCustomer} from './hooks/use-sale-create-params';
+import {useInfiniteList} from '@/hooks/use-infinite-list';
+import {useQuickCreate} from '@/hooks/use-quick-create';
 
 const SalePhotoModal = dynamic(
-  () => import('@/components/sales/SalePhotoModal').then(mod => ({ default: mod.SalePhotoModal })),
+  () => import('@/components/sales/sale-photo-modal').then(mod => ({ default: mod.SalePhotoModal })),
   { loading: () => null, ssr: false },
 );
-
-// Year options: 2024 ~ 2030
-const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => 2024 + i);
-// Month options: 1 ~ 12
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
-// Day options: 1 ~ 31
-const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 interface Props {
   initialSales: Sale[];
@@ -56,62 +49,72 @@ interface Props {
 
 export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(initialSelectedSale || null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  // 필터는 URL 파라미터 기반 (서버 쿼리에 적용됨)
-  const paymentFilter: string[] = initialFilters.payment ?? [];
-  const categoryFilter: string[] = initialFilters.category ?? [];
-  const channelFilter: string[] = initialFilters.channel ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
-  const [selectedSalePhotos, setSelectedSalePhotos] = useState<PhotoCard | null>(null);
-  const [selectedSaleReservations, setSelectedSaleReservations] = useState<Reservation[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
   const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
-  const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
-  const [, startDeleteTransition] = useTransition();
-  const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
+  const [initialCustomer, setInitialCustomer] = useState<SaleInitialCustomer | undefined>();
 
-  // 무한스크롤 상태
-  const [allSales, setAllSales] = useState<Sale[]>(initialSales);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const dataVersionRef = useRef(0);
+  // URL 파라미터 기반 필터(년/월/일 + 카테고리·결제·채널) + 내비 핸들러
+  const {
+    categoryFilter,
+    paymentFilter,
+    channelFilter,
+    handleTodayOnly,
+    handleMonthNav,
+    handleDateRangeApply,
+    handleCategoryChange,
+    handlePaymentChange,
+    handleChannelChange,
+    resetUrlFilters,
+  } = useSalesUrlFilters({ currentYear, currentMonth, currentDay, initialFilters });
 
-  // 낙관적 삭제: 즉시 목록에서 제거하고, 서버 실패 시 자동 롤백된다.
-  const [optimisticSales, removeOptimisticSale] = useOptimistic(
-    allSales,
-    (sales, deletedId: string) => sales.filter((s) => s.id !== deletedId),
-  );
+  // 매출 상세 선택 + 연결 사진/예약 로드 + URL saleId 딥링크
+  const {
+    selectedSale,
+    setSelectedSale,
+    selectedSalePhotos,
+    selectedSaleReservations,
+    handleSelectSale,
+  } = useSaleDetail({ initialSelectedSale });
 
-  // initialSales가 변경되면(년/월/필터 변경) 리셋
-  useEffect(() => {
-    dataVersionRef.current += 1;
-    setAllSales(initialSales);
-    setHasMore(initialHasMore);
-    setIsLoadingMore(false);
-  }, [initialSales, initialHasMore]);
+  // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
+  const {
+    items: allSales,
+    setItems: setAllSales,
+    hasMore,
+    isLoadingMore,
+    isSearching,
+    loadMore: handleLoadMore,
+  } = useInfiniteList<Sale>({
+    initialItems: initialSales,
+    initialHasMore,
+    loadPage: async (offset, search) => {
+      const filters = search ? { ...initialFilters, search } : initialFilters;
+      const result = await loadMoreSales(serverMonthParam, offset, filters);
+      return { items: result.sales, hasMore: result.hasMore };
+    },
+    searchQuery,
+    onSearchError: () => toast.error('검색에 실패했습니다'),
+  });
 
-  // URL saleId로 직접 열린 경우 photos/reservations 로드
-  useEffect(() => {
-    if (initialSelectedSale) {
-      Promise.all([
-        getPhotoCardBySaleId(initialSelectedSale.id),
-        getReservationsForSale(initialSelectedSale.id),
-      ]).then(([photoCard, reservations]) => {
-        setSelectedSalePhotos(photoCard);
-        setSelectedSaleReservations(reservations);
-      });
-    }
-  }, [initialSelectedSale]);
-
-  // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
+  // 삭제 확인 + 낙관적 목록 제거(서버 실패 시 자동 롤백)
+  const {
+    optimisticSales,
+    deleteTarget,
+    setDeleteTarget,
+    handleDelete,
+    confirmDelete,
+  } = useSaleDelete({
+    sales: allSales,
+    setSales: setAllSales,
+    onCloseDetail: () => setSelectedSale(null),
+  });
 
   // 설정 새로고침
   const refreshSettings = async () => {
@@ -121,85 +124,20 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setChannels(chs);
   };
 
-  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈. 1회만 처리 후 파라미터 제거.
-  useEffect(() => {
-    if (searchParams.get('new') === '1') {
-      setInitialCustomer(undefined);
-      setIsFormOpen(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete('new');
-      router.replace(url.pathname + (url.search || ''), { scroll: false });
+  // ?new=1 — 빠른 등록(대시보드)에서 진입 시 매출 등록 폼을 즉시 오픈
+  useQuickCreate(() => {
+    setInitialCustomer(undefined);
+    setIsFormOpen(true);
+  });
+
+  // URL 파라미터(?action=create)로 등록 모달 자동 오픈 (고객 페이지에서 연결)
+  const handleOpenCreateFromUrl = useCallback((customer?: SaleInitialCustomer) => {
+    if (customer) {
+      setInitialCustomer(customer);
     }
-  // 마운트 시 1회만 실행
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setIsFormOpen(true);
   }, []);
-
-  // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
-  useEffect(() => {
-    const action = searchParams.get('action');
-    if (action === 'create') {
-      const paramCustomerName = searchParams.get('customer_name');
-      const paramCustomerPhone = searchParams.get('customer_phone');
-      const paramCustomerId = searchParams.get('customer_id');
-
-      if (paramCustomerName) {
-        setInitialCustomer({
-          name: paramCustomerName,
-          id: paramCustomerId,
-          phone: paramCustomerPhone,
-        });
-      }
-
-      setIsFormOpen(true);
-      // URL 파라미터 정리
-      const cleanParams = new URLSearchParams();
-      cleanParams.set('year', currentYear === 0 ? 'all' : currentYear.toString());
-      cleanParams.set('month', currentMonth === 0 ? 'all' : currentMonth.toString());
-      if (currentDay !== 0) cleanParams.set('day', currentDay.toString());
-      router.replace(`/admin/sales?${cleanParams.toString()}`, { scroll: false });
-    }
-  }, [searchParams, router, currentYear, currentMonth, currentDay]);
-
-  // 검색어 디바운스 → 서버사이드 검색
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const searchVersionRef = useRef(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const filtersKey = `${(initialFilters.category ?? []).join(',')}-${(initialFilters.payment ?? []).join(',')}-${(initialFilters.channel ?? []).join(',')}`;
-
-  useEffect(() => {
-    if (debouncedSearch === '') {
-      // 검색어가 비어지면 초기 데이터로 복원
-      setIsSearching(false);
-      dataVersionRef.current += 1;
-      setAllSales(initialSales);
-      setHasMore(initialHasMore);
-      return;
-    }
-    const version = ++searchVersionRef.current;
-    setIsSearching(true);
-    loadMoreSales(serverMonthParam, 0, { ...initialFilters, search: debouncedSearch })
-      .then(result => {
-        if (version !== searchVersionRef.current) return;
-        dataVersionRef.current += 1;
-        setAllSales(result.sales);
-        setHasMore(result.hasMore);
-      })
-      .catch(() => {
-        toast.error('검색에 실패했습니다');
-      })
-      .finally(() => {
-        if (version === searchVersionRef.current) setIsSearching(false);
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, serverMonthParam, filtersKey, initialSales, initialHasMore]);
+  useSaleCreateParams({ currentYear, currentMonth, currentDay, onOpenCreate: handleOpenCreateFromUrl });
 
   // 내보내기·렌더 모두 낙관적 목록을 기준으로 한다(삭제 진행 중 ghost 행 방지).
   const filteredSales = optimisticSales;
@@ -209,129 +147,10 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || channelFilter.length > 0 || searchQuery !== '';
 
-  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
-  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
-  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
-
-  const getExportConfig = useCallback((): ExportConfig<Sale> => {
-    const isAll = currentYear === 0 || currentMonth === 0;
-    const monthSuffix = isAll ? '' : `_${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const daySuffix = currentDay === 0 ? '' : `-${String(currentDay).padStart(2, '0')}`;
-    return ({
-    filename: isAll ? '매출_전체' : `매출${monthSuffix}${daySuffix}`,
-    title: `매출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
-    columns: [
-      { header: '날짜', accessor: (s) => String(s.date || '') },
-      { header: '카테고리', accessor: (s) => s.category_label || '' },
-      { header: '금액', accessor: (s) => Number(s.amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (s) => isUnsettledUnpaid(s) ? '미수' : (s.payment_method_label ?? '') },
-      { header: '채널', accessor: (s) => s.channel_label || '' },
-      { header: '고객명', accessor: (s) => String(s.customer_name || '') },
-      { header: '메모', accessor: (s) => String(s.memo || '') },
-    ],
-    data: filteredSales,
-    });
-  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
-
-  // 매출 상세 선택 시 사진 + 연결 예약 로드
-  const handleSelectSale = async (sale: Sale) => {
-    setSelectedSale(sale);
-    setSelectedSalePhotos(null);
-    setSelectedSaleReservations([]);
-    const [photoCard, reservations] = await Promise.all([
-      getPhotoCardBySaleId(sale.id),
-      getReservationsForSale(sale.id),
-    ]);
-    setSelectedSalePhotos(photoCard);
-    setSelectedSaleReservations(reservations);
-  };
-
-  const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
-  const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
-  const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
-  const isDayDisabled = yearParam === 'all' || monthParam === 'all';
-
-  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
-  const buildUrl = useCallback((overrides: {
-    year?: string; month?: string; day?: string;
-    category?: string[]; payment?: string[]; channel?: string[];
-  } = {}) => {
-    const p = {
-      year: yearParam,
-      month: monthParam,
-      day: dayParam,
-      category: categoryFilter,
-      payment: paymentFilter,
-      channel: channelFilter,
-      ...overrides,
-    };
-    // 년/월이 'all'이면 일은 자동 'all'
-    if (p.year === 'all' || p.month === 'all') p.day = 'all';
-    const params = new URLSearchParams();
-    params.set('year', p.year);
-    params.set('month', p.month);
-    if (p.day !== 'all') params.set('day', p.day);
-    if (p.category.length > 0) params.set('category', p.category.join(','));
-    if (p.payment.length > 0) params.set('payment', p.payment.join(','));
-    if (p.channel.length > 0) params.set('channel', p.channel.join(','));
-    return `/admin/sales?${params.toString()}`;
-  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
-
-  const handleYearChange = (year: string) => {
-    router.push(buildUrl({ year, day: 'all' }));
-  };
-
-  const handleMonthChange = (month: string) => {
-    router.push(buildUrl({ month, day: 'all' }));
-  };
-
-  const handleDayChange = (day: string) => {
-    router.push(buildUrl({ day }));
-  };
-
-  const handleTodayOnly = () => {
-    const now = new Date();
-    const y = now.getFullYear().toString();
-    const m = (now.getMonth() + 1).toString();
-    const d = now.getDate().toString();
-    // 이미 오늘이면 해제 (이번 달 전체로)
-    if (currentDay === now.getDate() && currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear()) {
-      router.push(buildUrl({ day: 'all' }));
-    } else {
-      router.push(buildUrl({ year: y, month: m, day: d }));
-    }
-  };
-
-  const handleMonthNav = (direction: -1 | 1) => {
-    let y = currentYear || new Date().getFullYear();
-    let m = currentMonth || new Date().getMonth() + 1;
-    m += direction;
-    if (m > 12) { m = 1; y += 1; }
-    if (m < 1) { m = 12; y -= 1; }
-    router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
-  };
-
-  const handleDateRangeApply = (startDate: string, endDate: string) => {
-    const params = new URLSearchParams();
-    params.set('startDate', startDate);
-    params.set('endDate', endDate);
-    if (categoryFilter.length > 0) params.set('category', categoryFilter.join(','));
-    if (paymentFilter.length > 0) params.set('payment', paymentFilter.join(','));
-    if (channelFilter.length > 0) params.set('channel', channelFilter.join(','));
-    router.push(`/admin/sales?${params.toString()}`);
-  };
-
-  const handleCategoryChange = (category: string[]) => {
-    router.push(buildUrl({ category }));
-  };
-
-  const handlePaymentChange = (payment: string[]) => {
-    router.push(buildUrl({ payment }));
-  };
-
-  const handleChannelChange = (channel: string[]) => {
-    router.push(buildUrl({ channel }));
-  };
+  const getExportConfig = useCallback(
+    () => buildSalesExportConfig({ sales: filteredSales, currentYear, currentMonth, currentDay }),
+    [filteredSales, currentYear, currentMonth, currentDay],
+  );
 
   const handleOpenPhotoModal = async (sale: Sale) => {
     setPhotoModalSale(sale);
@@ -346,30 +165,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setSelectedSale(null);
   };
 
-  const handleDelete = (sale: Sale) => {
-    setDeleteTarget(sale);
-  };
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget;
-    setDeleteTarget(null);
-    setSelectedSale(null);
-    startDeleteTransition(async () => {
-      removeOptimisticSale(target.id);
-      try {
-        await deleteSale(target.id);
-        // 로컬 목록에서도 제거해 새로고침 전까지 깜빡임 없이 유지(요약은 refresh로 갱신).
-        setAllSales((prev) => prev.filter((s) => s.id !== target.id));
-        router.refresh();
-        toast.success('매출이 삭제되었습니다');
-      } catch (error) {
-        console.error('Failed to delete sale:', error);
-        toast.error('매출 삭제에 실패했습니다');
-      }
-    });
-  };
-
   const handleFormSuccess = (newSale?: Sale) => {
     router.refresh();
     if (newSale) {
@@ -377,31 +172,9 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     }
   };
 
-  const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    const version = dataVersionRef.current;
-    const filters = debouncedSearch
-      ? { ...initialFilters, search: debouncedSearch }
-      : initialFilters;
-    try {
-      const result = await loadMoreSales(serverMonthParam, allSales.length, filters);
-      // 로드 중 필터/네비게이션이 변경됐으면 stale 데이터 무시
-      if (version !== dataVersionRef.current) return;
-      setAllSales(prev => [...prev, ...result.sales]);
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error('Failed to load more sales:', error);
-    } finally {
-      if (version === dataVersionRef.current) {
-        setIsLoadingMore(false);
-      }
-    }
-  }, [isLoadingMore, hasMore, serverMonthParam, allSales.length, initialFilters, debouncedSearch]);
-
   const handleResetFilters = () => {
     setSearchQuery('');
-    router.push(buildUrl({ category: [], payment: [], channel: [] }));
+    resetUrlFilters();
   };
 
   const handleOpenForm = () => {
@@ -478,31 +251,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       />
 
       {/* Photo Prompt Dialog */}
-      <Dialog open={!!showPhotoPrompt} onOpenChange={(open) => !open && setShowPhotoPrompt(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>사진 추가</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">매출이 등록되었습니다. 완성한 꽃 사진을 추가하면 사진첩에서도 볼 수 있어요.</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowPhotoPrompt(null)}>
-              나중에
-            </Button>
-            <Button
-              onClick={() => {
-                if (showPhotoPrompt) {
-                  setPhotoModalSale(showPhotoPrompt);
-                }
-                setShowPhotoPrompt(null);
-              }}
-            >
-              사진 추가
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SalePhotoPromptDialog
+        sale={showPhotoPrompt}
+        onClose={() => setShowPhotoPrompt(null)}
+        onAddPhoto={setPhotoModalSale}
+      />
 
       {/* Sale Photo Modal */}
       {photoModalSale && (
@@ -516,31 +269,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       )}
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>매출 삭제</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">
-              이 매출 기록을 삭제하시겠습니까?
-            </p>
-            {deleteTarget && (
-              <p className="text-muted-foreground text-xs mt-2">
-                {format(new Date(deleteTarget.date), 'M월 d일', { locale: ko })} · {formatCurrency(deleteTarget.amount)}
-              </p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              취소
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              삭제
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SaleDeleteDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
 
       {/* Sales Settings Modal */}
       <SalesSettingsModal
@@ -553,42 +286,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       />
 
       {/* FAB — Speed Dial */}
-      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
-        {fabOpen && (
-          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); handleOpenForm(); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              매출 등록
-            </button>
-            <ExportButton
-              getExportConfig={getExportConfig}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            />
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); setIsSettingsOpen(true); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            >
-              <Settings className="w-4 h-4" />
-              설정
-            </button>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setFabOpen(!fabOpen)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
-            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
-          }`}
-          aria-label="액션 메뉴"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <SalesFab
+        onOpenForm={handleOpenForm}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        getExportConfig={getExportConfig}
+      />
     </div>
   );
 }

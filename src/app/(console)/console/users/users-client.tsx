@@ -21,7 +21,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/StatusBadge';
+import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/status-badge';
 import { listAdminUsers, setUserActive } from '@/lib/actions/admin-users';
 import type { AdminUserPage, AdminUserRow } from '@/types/admin';
 

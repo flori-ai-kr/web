@@ -28,7 +28,7 @@
 | Export | ExcelJS, jsPDF |
 | Charts | recharts (운영 콘솔 통계 추이 + `/admin/statistics` area/donut/bar 차트) |
 | DnD | @dnd-kit/core · @dnd-kit/sortable · @dnd-kit/utilities (BottomNav + 라벨 설정 순서 변경) |
-| Test | Vitest, fast-check, Testing Library |
+| Test | Vitest, fast-check, Testing Library + Playwright e2e (mock BFF — `e2e/`) |
 | Deploy | AWS 자체 호스팅 (Vercel 아님) — Docker standalone(ARM64) → ECR `flori-dev/web` → EC2(`flori-dev-app`) docker-compose, ALB `admin.flori.ai.kr`. CI: GitHub Actions `deploy-web-dev.yml`. 랜딩 apex `flori.ai.kr` 은 별도 nginx(`flori-dev/homepage`) |
 | Analytics | Google Analytics 4 + Microsoft Clarity — `components/analytics.tsx`, **프로덕션 빌드에서만** 로드. ID는 `NEXT_PUBLIC_*` build-arg(baked) |
 | Error Logging | Discord 웹훅 |
@@ -45,7 +45,11 @@ npm run lint         # ESLint
 npm test             # Vitest 1회 실행
 npm run test:watch   # Vitest watch 모드
 npm run test:coverage # Vitest + 커버리지 리포트(@vitest/coverage-v8)
+pnpm e2e             # Playwright e2e — mock BFF(18080)+next(3110) 자동 기동, 빌드 포함
+pnpm e2e:ui          # Playwright UI 모드
 ```
+
+> 의존성 추가는 pnpm (로컬 pnpm + CI npm ci 혼용 — `package-lock.json`도 `npm install --package-lock-only`로 동기화할 것)
 
 ---
 
@@ -60,11 +64,11 @@ src/
 ├── app/(admin)/admin/   # 어드민 라우트 그룹 (인증 필요, /admin/*)
 │   ├── page.tsx              # 대시보드
 │   ├── dashboard-client.tsx
-│   ├── sales/           # 매출 — sales-client.tsx + components/(SalesSummary, SalesList, SaleFormDialog, SaleDetailDialog)
-│   ├── expenses/        # 지출 — expenses-client.tsx + components/(ExpensesFilters, ExpensesList, ExpensesSummary)
-│   ├── customers/       # 고객 — customers-client.tsx + components/(CustomerCard, CustomerFormDialog, CustomerDetailDialog, CustomerGradesModal)
-│   ├── gallery/         # 사진첩
-│   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + components/(EventCard, ReservationCard, CalendarDialogs)
+│   ├── sales/           # 매출 — sales-client.tsx + hooks/ + components/(sales-summary, sales-list, sale-form-dialog, sale-detail-dialog 등)
+│   ├── expenses/        # 지출 — expenses-client.tsx + hooks/ + components/(expenses-filters, expenses-list, expenses-summary, recurring-expenses-section 등)
+│   ├── customers/       # 고객 — customers-client.tsx + hooks/ + components/(customer-card, customer-form-dialog, customer-detail-dialog, customer-grades-modal 등)
+│   ├── gallery/         # 사진첩 — hooks/ + components/(photo-card, photo-card-dialog, photo-upload-modal, tag-manage-modal 등)
+│   ├── calendar/        # 예약 캘린더 — calendar-client.tsx + types.ts + hooks/ + components/(reservation-form-dialog, schedule-form-dialog, calendar-dialogs, reservation-card 등)
 │   ├── insights/        # 인사이트 — trends/(트렌드) follows/(인스타) scraps/(내 스크랩)
 │   ├── community/        # 커뮤니티 게시판 — 목록/[id](상세)/[id]/edit/write/verify(사업자 인증 게이트)
 │   ├── profile/         # 내 프로필 (프로필 수정 + 아바타 업로드 + 탈퇴)
@@ -87,11 +91,13 @@ src/
 ├── app/manifest.ts      # PWA 매니페스트
 ├── app/global-error.tsx # 글로벌 에러 바운더리
 ├── components/ui/        # shadcn/ui (category-multi-select.tsx 다중선택, domain-badge.tsx 도메인 배지=다크 대응, date-picker.tsx 공용 날짜 선택기 — 네이티브 `<input type="date">` 전면 대체)
-├── components/layout/    # AppLayout(skip-link 포함), Header, Sidebar, BottomNav, PageHeader, EmptyState, ListPageSkeleton(공통)
-├── components/{sales,gallery,expenses,insights,community,auth}/  # 도메인별 공통 컴포넌트 (community: tiptap-editor/content, comment-tree, post-card, admin-badge 등)
+├── components/layout/    # app-layout(skip-link 포함), header, sidebar, bottom-nav, page-header, empty-state, list-page-skeleton, period-header(공통)
+├── components/{sales,community,insights,auth}/  # 2개 이상 라우트가 공유하는 도메인 컴포넌트만 (sale-photo-modal, customer-autocomplete, category-badge, auth-header 등). 단일 라우트 전용은 해당 라우트의 app/.../components/에 colocate
 ├── components/theme-provider.tsx
+├── hooks/                # 공용 클라이언트 훅 — use-infinite-list(무한스크롤+디바운스 검색+stale 가드), use-quick-create(?new=1)
 ├── lib/actions/          # Server Actions (직접 import)
 ├── lib/api/              # Kotlin BFF 클라이언트 — apiFetch(JWT) + apiFetchInternal(Bearer INTERNAL_API_KEY), auth-cookies.ts, cookie-names.ts, insights-mappers.ts(insights↔scraps 공유 DTO 매퍼)
+├── lib/api/mappers/      # Kotlin DTO(camelCase) → 웹 타입(snake_case) 매퍼 단일 위치 — sales/reservations(+schedule)/expenses(+recurring)/customers
 ├── lib/photo-upload.ts   # presigned URL 발급 → 브라우저→S3 직접 PUT
 ├── lib/validations.ts    # Zod 스키마 + 이미지 검증
 ├── lib/errors.ts         # AppError, ErrorCode, withErrorLogging()
@@ -100,11 +106,18 @@ src/
 ├── lib/business-verification.ts # 사업자 인증 타입·상수 (BusinessVerification, BUSINESS_LICENSE_TYPES 등)
 ├── lib/{constants,utils,date-locale,export,logger}.ts
 ├── lib/{instagram-url,onboarding-options}.ts
-├── types/database.ts     # 전체 타입 정의
+├── types/                # 도메인별 타입(sales/expenses/customers/gallery/reservations/insights/community/user) — database.ts는 re-export 배럴(기존 import 호환)
 └── public/
     ├── sw.js             # Service Worker (푸시 알림)
     └── icons/            # PWA 아이콘 (192/512, maskable)
+
+e2e/                      # Playwright e2e — mock-bff/(fixture 기반 BFF 모킹 서버), helpers/auth.ts(쿠키 주입), *.spec.ts
 ```
+
+**구조 규칙** (상세: `docs/conventions/26-06-11-structure-and-hooks-convention.md`):
+- 파일명은 **kebab-case** (컴포넌트 심볼명은 PascalCase 유지)
+- 컴포넌트 위치: 한 라우트 트리 전용 → `app/.../<route>/components/`, 2개 이상 라우트 공유 → `components/<도메인>/`
+- 페이지 클라이언트(`*-client.tsx`)는 조립만 담당(목표 ≤300줄) — 상태·로직은 라우트 로컬 `hooks/use-*.ts`, 다이얼로그 등 JSX 블록은 라우트 로컬 `components/`로
 
 ### 인증 흐름
 
@@ -132,6 +145,7 @@ src/
 | UI 컴포넌트 | 한국어 UI, 엔터키 제출 방지, 삭제는 Dialog(`confirm()` 금지), 접근성 속성 필수, `transition-all` 금지 | `26-05-28-ui-component-convention.md` |
 | 데이터 페칭 | Server/Client 분리, useState/useMemo만, 다중선택 필터(URL 쉼표+`.in()`), 통계 실시간 집계 | `26-05-28-data-fetching-convention.md` |
 | 에러 처리 | 예상된 에러 → `AppError`, 미지 에러 → `withErrorLogging()` Discord 전송 | `lib/errors.ts` |
+| 구조·훅 | kebab-case 파일명, colocation 규칙, 페이지 클라이언트 ≤300줄, 공용 훅(use-infinite-list 등) 사용법, DTO 매퍼 위치 | `26-06-11-structure-and-hooks-convention.md` |
 
 ---
 
@@ -201,8 +215,11 @@ src/
 | 공유 라벨 상수 | `lib/constants.ts` (EXPENSE_LABELS — PAYMENT_LABELS·CHANNEL_LABELS는 id 기반 계약으로 제거됨. 외부 링크: `HOMEPAGE_URL`, `PRIVACY_POLICY_URL`, `TERMS_URL`) |
 | 온보딩 옵션 | `lib/onboarding-options.ts` |
 | 미들웨어 루트 분기 | `lib/middleware-routing.ts` (`rootRedirectTarget` — 런타임 안전 순수 함수, 단위 테스트 포함) |
-| 타입 정의 | `types/database.ts` |
+| 타입 정의 | `types/` — 도메인별 파일 직접 import 권장 (`types/sales.ts` 등). `types/database.ts`는 기존 import 호환용 re-export 배럴 |
 | Service Worker | `public/sw.js` |
+| 공용 클라이언트 훅 | `hooks/use-infinite-list.ts`(무한스크롤+디바운스 검색), `hooks/use-quick-create.ts`(?new=1) |
+| BFF DTO 매퍼 | `lib/api/mappers/{sales,reservations,expenses,customers}.ts` — Kotlin camelCase → 웹 snake_case 단일 위치 |
+| e2e | `playwright.config.ts`, `e2e/mock-bff/`(fixture BFF), `e2e/helpers/auth.ts`(쿠키 주입 로그인) — `pnpm e2e` |
 | 날짜 선택 UI | `components/ui/date-picker.tsx` (shadcn Calendar 팝오버 — `name` prop으로 FormData 제출 지원, 모든 네이티브 `<input type="date">` 대체) |
 | 미수 판정 | `lib/utils.ts` `isUnsettledUnpaid(sale)` — `is_unpaid && payment_method_id == null` |
 | 금액 만원 표시 | `lib/utils.ts` `formatManwon(n)` — 1만 미만은 `₩N`, 이상은 `N만원` (대시보드·통계 집계용) |
@@ -212,7 +229,7 @@ src/
 | 통계 서버 액션 | `lib/actions/statistics.ts` — `getSalesStatistics`, `getExpensesStatistics`, `getReservationStatistics`, `getCustomerStatistics` (BFF `GET /statistics/{sales,expenses,reservations,customers}?from=&to=`) |
 | 통계 컴포넌트 | `app/(admin)/admin/statistics/components/` — `SalesStatPanel`, `ExpenseStatPanel`, `ReservationStatPanel`, `CustomerStatPanel`, `DateRangeSelector`, `StatAreaChart`, `StatBarList`, `StatDonut`, `StatKpiCard`, `ReservationHeatmap` |
 | 라벨 설정 공용 UI | `components/settings/label-settings-manager.tsx` — 매출·지출 카테고리·결제방식·채널 설정을 탭+드래그 핸들로 통합 관리하는 공용 모달 (`LabelSettingsManager`, `LabelTabConfig`) |
-| 기간 헤더 공용 UI | `components/layout/PeriodHeader.tsx` — 월네비+기간 셀렉터 (사진첩 등). 기간↔ISO 경계 변환은 `lib/period-range.ts` |
+| 기간 헤더 공용 UI | `components/layout/period-header.tsx` — 월네비+기간 셀렉터 (사진첩 등). 기간↔ISO 경계 변환은 `lib/period-range.ts` |
 
 ---
 

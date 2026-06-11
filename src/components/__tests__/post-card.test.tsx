@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { PostCard } from '../community/post-card'
+import { PostCard } from '@/app/(admin)/admin/community/components/post-card'
 import type { CommunityPost } from '@/types/database'
 
 const post = (over: Partial<CommunityPost> = {}): CommunityPost =>

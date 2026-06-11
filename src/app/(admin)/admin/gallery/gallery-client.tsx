@@ -3,17 +3,17 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {PhotoCard, PhotoTag} from '@/types/database';
-import {PhotoCardGrid} from '@/components/gallery/PhotoCardGrid';
-import {TagFilter} from '@/components/gallery/TagFilter';
-import {PhotoUploadModal} from '@/components/gallery/PhotoUploadModal';
-import {PhotoCardDialog} from '@/components/gallery/PhotoCardDialog';
-import {TagManageModal} from '@/components/gallery/TagManageModal';
+import {PhotoCardGrid} from '@/app/(admin)/admin/gallery/components/photo-card-grid';
+import {TagFilter} from '@/app/(admin)/admin/gallery/components/tag-filter';
+import {PhotoUploadModal} from '@/app/(admin)/admin/gallery/components/photo-upload-modal';
+import {PhotoCardDialog} from '@/app/(admin)/admin/gallery/components/photo-card-dialog';
+import {TagManageModal} from '@/app/(admin)/admin/gallery/components/tag-manage-modal';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
 import {getPhotoCardById, getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
-import {PeriodHeader} from '@/components/layout/PeriodHeader';
+import {PeriodHeader} from '@/components/layout/period-header';
 import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
 

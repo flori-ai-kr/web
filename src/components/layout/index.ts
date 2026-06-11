@@ -1,3 +1,3 @@
-export { AppLayout } from './AppLayout';
-export { Sidebar } from './Sidebar';
-export { Header } from './Header';
+export { AppLayout } from './app-layout';
+export { Sidebar } from './sidebar';
+export { Header } from './header';

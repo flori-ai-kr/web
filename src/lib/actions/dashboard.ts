@@ -1,14 +1,12 @@
 'use server';
 
 import {requireAuth} from '@/lib/auth-guard';
-import type {
-    Reservation,
-    ReservationStatus,
-    Sale,
-} from '@/types/database';
+import type {Reservation, Sale} from '@/types/database';
 import type {CategoryStat, ChannelStat, CustomerStat, ExpenseCategoryStat, PaymentMethodStat,} from './statistics';
 import {withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
+import {mapKotlinSale, type KotlinSale} from '@/lib/api/mappers/sales';
+import {mapKotlinReservation, type KotlinReservation} from '@/lib/api/mappers/reservations';
 
 export interface DashboardSummary {
   totalAmount: number;
@@ -31,45 +29,6 @@ interface KotlinDashboardSummary {
   kakaopayAmount: number;
   pendingCount: number;
   pendingAmount: number;
-}
-
-interface KotlinSale {
-  id: string;
-  date: string;
-  categoryId: number | string | null;
-  categoryLabel: string | null;
-  amount: number;
-  paymentMethodId: number | string | null;
-  paymentMethodLabel: string | null;
-  channelId: number | string | null;
-  channelLabel: string | null;
-  customerName: string | null;
-  customerPhone: string | null;
-  customerId: string | null;
-  memo: string | null;
-  isUnpaid: boolean;
-  hasReview: boolean;
-  photos: string[] | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface KotlinReservation {
-  id: string;
-  date: string;
-  time: string | null;
-  customerName: string;
-  customerPhone: string | null;
-  title: string;
-  memo: string | null;
-  status: string;
-  saleId: string | null;
-  amount: number;
-  reminderAt: string | null;
-  reminderSent: boolean;
-  pickupCompleted: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface KotlinCategoryOption {
@@ -143,50 +102,8 @@ function mapSummary(s: KotlinDashboardSummary): DashboardSummary {
   };
 }
 
-function mapSale(s: KotlinSale): Sale {
-  return {
-    id: s.id,
-    user_id: '',
-    date: s.date,
-    category_id: s.categoryId != null ? String(s.categoryId) : null,
-    category_label: s.categoryLabel,
-    amount: s.amount,
-    payment_method_id: s.paymentMethodId != null ? String(s.paymentMethodId) : null,
-    payment_method_label: s.paymentMethodLabel,
-    channel_id: s.channelId != null ? String(s.channelId) : null,
-    channel_label: s.channelLabel,
-    customer_name: s.customerName ?? undefined,
-    customer_phone: s.customerPhone ?? undefined,
-    customer_id: s.customerId ?? undefined,
-    memo: s.memo ?? undefined,
-    is_unpaid: s.isUnpaid,
-    has_review: s.hasReview,
-    photos: s.photos && s.photos.length > 0 ? s.photos : undefined,
-    created_at: s.createdAt,
-    updated_at: s.updatedAt,
-  };
-}
-
-function mapReservation(r: KotlinReservation): Reservation {
-  return {
-    id: r.id,
-    user_id: '',
-    date: r.date,
-    time: r.time ?? null,
-    customer_name: r.customerName,
-    customer_phone: r.customerPhone ?? null,
-    title: r.title,
-    memo: r.memo ?? null,
-    status: r.status as ReservationStatus,
-    sale_id: r.saleId ?? null,
-    amount: r.amount,
-    reminder_at: r.reminderAt ?? null,
-    reminder_sent: r.reminderSent,
-    pickup_completed: r.pickupCompleted,
-    created_at: r.createdAt,
-    updated_at: r.updatedAt,
-  };
-}
+const mapSale = mapKotlinSale;
+const mapReservation = mapKotlinReservation;
 
 function mapCategoryStats(stats: KotlinCategoryStat[]): CategoryStat[] {
   return stats.map((st) => ({

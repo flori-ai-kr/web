@@ -39,6 +39,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Node.js scripts (CommonJS)
     "scripts/**",
+    // Claude Code 세션 worktree 잔여물 (내부 .next 빌드 산출물이 lint를 오염시킴)
+    ".claude/**",
+    // Playwright 산출물
+    "playwright-report/**",
+    "test-results/**",
   ]),
   {
     // React 19 ESLint plugin이 새로 추가한 룰들은 기존 코드 패턴과 충돌이 많아
@@ -47,6 +52,12 @@ const eslintConfig = defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
       'react-hooks/immutability': 'warn',
+      // `_` 접두사는 "의도적으로 안 쓰는 값" 관례 (property 테스트의 미사용 인자 등)
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
     },
   },
 ]);

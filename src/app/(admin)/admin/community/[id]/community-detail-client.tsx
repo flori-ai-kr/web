@@ -9,11 +9,11 @@ import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityComment, CommunityPost} from '@/types/database';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
-import {AdminBadge} from '@/components/community/admin-badge';
+import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 import dynamic from 'next/dynamic';
-import {LikeButton} from '@/components/community/like-button';
-import {CommentForm} from '@/components/community/comment-form';
-import {CommentTree} from '@/components/community/comment-tree';
+import {LikeButton} from '@/app/(admin)/admin/community/components/like-button';
+import {CommentForm} from '@/app/(admin)/admin/community/components/comment-form';
+import {CommentTree} from '@/app/(admin)/admin/community/components/comment-tree';
 import {Button} from '@/components/ui/button';
 import {
     Dialog,
@@ -28,7 +28,7 @@ import {deleteCommunityPost} from '@/lib/actions/community';
 
 // Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
 const TiptapContent = dynamic(
-  () => import('@/components/community/tiptap-content').then((m) => m.TiptapContent),
+  () => import('@/app/(admin)/admin/community/components/tiptap-content').then((m) => m.TiptapContent),
   {
     ssr: false,
     loading: () => <div className="min-h-[120px] rounded-md bg-muted/30 animate-pulse" />,
