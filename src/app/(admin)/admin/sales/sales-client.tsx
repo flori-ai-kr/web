@@ -1,7 +1,7 @@
 'use client';
 
-import {useCallback, useEffect, useState} from 'react';
-import {useRouter, useSearchParams} from 'next/navigation';
+import {useCallback, useState} from 'react';
+import {useRouter} from 'next/navigation';
 import {format} from 'date-fns';
 import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
@@ -9,10 +9,9 @@ import {loadMoreSales} from '@/lib/actions/sales';
 import dynamic from 'next/dynamic';
 import {SalesSettingsModal} from '@/components/sales/SalesSettingsModal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
-import {isUnsettledUnpaid} from '@/lib/utils';
 import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
-import type {ExportConfig} from '@/lib/export';
+import {buildSalesExportConfig} from './sales-export';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
 import {SaleFormDialog} from './components/SaleFormDialog';
@@ -23,6 +22,8 @@ import {SalePhotoPromptDialog} from './components/sale-photo-prompt-dialog';
 import {SalesFab} from './components/sales-fab';
 import {useSaleDetail} from './hooks/use-sale-detail';
 import {useSaleDelete} from './hooks/use-sale-delete';
+import {useSalesUrlFilters} from './hooks/use-sales-url-filters';
+import {useSaleCreateParams, type SaleInitialCustomer} from './hooks/use-sale-create-params';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
 import {useQuickCreate} from '@/hooks/use-quick-create';
 
@@ -48,13 +49,8 @@ interface Props {
 
 export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  // 필터는 URL 파라미터 기반 (서버 쿼리에 적용됨)
-  const paymentFilter: string[] = initialFilters.payment ?? [];
-  const categoryFilter: string[] = initialFilters.category ?? [];
-  const channelFilter: string[] = initialFilters.channel ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
@@ -62,7 +58,21 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
   const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
-  const [initialCustomer, setInitialCustomer] = useState<{ name: string; id: string | null; phone: string | null } | undefined>();
+  const [initialCustomer, setInitialCustomer] = useState<SaleInitialCustomer | undefined>();
+
+  // URL 파라미터 기반 필터(년/월/일 + 카테고리·결제·채널) + 내비 핸들러
+  const {
+    categoryFilter,
+    paymentFilter,
+    channelFilter,
+    handleTodayOnly,
+    handleMonthNav,
+    handleDateRangeApply,
+    handleCategoryChange,
+    handlePaymentChange,
+    handleChannelChange,
+    resetUrlFilters,
+  } = useSalesUrlFilters({ currentYear, currentMonth, currentDay, initialFilters });
 
   // 매출 상세 선택 + 연결 사진/예약 로드 + URL saleId 딥링크
   const {
@@ -106,8 +116,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     onCloseDetail: () => setSelectedSale(null),
   });
 
-  // 결제방식 라벨 맵 생성 (value -> label). 카테고리·채널 라벨은 응답에 동봉됨.
-
   // 설정 새로고침
   const refreshSettings = async () => {
     const [cats, pays, chs] = await Promise.all([getSaleCategories(), getPaymentMethods(), getSaleChannels()]);
@@ -122,31 +130,14 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     setIsFormOpen(true);
   });
 
-  // URL 파라미터로 등록 모달 자동 오픈 (고객 페이지에서 연결)
-  useEffect(() => {
-    const action = searchParams.get('action');
-    if (action === 'create') {
-      const paramCustomerName = searchParams.get('customer_name');
-      const paramCustomerPhone = searchParams.get('customer_phone');
-      const paramCustomerId = searchParams.get('customer_id');
-
-      if (paramCustomerName) {
-        setInitialCustomer({
-          name: paramCustomerName,
-          id: paramCustomerId,
-          phone: paramCustomerPhone,
-        });
-      }
-
-      setIsFormOpen(true);
-      // URL 파라미터 정리
-      const cleanParams = new URLSearchParams();
-      cleanParams.set('year', currentYear === 0 ? 'all' : currentYear.toString());
-      cleanParams.set('month', currentMonth === 0 ? 'all' : currentMonth.toString());
-      if (currentDay !== 0) cleanParams.set('day', currentDay.toString());
-      router.replace(`/admin/sales?${cleanParams.toString()}`, { scroll: false });
+  // URL 파라미터(?action=create)로 등록 모달 자동 오픈 (고객 페이지에서 연결)
+  const handleOpenCreateFromUrl = useCallback((customer?: SaleInitialCustomer) => {
+    if (customer) {
+      setInitialCustomer(customer);
     }
-  }, [searchParams, router, currentYear, currentMonth, currentDay]);
+    setIsFormOpen(true);
+  }, []);
+  useSaleCreateParams({ currentYear, currentMonth, currentDay, onOpenCreate: handleOpenCreateFromUrl });
 
   // 내보내기·렌더 모두 낙관적 목록을 기준으로 한다(삭제 진행 중 ghost 행 방지).
   const filteredSales = optimisticSales;
@@ -156,103 +147,10 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || channelFilter.length > 0 || searchQuery !== '';
 
-  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
-  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
-  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
-
-  const getExportConfig = useCallback((): ExportConfig<Sale> => {
-    const isAll = currentYear === 0 || currentMonth === 0;
-    const monthSuffix = isAll ? '' : `_${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const daySuffix = currentDay === 0 ? '' : `-${String(currentDay).padStart(2, '0')}`;
-    return ({
-    filename: isAll ? '매출_전체' : `매출${monthSuffix}${daySuffix}`,
-    title: `매출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
-    columns: [
-      { header: '날짜', accessor: (s) => String(s.date || '') },
-      { header: '카테고리', accessor: (s) => s.category_label || '' },
-      { header: '금액', accessor: (s) => Number(s.amount) || 0, format: 'currency' },
-      { header: '결제방법', accessor: (s) => isUnsettledUnpaid(s) ? '미수' : (s.payment_method_label ?? '') },
-      { header: '채널', accessor: (s) => s.channel_label || '' },
-      { header: '고객명', accessor: (s) => String(s.customer_name || '') },
-      { header: '메모', accessor: (s) => String(s.memo || '') },
-    ],
-    data: filteredSales,
-    });
-  }, [filteredSales, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
-
-  const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
-  const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
-  const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
-
-  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
-  const buildUrl = useCallback((overrides: {
-    year?: string; month?: string; day?: string;
-    category?: string[]; payment?: string[]; channel?: string[];
-  } = {}) => {
-    const p = {
-      year: yearParam,
-      month: monthParam,
-      day: dayParam,
-      category: categoryFilter,
-      payment: paymentFilter,
-      channel: channelFilter,
-      ...overrides,
-    };
-    // 년/월이 'all'이면 일은 자동 'all'
-    if (p.year === 'all' || p.month === 'all') p.day = 'all';
-    const params = new URLSearchParams();
-    params.set('year', p.year);
-    params.set('month', p.month);
-    if (p.day !== 'all') params.set('day', p.day);
-    if (p.category.length > 0) params.set('category', p.category.join(','));
-    if (p.payment.length > 0) params.set('payment', p.payment.join(','));
-    if (p.channel.length > 0) params.set('channel', p.channel.join(','));
-    return `/admin/sales?${params.toString()}`;
-  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
-
-  const handleTodayOnly = () => {
-    const now = new Date();
-    const y = now.getFullYear().toString();
-    const m = (now.getMonth() + 1).toString();
-    const d = now.getDate().toString();
-    // 이미 오늘이면 해제 (이번 달 전체로)
-    if (currentDay === now.getDate() && currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear()) {
-      router.push(buildUrl({ day: 'all' }));
-    } else {
-      router.push(buildUrl({ year: y, month: m, day: d }));
-    }
-  };
-
-  const handleMonthNav = (direction: -1 | 1) => {
-    let y = currentYear || new Date().getFullYear();
-    let m = currentMonth || new Date().getMonth() + 1;
-    m += direction;
-    if (m > 12) { m = 1; y += 1; }
-    if (m < 1) { m = 12; y -= 1; }
-    router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
-  };
-
-  const handleDateRangeApply = (startDate: string, endDate: string) => {
-    const params = new URLSearchParams();
-    params.set('startDate', startDate);
-    params.set('endDate', endDate);
-    if (categoryFilter.length > 0) params.set('category', categoryFilter.join(','));
-    if (paymentFilter.length > 0) params.set('payment', paymentFilter.join(','));
-    if (channelFilter.length > 0) params.set('channel', channelFilter.join(','));
-    router.push(`/admin/sales?${params.toString()}`);
-  };
-
-  const handleCategoryChange = (category: string[]) => {
-    router.push(buildUrl({ category }));
-  };
-
-  const handlePaymentChange = (payment: string[]) => {
-    router.push(buildUrl({ payment }));
-  };
-
-  const handleChannelChange = (channel: string[]) => {
-    router.push(buildUrl({ channel }));
-  };
+  const getExportConfig = useCallback(
+    () => buildSalesExportConfig({ sales: filteredSales, currentYear, currentMonth, currentDay }),
+    [filteredSales, currentYear, currentMonth, currentDay],
+  );
 
   const handleOpenPhotoModal = async (sale: Sale) => {
     setPhotoModalSale(sale);
@@ -276,7 +174,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
 
   const handleResetFilters = () => {
     setSearchQuery('');
-    router.push(buildUrl({ category: [], payment: [], channel: [] }));
+    resetUrlFilters();
   };
 
   const handleOpenForm = () => {

@@ -1,0 +1,119 @@
+'use client';
+
+import {useCallback} from 'react';
+import {useRouter} from 'next/navigation';
+
+import type {SalesFilters} from '@/lib/actions/sales';
+
+/**
+ * 매출 목록 URL 필터(년/월/일 + 카테고리·결제·채널 다중선택) 상태와 내비 핸들러. sales-client에서 이동.
+ * 필터는 URL 파라미터 기반(서버 쿼리에 적용됨).
+ */
+export function useSalesUrlFilters({
+  currentYear,
+  currentMonth,
+  currentDay,
+  initialFilters,
+}: {
+  currentYear: number;
+  currentMonth: number;
+  currentDay: number;
+  initialFilters: SalesFilters;
+}) {
+  const router = useRouter();
+  const paymentFilter: string[] = initialFilters.payment ?? [];
+  const categoryFilter: string[] = initialFilters.category ?? [];
+  const channelFilter: string[] = initialFilters.channel ?? [];
+
+  const yearParam = currentYear === 0 ? 'all' : currentYear.toString();
+  const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
+  const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
+
+  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
+  const buildUrl = useCallback((overrides: {
+    year?: string; month?: string; day?: string;
+    category?: string[]; payment?: string[]; channel?: string[];
+  } = {}) => {
+    const p = {
+      year: yearParam,
+      month: monthParam,
+      day: dayParam,
+      category: categoryFilter,
+      payment: paymentFilter,
+      channel: channelFilter,
+      ...overrides,
+    };
+    // 년/월이 'all'이면 일은 자동 'all'
+    if (p.year === 'all' || p.month === 'all') p.day = 'all';
+    const params = new URLSearchParams();
+    params.set('year', p.year);
+    params.set('month', p.month);
+    if (p.day !== 'all') params.set('day', p.day);
+    if (p.category.length > 0) params.set('category', p.category.join(','));
+    if (p.payment.length > 0) params.set('payment', p.payment.join(','));
+    if (p.channel.length > 0) params.set('channel', p.channel.join(','));
+    return `/admin/sales?${params.toString()}`;
+  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
+
+  const handleTodayOnly = () => {
+    const now = new Date();
+    const y = now.getFullYear().toString();
+    const m = (now.getMonth() + 1).toString();
+    const d = now.getDate().toString();
+    // 이미 오늘이면 해제 (이번 달 전체로)
+    if (currentDay === now.getDate() && currentMonth === now.getMonth() + 1 && currentYear === now.getFullYear()) {
+      router.push(buildUrl({ day: 'all' }));
+    } else {
+      router.push(buildUrl({ year: y, month: m, day: d }));
+    }
+  };
+
+  const handleMonthNav = (direction: -1 | 1) => {
+    let y = currentYear || new Date().getFullYear();
+    let m = currentMonth || new Date().getMonth() + 1;
+    m += direction;
+    if (m > 12) { m = 1; y += 1; }
+    if (m < 1) { m = 12; y -= 1; }
+    router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
+  };
+
+  const handleDateRangeApply = (startDate: string, endDate: string) => {
+    const params = new URLSearchParams();
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+    if (categoryFilter.length > 0) params.set('category', categoryFilter.join(','));
+    if (paymentFilter.length > 0) params.set('payment', paymentFilter.join(','));
+    if (channelFilter.length > 0) params.set('channel', channelFilter.join(','));
+    router.push(`/admin/sales?${params.toString()}`);
+  };
+
+  const handleCategoryChange = (category: string[]) => {
+    router.push(buildUrl({ category }));
+  };
+
+  const handlePaymentChange = (payment: string[]) => {
+    router.push(buildUrl({ payment }));
+  };
+
+  const handleChannelChange = (channel: string[]) => {
+    router.push(buildUrl({ channel }));
+  };
+
+  /** 카테고리·결제·채널 URL 필터 초기화(검색어 등 로컬 상태는 호출부에서 함께 리셋). */
+  const resetUrlFilters = () => {
+    router.push(buildUrl({ category: [], payment: [], channel: [] }));
+  };
+
+  return {
+    categoryFilter,
+    paymentFilter,
+    channelFilter,
+    handleTodayOnly,
+    handleMonthNav,
+    handleDateRangeApply,
+    handleCategoryChange,
+    handlePaymentChange,
+    handleChannelChange,
+    resetUrlFilters,
+  };
+}
