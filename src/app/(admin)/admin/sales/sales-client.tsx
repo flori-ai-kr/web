@@ -2,8 +2,6 @@
 
 import {useCallback, useEffect, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
-import {Button} from '@/components/ui/button';
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Plus, Settings} from 'lucide-react';
 import {format} from 'date-fns';
 import {toast} from 'sonner';
@@ -23,6 +21,7 @@ import {SaleFormDialog} from './components/SaleFormDialog';
 import {SaleDetailDialog} from './components/SaleDetailDialog';
 import {SalesFiltersUI} from './components/SalesFilters';
 import {SaleDeleteDialog} from './components/sale-delete-dialog';
+import {SalePhotoPromptDialog} from './components/sale-photo-prompt-dialog';
 import {useSaleDetail} from './hooks/use-sale-detail';
 import {useSaleDelete} from './hooks/use-sale-delete';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
@@ -356,31 +355,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       />
 
       {/* Photo Prompt Dialog */}
-      <Dialog open={!!showPhotoPrompt} onOpenChange={(open) => !open && setShowPhotoPrompt(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>사진 추가</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">매출이 등록되었습니다. 완성한 꽃 사진을 추가하면 사진첩에서도 볼 수 있어요.</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowPhotoPrompt(null)}>
-              나중에
-            </Button>
-            <Button
-              onClick={() => {
-                if (showPhotoPrompt) {
-                  setPhotoModalSale(showPhotoPrompt);
-                }
-                setShowPhotoPrompt(null);
-              }}
-            >
-              사진 추가
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SalePhotoPromptDialog
+        sale={showPhotoPrompt}
+        onClose={() => setShowPhotoPrompt(null)}
+        onAddPhoto={setPhotoModalSale}
+      />
 
       {/* Sale Photo Modal */}
       {photoModalSale && (
