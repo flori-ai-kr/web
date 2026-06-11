@@ -9,8 +9,8 @@ import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
 import {type ScrapMap, TREND_CATEGORIES, type TrendArticle, type TrendCategory,} from '@/types/database';
 import {CategoryBadge} from '@/components/insights/category-badge';
-import {ScrapButton} from '@/components/insights/scrap-button';
-import {ScrapMemoEditor} from '@/components/insights/scrap-memo-editor';
+import {ScrapButton} from '@/app/(admin)/admin/insights/components/scrap-button';
+import {ScrapMemoEditor} from '@/app/(admin)/admin/insights/components/scrap-memo-editor';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 
 interface TrendsClientProps {

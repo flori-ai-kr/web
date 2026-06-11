@@ -13,7 +13,7 @@ import {ExpenseDeleteDialog} from './components/expense-delete-dialog';
 import {ExpenseFab} from './components/expense-fab';
 import {useExpenseForm} from './hooks/use-expense-form';
 import {useExpenseDelete} from './hooks/use-expense-delete';
-import {RecurringExpensesSection} from '@/components/expenses/recurring-expenses-section';
+import {RecurringExpensesSection} from '@/app/(admin)/admin/expenses/components/recurring-expenses-section';
 import {toast} from 'sonner';
 import {loadMoreExpenses} from '@/lib/actions/expenses';
 import type {ExpenseFilters} from '@/lib/actions/expenses';
@@ -23,7 +23,7 @@ import {
   getExpenseCategories,
   getExpensePaymentMethods,
 } from '@/lib/actions/expense-settings';
-import {ExpenseSettingsModal} from '@/components/expenses/expense-settings-modal';
+import {ExpenseSettingsModal} from '@/app/(admin)/admin/expenses/components/expense-settings-modal';
 import type {Expense} from '@/types/database';
 import type {ExportConfig} from '@/lib/export';
 import {useInfiniteList} from '@/hooks/use-infinite-list';

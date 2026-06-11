@@ -7,9 +7,9 @@ import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost} from '
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {cn} from '@/lib/utils';
-import {PostCard} from '@/components/community/post-card';
+import {PostCard} from '@/app/(admin)/admin/community/components/post-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
-import {AdminBadge} from '@/components/community/admin-badge';
+import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 
 interface CommunityClientProps {
   initialPosts: CommunityPost[];

@@ -7,7 +7,7 @@ import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
 import {loadMoreSales} from '@/lib/actions/sales';
 import dynamic from 'next/dynamic';
-import {SalesSettingsModal} from '@/components/sales/sales-settings-modal';
+import {SalesSettingsModal} from '@/app/(admin)/admin/sales/components/sales-settings-modal';
 import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';

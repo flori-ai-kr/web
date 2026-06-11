@@ -3,8 +3,8 @@ import {Heart, Lock, MessageSquare, Pin} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityPost} from '@/types/database';
-import {CommunityCategoryBadge} from './category-badge';
-import {AdminBadge} from '@/components/community/admin-badge';
+import {CommunityCategoryBadge} from '@/components/community/category-badge';
+import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 
 export function PostCard({ post }: { post: CommunityPost }) {
   const masked = post.is_secret && !post.can_view;

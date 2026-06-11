@@ -3,11 +3,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {PhotoCard, PhotoTag} from '@/types/database';
-import {PhotoCardGrid} from '@/components/gallery/photo-card-grid';
-import {TagFilter} from '@/components/gallery/tag-filter';
-import {PhotoUploadModal} from '@/components/gallery/photo-upload-modal';
-import {PhotoCardDialog} from '@/components/gallery/photo-card-dialog';
-import {TagManageModal} from '@/components/gallery/tag-manage-modal';
+import {PhotoCardGrid} from '@/app/(admin)/admin/gallery/components/photo-card-grid';
+import {TagFilter} from '@/app/(admin)/admin/gallery/components/tag-filter';
+import {PhotoUploadModal} from '@/app/(admin)/admin/gallery/components/photo-upload-modal';
+import {PhotoCardDialog} from '@/app/(admin)/admin/gallery/components/photo-card-dialog';
+import {TagManageModal} from '@/app/(admin)/admin/gallery/components/tag-manage-modal';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';

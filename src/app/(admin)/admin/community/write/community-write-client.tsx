@@ -16,7 +16,7 @@ import {createCommunityPost, updateCommunityPost} from '@/lib/actions/community'
 
 // Tiptap+ProseMirror는 무거우므로 글쓰기 진입 시점에 지연 로드(초기 번들에서 제외).
 const TiptapEditor = dynamic(
-  () => import('@/components/community/tiptap-editor').then((m) => m.TiptapEditor),
+  () => import('@/app/(admin)/admin/community/components/tiptap-editor').then((m) => m.TiptapEditor),
   {
     ssr: false,
     loading: () => (

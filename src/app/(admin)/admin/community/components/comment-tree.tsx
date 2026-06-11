@@ -8,7 +8,7 @@ import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {toast} from 'sonner';
 import type {CommunityComment} from '@/types/database';
-import {AdminBadge} from '@/components/community/admin-badge';
+import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 import {CommentForm} from './comment-form';
 import {deleteComment} from '@/lib/actions/community';
 

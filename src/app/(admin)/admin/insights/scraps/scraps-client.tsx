@@ -10,7 +10,7 @@ import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
 import type {InstagramPostWithAccount, PostScrap, ScrapMap, TrendArticle, TrendScrap,} from '@/types/database';
 import {CategoryBadge} from '@/components/insights/category-badge';
-import {ScrapMemoEditor} from '@/components/insights/scrap-memo-editor';
+import {ScrapMemoEditor} from '@/app/(admin)/admin/insights/components/scrap-memo-editor';
 import {normalizeInstagramImageUrl} from '@/lib/instagram-url';
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 import {PostDetailDialog} from '../follows/post-detail-dialog';
