@@ -2,7 +2,6 @@
 
 import {useCallback, useEffect, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
-import {Plus, Settings} from 'lucide-react';
 import {format} from 'date-fns';
 import {toast} from 'sonner';
 import type {SalesFilters} from '@/lib/actions/sales';
@@ -13,7 +12,6 @@ import type {SalesSummary as SalesSummaryType} from '@/lib/utils';
 import {isUnsettledUnpaid} from '@/lib/utils';
 import type {Sale} from '@/types/database';
 import {getPaymentMethods, getSaleCategories, getSaleChannels, PaymentMethod, SaleCategory, SaleChannel} from '@/lib/actions/sale-settings';
-import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
 import {SalesSummary} from './components/SalesSummary';
 import {SalesList} from './components/SalesList';
@@ -22,6 +20,7 @@ import {SaleDetailDialog} from './components/SaleDetailDialog';
 import {SalesFiltersUI} from './components/SalesFilters';
 import {SaleDeleteDialog} from './components/sale-delete-dialog';
 import {SalePhotoPromptDialog} from './components/sale-photo-prompt-dialog';
+import {SalesFab} from './components/sales-fab';
 import {useSaleDetail} from './hooks/use-sale-detail';
 import {useSaleDelete} from './hooks/use-sale-delete';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
@@ -60,7 +59,6 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const [photoModalSale, setPhotoModalSale] = useState<Sale | null>(null);
   const [showPhotoPrompt, setShowPhotoPrompt] = useState<Sale | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [categories, setCategories] = useState<SaleCategory[]>(initialCategories);
   const [payments, setPayments] = useState<PaymentMethod[]>(initialPayments);
   const [channels, setChannels] = useState<SaleChannel[]>(initialChannels);
@@ -390,42 +388,11 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
       />
 
       {/* FAB — Speed Dial */}
-      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
-        {fabOpen && (
-          <div className="flex flex-col items-end gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); handleOpenForm(); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-brand text-white text-sm font-medium shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              매출 등록
-            </button>
-            <ExportButton
-              getExportConfig={getExportConfig}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            />
-            <button
-              type="button"
-              onClick={() => { setFabOpen(false); setIsSettingsOpen(true); }}
-              className="flex items-center gap-2 h-10 pr-4 pl-3 rounded-full bg-foreground text-background text-sm font-medium shadow-lg"
-            >
-              <Settings className="w-4 h-4" />
-              설정
-            </button>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={() => setFabOpen(!fabOpen)}
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform duration-200 ${
-            fabOpen ? 'bg-muted-foreground rotate-45' : 'bg-brand'
-          }`}
-          aria-label="액션 메뉴"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      <SalesFab
+        onOpenForm={handleOpenForm}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        getExportConfig={getExportConfig}
+      />
     </div>
   );
 }
