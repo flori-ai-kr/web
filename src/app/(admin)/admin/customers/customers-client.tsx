@@ -1,15 +1,12 @@
 'use client';
 
-import {useCallback, useOptimistic, useState, useTransition} from 'react';
+import {useCallback, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Plus, RotateCcw, Search, Settings, UserPlus, Users} from 'lucide-react';
 import {format} from 'date-fns';
-import {toast} from 'sonner';
-import {deleteCustomer} from '@/lib/actions/customers';
 import type {Customer, CustomerGradeConfig} from '@/types/database';
 import {ExportButton} from '@/components/ui/export-button';
 import type {ExportConfig} from '@/lib/export';
@@ -20,9 +17,11 @@ import {FilterSelect} from './components/filter-select';
 import {CustomerFormDialog} from './components/CustomerFormDialog';
 import {CustomerDetailDialog} from './components/CustomerDetailDialog';
 import {CustomerGradesModal} from './components/CustomerGradesModal';
+import {CustomerDeleteDialog} from './components/customer-delete-dialog';
 import {useCustomerFilters} from './hooks/use-customer-filters';
 import type {GenderFilter, SortBy} from './hooks/use-customer-filters';
 import {useCustomerDetail} from './hooks/use-customer-detail';
+import {useCustomerDelete} from './hooks/use-customer-delete';
 
 interface Props {
   initialCustomers: Customer[];
@@ -46,14 +45,16 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
     handleSelectCustomer,
     handleLoadMoreSales,
   } = useCustomerDetail({ initialCustomers });
-  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
-  const [, startDeleteTransition] = useTransition();
-
-  // 낙관적 삭제: 즉시 카드를 제거하고, 서버 실패 시 자동 롤백된다.
-  const [optimisticCustomers, removeOptimisticCustomer] = useOptimistic(
+  const {
+    optimisticCustomers,
+    deleteTarget,
+    setDeleteTarget,
+    handleDelete,
+    confirmDelete,
+  } = useCustomerDelete({
     initialCustomers,
-    (list, deletedId: string) => list.filter((c) => c.id !== deletedId),
-  );
+    onCloseDetail: () => setSelectedCustomer(null),
+  });
 
   const {
     gradeFilter,
@@ -104,29 +105,6 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setSelectedCustomer(null);
-  };
-
-  const handleDelete = async (customer: Customer) => {
-    setDeleteTarget(customer);
-    setSelectedCustomer(null);
-  };
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget;
-    setDeleteTarget(null);
-    setSelectedCustomer(null);
-    startDeleteTransition(async () => {
-      removeOptimisticCustomer(target.id);
-      try {
-        await deleteCustomer(target.id);
-        router.refresh();
-        toast.success('고객이 삭제되었습니다');
-      } catch (error) {
-        console.error('Failed to delete customer:', error);
-        toast.error('고객 삭제에 실패했습니다');
-      }
-    });
   };
 
   const handleSaleRegister = (customer: Customer) => {
@@ -331,27 +309,11 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
       />
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>고객 삭제</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground text-sm">
-              <span className="font-medium text-foreground">{deleteTarget?.name}</span> 고객을 삭제하시겠습니까?
-            </p>
-            <p className="text-muted-foreground text-xs mt-2">연결된 매출 기록은 유지됩니다.</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              취소
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              삭제
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CustomerDeleteDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
 
       {/* 등급 관리 모달 */}
       <CustomerGradesModal
