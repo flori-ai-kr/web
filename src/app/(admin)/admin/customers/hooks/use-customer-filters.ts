@@ -8,6 +8,8 @@ import type {Customer, CustomerGradeConfig} from '@/types/database';
 export type SortBy = 'recent' | 'newest' | 'oldest' | 'name' | 'purchase_count' | 'purchase_amount';
 export type GenderFilter = 'all' | 'male' | 'female';
 
+export type CustomerFiltersController = ReturnType<typeof useCustomerFilters>;
+
 /**
  * 고객 목록 필터(등급·성별·검색)·정렬·기간(월/커스텀 범위) 상태와 파생 목록(그룹핑·헤더 지표). customers-client에서 이동.
  */

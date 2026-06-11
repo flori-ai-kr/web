@@ -4,22 +4,20 @@ import {useCallback, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
-import {Input} from '@/components/ui/input';
-import {RotateCcw, Search, Users} from 'lucide-react';
+import {Search, Users} from 'lucide-react';
 import {format} from 'date-fns';
 import type {Customer, CustomerGradeConfig} from '@/types/database';
 import type {ExportConfig} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
 import {PeriodHeader} from '@/components/layout/PeriodHeader';
 import {CustomerCard, genderLabels} from './components/CustomerCard';
-import {FilterSelect} from './components/filter-select';
 import {CustomerFormDialog} from './components/CustomerFormDialog';
 import {CustomerDetailDialog} from './components/CustomerDetailDialog';
 import {CustomerGradesModal} from './components/CustomerGradesModal';
 import {CustomerDeleteDialog} from './components/customer-delete-dialog';
 import {CustomerFab} from './components/customer-fab';
+import {CustomersFilters} from './components/customers-filters';
 import {useCustomerFilters} from './hooks/use-customer-filters';
-import type {GenderFilter, SortBy} from './hooks/use-customer-filters';
 import {useCustomerDetail} from './hooks/use-customer-detail';
 import {useCustomerDelete} from './hooks/use-customer-delete';
 
@@ -55,27 +53,8 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
     onCloseDetail: () => setSelectedCustomer(null),
   });
 
-  const {
-    gradeFilter,
-    setGradeFilter,
-    genderFilter,
-    setGenderFilter,
-    sortBy,
-    setSortBy,
-    searchQuery,
-    setSearchQuery,
-    periodYear,
-    periodMonth,
-    customRange,
-    setCustomRange,
-    filteredCustomers,
-    groupedCustomers,
-    isSearching,
-    headerStats,
-    hasActiveFilters,
-    handleMonthNav,
-    resetFilters,
-  } = useCustomerFilters({ customers: optimisticCustomers, grades: initialGrades });
+  const filters = useCustomerFilters({ customers: optimisticCustomers, grades: initialGrades });
+  const { filteredCustomers, groupedCustomers, isSearching, headerStats, hasActiveFilters, resetFilters } = filters;
 
   const getExportConfig = useCallback((): ExportConfig<Customer> => ({
     filename: `고객_${format(new Date(), 'yyyy-MM-dd')}`,
@@ -125,12 +104,12 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
       {/* 기간 헤더 — 매출 페이지와 동일한 월 네비 + 기간(최근 방문 기준) */}
       <PeriodHeader
-        periodYear={periodYear}
-        periodMonth={periodMonth}
-        customRange={customRange}
-        onMonthNav={handleMonthNav}
-        onRangeApply={setCustomRange}
-        onRangeReset={() => setCustomRange(null)}
+        periodYear={filters.periodYear}
+        periodMonth={filters.periodMonth}
+        customRange={filters.customRange}
+        onMonthNav={filters.handleMonthNav}
+        onRangeApply={filters.setCustomRange}
+        onRangeReset={() => filters.setCustomRange(null)}
       />
 
       {/* 헤더: 큰 숫자 + 보조 미니스탯 */}
@@ -151,69 +130,7 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
       </div>
 
       {/* Filters — 데탑: 한 줄(드롭다운 + 검색 flex-1) / 모바일: 드롭다운 줄 + 검색 줄 */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-        {/* 드롭다운 — 한 줄(넘치면 가로 스크롤) */}
-        <div className="flex items-center gap-2 overflow-x-auto shrink-0">
-          <FilterSelect
-            label="등급"
-            value={gradeFilter}
-            defaultValue="all"
-            options={[
-              { value: 'all', label: '전체' },
-              ...initialGrades.map((g) => ({ value: g.id, label: g.name })),
-            ]}
-            onChange={setGradeFilter}
-          />
-          <FilterSelect
-            label="성별"
-            value={genderFilter}
-            defaultValue="all"
-            options={[
-              { value: 'all', label: '전체' },
-              { value: 'male', label: '남성' },
-              { value: 'female', label: '여성' },
-            ]}
-            onChange={(v) => setGenderFilter(v as GenderFilter)}
-          />
-          <FilterSelect
-            label="정렬"
-            value={sortBy}
-            defaultValue="recent"
-            options={[
-              { value: 'recent', label: '최근 구매순' },
-              { value: 'newest', label: '최신 등록순' },
-              { value: 'oldest', label: '오래된순' },
-              { value: 'name', label: '가나다순' },
-              { value: 'purchase_count', label: '구매횟수순' },
-              { value: 'purchase_amount', label: '구매금액순' },
-            ]}
-            onChange={(v) => setSortBy(v as SortBy)}
-          />
-        </div>
-        {/* 검색 + 초기화 — 데탑에선 검색바 폭 제한(매출과 동일 220px) */}
-        <div className="flex items-center gap-2 sm:flex-1 min-w-0">
-          <div className="relative flex-1 sm:max-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="이름, 연락처, 메모 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-8 text-sm bg-background rounded-full"
-              aria-label="고객 검색"
-            />
-          </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-card text-foreground text-xs font-medium shrink-0 hover:bg-muted transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              초기화
-            </button>
-          )}
-        </div>
-      </div>
+      <CustomersFilters filters={filters} grades={initialGrades} />
 
       {/* Customer Card Grid */}
       {filteredCustomers.length === 0 ? (
