@@ -22,7 +22,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/StatusBadge';
+import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/status-badge';
 import { setUserActive } from '@/lib/actions/admin-users';
 import type { AdminUserDetail } from '@/types/admin';
 

@@ -1,10 +1,10 @@
 'use client';
 
 import {useSyncExternalStore} from 'react';
-import {Sidebar} from './Sidebar';
-import {Header} from './Header';
-import {BottomNav} from './BottomNav';
-import {AppFooter} from './AppFooter';
+import {Sidebar} from './sidebar';
+import {Header} from './header';
+import {BottomNav} from './bottom-nav';
+import {AppFooter} from './app-footer';
 import {cn} from '@/lib/utils';
 import type {NavItemKey} from '@/types/database';
 

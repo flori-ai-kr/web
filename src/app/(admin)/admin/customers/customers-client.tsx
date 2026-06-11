@@ -9,7 +9,7 @@ import {format} from 'date-fns';
 import type {Customer, CustomerGradeConfig} from '@/types/database';
 import type {ExportConfig} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
-import {PeriodHeader} from '@/components/layout/PeriodHeader';
+import {PeriodHeader} from '@/components/layout/period-header';
 import {CustomerCard, genderLabels} from './components/customer-card';
 import {CustomerFormDialog} from './components/customer-form-dialog';
 import {CustomerDetailDialog} from './components/customer-detail-dialog';

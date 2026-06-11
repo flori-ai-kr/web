@@ -13,7 +13,7 @@ import {Input} from '@/components/ui/input';
 import {Image as ImageIcon, Loader2, Plus, Settings, User, X} from 'lucide-react';
 import {getPhotoCardById, getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
-import {PeriodHeader} from '@/components/layout/PeriodHeader';
+import {PeriodHeader} from '@/components/layout/period-header';
 import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
 

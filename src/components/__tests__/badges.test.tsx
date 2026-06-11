@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CommunityCategoryBadge } from '../community/category-badge'
 import { CategoryBadge } from '../insights/category-badge'
-import { StatusBadge, VerificationBadge, SubscriptionBadge } from '../console/StatusBadge'
+import { StatusBadge, VerificationBadge, SubscriptionBadge } from '../console/status-badge'
 
 describe('CommunityCategoryBadge', () => {
   it('카테고리 라벨을 렌더한다', () => {

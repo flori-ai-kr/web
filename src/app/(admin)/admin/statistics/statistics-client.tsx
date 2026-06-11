@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { EmptyState } from '@/components/layout/EmptyState';
+import { EmptyState } from '@/components/layout/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { BarChart2, AlertCircle, RefreshCw } from 'lucide-react';

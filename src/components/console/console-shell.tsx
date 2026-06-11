@@ -3,8 +3,8 @@
 import { useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { ConsoleSidebar, SidebarContent } from './ConsoleSidebar';
-import { ConsoleTopbar } from './ConsoleTopbar';
+import { ConsoleSidebar, SidebarContent } from './console-sidebar';
+import { ConsoleTopbar } from './console-topbar';
 
 // 경로 → 토픽바 제목/부제 매핑.
 const META: Record<string, { title: string; subtitle: string }> = {

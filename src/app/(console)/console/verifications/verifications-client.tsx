@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { VerificationBadge } from '@/components/console/StatusBadge';
+import { VerificationBadge } from '@/components/console/status-badge';
 import {
   listVerifications,
   approveVerification,

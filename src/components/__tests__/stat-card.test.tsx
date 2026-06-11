@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Users } from 'lucide-react'
-import { StatCard } from '../console/StatCard'
+import { StatCard } from '../console/stat-card'
 
 describe('StatCard', () => {
   it('라벨과 값을 렌더한다', () => {

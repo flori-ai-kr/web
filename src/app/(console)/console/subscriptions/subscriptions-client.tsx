@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { SubscriptionBadge } from '@/components/console/StatusBadge';
+import { SubscriptionBadge } from '@/components/console/status-badge';
 import type { AdminSubscriptionRow } from '@/types/admin';
 
 export function SubscriptionsClient({ rows }: { rows: AdminSubscriptionRow[] }) {
