@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { OAUTH_STATE_COOKIE } from '@/lib/api/cookie-names'
-import { OAUTH_PROVIDERS, isOAuthProvider } from '../../oauth-providers'
+import { OAUTH_PROVIDERS, isOAuthProvider, resolvePublicOrigin } from '../../oauth-providers'
 
 // 소셜 OAuth 개시 라우트 (kakao·google·naver 공용).
 // provider별 client-id 환경변수가 있으면 랜덤 state를 httpOnly 쿠키에 저장하고
@@ -19,12 +19,12 @@ export async function GET(
 
   const config = OAUTH_PROVIDERS[provider]
   const clientId = process.env[config.envKey]
+  const origin = resolvePublicOrigin(request.nextUrl.origin)
 
   if (!clientId) {
-    return NextResponse.redirect(new URL(`/login?error=${provider}_unconfigured`, request.url))
+    return NextResponse.redirect(new URL(`/login?error=${provider}_unconfigured`, origin))
   }
 
-  const origin = request.nextUrl.origin
   const redirectUri = `${origin}/auth/callback/${provider}`
   const state = randomBytes(16).toString('hex')
 
