@@ -6,7 +6,11 @@ description: Flori admin design system — token (globals.css) → Pencil variab
 # Flori Admin Design System
 
 Token mapping and conventions for Code ↔ Pencil(.pen) migrations of the **flori** flower-shop admin.
-Source of truth: `src/app/globals.css` `:root` (admin "Rose" reskin, 2026-05-26) + Tailwind v4.
+Source of truth: `src/app/globals.css` `:root` + Tailwind v4.
+
+> **⚠️ 2026-06 Cool Slate 업데이트 (현행).** 팔레트가 Warm Rose(크림)에서 **Cool Slate Rose**로 바뀜. Pencil flori-local 변수는 이미 동기화됨. 현행 핵심값(Light):
+> `background #EEF1F5` · `foreground #1C2024` · `card #FFFFFF` · `muted/secondary/accent #E8ECF1` · `muted-foreground #717B88` · `border/input #DDE2E9` · `brand #A85475`(불변) · `brand-muted #F7E9EF` · `neutral`(=`--sage`) **#8A929E (cool slate, 구 웜토프 #A09080 폐기)** · `sidebar-foreground #5C636E`. Dark: `background #101317` · `brand #DB8FA9` · `sage #8B95A2`.
+> 아래 표의 일부 hex는 구 Warm Rose 값일 수 있으니 globals.css `:root`/`.dark`를 최종 기준으로 삼을 것.
 
 ## Token Architecture (3-tier)
 
@@ -62,7 +66,8 @@ redundant spacing vars, no arbitrary values like `p-[13px]`.
 
 ## Pencil document
 
-- Canonical .pen path: `docs/design/flori-admin.pen` (repo-tracked; user may need to Save manually in the Pencil app the first time).
+- Canonical .pen path: `docs/design/pencil/flori-admin.pen` (repo-tracked; user may need to Save manually in the Pencil app the first time). **NOTE:** Pencil MCP `filePath` does NOT switch documents — the target .pen must be the *active editor* in the Pencil desktop app before reading/editing.
+- 자체 재사용 컴포넌트: flori molecule(KPI Card·List Row·Section Header·CustomerCard) + `FAB Button`/`FAB Pill`(스피드다이얼) + `OPS Sidebar`/`topbar`(운영 콘솔 셸 — 인스턴스마다 active nav·제목 override). 신규 화면 빌드 스펙은 `docs/design/pencil/MISSING-SCREENS-SPEC.md`.
 - The `/pencil-welcome-desktop.pen` welcome file has a rich shadcn-style component kit, but components **cannot be referenced across files** — build flori screens with primitive frame/text/icon_font nodes + token variables instead, or copy components in.
 
 ## Design tokens → Pencil variables
