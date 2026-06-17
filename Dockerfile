@@ -30,11 +30,16 @@ ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
 # 미설정 시 빈 값("") → 해당 기능 비활성(env.ts 가 빈 문자열을 undefined 로 정규화).
 ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=""
 ARG NEXT_PUBLIC_CLARITY_PROJECT_ID=""
+# STORAGE_PUBLIC_URL(CloudFront 공개 호스트) — next.config 의 images.remotePatterns·CSP 가
+# build 시점에 required-server-files.json 으로 굳으므로 build-arg 로 넣어야 한다.
+# 런타임 .env.web 에만 있으면 standalone 의 이미지 최적화/CSP 에 반영되지 않는다.
+ARG STORAGE_PUBLIC_URL=""
 # INTERNAL_API_KEY 는 검증(min 32)만 통과시키는 placeholder. 실값은 런타임에서 주입.
 ARG INTERNAL_API_KEY="build-time-placeholder-internal-key-not-used-at-runtime"
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
 ENV NEXT_PUBLIC_CLARITY_PROJECT_ID=${NEXT_PUBLIC_CLARITY_PROJECT_ID}
+ENV STORAGE_PUBLIC_URL=${STORAGE_PUBLIC_URL}
 ENV INTERNAL_API_KEY=${INTERNAL_API_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build

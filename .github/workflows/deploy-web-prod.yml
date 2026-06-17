@@ -69,6 +69,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+            STORAGE_PUBLIC_URL=${{ vars.STORAGE_PUBLIC_URL }}
 
   deploy:
     name: EC2 배포
