@@ -24,6 +24,7 @@ import {
     Image as ImageIcon,
     LayoutDashboard,
     MessagesSquare,
+    PenLine,
     Plus,
     Receipt,
     RotateCcw,
@@ -56,6 +57,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   customers: Users,
   gallery: ImageIcon,
   community: MessagesSquare,
+  marketing: PenLine,
 };
 
 const ALL_KEYS: NavItemKey[] = [
@@ -67,6 +69,7 @@ const ALL_KEYS: NavItemKey[] = [
   'customers',
   'gallery',
   'community',
+  'marketing',
 ];
 
 // 저장된 설정에 제거된 키(insights/follows)가 남아있어도 유효한 키만 남긴다
