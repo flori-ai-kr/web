@@ -19,6 +19,14 @@ export async function signIn(context: BrowserContext, baseURL: string) {
     { name: 'flori_access', value: fakeAccessToken(), url: baseURL, httpOnly: true },
     { name: 'flori_refresh', value: 'e2e-refresh-token', url: baseURL, httpOnly: true },
   ]);
+  // 첫 진입 환영 가이드 모달이 테스트 상호작용을 가리지 않도록 '열람함' 플래그를 미리 심는다.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem('flori_welcome_guide_seen', '1');
+    } catch {
+      // noop
+    }
+  });
 }
 
 /**
