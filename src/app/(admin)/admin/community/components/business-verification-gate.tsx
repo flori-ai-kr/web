@@ -2,12 +2,12 @@
 
 import {useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {Clock, FileText, Loader2, Upload, X} from 'lucide-react';
+import {BadgeCheck, Clock, FileText, Loader2, LogOut, ShieldCheck, Upload, X} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
-import {Card, CardContent} from '@/components/ui/card';
+import {signOut} from '@/lib/actions/auth';
 import {BUSINESS_LICENSE_TYPES, type BusinessVerification} from '@/lib/business-verification';
 import {
   createBusinessLicenseUploadTarget,
@@ -23,45 +23,110 @@ function formatBusinessNumber(value: string): string {
   return `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`;
 }
 
+/** flori 로고+워드마크 (헤더와 동일한 5장 꽃잎 SVG). 네비 없는 블락 화면 상단용. */
+function BrandMark() {
+  return (
+    <div className="flex items-center gap-2">
+      <svg viewBox="0 0 100 100" width={28} height={28} aria-hidden="true" className="shrink-0">
+        <defs>
+          <path id="flori-petal-gate" d="M50 50 C 42 44 39 27 49 15 C 53 11 60 14 60 22 C 60 35 55 44 50 50 Z" />
+        </defs>
+        <g transform="translate(0 3.5)">
+          <use href="#flori-petal-gate" fill="#A85475" />
+          <use href="#flori-petal-gate" transform="rotate(72 50 50)" fill="#E0739A" />
+          <use href="#flori-petal-gate" transform="rotate(144 50 50)" fill="#A85475" />
+          <use href="#flori-petal-gate" transform="rotate(216 50 50)" fill="#E0739A" />
+          <use href="#flori-petal-gate" transform="rotate(288 50 50)" fill="#8E3F5F" />
+          <circle cx="50" cy="50" r="6" fill="#ffffff" />
+          <circle cx="50" cy="50" r="3.2" fill="#A85475" />
+        </g>
+      </svg>
+      <span
+        className="font-display text-[24px] font-semibold text-foreground leading-none"
+        style={{ fontVariantLigatures: 'none', letterSpacing: '0.2rem' }}
+      >
+        flori<span className="text-brand">.</span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * 사업자 인증 전체 블락 셸. 승인(APPROVED) 전에는 AppLayout 밖에서 풀스크린으로 렌더되어
+ * 사이드바·하단탭 등 어떤 네비도 노출하지 않는다. 로그아웃 동선은 항상 제공.
+ */
+function GateShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-dvh flex flex-col items-center overflow-y-auto bg-background px-4 py-10">
+      <div className="mb-8 shrink-0">
+        <BrandMark />
+      </div>
+      <main className="flex w-full max-w-md flex-1 flex-col justify-center">{children}</main>
+      <button
+        type="button"
+        onClick={() => signOut()}
+        className="mt-8 inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+        로그아웃
+      </button>
+    </div>
+  );
+}
+
 export function BusinessVerificationGate({ initial }: { initial: BusinessVerification }) {
   const router = useRouter();
 
-  // PENDING — 검토 대기
+  // PENDING — 승인 대기
   if (initial.status === 'PENDING') {
+    const submittedLabel = initial.submittedAt
+      ? new Date(initial.submittedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+      : null;
     return (
-      <div className="max-w-md mx-auto px-4 py-10">
-        <Card>
-          <CardContent className="p-8 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-brand-muted flex items-center justify-center mb-4">
-              <Clock className="w-6 h-6 text-brand" />
-            </div>
-            <h1 className="text-lg font-semibold text-foreground">검토 중입니다</h1>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed break-keep">
-              제출하신 사업자 인증을 확인하고 있어요.
+      <GateShell>
+        <div className="w-full text-center space-y-5">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-muted">
+            <Clock className="h-10 w-10 text-brand" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">승인을 기다리고 있어요</h1>
+            <p className="text-sm text-muted-foreground break-keep leading-relaxed">
+              사업자 인증을 제출했어요. 보통 영업일 기준 하루 안에 확인돼요.
               <br />
-              빠른 시일 내에 결과를 알려드릴게요.
+              승인되면 카카오 알림톡으로 바로 알려드릴게요.
             </p>
-            <Button variant="outline" className="mt-6" onClick={() => router.push('/admin')}>
-              대시보드로
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4 text-left">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <BadgeCheck className="w-4 h-4 text-brand" aria-hidden="true" />
+              인증 신청 완료
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {submittedLabel ? `${submittedLabel} 제출됨` : '제출이 접수되었어요'}
+            </p>
+          </div>
+          <div className="rounded-xl bg-muted p-3.5 text-xs text-muted-foreground break-keep">
+            궁금한 점이 있으시면 이용 가이드 또는 문의로 알려주세요.
+          </div>
+        </div>
+      </GateShell>
     );
   }
 
   // NONE / REJECTED — 신청 폼
-  return <VerificationForm initial={initial} onDone={() => router.refresh()} onCancel={() => router.push('/admin')} />;
+  return (
+    <GateShell>
+      <VerificationForm initial={initial} onDone={() => router.refresh()} />
+    </GateShell>
+  );
 }
 
 function VerificationForm({
   initial,
   onDone,
-  onCancel,
 }: {
   initial: BusinessVerification;
   onDone: () => void;
-  onCancel: () => void;
 }) {
   const [businessNumber, setBusinessNumber] = useState('');
   const [businessName, setBusinessName] = useState('');
@@ -127,11 +192,14 @@ function VerificationForm({
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-7">
-      <header className="mb-5">
-        <h1 className="text-xl font-semibold text-foreground tracking-tight">사업자 인증</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          커뮤니티는 사업자 회원만 이용할 수 있어요. 사업자등록증을 제출해주세요.
+    <div className="w-full">
+      <header className="mb-5 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
+          <ShieldCheck className="w-6 h-6 text-brand" aria-hidden="true" />
+        </div>
+        <h1 className="text-xl font-bold text-foreground tracking-tight">사업자 인증이 필요해요</h1>
+        <p className="text-sm text-muted-foreground mt-1.5 break-keep">
+          flori는 사업자 회원 전용 서비스예요. 사업자등록증을 제출하면 확인 후 모든 기능을 이용할 수 있어요.
         </p>
       </header>
 
@@ -223,15 +291,10 @@ function VerificationForm({
 
         <p className="text-xs text-muted-foreground">* 담당자가 빠른 시일 내에 확인 후 권한을 부여해드려요.</p>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border -mx-5 px-5 pt-4">
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
-            취소
-          </Button>
-          <Button type="submit" disabled={pending}>
-            {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            신청
-          </Button>
-        </div>
+        <Button type="submit" className="w-full h-11" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          인증 신청
+        </Button>
       </form>
     </div>
   );
