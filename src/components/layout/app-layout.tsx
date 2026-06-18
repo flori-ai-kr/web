@@ -49,7 +49,7 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-canvas h-dvh overflow-hidden bg-background">
       {/* 키보드 사용자용 본문 바로가기 — 포커스 시에만 노출 */}
       <a
         href="#main-content"
@@ -68,8 +68,9 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
         userImage={userImage}
       />
 
+      {/* 문서 대신 이 컨테이너가 스크롤 → 스크롤바가 헤더(고정) 영역을 침범하지 않음 */}
       <div className={cn(
-        'pt-14 transition-[margin] duration-200',
+        'h-dvh overflow-y-auto pt-14 transition-[margin] duration-200',
         isCollapsed ? 'lg:ml-16' : 'lg:ml-60'
       )}>
         <main

@@ -87,7 +87,7 @@ export function Header({ userEmail, userName, userImage }: HeaderProps) {
   const unreadCount = reminders.length;
 
   return (
-    <header className="fixed top-0 inset-x-0 z-40 h-14 border-b border-sidebar-border bg-sidebar">
+    <header className="fixed top-0 left-0 w-screen z-40 h-14 border-b border-sidebar-border bg-sidebar">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Left: brand (탭 → 대시보드) */}
         <Link href="/admin" className="flex items-center gap-2 shrink-0" aria-label="대시보드로 이동">
