@@ -1,0 +1,101 @@
+'use client';
+
+import {cn} from '@/lib/utils';
+import {AuctionPanel} from './components/auction-panel';
+import {GrantsPanel} from './components/grants-panel';
+import {TrendsPanel} from './components/trends-panel';
+import {INFO_TABS, useInfoTabs, type InfoTab} from './hooks/use-info-tabs';
+import type {AuctionCategory, AuctionSummary} from '@/types/auction';
+import type {GrantCategory, GrantProgram} from '@/types/grants';
+import type {ScrapMap, TrendArticle, TrendCategory} from '@/types/insights';
+
+interface InfoClientProps {
+  initialTab: InfoTab;
+  initialCategory: string | null;
+  initialScrapedOnly: boolean;
+  // 경매 시세
+  auctionCategories: AuctionCategory[];
+  auctionSummary: AuctionSummary;
+  auctionDates: string[];
+  // 지원사업
+  grants: GrantProgram[];
+  grantScrapMap: ScrapMap;
+  // 트렌드·뉴스
+  trends: TrendArticle[];
+  trendScrapMap: ScrapMap;
+}
+
+export function InfoClient({
+  initialTab,
+  initialCategory,
+  initialScrapedOnly,
+  auctionCategories,
+  auctionSummary,
+  auctionDates,
+  grants,
+  grantScrapMap,
+  trends,
+  trendScrapMap,
+}: InfoClientProps) {
+  const {tab, category, scrapedOnly, changeTab, changeFilter} = useInfoTabs({
+    initialTab,
+    initialCategory,
+    initialScrapedOnly,
+  });
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-1 sm:px-6 sm:py-2">
+      {/* 메인 언더라인 탭 (= statistics 4탭 패턴) */}
+      <div role="tablist" aria-label="정보 탭" className="flex gap-1 overflow-x-auto border-b border-border">
+        {INFO_TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            id={`info-tab-${t.value}`}
+            aria-controls={`info-panel-${t.value}`}
+            aria-selected={tab === t.value}
+            onClick={() => changeTab(t.value)}
+            className={cn(
+              'whitespace-nowrap border-b-2 -mb-px px-3.5 pb-2.5 pt-1.5 text-sm font-semibold leading-none',
+              'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+              tab === t.value
+                ? 'border-[var(--brand)] text-[var(--brand)]'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div role="tabpanel" id={`info-panel-${tab}`} aria-labelledby={`info-tab-${tab}`}>
+        {tab === 'price' && (
+          <AuctionPanel
+            categories={auctionCategories}
+            initialSummary={auctionSummary}
+            initialDates={auctionDates}
+          />
+        )}
+        {tab === 'grant' && (
+          <GrantsPanel
+            programs={grants}
+            scrapMap={grantScrapMap}
+            category={category as GrantCategory | null}
+            scrapedOnly={scrapedOnly}
+            onCategoryChange={changeFilter}
+          />
+        )}
+        {tab === 'trend' && (
+          <TrendsPanel
+            articles={trends}
+            scrapMap={trendScrapMap}
+            category={category as TrendCategory | null}
+            scrapedOnly={scrapedOnly}
+            onCategoryChange={changeFilter}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

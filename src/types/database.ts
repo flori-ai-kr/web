@@ -7,5 +7,7 @@ export * from './customers';
 export * from './gallery';
 export * from './reservations';
 export * from './insights';
+export * from './auction';
+export * from './grants';
 export * from './community';
 export * from './user';
