@@ -26,6 +26,8 @@ export interface RegistrationInput {
   interests?: string[]
   /** 가게 주력 분야 (선택, 다중) */
   specialties?: string[]
+  /** flori를 알게 된 경로 (선택, 다중) */
+  referralSources?: string[]
 }
 
 interface TokenResponse {
@@ -112,6 +114,9 @@ export async function completeRegistration(
     ...(input.interests && input.interests.length > 0 ? { interests: input.interests } : {}),
     ...(input.specialties && input.specialties.length > 0
       ? { specialties: input.specialties }
+      : {}),
+    ...(input.referralSources && input.referralSources.length > 0
+      ? { referralSources: input.referralSources }
       : {}),
   }
 

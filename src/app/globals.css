@@ -99,8 +99,8 @@
        --neutral-500 == --muted-foreground (#717B88)
        --neutral-900 == --foreground      (#1C2024 ink) */
   --neutral-50:  #F4F6F9;
-  --neutral-100: #E8ECF1;
-  --neutral-200: #DDE2E9;
+  --neutral-100: #F2F2F1;
+  --neutral-200: #E9E9E7;
   --neutral-300: #C7CDD6;
   --neutral-400: #A4ADB9;
   --neutral-500: #717B88;
@@ -163,8 +163,8 @@
      --chart-1      : #A85475  (rose peak)
      --chart-2..5   : ink opacity ladder (monochrome)
   */
-  /* Cool 캔버스 (slate 오프화이트 — 흰 카드가 떠오르는 elevation) */
-  --background: #EEF1F5;
+  /* Near-white 캔버스 (밝은 중립 오프화이트 — 흰 카드와 자연스러운 elevation) */
+  --background: #FBFBFA;
   --foreground: #1C2024;
   /* 카드: 순백 */
   --card: #FFFFFF;
@@ -174,16 +174,16 @@
   /* 프라이머리: cool near-black */
   --primary: #1C2024;
   --primary-foreground: #F6F8FA;
-  --secondary: #E8ECF1;
+  --secondary: #F2F2F1;
   --secondary-foreground: #1C2024;
   /* 뮤트: cool slate 회색 */
-  --muted: #E8ECF1;
+  --muted: #F2F2F1;
   --muted-foreground: #717B88;
-  --accent: #E8ECF1;
+  --accent: #F2F2F1;
   --accent-foreground: #1C2024;
   --destructive: #E5484D;
-  --border: #DDE2E9;
-  --input: #DDE2E9;
+  --border: #E9E9E7;
+  --input: #E9E9E7;
   --ring: #A85475;
   /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1 (유지) */
   --brand: #A85475;
@@ -191,7 +191,7 @@
   --brand-muted: #F7E9EF;
   /* 서브: cool slate 중립 (cool 베이스 위 조용한 보조) */
   --sage: #8A929E;
-  --sage-muted: #E8ECF1;
+  --sage-muted: #F2F2F1;
   /* 차트: 로즈 피크 + cool 잉크 불투명도 사다리 */
   --chart-1: #A85475;
   --chart-2: rgba(28, 32, 36, 0.55);
@@ -203,9 +203,9 @@
   --sidebar-foreground: #5C636E;
   --sidebar-primary: #1C2024;
   --sidebar-primary-foreground: #F6F8FA;
-  --sidebar-accent: #E8ECF1;
+  --sidebar-accent: #F2F2F1;
   --sidebar-accent-foreground: #1C2024;
-  --sidebar-border: #DDE2E9;
+  --sidebar-border: #E9E9E7;
   --sidebar-ring: #A85475;
   /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
   --ai-grad-from: #E89BB6;
