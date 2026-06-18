@@ -2,26 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/auth-guard', () => ({ requireAuth: vi.fn() }))
-vi.mock('@/lib/api/client', () => ({ apiFetch: vi.fn(), apiFetchInternal: vi.fn() }))
+vi.mock('@/lib/api/client', () => ({ apiFetch: vi.fn() }))
 
 import { requireAuth } from '@/lib/auth-guard'
-import { apiFetch, apiFetchInternal } from '@/lib/api/client'
+import { apiFetch } from '@/lib/api/client'
 import {
   getTrendArticles,
+  loadMoreTrendArticles,
   getRecentTrendsByCategory,
   getTrendCountsByCategory,
-  getInstagramAccounts,
-  createInstagramAccount,
-  updateInstagramAccount,
-  deleteInstagramAccount,
-  getInstagramPosts,
-  getLatestInstagramTimestamp,
   getUserPreferences,
   updateBottomNavItems,
 } from '../insights'
 
 const mockApiFetch = vi.mocked(apiFetch)
-const mockInternal = vi.mocked(apiFetchInternal)
 const mockRequireAuth = vi.mocked(requireAuth)
 
 beforeEach(() => {
@@ -33,10 +27,6 @@ beforeEach(() => {
 const kArticle = {
   id: 'a1', category: 'flower', title: '제목', summary: '요약', keyPoints: ['p'],
   sourceUrl: 'https://x', sourceName: null, publishedAt: null, collectedAt: '2026-01-01', createdAt: '2026-01-01',
-}
-const kAccount = {
-  id: 'ac1', username: 'flori', displayName: null, profileUrl: 'https://insta/flori',
-  region: 'domestic', sortOrder: 1, active: true, notes: null,
 }
 
 describe('getTrendArticles', () => {
@@ -51,6 +41,14 @@ describe('getTrendArticles', () => {
     mockApiFetch.mockResolvedValue(null)
     await getTrendArticles({ category: 'business', limit: 10, offset: 20 })
     expect(mockApiFetch).toHaveBeenCalledWith('/insights/trends?category=business&limit=10&offset=20')
+  })
+})
+
+describe('loadMoreTrendArticles', () => {
+  it('offset과 category를 쿼리에 반영한다', async () => {
+    mockApiFetch.mockResolvedValue([])
+    await loadMoreTrendArticles(50, { category: 'flower', limit: 50 })
+    expect(mockApiFetch).toHaveBeenCalledWith('/insights/trends?category=flower&limit=50&offset=50')
   })
 })
 
@@ -71,74 +69,6 @@ describe('getTrendCountsByCategory', () => {
     const res = await getTrendCountsByCategory('2026-01-01')
     expect(mockApiFetch).toHaveBeenCalledWith('/insights/trends/counts?since=2026-01-01')
     expect(res).toEqual({ flower: 5, inspiration: 0, business: 0, industry: 0 })
-  })
-})
-
-describe('getInstagramAccounts', () => {
-  it('activeOnly 옵션 반영', async () => {
-    mockApiFetch.mockResolvedValue([kAccount])
-    await getInstagramAccounts({ activeOnly: true })
-    expect(mockApiFetch).toHaveBeenCalledWith('/insights/accounts?activeOnly=true')
-  })
-
-  it('옵션 없으면 빈 쿼리', async () => {
-    mockApiFetch.mockResolvedValue(null)
-    expect(await getInstagramAccounts()).toEqual([])
-    expect(mockApiFetch).toHaveBeenCalledWith('/insights/accounts?')
-  })
-})
-
-describe('createInstagramAccount', () => {
-  it('내부 API로 POST하고 기본값을 채운다', async () => {
-    mockInternal.mockResolvedValue(kAccount)
-    await createInstagramAccount({ username: 'flori', region: 'domestic' })
-    expect(mockInternal).toHaveBeenCalledWith('/internal/instagram-accounts', expect.objectContaining({ method: 'POST' }))
-    const body = JSON.parse(mockInternal.mock.calls[0][1]!.body as string)
-    expect(body).toMatchObject({ username: 'flori', region: 'domestic', sortOrder: 0, active: true })
-  })
-
-  it('잘못된 username은 거부', async () => {
-    await expect(createInstagramAccount({ username: 'bad user!', region: 'domestic' })).rejects.toThrow()
-    expect(mockInternal).not.toHaveBeenCalled()
-  })
-})
-
-describe('updateInstagramAccount', () => {
-  it('제공된 필드만 PUT 본문에 포함', async () => {
-    mockInternal.mockResolvedValue(kAccount)
-    await updateInstagramAccount('ac1', { active: false })
-    expect(mockInternal).toHaveBeenCalledWith('/internal/instagram-accounts/ac1', expect.objectContaining({ method: 'PUT' }))
-    expect(JSON.parse(mockInternal.mock.calls[0][1]!.body as string)).toEqual({ active: false })
-  })
-})
-
-describe('deleteInstagramAccount', () => {
-  it('내부 API로 DELETE', async () => {
-    mockInternal.mockResolvedValue(undefined)
-    await deleteInstagramAccount('ac1')
-    expect(mockInternal).toHaveBeenCalledWith('/internal/instagram-accounts/ac1', { method: 'DELETE' })
-  })
-})
-
-describe('getInstagramPosts', () => {
-  it('모든 옵션을 쿼리에 반영', async () => {
-    mockApiFetch.mockResolvedValue([])
-    await getInstagramPosts({ accountId: 'ac1', region: 'international', sortBy: 'likes', daysAgo: 7, limit: 30 })
-    const url = mockApiFetch.mock.calls[0][0] as string
-    expect(url).toContain('accountId=ac1')
-    expect(url).toContain('region=international')
-    expect(url).toContain('sortBy=likes')
-    expect(url).toContain('daysAgo=7')
-    expect(url).toContain('limit=30')
-  })
-})
-
-describe('getLatestInstagramTimestamp', () => {
-  it('latest를 반환, 없으면 null', async () => {
-    mockApiFetch.mockResolvedValue({ latest: '2026-01-01' })
-    expect(await getLatestInstagramTimestamp()).toBe('2026-01-01')
-    mockApiFetch.mockResolvedValue({ latest: null })
-    expect(await getLatestInstagramTimestamp()).toBeNull()
   })
 })
 

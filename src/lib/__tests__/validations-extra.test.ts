@@ -9,8 +9,6 @@ import {
   bottomNavItemsSchema,
   photoCardSchema,
   trendArticleInputSchema,
-  instagramAccountCreateSchema,
-  instagramAccountUpdateSchema,
   scrapMemoSchema,
   scrapToggleSchema,
 } from '../validations'
@@ -216,32 +214,18 @@ describe('trendArticleInputSchema (httpUrl XSS 차단)', () => {
   })
 })
 
-// ─── Instagram 계정 ─────────────────────────────────────────
-
-describe('instagramAccountCreateSchema', () => {
-  it('유효한 유저네임을 허용한다', () => {
-    expect(instagramAccountCreateSchema.safeParse({ username: 'flori.shop_1', region: 'domestic' }).success).toBe(true)
-  })
-
-  it('허용되지 않는 문자가 포함되면 실패한다', () => {
-    expect(instagramAccountCreateSchema.safeParse({ username: 'bad user!', region: 'domestic' }).success).toBe(false)
-  })
-
-  it('partial 업데이트 스키마는 빈 객체도 허용한다', () => {
-    expect(instagramAccountUpdateSchema.safeParse({}).success).toBe(true)
-  })
-})
-
 // ─── 스크랩 ──────────────────────────────────────────────────
 
 describe('scrap schemas', () => {
   it('scrapToggleSchema는 target_type/target_id를 검증한다', () => {
     expect(scrapToggleSchema.safeParse({ target_type: 'trend', target_id: '12' }).success).toBe(true)
+    expect(scrapToggleSchema.safeParse({ target_type: 'grant', target_id: '12' }).success).toBe(true)
+    expect(scrapToggleSchema.safeParse({ target_type: 'post', target_id: '12' }).success).toBe(false)
     expect(scrapToggleSchema.safeParse({ target_type: 'invalid', target_id: '12' }).success).toBe(false)
   })
 
   it('scrapMemoSchema는 1000자 초과 메모를 거부한다', () => {
-    expect(scrapMemoSchema.safeParse({ target_type: 'post', target_id: '1', memo: 'a'.repeat(1001) }).success).toBe(false)
-    expect(scrapMemoSchema.safeParse({ target_type: 'post', target_id: '1', memo: null }).success).toBe(true)
+    expect(scrapMemoSchema.safeParse({ target_type: 'grant', target_id: '1', memo: 'a'.repeat(1001) }).success).toBe(false)
+    expect(scrapMemoSchema.safeParse({ target_type: 'grant', target_id: '1', memo: null }).success).toBe(true)
   })
 })
