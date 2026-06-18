@@ -213,7 +213,7 @@ export function Header({ userEmail, userName, userImage }: HeaderProps) {
                 aria-label="사용자 메뉴"
               >
                 {userImage ? (
-                  <Image src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                  <Image src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-cover" unoptimized />
                 ) : (
                   <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
                 )}

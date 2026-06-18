@@ -21,6 +21,7 @@ export interface CommunityPost {
   liked: boolean; // 현재 사용자 좋아요 여부
   comment_count: number;
   is_mine: boolean; // 현재 사용자 작성 여부 (수정/삭제 노출)
+  viewer_is_admin: boolean; // 현재 사용자 운영자 여부 (고정 등 관리자 액션 노출)
   can_view: boolean; // 비밀글 열람 권한 (false면 본문 마스킹)
   created_at: string;
   updated_at: string;

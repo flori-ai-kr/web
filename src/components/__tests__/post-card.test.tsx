@@ -8,7 +8,7 @@ const post = (over: Partial<CommunityPost> = {}): CommunityPost =>
     id: '1', author_nickname: '플로리스트', author_is_admin: false, category: 'daily', title: '제목입니다',
     content: { type: 'doc' }, content_text: '본문 미리보기', image_urls: [],
     is_secret: false, is_pinned: false, like_count: 3, liked: false,
-    comment_count: 2, is_mine: false, can_view: true,
+    comment_count: 2, is_mine: false, viewer_is_admin: false, can_view: true,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', ...over,
   } as CommunityPost)
 

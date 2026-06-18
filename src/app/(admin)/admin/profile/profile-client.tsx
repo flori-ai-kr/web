@@ -254,19 +254,29 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
+      {/* Header (sticky) — 저장 버튼을 상단에 고정해 하단까지 스크롤하지 않아도 저장 가능 */}
+      <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/90 backdrop-blur-sm border-b border-border flex items-center gap-3">
         <Link
           href="/admin"
-          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted"
+          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted shrink-0"
           aria-label="뒤로가기"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-semibold text-foreground tracking-tight">내 프로필</h1>
+        <h1 className="flex-1 text-xl font-semibold text-foreground tracking-tight">내 프로필</h1>
+        <Button
+          type="submit"
+          form="profile-form"
+          size="sm"
+          disabled={!formValid || isSaving}
+          className="shrink-0"
+        >
+          {isSaving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" aria-hidden="true" />}
+          {isSaving ? '저장 중...' : '저장'}
+        </Button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
+      <form id="profile-form" onSubmit={handleSave} className="space-y-8">
         {/* Avatar */}
         <div className="flex justify-center">
           <button
@@ -450,11 +460,6 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
           </div>
         </fieldset>
 
-        {/* Save button */}
-        <Button type="submit" className="w-full h-11" disabled={!formValid || isSaving}>
-          {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />}
-          {isSaving ? '저장 중...' : '저장하기'}
-        </Button>
       </form>
 
       {/* Withdrawal section */}

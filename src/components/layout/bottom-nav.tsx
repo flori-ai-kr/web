@@ -5,17 +5,22 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
     BarChart3,
+    BookOpen,
     CalendarDays,
+    FileText,
     Image as ImageIcon,
     LayoutDashboard,
+    MessageCircle,
     MessagesSquare,
     MoreHorizontal,
     Receipt,
     Settings as SettingsIcon,
+    ShieldCheck,
     Users,
     Wallet,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {PRIVACY_POLICY_URL, TERMS_URL} from '@/lib/constants';
 import {DEFAULT_BOTTOM_NAV_ITEMS, NAV_ITEM_HREFS, NAV_ITEM_LABELS, type NavItemKey,} from '@/types/database';
 import {Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle,} from '@/components/ui/sheet';
 
@@ -138,7 +143,7 @@ export function BottomNav({ items }: BottomNavProps) {
               </div>
             )}
 
-            <div className="pt-2 border-t border-border">
+            <div className="pt-2 border-t border-border space-y-0.5">
               <SheetClose asChild>
                 <Link
                   href="/admin/settings"
@@ -148,6 +153,40 @@ export function BottomNav({ items }: BottomNavProps) {
                   <span>설정</span>
                 </Link>
               </SheetClose>
+              <SheetClose asChild>
+                <Link
+                  href="/admin/guide"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <BookOpen className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>이용 가이드</span>
+                </Link>
+              </SheetClose>
+              <a
+                href={PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+              >
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <span>개인정보 처리방침</span>
+              </a>
+              <a
+                href={TERMS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+              >
+                <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <span>이용약관</span>
+              </a>
+              <span
+                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                aria-disabled="true"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                <span>버그 제보 · 문의</span>
+              </span>
             </div>
           </div>
         </SheetContent>

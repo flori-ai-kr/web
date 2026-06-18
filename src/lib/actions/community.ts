@@ -27,6 +27,7 @@ interface PostResponseDto {
   commentCount: number;
   liked: boolean;
   isMine: boolean;
+  viewerIsAdmin: boolean;
   canView: boolean;
   createdAt: string;
   updatedAt: string;
@@ -74,6 +75,7 @@ function toPost(dto: PostResponseDto): CommunityPost {
     liked: dto.liked,
     comment_count: dto.commentCount,
     is_mine: dto.isMine,
+    viewer_is_admin: dto.viewerIsAdmin,
     can_view: dto.canView,
     created_at: dto.createdAt,
     updated_at: dto.updatedAt,
@@ -283,6 +285,23 @@ async function _togglePostLike(id: string): Promise<{ liked: boolean; likeCount:
 }
 
 export const togglePostLike = withErrorLogging('togglePostLike', _togglePostLike);
+
+// BFF: POST /community/posts/{id}/pin — 관리자만(서버 강제). 게시글 고정/해제.
+async function _setCommunityPostPinned(id: string, pinned: boolean): Promise<CommunityPost> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  const dto = await apiFetch<PostResponseDto>(`/community/posts/${id}/pin`, {
+    method: 'POST',
+    body: JSON.stringify({ pinned }),
+  });
+  revalidatePath('/admin/community');
+  revalidatePath(`/admin/community/${id}`);
+  return toPost(dto);
+}
+
+export const setCommunityPostPinned = withErrorLogging('setCommunityPostPinned', _setCommunityPostPinned);
 
 export interface CommentInput {
   content: string;

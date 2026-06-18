@@ -189,7 +189,7 @@ export function createSeed() {
     category: o.category, title: o.title, content: tiptap(o.text), contentText: o.text,
     imageUrls: [], isSecret: o.isSecret ?? false, isPinned: o.isPinned ?? false,
     likeCount: o.likeCount ?? 0, commentCount: o.commentCount ?? 0,
-    liked: false, isMine: o.isMine ?? false, canView: true,
+    liked: false, isMine: o.isMine ?? false, viewerIsAdmin: o.viewerIsAdmin ?? false, canView: true,
     createdAt: iso(o.day), updatedAt: iso(o.day),
   });
 

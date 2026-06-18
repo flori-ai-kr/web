@@ -24,7 +24,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {toast} from 'sonner';
-import {deleteCommunityPost} from '@/lib/actions/community';
+import {deleteCommunityPost, setCommunityPostPinned} from '@/lib/actions/community';
 
 // Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
 const TiptapContent = dynamic(
@@ -45,6 +45,22 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
   const [comments, setComments] = useState<CommunityComment[]>(initialComments);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isPinned, setIsPinned] = useState(post.is_pinned);
+  const [pinning, setPinning] = useState(false);
+
+  const handleTogglePin = async () => {
+    const next = !isPinned;
+    setPinning(true);
+    try {
+      await setCommunityPostPinned(post.id, next);
+      setIsPinned(next);
+      toast.success(next ? '게시글을 고정했어요' : '고정을 해제했어요');
+    } catch {
+      toast.error('고정 상태를 변경하지 못했어요');
+    } finally {
+      setPinning(false);
+    }
+  };
 
   const addComment = (c: CommunityComment) => setComments((prev) => [...prev, c]);
   const markDeleted = (id: string) =>
@@ -88,7 +104,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
           {/* Header */}
           <header className="space-y-3 border-b border-border pb-5">
             <div className="flex items-center gap-2 flex-wrap">
-              {post.is_pinned && <Pin className="h-4 w-4 text-brand" aria-label="고정글" />}
+              {isPinned && <Pin className="h-4 w-4 text-brand" aria-label="고정글" />}
               <CommunityCategoryBadge category={post.category} />
               {post.is_secret && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -124,8 +140,21 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
           {/* Actions */}
           <div className="flex items-center justify-between">
             <LikeButton postId={post.id} initialLiked={post.liked} initialCount={post.like_count} />
+            <div className="flex items-center gap-1.5">
+              {post.viewer_is_admin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTogglePin}
+                  disabled={pinning}
+                  className={isPinned ? 'text-brand' : undefined}
+                  aria-pressed={isPinned}
+                >
+                  <Pin className="w-3.5 h-3.5" /> {isPinned ? '고정 해제' : '고정'}
+                </Button>
+              )}
             {post.is_mine && (
-              <div className="flex items-center gap-1.5">
+              <>
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/admin/community/${post.id}/edit`}>
                     <Pencil className="w-3.5 h-3.5" /> 수정
@@ -139,8 +168,9 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 삭제
                 </Button>
-              </div>
+              </>
             )}
+            </div>
           </div>
 
           {/* Comments */}

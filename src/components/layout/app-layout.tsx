@@ -78,7 +78,8 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
           aria-label="주요 콘텐츠"
         >
           <div className="mx-auto w-full max-w-7xl flex-1">{children}</div>
-          <div className="mx-auto w-full max-w-7xl">
+          {/* 인라인 푸터는 데스크톱(사이드바 레이아웃)에서만. 모바일/태블릿은 하단바 '더보기' 시트로 이동 */}
+          <div className="mx-auto hidden w-full max-w-7xl lg:block">
             <AppFooter />
           </div>
         </main>

@@ -59,23 +59,25 @@ export function ReservationCard({
               )}
             </div>
             {r.customer_name && (
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                 {r.customer_id ? (
                   <button
                     type="button"
-                    className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors whitespace-nowrap"
+                    className="text-xs text-brand hover:text-brand/80 flex items-center gap-0.5 transition-colors min-w-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       onCustomerClick(r.customer_id!);
                     }}
                     aria-label={`${r.customer_name} 고객 상세 보기`}
                   >
-                    {r.customer_name}
-                    {r.customer_phone && ` · ${r.customer_phone}`}
+                    <span className="truncate">
+                      {r.customer_name}
+                      {r.customer_phone && ` · ${r.customer_phone}`}
+                    </span>
                     <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
                   </button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground truncate min-w-0">
                     {r.customer_name}
                     {r.customer_phone && ` · ${r.customer_phone}`}
                   </span>

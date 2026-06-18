@@ -69,8 +69,14 @@ export function CommunityClient({ initialPosts, initialHasMore, activeCategory }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1 sm:py-2 space-y-6">
-      {/* Actions */}
-      <div className="flex items-center justify-end">
+      {/* Header + Actions */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">커뮤니티</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            같은 고민을 가진 사장님들과 이야기를 나눠보세요.
+          </p>
+        </div>
         <Button asChild className="w-full sm:w-auto sm:h-10 sm:px-6 sm:text-base">
           <Link href="/admin/community/write">
             <PenSquare className="w-4 h-4" /> 글쓰기
