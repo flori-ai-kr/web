@@ -98,26 +98,49 @@ function toComment(dto: CommentResponseDto): CommunityComment {
 
 // ─── 조회 ───────────────────────────────────────────────────────
 
+// 무한스크롤 페이지 크기. 카드 그리드라 매출/지출(100)보다 작게.
+const COMMUNITY_PAGE_SIZE = 20;
+
 export interface CommunityFilters {
   category?: CommunityCategory;
   search?: string;
 }
 
-// BFF: GET /community/posts?category&search&offset&limit
-async function _getCommunityPosts(filters?: CommunityFilters): Promise<CommunityPost[]> {
+export interface CommunityPostsPage {
+  posts: CommunityPost[];
+  hasMore: boolean;
+}
+
+// BFF: GET /community/posts?category&search&offset&limit (offset 페이지네이션 + 서버사이드 검색)
+async function _getCommunityPosts(
+  filters?: CommunityFilters,
+  offset = 0,
+  limit = COMMUNITY_PAGE_SIZE,
+): Promise<CommunityPostsPage> {
   await requireAuth();
 
   const params = new URLSearchParams();
   if (filters?.category) params.append('category', filters.category);
   if (filters?.search) params.append('search', filters.search);
-  params.append('limit', '100');
-  const qs = params.toString();
+  params.set('offset', String(offset));
+  params.set('limit', String(limit));
 
-  const page = await apiFetch<PostsPageDto>(`/community/posts${qs ? `?${qs}` : ''}`);
-  return (page.posts || []).map(toPost);
+  const page = await apiFetch<PostsPageDto>(`/community/posts?${params.toString()}`);
+  return { posts: (page.posts || []).map(toPost), hasMore: page.hasMore };
 }
 
 export const getCommunityPosts = withErrorLogging('getCommunityPosts', _getCommunityPosts);
+
+// 무한스크롤 추가 로드(+서버사이드 검색). use-infinite-list의 loadPage에서 호출한다.
+async function _loadMoreCommunityPosts(
+  category: CommunityCategory | null,
+  offset: number,
+  search?: string,
+): Promise<CommunityPostsPage> {
+  return _getCommunityPosts({ category: category ?? undefined, search }, offset, COMMUNITY_PAGE_SIZE);
+}
+
+export const loadMoreCommunityPosts = withErrorLogging('loadMoreCommunityPosts', _loadMoreCommunityPosts);
 
 // BFF: GET /community/posts/{id}
 async function _getCommunityPost(id: string): Promise<CommunityPost | null> {
