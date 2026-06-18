@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { AuthHeader } from '@/components/auth/auth-header'
 import { cn } from '@/lib/utils'
-import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
+import { AGE_RANGES, INTERESTS, REFERRAL_SOURCES, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
 import { PRIVACY_POLICY_URL } from '@/lib/constants'
 import { checkNickname, completeRegistration } from './actions'
 
@@ -92,6 +92,7 @@ export function OnboardingForm({
   const [ownerAgeRange, setOwnerAgeRange] = useState<string | null>(null)
   const [interests, setInterests] = useState<string[]>([])
   const [specialties, setSpecialties] = useState<string[]>([])
+  const [referralSources, setReferralSources] = useState<string[]>([])
 
   const [error, setError] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -123,6 +124,9 @@ export function OnboardingForm({
         if (Array.isArray(d.specialties)) {
           setSpecialties(d.specialties.filter((v): v is string => typeof v === 'string'))
         }
+        if (Array.isArray(d.referralSources)) {
+          setReferralSources(d.referralSources.filter((v): v is string => typeof v === 'string'))
+        }
         // 닉네임은 값만 복원하고 중복확인 상태(nicknameStatus)는 idle 유지 → 사용자가 다시 확인하게 한다.
       }
     } catch {
@@ -146,12 +150,13 @@ export function OnboardingForm({
           ownerAgeRange,
           interests,
           specialties,
+          referralSources,
         }),
       )
     } catch {
       // 저장 실패(용량/프라이버시 모드)는 무시 — 캐싱은 best-effort
     }
-  }, [hydrated, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties])
+  }, [hydrated, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties, referralSources])
 
   const step1Valid =
     name.trim().length > 0 &&
@@ -218,6 +223,7 @@ export function OnboardingForm({
       ownerAgeRange: ownerAgeRange ?? undefined,
       interests,
       specialties,
+      referralSources,
     })
 
     // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다. 임시저장 정리(베스트에포트).
@@ -286,7 +292,7 @@ export function OnboardingForm({
             className="space-y-5"
           >
             <div className="space-y-2">
-              <Label htmlFor="name">가게명</Label>
+              <Label htmlFor="name">가게명 <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
                 name="name"
@@ -303,7 +309,7 @@ export function OnboardingForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">전화번호</Label>
+              <Label htmlFor="phone">전화번호 <span className="text-destructive">*</span></Label>
               <Input
                 id="phone"
                 name="phone"
@@ -327,7 +333,7 @@ export function OnboardingForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nickname">닉네임</Label>
+              <Label htmlFor="nickname">닉네임 <span className="text-destructive">*</span></Label>
               <div className="flex gap-2">
                 <Input
                   id="nickname"
@@ -372,7 +378,7 @@ export function OnboardingForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
+              <Label htmlFor="email">이메일 <span className="text-destructive">*</span></Label>
               <Input
                 id="email"
                 name="email"
@@ -394,7 +400,7 @@ export function OnboardingForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="regionSido">지역 (시/도)</Label>
+              <Label htmlFor="regionSido">지역 (시/도) <span className="text-destructive">*</span></Label>
               <Select value={regionSido} onValueChange={setRegionSido}>
                 <SelectTrigger id="regionSido" className="w-full">
                   <SelectValue placeholder="시/도를 선택하세요" />
@@ -484,6 +490,22 @@ export function OnboardingForm({
                     label={item}
                     pressed={specialties.includes(item)}
                     onToggle={() => toggleInArray(item, specialties, setSpecialties)}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-3" disabled={isLoading}>
+              <legend className="text-sm font-medium text-foreground">
+                flori를 알게 된 경로 <span className="text-muted-foreground">(선택 · 다중)</span>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {REFERRAL_SOURCES.map((item) => (
+                  <Chip
+                    key={item}
+                    label={item}
+                    pressed={referralSources.includes(item)}
+                    onToggle={() => toggleInArray(item, referralSources, setReferralSources)}
                   />
                 ))}
               </div>

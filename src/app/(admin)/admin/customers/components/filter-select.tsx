@@ -28,7 +28,7 @@ export function FilterSelect({
         <button
           type="button"
           aria-label={label}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-background text-xs hover:bg-muted transition-colors"
+          className="inline-flex shrink-0 items-center gap-1.5 h-8 px-3 rounded-lg border border-border bg-background text-xs whitespace-nowrap hover:bg-muted transition-colors"
         >
           <span className="text-muted-foreground">{label}</span>
           <span className={`font-medium ${isCustom ? 'text-brand' : 'text-foreground'}`}>

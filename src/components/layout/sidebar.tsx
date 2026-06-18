@@ -201,7 +201,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
                   <div className="flex items-center justify-center py-1.5">
                     <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
                       {userImage ? (
-                        <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                        <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-cover" unoptimized />
                       ) : (
                         <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
                       )}
@@ -216,7 +216,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
               <div className="flex items-center gap-2.5 px-3 py-1.5">
                 <div className="w-8 h-8 rounded-full bg-muted border border-border font-semibold text-sm flex items-center justify-center shrink-0 overflow-hidden">
                   {userImage ? (
-                    <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-contain" unoptimized />
+                    <NextImage src={userImage} alt="프로필" width={32} height={32} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <span className="text-muted-foreground">{getInitial(userName, userEmail)}</span>
                   )}

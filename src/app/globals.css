@@ -99,8 +99,8 @@
        --neutral-500 == --muted-foreground (#717B88)
        --neutral-900 == --foreground      (#1C2024 ink) */
   --neutral-50:  #F4F6F9;
-  --neutral-100: #E8ECF1;
-  --neutral-200: #DDE2E9;
+  --neutral-100: #F4ECF0;
+  --neutral-200: #F0E6EC;
   --neutral-300: #C7CDD6;
   --neutral-400: #A4ADB9;
   --neutral-500: #717B88;
@@ -163,8 +163,8 @@
      --chart-1      : #A85475  (rose peak)
      --chart-2..5   : ink opacity ladder (monochrome)
   */
-  /* Cool 캔버스 (slate 오프화이트 — 흰 카드가 떠오르는 elevation) */
-  --background: #EEF1F5;
+  /* Soft Rose Tint 캔버스 (브랜드 로즈를 옅게 깐 따뜻한 화이트 — 흰 카드 elevation) */
+  --background: #FCF7F9;
   --foreground: #1C2024;
   /* 카드: 순백 */
   --card: #FFFFFF;
@@ -174,16 +174,16 @@
   /* 프라이머리: cool near-black */
   --primary: #1C2024;
   --primary-foreground: #F6F8FA;
-  --secondary: #E8ECF1;
+  --secondary: #F4ECF0;
   --secondary-foreground: #1C2024;
   /* 뮤트: cool slate 회색 */
-  --muted: #E8ECF1;
+  --muted: #F4ECF0;
   --muted-foreground: #717B88;
-  --accent: #E8ECF1;
+  --accent: #F4ECF0;
   --accent-foreground: #1C2024;
   --destructive: #E5484D;
-  --border: #DDE2E9;
-  --input: #DDE2E9;
+  --border: #F0E6EC;
+  --input: #F0E6EC;
   --ring: #A85475;
   /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1 (유지) */
   --brand: #A85475;
@@ -191,7 +191,7 @@
   --brand-muted: #F7E9EF;
   /* 서브: cool slate 중립 (cool 베이스 위 조용한 보조) */
   --sage: #8A929E;
-  --sage-muted: #E8ECF1;
+  --sage-muted: #F4ECF0;
   /* 차트: 로즈 피크 + cool 잉크 불투명도 사다리 */
   --chart-1: #A85475;
   --chart-2: rgba(28, 32, 36, 0.55);
@@ -203,9 +203,9 @@
   --sidebar-foreground: #5C636E;
   --sidebar-primary: #1C2024;
   --sidebar-primary-foreground: #F6F8FA;
-  --sidebar-accent: #E8ECF1;
+  --sidebar-accent: #F4ECF0;
   --sidebar-accent-foreground: #1C2024;
-  --sidebar-border: #DDE2E9;
+  --sidebar-border: #F0E6EC;
   --sidebar-ring: #A85475;
   /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
   --ai-grad-from: #E89BB6;
@@ -438,4 +438,10 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
   color: var(--muted-foreground);
   pointer-events: none;
   height: 0;
+}
+
+/* ── 전역 배경 도트 — 모든 어드민 페이지 풀블리드. 카드는 불투명이라 가독성 영향 없음 ── */
+.app-canvas {
+  background-image: radial-gradient(rgba(168, 84, 117, 0.09) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
 }

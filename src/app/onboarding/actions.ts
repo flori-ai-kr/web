@@ -6,6 +6,10 @@ import {
   getRegisterToken,
   setAuthTokens,
 } from '@/lib/api/auth-cookies'
+import { REFERRAL_SOURCES } from '@/lib/onboarding-options'
+
+// 참여경로 허용값 화이트리스트 — Server Action은 우회 호출이 가능하므로 임의/대형 입력을 웹에서 차단(방어 심층).
+const ALLOWED_REFERRAL_SOURCES = new Set<string>(REFERRAL_SOURCES)
 
 export interface RegistrationInput {
   /** 가게명 (필수) */
@@ -26,6 +30,8 @@ export interface RegistrationInput {
   interests?: string[]
   /** 가게 주력 분야 (선택, 다중) */
   specialties?: string[]
+  /** flori를 알게 된 경로 (선택, 다중) */
+  referralSources?: string[]
 }
 
 interface TokenResponse {
@@ -100,6 +106,9 @@ export async function completeRegistration(
 
   // 선택값은 비어 있으면 전송하지 않는다(건너뛰기 허용).
   const sigungu = input.regionSigungu?.trim()
+  const referralSources = (input.referralSources ?? [])
+    .filter((v): v is string => typeof v === 'string' && ALLOWED_REFERRAL_SOURCES.has(v))
+    .slice(0, 10)
   const body = {
     registerToken,
     storeName: name,
@@ -113,6 +122,7 @@ export async function completeRegistration(
     ...(input.specialties && input.specialties.length > 0
       ? { specialties: input.specialties }
       : {}),
+    ...(referralSources.length > 0 ? { referralSources } : {}),
   }
 
   const base = process.env.API_URL ?? 'http://localhost:8080'

@@ -180,7 +180,7 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {pushSubscription ? (
                     <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand/10">
                       <BellRing className="w-5 h-5 text-brand" />
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                       <Bell className="w-5 h-5 text-muted-foreground" />
                     </div>
                   )}
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {pushSubscription ? '알림 활성화됨' : '알림 비활성화'}
                     </p>
@@ -206,6 +206,7 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={pushSubscription ? handlePushUnsubscribe : handlePushSubscribe}
                   disabled={isPushToggling}
+                  className="ml-3 shrink-0"
                 >
                   {isPushToggling && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                   {pushSubscription ? '끄기' : '켜기'}

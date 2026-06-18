@@ -48,3 +48,14 @@ export const SPECIALTIES = [
   '구독·정기배송',
   '기업·단체',
 ] as const
+
+/** flori를 알게 된 경로 (선택 · 다중). */
+export const REFERRAL_SOURCES = [
+  '지인 추천',
+  '검색(네이버·구글)',
+  '인스타그램',
+  '스레드',
+  '유튜브',
+  '광고',
+  '기타',
+] as const
