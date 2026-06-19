@@ -241,6 +241,7 @@ export const navItemKeySchema = z.enum([
   'customers',
   'gallery',
   'community',
+  'insights',
 ]);
 
 export const bottomNavItemsSchema = z

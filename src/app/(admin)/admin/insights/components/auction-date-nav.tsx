@@ -56,7 +56,7 @@ export function AuctionDateNav({date, availableDates, onChange, meta}: AuctionDa
     availableDates.length > 0 ? (d: Date) => !dateSet.has(toIso(d)) : undefined;
 
   return (
-    <div className="mb-4 flex items-center justify-between gap-2">
+    <div className="mb-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -77,7 +77,7 @@ export function AuctionDateNav({date, availableDates, onChange, meta}: AuctionDa
                 className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground tabular-nums transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-                <span>{dayLabel(date)}</span>
+                <span className="whitespace-nowrap">{dayLabel(date)}</span>
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
@@ -114,7 +114,7 @@ export function AuctionDateNav({date, availableDates, onChange, meta}: AuctionDa
         </button>
       </div>
 
-      {meta && <span className="text-[12px] text-muted-foreground">{meta}</span>}
+      {meta && <span className="whitespace-nowrap text-[12px] text-muted-foreground">{meta}</span>}
     </div>
   );
 }

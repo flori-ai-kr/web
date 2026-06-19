@@ -1,6 +1,7 @@
 'use client';
 
 import {cn} from '@/lib/utils';
+import {PageHeader} from '@/components/layout/page-header';
 import {AuctionPanel} from './components/auction-panel';
 import {GrantsPanel} from './components/grants-panel';
 import {TrendsPanel} from './components/trends-panel';
@@ -45,8 +46,10 @@ export function InfoClient({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-1 sm:px-6 sm:py-2">
+      <PageHeader title="인사이트" description="경매 시세 · 지원사업 · 트렌드" />
+
       {/* 메인 언더라인 탭 (= statistics 4탭 패턴) */}
-      <div role="tablist" aria-label="정보 탭" className="flex gap-1 overflow-x-auto border-b border-border">
+      <div role="tablist" aria-label="인사이트 탭" className="flex gap-1 overflow-x-auto border-b border-border">
         {INFO_TABS.map((t) => (
           <button
             key={t.value}
