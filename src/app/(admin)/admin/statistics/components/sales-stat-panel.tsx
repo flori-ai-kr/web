@@ -7,15 +7,11 @@ import { StatAreaChart } from './stat-area-chart';
 import { StatDonut } from './stat-donut';
 import { StatSectionHeader } from './stat-section-header';
 import type { DeltaTone } from './stat-kpi-card';
+import { formatCurrency } from '@/lib/utils';
 
 // ─── Brand-derived donut palette ─────────────────────────────────────────────
 
 const DONUT_COLORS = ['#A85475', '#c98aa4', '#8A929E', '#bcc4cf', '#7a3d56'];
-
-/** 정확한 원화 표시 (객단가 등 낮은 금액용) */
-function formatWon(n: number): string {
-  return `₩${n.toLocaleString('ko-KR')}`;
-}
 
 // ─── Delta helpers ────────────────────────────────────────────────────────────
 
@@ -56,7 +52,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const kpiCards = [
     {
       label: '총 매출',
-      value: formatWon(kpi.totalAmount),
+      value: formatCurrency(kpi.totalAmount),
       delta: pctDeltaText(kpi.totalAmountDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalAmountDeltaPct),
       highlight: true,
@@ -70,14 +66,14 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
     },
     {
       label: '평균 객단가',
-      value: formatWon(kpi.avgOrderValue),
+      value: formatCurrency(kpi.avgOrderValue),
       delta: pctDeltaText(kpi.avgOrderValueDeltaPct),
       deltaTone: pctDeltaTone(kpi.avgOrderValueDeltaPct),
       highlight: false,
     },
     {
       label: '미수 잔액',
-      value: formatWon(kpi.unpaidBalance),
+      value: formatCurrency(kpi.unpaidBalance),
       sub: `${kpi.unpaidCount}건 미정산`,
       deltaTone: 'neutral' as DeltaTone,
       highlight: false,
@@ -91,7 +87,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const categoryItems = categoryDistribution.map((d) => ({
     label: d.label,
     value: d.amount,
-    valueText: formatWon(d.amount),
+    valueText: formatCurrency(d.amount),
   }));
 
   const paymentItems = paymentDistribution.map((d, i) => ({
@@ -103,7 +99,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const channelItems = channelDistribution.map((d) => ({
     label: d.label,
     value: d.amount,
-    valueText: formatWon(d.amount),
+    valueText: formatCurrency(d.amount),
   }));
 
   return (
@@ -129,7 +125,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
         <StatAreaChart
           data={chartData}
           type="area"
-          valueFormatter={formatWon}
+          valueFormatter={formatCurrency}
           height={160}
         />
       </div>
