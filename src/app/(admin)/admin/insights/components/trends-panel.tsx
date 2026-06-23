@@ -49,6 +49,13 @@ export function TrendsPanel({
       {/* 카테고리 필터 칩 */}
       <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
         <FilterPill
+          active={scrapedOnly}
+          onClick={() => onCategoryChange(category, !scrapedOnly)}
+          label="스크랩"
+          glyph="🔖"
+          count={scrappedCount}
+        />
+        <FilterPill
           active={!category && !scrapedOnly}
           onClick={() => onCategoryChange(null, false)}
           label="전체"
@@ -63,13 +70,6 @@ export function TrendsPanel({
             dotColor={cat.color}
           />
         ))}
-        <FilterPill
-          active={scrapedOnly}
-          onClick={() => onCategoryChange(category, !scrapedOnly)}
-          label="스크랩"
-          glyph="🔖"
-          count={scrappedCount}
-        />
       </div>
 
       {groupedByDate.length === 0 ? (

@@ -43,6 +43,13 @@ export function GrantsPanel({
       {/* 카테고리 필터 칩 */}
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
         <FilterPill
+          active={scrapedOnly}
+          onClick={() => onCategoryChange(category, !scrapedOnly)}
+          label="스크랩"
+          glyph="🔖"
+          count={scrappedCount}
+        />
+        <FilterPill
           active={!category && !scrapedOnly}
           onClick={() => onCategoryChange(null, false)}
           label="전체"
@@ -55,16 +62,9 @@ export function GrantsPanel({
             label={cat.label}
           />
         ))}
-        <FilterPill
-          active={scrapedOnly}
-          onClick={() => onCategoryChange(category, !scrapedOnly)}
-          label="스크랩"
-          glyph="🔖"
-          count={scrappedCount}
-        />
       </div>
 
-      <StatSectionHeader title="모집 중" meta="소진공 · 기업마당 · K-Startup" />
+      <StatSectionHeader title="모집 중" meta="출처: K-Startup" />
 
       {filtered.length === 0 ? (
         <EmptyState
