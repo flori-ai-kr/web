@@ -13,6 +13,7 @@ import {
     MessageCircle,
     MessagesSquare,
     MoreHorizontal,
+    PenLine,
     Receipt,
     Settings as SettingsIcon,
     ShieldCheck,
@@ -33,6 +34,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   customers: Users,
   gallery: ImageIcon,
   community: MessagesSquare,
+  marketing: PenLine,
 };
 
 const ALL_NAV_ITEMS: NavItemKey[] = [
@@ -44,6 +46,7 @@ const ALL_NAV_ITEMS: NavItemKey[] = [
   'customers',
   'gallery',
   'community',
+  'marketing',
 ];
 
 // 저장된 사용자 설정에 제거된 키(insights/follows)가 남아있어도 안전하게 거른다
