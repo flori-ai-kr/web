@@ -62,10 +62,19 @@ export function AuctionPanel({
       <AuctionFilterPills
         categories={categories}
         gubn={gubn}
-        onChange={setGubn}
+        onChange={(g) => {
+          // 구분 선택 시 스크랩 보기는 해제(스크랩은 항상 전체 기준)
+          setScrapedOnly(false);
+          setGubn(g);
+        }}
         scrapedOnly={scrapedOnly}
         scrappedCount={scrappedNames.size}
-        onScrapToggle={() => setScrapedOnly((v) => !v)}
+        onScrapToggle={() => {
+          // 스크랩 진입 시 화훼구분을 전체('')로 — 구분 무관 모든 스크랩 품목 노출
+          const next = !scrapedOnly;
+          setScrapedOnly(next);
+          if (next) setGubn('');
+        }}
       />
 
       {/* 날짜 직접 선택 */}

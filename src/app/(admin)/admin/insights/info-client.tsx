@@ -8,7 +8,7 @@ import {TrendsPanel} from './components/trends-panel';
 import {INFO_TABS, useInfoTabs, type InfoTab} from './hooks/use-info-tabs';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
 import type {GrantCategory, GrantProgram, GrantScrap} from '@/types/grants';
-import type {ScrapMap, TrendArticle, TrendCategory} from '@/types/insights';
+import type {ScrapMap, TrendArticle, TrendCategory, TrendScrap} from '@/types/insights';
 
 interface InfoClientProps {
   initialTab: InfoTab;
@@ -26,6 +26,7 @@ interface InfoClientProps {
   // 트렌드·뉴스
   trends: TrendArticle[];
   trendScrapMap: ScrapMap;
+  trendScraps: TrendScrap[];
 }
 
 export function InfoClient({
@@ -41,6 +42,7 @@ export function InfoClient({
   grantScraps,
   trends,
   trendScrapMap,
+  trendScraps,
 }: InfoClientProps) {
   const {tab, category, scrapedOnly, changeTab, changeFilter} = useInfoTabs({
     initialTab,
@@ -99,6 +101,7 @@ export function InfoClient({
           <TrendsPanel
             articles={trends}
             scrapMap={trendScrapMap}
+            scrappedArticles={trendScraps}
             category={category as TrendCategory | null}
             scrapedOnly={scrapedOnly}
             onCategoryChange={changeFilter}

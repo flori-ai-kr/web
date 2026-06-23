@@ -35,11 +35,11 @@ export function AuctionFilterPills({
         glyph="🔖"
         count={scrappedCount}
       />
-      <FilterPill active={gubn === ''} onClick={() => onChange('')} label="전체" />
+      <FilterPill active={gubn === '' && !scrapedOnly} onClick={() => onChange('')} label="전체" />
       {categories.map((c) => (
         <FilterPill
           key={c.code}
-          active={gubn === c.label}
+          active={gubn === c.label && !scrapedOnly}
           onClick={() => onChange(c.label)}
           label={c.label}
         />

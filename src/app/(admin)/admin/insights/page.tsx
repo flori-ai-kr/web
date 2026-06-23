@@ -2,9 +2,9 @@ import {requireAuth} from '@/lib/auth-guard';
 import {getAuctionCategories, getAuctionDates, getAuctionItemScraps, getAuctionSummary} from '@/lib/actions/auction';
 import {getGrants} from '@/lib/actions/grants';
 import {getTrendArticles} from '@/lib/actions/insights';
-import {getGrantScraps, getScrapMap} from '@/lib/actions/scraps';
+import {getGrantScraps, getScrapMap, getTrendScraps} from '@/lib/actions/scraps';
 import {GRANT_CATEGORIES, type GrantCategory, type GrantScrap} from '@/types/grants';
-import {TREND_CATEGORIES, type TrendCategory} from '@/types/insights';
+import {TREND_CATEGORIES, type TrendCategory, type TrendScrap} from '@/types/insights';
 import {AUCTION_CATEGORIES, AUCTION_DEFAULT_GUBN, AUCTION_SOURCE} from '@/types/auction';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
 import type {ScrapMap} from '@/types/insights';
@@ -76,6 +76,7 @@ export default async function InsightsPage({searchParams}: PageProps) {
 
   const trends = await safe(() => getTrendArticles({category: trendCategory ?? undefined}), []);
   const trendScrapMap = await safe<ScrapMap>(() => getScrapMap('trend'), {});
+  const trendScraps = await safe<TrendScrap[]>(() => getTrendScraps(), []);
 
   return (
     <InfoClient
@@ -91,6 +92,7 @@ export default async function InsightsPage({searchParams}: PageProps) {
       grantScraps={grantScraps}
       trends={trends}
       trendScrapMap={trendScrapMap}
+      trendScraps={trendScraps}
     />
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import {Newspaper} from 'lucide-react';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -10,7 +10,13 @@ import {FilterPill} from './filter-pill';
 import {TrendListItem} from './trend-list-item';
 import {TrendDetailDialog} from './trend-detail-dialog';
 import {useTrendsList} from '../hooks/use-trends-list';
-import {TREND_CATEGORIES, type ScrapMap, type TrendArticle, type TrendCategory} from '@/types/insights';
+import {
+  TREND_CATEGORIES,
+  type ScrapMap,
+  type TrendArticle,
+  type TrendCategory,
+  type TrendScrap,
+} from '@/types/insights';
 
 // 트렌드·뉴스 탭에 노출하는 카테고리(요청: 전체/꽃트렌드/시즌영감/업계뉴스).
 const VISIBLE_TREND_CATEGORIES = TREND_CATEGORIES.filter((c) => c.value !== 'business');
@@ -18,6 +24,8 @@ const VISIBLE_TREND_CATEGORIES = TREND_CATEGORIES.filter((c) => c.value !== 'bus
 interface TrendsPanelProps {
   articles: TrendArticle[];
   scrapMap: ScrapMap;
+  /** 내가 스크랩한 트렌드(카테고리 무관 전체). 스크랩 보기·카운트의 단일 출처. */
+  scrappedArticles: TrendScrap[];
   category: TrendCategory | null;
   scrapedOnly: boolean;
   onCategoryChange: (cat: TrendCategory | null, scrapedOnly: boolean) => void;
@@ -26,6 +34,7 @@ interface TrendsPanelProps {
 export function TrendsPanel({
   articles,
   scrapMap,
+  scrappedArticles,
   category,
   scrapedOnly,
   onCategoryChange,
@@ -39,10 +48,8 @@ export function TrendsPanel({
     scrapedOnly,
   });
 
-  const scrappedCount = useMemo(
-    () => articles.filter((a) => scrapMap[a.id]).length,
-    [articles, scrapMap],
-  );
+  // 스크랩 카운트·목록은 카테고리/페이지와 무관하게 항상 '내 전체 스크랩' 기준.
+  const scrappedCount = scrappedArticles.length;
 
   return (
     <div>
@@ -72,7 +79,7 @@ export function TrendsPanel({
         ))}
       </div>
 
-      {groupedByDate.length === 0 ? (
+      {(scrapedOnly ? scrappedArticles.length === 0 : groupedByDate.length === 0) ? (
         <EmptyState
           icon={Newspaper}
           title={scrapedOnly ? '스크랩한 트렌드가 없어요' : '수집된 트렌드가 없어요'}
@@ -80,6 +87,17 @@ export function TrendsPanel({
             scrapedOnly ? '관심 있는 기사를 스크랩해보세요' : '다음 수집 시각에 자동으로 도착합니다'
           }
         />
+      ) : scrapedOnly ? (
+        <div className="space-y-3">
+          {scrappedArticles.map(({article}) => (
+            <TrendListItem
+              key={article.id}
+              article={article}
+              scraped
+              onClick={() => setSelected(article)}
+            />
+          ))}
+        </div>
       ) : (
         <div className="space-y-7">
           {groupedByDate.map(([date, items]) => (
