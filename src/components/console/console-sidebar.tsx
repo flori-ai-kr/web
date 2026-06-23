@@ -7,6 +7,12 @@ import {
   FileCheck,
   Users,
   CreditCard,
+  ShieldAlert,
+  Megaphone,
+  ScrollText,
+  BellRing,
+  Inbox,
+  History,
   // [AI 기능 비활성화] Activity,
   ArrowLeft,
 } from 'lucide-react';
@@ -33,8 +39,29 @@ const GROUPS: NavGroup[] = [
       { href: '/console/subscriptions', label: '구독 현황', icon: CreditCard },
     ],
   },
+  {
+    title: '커뮤니티',
+    items: [{ href: '/console/moderation', label: '모더레이션', icon: ShieldAlert }],
+  },
+  {
+    title: '알림',
+    items: [
+      { href: '/console/broadcasts', label: '브로드캐스트', icon: BellRing },
+      { href: '/console/notification-logs', label: '발송 로그', icon: ScrollText },
+    ],
+  },
+  {
+    title: '콘텐츠',
+    items: [
+      { href: '/console/announcements', label: '공지 배너', icon: Megaphone },
+      { href: '/console/inquiries', label: '문의 인박스', icon: Inbox },
+    ],
+  },
+  {
+    title: '시스템',
+    items: [{ href: '/console/audit-logs', label: '감사 로그', icon: History }],
+  },
   // [AI 기능 비활성화] AI 헬스 네비 — 출시 시 제거
-  // { title: '시스템', items: [{ href: '/console/health', label: 'AI 헬스', icon: Activity }] },
 ];
 
 function isActive(pathname: string, href: string): boolean {
