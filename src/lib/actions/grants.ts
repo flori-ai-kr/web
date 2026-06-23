@@ -10,6 +10,7 @@ import {type KotlinGrantProgram, mapGrantProgram} from '@/lib/api/mappers/grants
 
 async function _getGrants(options: {
   category?: GrantCategory;
+  keyword?: string;
   limit?: number;
   offset?: number;
 } = {}): Promise<GrantProgram[]> {
@@ -17,6 +18,7 @@ async function _getGrants(options: {
 
   const params = new URLSearchParams();
   if (options.category) params.set('category', options.category);
+  if (options.keyword) params.set('keyword', options.keyword);
   params.set('limit', String(options.limit ?? 50));
   params.set('offset', String(options.offset ?? 0));
 
@@ -29,11 +31,11 @@ async function _getGrants(options: {
 export const getGrants = withErrorLogging('getGrants', _getGrants);
 
 /**
- * 지원사업 탭 무한스크롤 추가 로드.
+ * 지원사업 탭 무한스크롤 추가 로드 + 디바운스 서버 검색(keyword).
  */
 async function _loadMoreGrants(
   offset: number,
-  options: { category?: GrantCategory; limit?: number } = {},
+  options: { category?: GrantCategory; keyword?: string; limit?: number } = {},
 ): Promise<GrantProgram[]> {
   return _getGrants({ ...options, offset });
 }

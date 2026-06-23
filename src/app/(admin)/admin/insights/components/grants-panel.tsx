@@ -1,9 +1,10 @@
 'use client';
 
 import {useMemo} from 'react';
-import {Landmark} from 'lucide-react';
+import {Landmark, Search} from 'lucide-react';
 import {EmptyState} from '@/components/layout/empty-state';
 import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
 import {FilterPill} from './filter-pill';
 import {GrantCard} from './grant-card';
 import {StatSectionHeader} from '@/app/(admin)/admin/statistics/components/stat-section-header';
@@ -26,7 +27,7 @@ export function GrantsPanel({
   scrapedOnly,
   onCategoryChange,
 }: GrantsPanelProps) {
-  const {filtered, hasMore, isLoadingMore, loadMore} = useGrantsList({
+  const {filtered, hasMore, isLoadingMore, loadMore, searchQuery, setSearchQuery} = useGrantsList({
     initialPrograms: programs,
     category,
     scrapMap,
@@ -64,14 +65,41 @@ export function GrantsPanel({
         ))}
       </div>
 
+      {/* 제목·요약·기관 서버 검색 (디바운스). 스크랩 보기에서는 숨김. */}
+      {!scrapedOnly && (
+        <div className="relative mb-4">
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="지원사업 검색 (제목·기관)"
+            className="pl-9"
+            aria-label="지원사업 검색"
+          />
+        </div>
+      )}
+
       <StatSectionHeader title="모집 중" meta="출처: K-Startup" />
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon={Landmark}
-          title={scrapedOnly ? '스크랩한 지원사업이 없어요' : '모집 중인 지원사업이 없어요'}
+          icon={searchQuery ? Search : Landmark}
+          title={
+            searchQuery
+              ? '검색 결과가 없어요'
+              : scrapedOnly
+                ? '스크랩한 지원사업이 없어요'
+                : '모집 중인 지원사업이 없어요'
+          }
           description={
-            scrapedOnly ? '관심 있는 지원사업을 스크랩해보세요' : '새 공고가 올라오면 여기에 도착합니다'
+            searchQuery
+              ? '다른 검색어로 시도해 보세요'
+              : scrapedOnly
+                ? '관심 있는 지원사업을 스크랩해보세요'
+                : '새 공고가 올라오면 여기에 도착합니다'
           }
         />
       ) : (
