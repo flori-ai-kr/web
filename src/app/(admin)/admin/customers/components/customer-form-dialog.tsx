@@ -157,10 +157,10 @@ export function CustomerFormDialog({ open, onOpenChange, customer, grades, onSuc
             )}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>등급</Label>
               <Select value={gradeValue} onValueChange={setGradeValue}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,10 +171,10 @@ export function CustomerFormDialog({ open, onOpenChange, customer, grades, onSuc
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>성별</Label>
               <Select name="gender" defaultValue={customer?.gender || 'none'}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

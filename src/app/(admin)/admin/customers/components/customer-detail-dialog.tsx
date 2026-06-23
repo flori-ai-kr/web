@@ -23,6 +23,7 @@ import {formatCurrency} from '@/lib/utils';
 import {revertCustomerGradeAuto} from '@/lib/actions/customers';
 import type {Customer, Sale} from '@/types/database';
 import {GenderBadge} from './customer-card';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 
 interface CustomerDetailDialogProps {
   customer: Customer | null;
@@ -52,6 +53,8 @@ export function CustomerDetailDialog({
   const router = useRouter();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isReverting, setIsReverting] = useState(false);
+  // 연결사진 썸네일 클릭 → 라이트박스로 확대(사진첩 이동 X). null이면 닫힘.
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const handleRevertGrade = useCallback(async () => {
     if (!customer || isReverting) return;
@@ -160,16 +163,9 @@ export function CustomerDetailDialog({
                       <button
                         key={`${thumb.card_id}-${i}`}
                         type="button"
-                        onClick={() => {
-                          onClose();
-                          router.push(
-                            thumb.card_id
-                              ? `/admin/gallery?customer=${customer.id}&card=${thumb.card_id}`
-                              : `/admin/gallery?customer=${customer.id}`,
-                          );
-                        }}
-                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card cursor-pointer hover:opacity-80 hover:border-brand/50 transition-opacity"
-                        aria-label="사진첩에서 이 카드 열기"
+                        onClick={() => setLightboxIndex(i)}
+                        className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card cursor-zoom-in hover:opacity-80 hover:border-brand/50 transition-opacity"
+                        aria-label={`연결 사진 ${i + 1} 확대 보기`}
                       >
                         <Image
                           src={thumb.url}
@@ -177,7 +173,6 @@ export function CustomerDetailDialog({
                           fill
                           sizes="64px"
                           className="object-cover"
-                          unoptimized
                         />
                         {isLast && overflow > 0 && (
                           <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-sm font-semibold text-white">
@@ -313,6 +308,15 @@ export function CustomerDetailDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* 연결사진 썸네일 클릭 → 바로 라이트박스 확대(사진첩 이동 X). */}
+      <ImageLightbox
+        images={(customer?.photo_thumbnails ?? []).map((t) => t.url)}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+        caption={customer ? `${customer.name} 연결 사진` : ''}
+      />
     </Dialog>
   );
 }

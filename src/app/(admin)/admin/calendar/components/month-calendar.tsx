@@ -148,7 +148,9 @@ export function MonthCalendar({
                     )}>
                       {format(day, 'd')}
                     </span>
-                    {/* Event bars (lane-based positioning) — 그대로 유지 */}
+                    {/* 일정 막대 — lane 기반 스패닝(다일 일정은 1줄로 죽 이어지고, 겹치면 아래 lane으로).
+                        제목은 시작일에만(truncate — 옆 칸으로 삐져나가지 않음), 이어지는 날은 nbsp로 막대만 유지.
+                        ※ #25 원형 복원 + overflow-visible(삐져나옴) 제거 */}
                     {daySchedules.length > 0 && (() => {
                       const maxLane = Math.max(...daySchedules.map(e => scheduleLaneMap.get(e.id) ?? 0));
                       const lanes: (Schedule | null)[] = Array(maxLane + 1).fill(null);
@@ -160,7 +162,7 @@ export function MonthCalendar({
                         <div className="flex flex-col gap-px mb-0.5">
                           {lanes.map((s, lane) => {
                             if (!s) {
-                              return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{' '}</div>;
+                              return <div key={`spacer-${lane}`} className="text-[10px] leading-tight py-px -mx-1 invisible" aria-hidden="true">{' '}</div>;
                             }
                             const isStart = s.start_date === dateKey;
                             const isEnd = s.end_date === dateKey;
@@ -168,17 +170,14 @@ export function MonthCalendar({
                             return (
                               <div
                                 key={s.id}
-                                className={cn(
-                                  'text-[10px] leading-tight px-1 py-px font-medium -mx-1',
-                                  isStart && !isSingle ? 'whitespace-nowrap overflow-visible relative z-10' : 'truncate',
-                                )}
+                                className="text-[10px] leading-tight px-1 py-px font-medium -mx-1 truncate"
                                 style={{
                                   backgroundColor: `${s.color}30`,
                                   color: s.color,
                                   borderRadius: isSingle ? '3px' : isStart ? '3px 0 0 3px' : isEnd ? '0 3px 3px 0' : '0',
                                 }}
                               >
-                                {isStart ? s.title : ' '}
+                                {isStart ? s.title : ' '}
                               </div>
                             );
                           })}

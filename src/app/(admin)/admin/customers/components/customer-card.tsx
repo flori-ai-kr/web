@@ -1,12 +1,14 @@
 'use client';
 
 import {useRouter} from 'next/navigation';
+import {useState} from 'react';
 import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
 import {FileText, Lock, Pencil, Trash2} from 'lucide-react';
 import {format} from 'date-fns';
 import {formatCurrency} from '@/lib/utils';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 import type {Customer} from '@/types/database';
 
 export const genderLabels: Record<string, string> = { male: '남', female: '여' };
@@ -35,6 +37,8 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
   const thumbnails = customer.photo_thumbnails?.slice(0, 6) ?? [];
   const photoCount = customer.photo_count ?? 0;
   const overflow = photoCount - thumbnails.length;
+  // 썸네일 클릭 시 라이트박스로 확대(사진첩 이동 X). null이면 닫힘.
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const goToGallery = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -42,6 +46,7 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
   };
 
   return (
+    <>
     <Card
       role="button"
       tabIndex={0}
@@ -114,34 +119,43 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
           </div>
         )}
 
-        {/* Connected photos */}
+        {/* Connected photos — '사진첩 →'만 사진첩 이동(+고객 필터), 썸네일 클릭은 라이트박스 확대.
+            전파 차단은 그 둘(버튼)에만 — 섹션 빈 영역/라벨 클릭은 카드로 버블링되어 상세가 열린다. */}
         {photoCount > 0 ? (
-          <button
-            type="button"
-            onClick={goToGallery}
-            className="mt-3 pt-3 border-t border-border w-full text-left"
-            aria-label={`${customer.name} 연결 사진 ${photoCount}장 — 사진첩에서 보기`}
-          >
+          <div className="mt-3 pt-3 border-t border-border">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] text-muted-foreground">연결 사진 {photoCount}</span>
-              <span className="text-xs text-brand">사진첩 →</span>
+              <button
+                type="button"
+                onClick={goToGallery}
+                className="text-xs text-brand hover:underline"
+                aria-label={`${customer.name} 사진첩에서 보기`}
+              >
+                사진첩 →
+              </button>
             </div>
             <div className="grid grid-cols-6 gap-1">
               {thumbnails.map((thumb, i) => {
                 const isLast = i === thumbnails.length - 1;
                 return (
-                  <div key={`${thumb.card_id}-${i}`} className="aspect-square rounded-md overflow-hidden bg-muted relative">
-                    <Image src={thumb.url} alt="" fill sizes="48px" className="object-cover" unoptimized />
+                  <button
+                    key={`${thumb.card_id}-${i}`}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                    className="aspect-square rounded-md overflow-hidden bg-muted relative cursor-zoom-in"
+                    aria-label={`연결 사진 ${i + 1} 확대 보기`}
+                  >
+                    <Image src={thumb.url} alt="" fill sizes="48px" className="object-cover" />
                     {isLast && overflow > 0 && (
                       <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
                         +{overflow}
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </button>
+          </div>
         ) : (
           <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
             연결된 사진 없음
@@ -149,5 +163,15 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
         )}
       </CardContent>
     </Card>
+
+    {/* 카드 밖에 렌더 — 카드 클릭(onSelect)과 완전히 분리. 썸네일 클릭 시 라이트박스만 열린다. */}
+    <ImageLightbox
+      images={thumbnails.map((t) => t.url)}
+      index={lightboxIndex}
+      onClose={() => setLightboxIndex(null)}
+      onNavigate={setLightboxIndex}
+      caption={`${customer.name} 연결 사진`}
+    />
+    </>
   );
 }

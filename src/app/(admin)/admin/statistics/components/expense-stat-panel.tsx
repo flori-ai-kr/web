@@ -6,7 +6,7 @@ import { StatAreaChart } from './stat-area-chart';
 import { StatDonut } from './stat-donut';
 import { StatSectionHeader } from './stat-section-header';
 import type { DeltaTone } from './stat-kpi-card';
-import { formatManwon } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 // ─── Brand-derived donut palette ─────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
   const kpiCards = [
     {
       label: '총 지출',
-      value: formatManwon(kpi.totalAmount),
+      value: formatCurrency(kpi.totalAmount),
       delta: pctDeltaText(kpi.totalAmountDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalAmountDeltaPct),
       highlight: true,
@@ -69,7 +69,7 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
     },
     {
       label: '순이익',
-      value: formatManwon(kpi.netProfit),
+      value: formatCurrency(kpi.netProfit),
       delta: pctDeltaText(kpi.netProfitDeltaPct),
       deltaTone: pctDeltaTone(kpi.netProfitDeltaPct),
       highlight: false,
@@ -133,7 +133,7 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
           data={expenseChartData}
           type="area"
           color="var(--sage)"
-          valueFormatter={formatManwon}
+          valueFormatter={formatCurrency}
           height={140}
         />
         <div className="mt-3 pt-3 border-t border-border">
@@ -141,7 +141,7 @@ export function ExpenseStatPanel({ data }: ExpenseStatPanelProps) {
             data={netProfitChartData}
             type="area"
             color="var(--brand)"
-            valueFormatter={formatManwon}
+            valueFormatter={formatCurrency}
             height={120}
           />
         </div>

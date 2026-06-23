@@ -6,11 +6,12 @@ import {useRouter} from 'next/navigation';
 import {toast} from 'sonner';
 
 import {deleteExpense} from '@/lib/actions/expenses';
-import {deleteExpenseInstanceOnly, deleteRecurringFromInstance} from '@/lib/actions/recurring-expenses';
+import {deleteExpenseInstanceOnly} from '@/lib/actions/recurring-expenses';
 import type {Expense} from '@/types/database';
 
 /**
- * 지출 삭제 확인 + 낙관적 목록 제거(고정비 '이것만/이후 모두' 포함). expenses-client에서 이동.
+ * 지출 삭제 확인 + 낙관적 목록 제거.
+ * 고정비 자동생성 건도 일반 지출과 동일하게 그 건만 삭제(skip 마커로 재생성 방지). 템플릿 종료는 고정비 관리 모달에서.
  */
 export function useExpenseDelete({
   allExpenses,
@@ -35,29 +36,21 @@ export function useExpenseDelete({
     setDeleteTarget(expense);
   };
 
-  const confirmDelete = (scope?: 'instance' | 'future') => {
+  const confirmDelete = () => {
     if (!deleteTarget) return;
     const target = deleteTarget;
     setDeleteTarget(null);
     onCloseDetail();
     startDeleteTransition(async () => {
       removeOptimisticExpense(target.id);
-      if (target.recurring_id && scope === 'future') {
-        allExpenses
-          .filter((e) => e.recurring_id === target.recurring_id && e.date > target.date)
-          .forEach((e) => removeOptimisticExpense(e.id));
-      }
       try {
-        if (target.recurring_id && scope === 'instance') {
+        // 고정비 자동생성 건은 그 건만 삭제(scope=this — skip 마커로 재생성 방지). 그 외 일반 삭제.
+        if (target.recurring_id) {
           await deleteExpenseInstanceOnly(target.id);
-          toast.success('이 항목만 삭제되었습니다');
-        } else if (target.recurring_id && scope === 'future') {
-          await deleteRecurringFromInstance(target.id);
-          toast.success('이후 모든 반복이 종료되었습니다');
         } else {
           await deleteExpense(target.id);
-          toast.success('지출이 삭제되었습니다');
         }
+        toast.success('지출이 삭제되었습니다');
         setAllExpenses((prev) => prev.filter((e) => e.id !== target.id));
         router.refresh();
       } catch (error) {

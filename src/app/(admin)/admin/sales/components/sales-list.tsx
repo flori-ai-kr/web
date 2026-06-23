@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import Image from 'next/image';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
@@ -8,6 +8,7 @@ import {CreditCard, FileText, ImagePlus, Loader2, Phone, Search, ShoppingBag, Tr
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 import type {Sale} from '@/types/database';
 
 interface SalesListProps {
@@ -41,6 +42,8 @@ export function SalesList({
   onOpenForm,
 }: SalesListProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // 매출 썸네일 클릭 → 사진 라이트박스(확대). null이면 닫힘.
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
 
   useEffect(() => {
     if (!hasMore || isLoadingMore) return;
@@ -133,9 +136,9 @@ export function SalesList({
                   {hasPhotos ? (
                     <button
                       type="button"
-                      onClick={() => onOpenPhoto(sale)}
-                      className="relative shrink-0 self-start active:scale-95 transition-transform"
-                      aria-label="사진 수정"
+                      onClick={() => setLightbox({ photos: sale.photos!, index: 0 })}
+                      className="relative shrink-0 self-start active:scale-95 transition-transform cursor-zoom-in"
+                      aria-label="사진 확대 보기"
                     >
                       <div className="relative w-[84px] h-[84px] rounded-lg overflow-hidden bg-muted">
                         <Image
@@ -244,6 +247,15 @@ export function SalesList({
           )}
         </div>
       )}
+
+      {/* 썸네일 클릭 시 사진 확대 라이트박스 */}
+      <ImageLightbox
+        images={lightbox?.photos ?? []}
+        index={lightbox ? lightbox.index : null}
+        onClose={() => setLightbox(null)}
+        onNavigate={(next) => setLightbox((prev) => (prev ? { ...prev, index: next } : prev))}
+        caption="매출 사진"
+      />
     </div>
   );
 }

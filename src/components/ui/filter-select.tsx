@@ -5,6 +5,7 @@ import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Check, ChevronDown} from 'lucide-react';
 
 // 매출 페이지(SalesFilters)의 FilterDropdown 과 동일한 트리거+팝오버 스타일의 단일 선택 드롭다운.
+// 고객·사진첩 등 여러 라우트에서 공용 사용.
 export function FilterSelect({
   label,
   value,
@@ -37,7 +38,7 @@ export function FilterSelect({
           <ChevronDown className="w-3 h-3 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-44 p-1">
+      <PopoverContent align="start" className="w-44 p-1 max-h-72 overflow-y-auto">
         {options.map(opt => (
           <button
             key={opt.value}

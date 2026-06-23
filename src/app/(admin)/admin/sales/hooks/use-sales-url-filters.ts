@@ -77,6 +77,10 @@ export function useSalesUrlFilters({
     router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
   };
 
+  const handleMonthSelect = (year: number, month: number) => {
+    router.push(buildUrl({ year: year.toString(), month: month.toString(), day: 'all' }));
+  };
+
   const handleDateRangeApply = (startDate: string, endDate: string) => {
     const params = new URLSearchParams();
     params.set('startDate', startDate);
@@ -110,6 +114,7 @@ export function useSalesUrlFilters({
     channelFilter,
     handleTodayOnly,
     handleMonthNav,
+    handleMonthSelect,
     handleDateRangeApply,
     handleCategoryChange,
     handlePaymentChange,

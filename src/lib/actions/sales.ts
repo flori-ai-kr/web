@@ -76,8 +76,13 @@ async function _getSales(month?: string, offset: number = 0, limit: number = SAL
 
 export const getSales = withErrorLogging('getSales', _getSales);
 
-async function _loadMoreSales(month: string | null, offset: number, filters?: SalesFilters) {
-  return _getSales(month ?? undefined, offset, SALES_PAGE_SIZE, filters);
+async function _loadMoreSales(
+  month: string | null,
+  offset: number,
+  filters?: SalesFilters,
+  dateRange?: { startDate: string; endDate: string },
+) {
+  return _getSales(month ?? undefined, offset, SALES_PAGE_SIZE, filters, dateRange);
 }
 
 export const loadMoreSales = withErrorLogging('loadMoreSales', _loadMoreSales);
