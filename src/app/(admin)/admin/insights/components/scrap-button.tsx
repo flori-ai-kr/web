@@ -111,7 +111,7 @@ export function ScrapButton({
         'inline-flex items-center justify-center rounded-full transition-colors',
         padClass,
         optimistic
-          ? 'bg-brand/10 text-brand hover:bg-brand/20'
+          ? 'text-brand hover:bg-muted'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
