@@ -6,12 +6,12 @@ import {useRouter} from 'next/navigation';
 import {toast} from 'sonner';
 
 import {createExpense, getExpenseSuggestions, updateExpense} from '@/lib/actions/expenses';
-import {updateExpenseInstanceOnly, updateRecurringFromInstance} from '@/lib/actions/recurring-expenses';
 import type {ExpensePaymentMethod} from '@/lib/actions/expense-settings';
 import type {Expense} from '@/types/database';
 
 /**
- * 지출 등록/수정 폼 상태 + 제출 로직 + 고정비 '이것만/이후 모두' 분기. expenses-client에서 이동.
+ * 지출 등록/수정 폼 상태 + 제출 로직.
+ * 고정비 자동생성 건도 일반 지출과 동일하게 수정한다(이것만/이후 모두 분기 없음 — 템플릿 변경은 고정비 관리 모달에서).
  */
 export function useExpenseForm({
   payments,
@@ -29,9 +29,6 @@ export function useExpenseForm({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(payments[0]?.id ?? '');
   const [editPaymentMethod, setEditPaymentMethod] = useState<string>('');
 
-  // 자동생성된(고정비) 지출 수정 시 "이것만 / 이후 모두" 분기
-  const [pendingScopeEdit, setPendingScopeEdit] = useState<null | { expenseId: string; fields: Parameters<typeof updateExpenseInstanceOnly>[1] }>(null);
-  const [scopeBusy, startScopeTransition] = useTransition();
   const [expenseSuggestions, setExpenseSuggestions] = useState<{ itemNames: string[]; vendors: string[]; memos: string[] }>({ itemNames: [], vendors: [], memos: [] });
   const [createItemName, setCreateItemName] = useState('');
   const [createVendor, setCreateVendor] = useState('');
@@ -90,25 +87,7 @@ export function useExpenseForm({
     if (!editingExpense) return;
 
     const formData = new FormData(e.currentTarget);
-    const isRecurringInstance = !!editingExpense.recurring_id;
-
-    if (isRecurringInstance) {
-      const unitPrice = parseInt(formData.get('unit_price') as string) || 0;
-      const quantity = parseInt(formData.get('quantity') as string) || 1;
-      const fields = {
-        date: String(formData.get('date') ?? editingExpense.date),
-        item_name: String(formData.get('item_name') ?? ''),
-        category_id: String(formData.get('category_id') ?? ''),
-        unit_price: unitPrice,
-        quantity,
-        payment_method_id: String(formData.get('payment_method_id') ?? ''),
-        vendor: (formData.get('vendor') as string) || null,
-        note: (formData.get('memo') as string) || null,
-      };
-      setPendingScopeEdit({ expenseId: editingExpense.id, fields });
-      return;
-    }
-
+    // 고정비 자동생성 건도 일반 지출과 동일하게 그 건만 수정.
     const target = editingExpense;
     startSubmitTransition(async () => {
       try {
@@ -120,28 +99,6 @@ export function useExpenseForm({
       } catch (error) {
         console.error('Failed to update expense:', error);
         toast.error('지출 수정에 실패했습니다');
-      }
-    });
-  };
-
-  const handleScopeEditConfirm = (scope: 'instance' | 'future') => {
-    if (!pendingScopeEdit) return;
-    const pending = pendingScopeEdit;
-    startScopeTransition(async () => {
-      try {
-        if (scope === 'instance') {
-          await updateExpenseInstanceOnly(pending.expenseId, pending.fields);
-          toast.success('이 항목만 수정되었습니다');
-        } else {
-          await updateRecurringFromInstance(pending.expenseId, pending.fields);
-          toast.success('이후 모든 항목에 반영되었습니다');
-        }
-        setPendingScopeEdit(null);
-        setEditingExpense(null);
-        onCloseDetail();
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : '수정에 실패했습니다');
       }
     });
   };
@@ -167,9 +124,6 @@ export function useExpenseForm({
     setSelectedPaymentMethod,
     editPaymentMethod,
     setEditPaymentMethod,
-    pendingScopeEdit,
-    setPendingScopeEdit,
-    scopeBusy,
     expenseSuggestions,
     createItemName,
     setCreateItemName,
@@ -182,7 +136,6 @@ export function useExpenseForm({
     handleOpenForm,
     handleSubmit,
     handleUpdate,
-    handleScopeEditConfirm,
     handleEdit,
   };
 }

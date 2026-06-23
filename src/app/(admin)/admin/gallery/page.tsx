@@ -15,7 +15,7 @@ export default async function GalleryPage() {
     getCustomers(),
   ]);
 
-  const customerList = customers.map(c => ({ id: c.id, name: c.name }));
+  const customerList = customers.map(c => ({ id: c.id, name: c.name, phone: c.phone }));
 
   return (
     <GalleryClient

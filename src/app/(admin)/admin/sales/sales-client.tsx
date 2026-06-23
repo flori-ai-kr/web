@@ -37,6 +37,7 @@ interface Props {
   initialHasMore: boolean;
   initialSummary: SalesSummaryType;
   monthParam: string | null;
+  dateRange: { startDate: string; endDate: string } | null;
   currentYear: number;
   currentMonth: number;
   currentDay: number;
@@ -47,7 +48,7 @@ interface Props {
   initialSelectedSale?: Sale | null;
 }
 
-export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
+export function SalesClient({ initialSales, initialHasMore, initialSummary, monthParam: serverMonthParam, dateRange: serverDateRange, currentYear, currentMonth, currentDay, initialFilters, initialCategories, initialPayments, initialChannels, initialSelectedSale }: Props) {
   const router = useRouter();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -67,6 +68,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     channelFilter,
     handleTodayOnly,
     handleMonthNav,
+    handleMonthSelect,
     handleDateRangeApply,
     handleCategoryChange,
     handlePaymentChange,
@@ -96,7 +98,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     initialHasMore,
     loadPage: async (offset, search) => {
       const filters = search ? { ...initialFilters, search } : initialFilters;
-      const result = await loadMoreSales(serverMonthParam, offset, filters);
+      const result = await loadMoreSales(serverMonthParam, offset, filters, serverDateRange ?? undefined);
       return { items: result.sales, hasMore: result.hasMore };
     },
     searchQuery,
@@ -190,6 +192,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         currentYear={currentYear}
         currentMonth={currentMonth}
         currentDay={currentDay}
+        dateRange={serverDateRange}
         categoryFilter={categoryFilter}
         paymentFilter={paymentFilter}
         channelFilter={channelFilter}
@@ -198,6 +201,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
         payments={payments}
         channels={channels}
         onMonthNav={handleMonthNav}
+        onMonthSelect={handleMonthSelect}
         onTodayOnly={handleTodayOnly}
         onDateRangeApply={handleDateRangeApply}
         onCategoryChange={handleCategoryChange}

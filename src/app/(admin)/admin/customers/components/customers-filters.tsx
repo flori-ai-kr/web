@@ -3,7 +3,7 @@
 import {Input} from '@/components/ui/input';
 import {RotateCcw, Search} from 'lucide-react';
 import type {CustomerGradeConfig} from '@/types/database';
-import {FilterSelect} from './filter-select';
+import {FilterSelect} from '@/components/ui/filter-select';
 import type {CustomerFiltersController, GenderFilter, SortBy} from '../hooks/use-customer-filters';
 
 /**

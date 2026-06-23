@@ -38,6 +38,7 @@ interface Props {
   initialHasMore: boolean;
   initialSummary: ExpensesSummaryData;
   monthParam: string | null;
+  dateRange: { startDate: string; endDate: string } | null;
   currentYear: number;
   currentMonth: number;
   currentDay: number;
@@ -52,6 +53,7 @@ export function ExpensesClient({
   initialHasMore,
   initialSummary,
   monthParam: serverMonthParam,
+  dateRange: serverDateRange,
   currentYear,
   currentMonth,
   currentDay,
@@ -71,7 +73,7 @@ export function ExpensesClient({
   const [categories, setCategories] = useState<ExpenseCategory[]>(initialCategories);
   const [payments, setPayments] = useState<ExpensePaymentMethod[]>(initialPayments);
 
-  // 등록/수정 폼 상태 + 제출 + 고정비 '이것만/이후 모두' 분기
+  // 등록/수정 폼 상태 + 제출 (고정비 건도 일반 지출과 동일하게 단건 수정)
   const form = useExpenseForm({ payments, onCloseDetail: () => setSelectedExpense(null) });
 
   // 무한스크롤 + 디바운스 검색 (공용 훅 — 리셋·stale 가드 포함)
@@ -87,7 +89,7 @@ export function ExpensesClient({
     initialHasMore,
     loadPage: async (offset, search) => {
       const filters = search ? { ...initialFilters, search } : initialFilters;
-      const result = await loadMoreExpenses(serverMonthParam, offset, filters);
+      const result = await loadMoreExpenses(serverMonthParam, offset, filters, serverDateRange ?? undefined);
       return { items: result.expenses, hasMore: result.hasMore };
     },
     searchQuery,
@@ -98,7 +100,7 @@ export function ExpensesClient({
   // ?new=1 — 빠른 등록(대시보드)에서 진입 시 지출 등록 폼을 즉시 오픈
   useQuickCreate(form.handleOpenForm);
 
-  // 삭제 확인 + 낙관적 목록 제거 (고정비 '이것만/이후 모두' 포함)
+  // 삭제 확인 + 낙관적 목록 제거 (고정비 건도 단건 삭제 — skip 마커로 재생성 방지)
   const del = useExpenseDelete({ allExpenses, setAllExpenses, onCloseDetail: () => setSelectedExpense(null) });
 
   const summary = initialSummary;
@@ -175,6 +177,10 @@ export function ExpensesClient({
     router.push(buildUrl({ year: y.toString(), month: m.toString(), day: 'all' }));
   };
 
+  const handleMonthSelect = (year: number, month: number) => {
+    router.push(buildUrl({ year: year.toString(), month: month.toString(), day: 'all' }));
+  };
+
   const handleDateRangeApply = (startDate: string, endDate: string) => {
     const params = new URLSearchParams();
     params.set('startDate', startDate);
@@ -204,12 +210,14 @@ export function ExpensesClient({
         currentYear={currentYear}
         currentMonth={currentMonth}
         currentDay={currentDay}
+        dateRange={serverDateRange}
         categoryFilter={categoryFilter}
         paymentFilter={paymentFilter}
         searchQuery={searchQuery}
         categories={categories}
         payments={payments}
         onMonthNav={handleMonthNav}
+        onMonthSelect={handleMonthSelect}
         onDateRangeApply={handleDateRangeApply}
         onCategoryChange={handleCategoryChange}
         onPaymentChange={handlePaymentChange}
@@ -251,7 +259,7 @@ export function ExpensesClient({
         onDelete={del.handleDelete}
       />
 
-      {/* Edit Dialog (+ 고정비 이것만/이후 모두 분기) */}
+      {/* Edit Dialog */}
       <ExpenseEditDialog form={form} categories={categories} payments={payments} />
 
       {/* Delete Confirm Dialog */}

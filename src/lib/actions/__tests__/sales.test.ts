@@ -81,6 +81,15 @@ describe('loadMoreSales', () => {
     await loadMoreSales(null, 200)
     expect(mockApiFetch).toHaveBeenCalledWith('/sales?offset=200&limit=100')
   })
+
+  it('dateRange를 startDate/endDate로 전달(month 미사용) — 기간 모드 더보기가 타월로 새지 않도록', async () => {
+    mockApiFetch.mockResolvedValue({ sales: [], hasMore: false })
+    await loadMoreSales(null, 100, undefined, { startDate: '2026-02-01', endDate: '2026-02-28' })
+    const url = mockApiFetch.mock.calls[0][0] as string
+    expect(url).toContain('startDate=2026-02-01')
+    expect(url).toContain('endDate=2026-02-28')
+    expect(url).not.toContain('month=')
+  })
 })
 
 describe('getSalesSummary', () => {

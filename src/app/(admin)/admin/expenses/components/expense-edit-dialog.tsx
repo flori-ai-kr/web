@@ -15,7 +15,7 @@ import type {ExpenseCategory, ExpensePaymentMethod} from '@/lib/actions/expense-
 import type {useExpenseForm} from '../hooks/use-expense-form';
 
 /**
- * 지출 수정 모달 + 고정비 자동생성 건의 '이것만/이후 모두' 분기 모달.
+ * 지출 수정 모달. 고정비 자동생성 건도 일반 지출과 동일하게 단건 수정한다(분기 없음).
  */
 export function ExpenseEditDialog({
   form,
@@ -34,21 +34,15 @@ export function ExpenseEditDialog({
     setEditNoteValue,
     editPaymentMethod,
     setEditPaymentMethod,
-    pendingScopeEdit,
-    setPendingScopeEdit,
-    scopeBusy,
     expenseSuggestions,
     editItemName,
     setEditItemName,
     editVendor,
     setEditVendor,
     handleUpdate,
-    handleScopeEditConfirm,
   } = form;
 
   return (
-    <>
-      {/* Edit Dialog */}
       <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
@@ -156,31 +150,5 @@ export function ExpenseEditDialog({
           )}
         </DialogContent>
       </Dialog>
-
-      {/* 자동생성된 지출 수정 — 이것만 / 이후 모두 분기 */}
-      <Dialog open={!!pendingScopeEdit} onOpenChange={(open) => !open && setPendingScopeEdit(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>반복되는 지출입니다</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            고정비 자동생성으로 등록된 지출이에요. 어떻게 저장할까요?
-          </p>
-          <div className="flex flex-col gap-2">
-            <Button onClick={() => handleScopeEditConfirm('instance')} disabled={scopeBusy}>
-              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              이 항목만 저장
-            </Button>
-            <Button onClick={() => handleScopeEditConfirm('future')} disabled={scopeBusy}>
-              {scopeBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              이후 모두 저장 (고정비 템플릿 변경)
-            </Button>
-            <Button variant="outline" onClick={() => setPendingScopeEdit(null)} disabled={scopeBusy}>
-              취소
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }

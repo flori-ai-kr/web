@@ -7,7 +7,6 @@ import { StatAreaChart } from './stat-area-chart';
 import { StatDonut } from './stat-donut';
 import { StatSectionHeader } from './stat-section-header';
 import type { DeltaTone } from './stat-kpi-card';
-import { formatManwon } from '@/lib/utils';
 
 // ─── Brand-derived donut palette ─────────────────────────────────────────────
 
@@ -57,7 +56,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const kpiCards = [
     {
       label: '총 매출',
-      value: formatManwon(kpi.totalAmount),
+      value: formatWon(kpi.totalAmount),
       delta: pctDeltaText(kpi.totalAmountDeltaPct),
       deltaTone: pctDeltaTone(kpi.totalAmountDeltaPct),
       highlight: true,
@@ -78,7 +77,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
     },
     {
       label: '미수 잔액',
-      value: formatManwon(kpi.unpaidBalance),
+      value: formatWon(kpi.unpaidBalance),
       sub: `${kpi.unpaidCount}건 미정산`,
       deltaTone: 'neutral' as DeltaTone,
       highlight: false,
@@ -92,7 +91,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const categoryItems = categoryDistribution.map((d) => ({
     label: d.label,
     value: d.amount,
-    valueText: formatManwon(d.amount),
+    valueText: formatWon(d.amount),
   }));
 
   const paymentItems = paymentDistribution.map((d, i) => ({
@@ -104,7 +103,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
   const channelItems = channelDistribution.map((d) => ({
     label: d.label,
     value: d.amount,
-    valueText: formatManwon(d.amount),
+    valueText: formatWon(d.amount),
   }));
 
   return (
@@ -130,7 +129,7 @@ export function SalesStatPanel({ data }: SalesStatPanelProps) {
         <StatAreaChart
           data={chartData}
           type="area"
-          valueFormatter={formatManwon}
+          valueFormatter={formatWon}
           height={160}
         />
       </div>

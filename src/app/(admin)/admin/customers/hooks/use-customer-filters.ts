@@ -155,6 +155,20 @@ export function useCustomerFilters({
     setPeriodMonth(m);
   };
 
+  const handleMonthSelect = (year: number, month: number) => {
+    setCustomRange(null);
+    setPeriodYear(year);
+    setPeriodMonth(month);
+  };
+
+  // 기간 적용 시 월 필터는 이번 달로 리셋 — 기간을 해제하면 (이전 월이 아니라) 이번 달로 복귀.
+  const handleRangeApply = (range: CustomRange) => {
+    const d = new Date();
+    setPeriodYear(d.getFullYear());
+    setPeriodMonth(d.getMonth() + 1);
+    setCustomRange(range);
+  };
+
   const resetFilters = () => {
     setGradeFilter('all');
     setGenderFilter('all');
@@ -184,6 +198,8 @@ export function useCustomerFilters({
     headerStats,
     hasActiveFilters,
     handleMonthNav,
+    handleMonthSelect,
+    handleRangeApply,
     resetFilters,
   };
 }
