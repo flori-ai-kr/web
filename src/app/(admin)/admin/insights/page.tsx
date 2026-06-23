@@ -1,5 +1,5 @@
 import {requireAuth} from '@/lib/auth-guard';
-import {getAuctionCategories, getAuctionDates, getAuctionSummary} from '@/lib/actions/auction';
+import {getAuctionCategories, getAuctionDates, getAuctionItemScraps, getAuctionSummary} from '@/lib/actions/auction';
 import {getGrants} from '@/lib/actions/grants';
 import {getTrendArticles} from '@/lib/actions/insights';
 import {getScrapMap} from '@/lib/actions/scraps';
@@ -68,6 +68,7 @@ export default async function InsightsPage({searchParams}: PageProps) {
     {date: null, source: AUCTION_SOURCE, items: []},
   );
   const auctionDates = await safe<string[]>(() => getAuctionDates(AUCTION_DEFAULT_GUBN), []);
+  const auctionScraps = await safe<string[]>(() => getAuctionItemScraps(), []);
 
   const grants = await safe(() => getGrants({category: grantCategory ?? undefined}), []);
   const grantScrapMap = await safe<ScrapMap>(() => getScrapMap('grant'), {});
@@ -83,6 +84,7 @@ export default async function InsightsPage({searchParams}: PageProps) {
       auctionCategories={auctionCategories}
       auctionSummary={auctionSummary}
       auctionDates={auctionDates}
+      auctionScraps={auctionScraps}
       grants={grants}
       grantScrapMap={grantScrapMap}
       trends={trends}

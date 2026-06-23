@@ -1,7 +1,8 @@
 'use client';
 
 import {useId, useState} from 'react';
-import {ChevronRight} from 'lucide-react';
+import {Bookmark, ChevronRight} from 'lucide-react';
+import {cn} from '@/lib/utils';
 import {getAuctionPrices} from '@/lib/actions/auction';
 import type {AuctionPrice, AuctionSummaryItem} from '@/types/auction';
 import {
@@ -16,6 +17,9 @@ interface AuctionItemRowProps {
   /** 드릴다운 조회용 컨텍스트 (요약과 동기화). */
   date: string | null;
   gubn: string;
+  /** 이 품목 스크랩 여부 + 토글. */
+  scrapped: boolean;
+  onScrapToggle: () => void;
 }
 
 type DrillState =
@@ -28,7 +32,7 @@ type DrillState =
  * 품목 대표 한 줄 + 탭하면 품종·등급 펼침(드릴다운).
  * 드릴다운은 펼칠 때 한 번만 지연 로드하고 이후 캐시한다.
  */
-export function AuctionItemRow({item, date, gubn}: AuctionItemRowProps) {
+export function AuctionItemRow({item, date, gubn, scrapped, onScrapToggle}: AuctionItemRowProps) {
   const [open, setOpen] = useState(false);
   const [drill, setDrill] = useState<DrillState>({status: 'idle'});
   const panelId = useId();
@@ -58,34 +62,50 @@ export function AuctionItemRow({item, date, gubn}: AuctionItemRowProps) {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-      >
-        <ChevronRight
-          className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${open ? 'rotate-90' : ''}`}
-          aria-hidden
-        />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-foreground">{item.pum_name}</span>
-          <span className="block text-[12px] text-muted-foreground tabular-nums">
-            {item.variant_count}개 품종·등급
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
+          <ChevronRight
+            className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${open ? 'rotate-90' : ''}`}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">{item.pum_name}</span>
+            <span className="block text-[12px] text-muted-foreground tabular-nums">
+              {item.variant_count}개 품종·등급
+            </span>
           </span>
-        </span>
-        <span className="text-right">
-          <span className="block text-sm font-bold text-foreground tabular-nums">
-            {item.rep_avg.toLocaleString()}원
+          <span className="text-right">
+            <span className="block text-sm font-bold text-foreground tabular-nums">
+              {item.rep_avg.toLocaleString()}원
+            </span>
+            <span
+              className={`mt-0.5 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-bold tabular-nums ${TONE_BADGE[tone]}`}
+            >
+              {deltaLabel}
+            </span>
           </span>
-          <span
-            className={`mt-0.5 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-bold tabular-nums ${TONE_BADGE[tone]}`}
-          >
-            {deltaLabel}
-          </span>
-        </span>
-      </button>
+        </button>
+        <button
+          type="button"
+          onClick={onScrapToggle}
+          aria-label={scrapped ? '스크랩 해제' : '스크랩 추가'}
+          aria-pressed={scrapped}
+          className={cn(
+            'mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+            scrapped
+              ? 'text-brand hover:bg-muted'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          <Bookmark className={cn('h-4 w-4', scrapped && 'fill-current')} aria-hidden />
+        </button>
+      </div>
 
       {open && (
         <div id={panelId} className="divide-y divide-border bg-muted/30">

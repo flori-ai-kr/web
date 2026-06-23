@@ -88,3 +88,28 @@ async function _getAuctionPrices(options: {
 }
 
 export const getAuctionPrices = withErrorLogging('getAuctionPrices', _getAuctionPrices);
+
+// ─── 경매 품목 스크랩 (개인) ──────────────────────────────
+// 품목명(pum_name) 단위 북마크. '스크랩만' 필터·표시용. (낙관적 상태는 클라이언트 패널이 관리)
+
+async function _toggleAuctionItemScrap(pumName: string): Promise<boolean> {
+  await requireAuth();
+  const res = await apiFetch<{scraped: boolean}>('/insights/auction/scraps/toggle', {
+    method: 'POST',
+    body: JSON.stringify({pumName}),
+  });
+  return res.scraped;
+}
+
+export const toggleAuctionItemScrap = withErrorLogging(
+  'toggleAuctionItemScrap',
+  _toggleAuctionItemScrap,
+);
+
+async function _getAuctionItemScraps(): Promise<string[]> {
+  await requireAuth();
+  const res = await apiFetch<{pumNames: string[]}>('/insights/auction/scraps');
+  return res?.pumNames ?? [];
+}
+
+export const getAuctionItemScraps = withErrorLogging('getAuctionItemScraps', _getAuctionItemScraps);

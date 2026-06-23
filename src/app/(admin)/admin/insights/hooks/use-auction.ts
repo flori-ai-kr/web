@@ -1,13 +1,15 @@
 'use client';
 
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {getAuctionDates, getAuctionSummary} from '@/lib/actions/auction';
+import {toast} from 'sonner';
+import {getAuctionDates, getAuctionSummary, toggleAuctionItemScrap} from '@/lib/actions/auction';
 import type {AuctionSummary, AuctionSummaryItem} from '@/types/auction';
 import {AUCTION_DEFAULT_GUBN} from '@/types/auction';
 
 interface Options {
   initialSummary: AuctionSummary;
   initialDates: string[];
+  initialScraps: string[];
 }
 
 interface UseAuctionResult {
@@ -19,6 +21,8 @@ interface UseAuctionResult {
   dates: string[];
   loading: boolean;
   error: boolean;
+  scrappedNames: Set<string>;
+  toggleItemScrap: (pumName: string) => void;
 }
 
 /**
@@ -26,13 +30,14 @@ interface UseAuctionResult {
  * 최초 마운트는 SSR 데이터(initialSummary/initialDates)를 사용하고,
  * gubn 변경 시 보유 일자 목록도 갱신한다(절화/관엽 등에 따라 달라질 수 있음).
  */
-export function useAuction({initialSummary, initialDates}: Options): UseAuctionResult {
+export function useAuction({initialSummary, initialDates, initialScraps}: Options): UseAuctionResult {
   const [gubn, setGubnState] = useState(AUCTION_DEFAULT_GUBN);
   const [date, setDateState] = useState<string | null>(initialSummary.date);
   const [summary, setSummary] = useState<AuctionSummary>(initialSummary);
   const [dates, setDates] = useState<string[]>(initialDates);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [scrappedNames, setScrappedNames] = useState<Set<string>>(() => new Set(initialScraps));
 
   const reqRef = useRef(0);
   const didMount = useRef(false);
@@ -90,7 +95,33 @@ export function useAuction({initialSummary, initialDates}: Options): UseAuctionR
 
   const setDate = useCallback((d: string) => setDateState(d), []);
 
-  return {gubn, setGubn, date, setDate, summary, dates, loading, error};
+  // 품목 스크랩 낙관적 토글 — 서버 결과로 동기화, 실패 시 롤백.
+  const toggleItemScrap = useCallback((pumName: string) => {
+    setScrappedNames((prev) => toggled(prev, pumName));
+    void toggleAuctionItemScrap(pumName)
+      .then((scraped) => {
+        setScrappedNames((prev) => {
+          const next = new Set(prev);
+          if (scraped) next.add(pumName);
+          else next.delete(pumName);
+          return next;
+        });
+      })
+      .catch(() => {
+        setScrappedNames((prev) => toggled(prev, pumName));
+        toast.error('스크랩 처리에 실패했어요');
+      });
+  }, []);
+
+  return {gubn, setGubn, date, setDate, summary, dates, loading, error, scrappedNames, toggleItemScrap};
+}
+
+/** Set 에서 name 을 토글한 새 Set 을 반환(불변 갱신). */
+function toggled(set: Set<string>, name: string): Set<string> {
+  const next = new Set(set);
+  if (next.has(name)) next.delete(name);
+  else next.add(name);
+  return next;
 }
 
 /**

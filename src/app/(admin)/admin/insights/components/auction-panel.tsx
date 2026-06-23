@@ -34,27 +34,39 @@ interface AuctionPanelProps {
   categories: AuctionCategory[];
   initialSummary: AuctionSummary;
   initialDates: string[];
+  initialScraps: string[];
 }
 
-export function AuctionPanel({categories, initialSummary, initialDates}: AuctionPanelProps) {
-  const {gubn, setGubn, date, setDate, summary, dates, loading, error} = useAuction({
-    initialSummary,
-    initialDates,
-  });
+export function AuctionPanel({
+  categories,
+  initialSummary,
+  initialDates,
+  initialScraps,
+}: AuctionPanelProps) {
+  const {gubn, setGubn, date, setDate, summary, dates, loading, error, scrappedNames, toggleItemScrap} =
+    useAuction({initialSummary, initialDates, initialScraps});
   const [searchQuery, setSearchQuery] = useState('');
+  const [scrapedOnly, setScrapedOnly] = useState(false);
 
-  // KPI는 전체 요약 기준 그대로 유지하고, 검색은 보이는 목록만 좁힌다.
+  // KPI는 전체 요약 기준 그대로 유지하고, 검색·스크랩은 보이는 목록만 좁힌다.
   const {strongest, weakest} = pickAuctionExtremes(summary.items);
-  const visibleItems = useMemo(
-    () => filterAuctionItems(summary.items, searchQuery),
-    [summary.items, searchQuery],
-  );
+  const visibleItems = useMemo(() => {
+    const searched = filterAuctionItems(summary.items, searchQuery);
+    return scrapedOnly ? searched.filter((it) => scrappedNames.has(it.pum_name)) : searched;
+  }, [summary.items, searchQuery, scrapedOnly, scrappedNames]);
   const meta = summary.items.length > 0 ? `aT 양재 · ${summary.items.length}개 품목` : 'aT 양재';
 
   return (
     <div>
       {/* 화훼구분 칩 필터 (native select 폐기) */}
-      <AuctionFilterPills categories={categories} gubn={gubn} onChange={setGubn} />
+      <AuctionFilterPills
+        categories={categories}
+        gubn={gubn}
+        onChange={setGubn}
+        scrapedOnly={scrapedOnly}
+        scrappedCount={scrappedNames.size}
+        onScrapToggle={() => setScrapedOnly((v) => !v)}
+      />
 
       {/* 날짜 직접 선택 */}
       <AuctionDateNav date={date} availableDates={dates} onChange={setDate} meta={meta} />
@@ -103,11 +115,26 @@ export function AuctionPanel({categories, initialSummary, initialDates}: Auction
           description="다른 날짜나 화훼구분을 선택해 보세요."
         />
       ) : visibleItems.length === 0 ? (
-        <EmptyState icon={Search} title="검색 결과가 없어요" description="다른 품목명으로 검색해 보세요." />
+        scrapedOnly && !searchQuery ? (
+          <EmptyState
+            icon={Gavel}
+            title="스크랩한 품목이 없어요"
+            description="관심 품목의 북마크를 눌러 모아 보세요."
+          />
+        ) : (
+          <EmptyState icon={Search} title="검색 결과가 없어요" description="다른 품목명으로 검색해 보세요." />
+        )
       ) : (
         <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           {visibleItems.map((item) => (
-            <AuctionItemRow key={item.pum_name} item={item} date={date} gubn={gubn} />
+            <AuctionItemRow
+              key={item.pum_name}
+              item={item}
+              date={date}
+              gubn={gubn}
+              scrapped={scrappedNames.has(item.pum_name)}
+              onScrapToggle={() => toggleItemScrap(item.pum_name)}
+            />
           ))}
         </div>
       )}

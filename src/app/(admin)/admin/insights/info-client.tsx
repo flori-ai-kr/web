@@ -18,6 +18,7 @@ interface InfoClientProps {
   auctionCategories: AuctionCategory[];
   auctionSummary: AuctionSummary;
   auctionDates: string[];
+  auctionScraps: string[];
   // 지원사업
   grants: GrantProgram[];
   grantScrapMap: ScrapMap;
@@ -33,6 +34,7 @@ export function InfoClient({
   auctionCategories,
   auctionSummary,
   auctionDates,
+  auctionScraps,
   grants,
   grantScrapMap,
   trends,
@@ -78,6 +80,7 @@ export function InfoClient({
             categories={auctionCategories}
             initialSummary={auctionSummary}
             initialDates={auctionDates}
+            initialScraps={auctionScraps}
           />
         )}
         {tab === 'grant' && (
