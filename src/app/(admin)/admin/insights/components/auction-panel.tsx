@@ -9,6 +9,7 @@ import {StatSectionHeader} from '@/app/(admin)/admin/statistics/components/stat-
 import {AuctionFilterPills} from './auction-filter-pills';
 import {AuctionDateNav} from './auction-date-nav';
 import {AuctionItemRow} from './auction-item-row';
+import {SearchResetButton} from './search-reset-button';
 import {formatPriceDelta, priceDeltaTone, TONE_TEXT} from './price-row';
 import {filterAuctionItems, pickAuctionExtremes, useAuction} from '../hooks/use-auction';
 import type {AuctionCategory, AuctionSummary, AuctionSummaryItem} from '@/types/auction';
@@ -90,18 +91,21 @@ export function AuctionPanel({
 
       {/* 품목 검색 — 불러온 목록을 pum_name 으로 즉시 좁힘(클라이언트). KPI엔 영향 없음. */}
       {!loading && !error && summary.items.length > 0 && (
-        <div className="relative mb-3">
-          <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="품목 검색"
-            className="pl-9"
-            aria-label="품목 검색"
-          />
+        <div className="mb-3 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="품목 검색"
+              className="pl-9"
+              aria-label="품목 검색"
+            />
+          </div>
+          {searchQuery && <SearchResetButton onClick={() => setSearchQuery('')} />}
         </div>
       )}
 

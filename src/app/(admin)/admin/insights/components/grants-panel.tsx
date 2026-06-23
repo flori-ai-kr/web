@@ -6,6 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {FilterPill} from './filter-pill';
 import {GrantCard} from './grant-card';
+import {SearchResetButton} from './search-reset-button';
 import {StatSectionHeader} from '@/app/(admin)/admin/statistics/components/stat-section-header';
 import {useGrantsList} from '../hooks/use-grants-list';
 import {GRANT_CATEGORIES, type GrantCategory, type GrantProgram, type GrantScrap} from '@/types/grants';
@@ -68,18 +69,21 @@ export function GrantsPanel({
 
       {/* 제목·요약·기관 서버 검색 (디바운스). 스크랩 보기에서는 숨김. */}
       {!scrapedOnly && (
-        <div className="relative mb-4">
-          <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="지원사업 검색 (제목·기관)"
-            className="pl-9"
-            aria-label="지원사업 검색"
-          />
+        <div className="mb-4 flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="지원사업 검색 (제목·기관)"
+              className="pl-9"
+              aria-label="지원사업 검색"
+            />
+          </div>
+          {searchQuery && <SearchResetButton onClick={() => setSearchQuery('')} />}
         </div>
       )}
 
