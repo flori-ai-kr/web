@@ -55,6 +55,11 @@ export function AuctionPanel({
     const searched = filterAuctionItems(summary.items, searchQuery);
     return scrapedOnly ? searched.filter((it) => scrappedNames.has(it.pum_name)) : searched;
   }, [summary.items, searchQuery, scrapedOnly, scrappedNames]);
+  // 스크랩 칩 카운트는 '선택된 일자에 데이터가 있는' 내 스크랩 품목 수(날짜 기준). 전체 스크랩 수가 아님.
+  const scrappedOnDate = useMemo(
+    () => summary.items.filter((it) => scrappedNames.has(it.pum_name)).length,
+    [summary.items, scrappedNames],
+  );
   const meta = summary.items.length > 0 ? `aT 양재 · ${summary.items.length}개 품목` : 'aT 양재';
 
   return (
@@ -69,7 +74,7 @@ export function AuctionPanel({
           setGubn(g);
         }}
         scrapedOnly={scrapedOnly}
-        scrappedCount={scrappedNames.size}
+        scrappedCount={scrappedOnDate}
         onScrapToggle={() => {
           // 스크랩 진입 시 화훼구분을 전체('')로 — 구분 무관 모든 스크랩 품목 노출
           const next = !scrapedOnly;
