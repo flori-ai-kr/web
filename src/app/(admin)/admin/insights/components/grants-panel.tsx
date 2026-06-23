@@ -1,6 +1,5 @@
 'use client';
 
-import {useMemo} from 'react';
 import {Landmark, Search} from 'lucide-react';
 import {EmptyState} from '@/components/layout/empty-state';
 import {Button} from '@/components/ui/button';
@@ -9,12 +8,14 @@ import {FilterPill} from './filter-pill';
 import {GrantCard} from './grant-card';
 import {StatSectionHeader} from '@/app/(admin)/admin/statistics/components/stat-section-header';
 import {useGrantsList} from '../hooks/use-grants-list';
-import {GRANT_CATEGORIES, type GrantCategory, type GrantProgram} from '@/types/grants';
+import {GRANT_CATEGORIES, type GrantCategory, type GrantProgram, type GrantScrap} from '@/types/grants';
 import type {ScrapMap} from '@/types/insights';
 
 interface GrantsPanelProps {
   programs: GrantProgram[];
   scrapMap: ScrapMap;
+  /** 내가 스크랩한 지원사업(카테고리 무관 전체). 스크랩 보기·카운트의 단일 출처. */
+  scrappedGrants: GrantScrap[];
   category: GrantCategory | null;
   scrapedOnly: boolean;
   onCategoryChange: (cat: GrantCategory | null, scrapedOnly: boolean) => void;
@@ -23,6 +24,7 @@ interface GrantsPanelProps {
 export function GrantsPanel({
   programs,
   scrapMap,
+  scrappedGrants,
   category,
   scrapedOnly,
   onCategoryChange,
@@ -34,10 +36,9 @@ export function GrantsPanel({
     scrapedOnly,
   });
 
-  const scrappedCount = useMemo(
-    () => programs.filter((p) => scrapMap[p.id]).length,
-    [programs, scrapMap],
-  );
+  // 스크랩 카운트·목록은 카테고리/페이지와 무관하게 항상 '내 전체 스크랩' 기준.
+  const scrappedCount = scrappedGrants.length;
+  const displayPrograms = scrapedOnly ? scrappedGrants.map((s) => s.program) : filtered;
 
   return (
     <div>
@@ -84,7 +85,7 @@ export function GrantsPanel({
 
       <StatSectionHeader title="모집 중" meta="출처: K-Startup" />
 
-      {filtered.length === 0 ? (
+      {displayPrograms.length === 0 ? (
         <EmptyState
           icon={searchQuery ? Search : Landmark}
           title={
@@ -104,13 +105,17 @@ export function GrantsPanel({
         />
       ) : (
         <div className="space-y-3">
-          {filtered.map((program) => (
-            <GrantCard key={program.id} program={program} scraped={!!scrapMap[program.id]} />
+          {displayPrograms.map((program) => (
+            <GrantCard
+              key={program.id}
+              program={program}
+              scraped={scrapedOnly ? true : !!scrapMap[program.id]}
+            />
           ))}
         </div>
       )}
 
-      {!scrapedOnly && hasMore && filtered.length > 0 && (
+      {!scrapedOnly && hasMore && displayPrograms.length > 0 && (
         <div className="mt-5 flex justify-center">
           <Button variant="outline" size="sm" onClick={loadMore} disabled={isLoadingMore}>
             {isLoadingMore ? '불러오는 중…' : '더 보기'}

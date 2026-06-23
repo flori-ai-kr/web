@@ -7,7 +7,7 @@ import {GrantsPanel} from './components/grants-panel';
 import {TrendsPanel} from './components/trends-panel';
 import {INFO_TABS, useInfoTabs, type InfoTab} from './hooks/use-info-tabs';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
-import type {GrantCategory, GrantProgram} from '@/types/grants';
+import type {GrantCategory, GrantProgram, GrantScrap} from '@/types/grants';
 import type {ScrapMap, TrendArticle, TrendCategory} from '@/types/insights';
 
 interface InfoClientProps {
@@ -22,6 +22,7 @@ interface InfoClientProps {
   // 지원사업
   grants: GrantProgram[];
   grantScrapMap: ScrapMap;
+  grantScraps: GrantScrap[];
   // 트렌드·뉴스
   trends: TrendArticle[];
   trendScrapMap: ScrapMap;
@@ -37,6 +38,7 @@ export function InfoClient({
   auctionScraps,
   grants,
   grantScrapMap,
+  grantScraps,
   trends,
   trendScrapMap,
 }: InfoClientProps) {
@@ -87,6 +89,7 @@ export function InfoClient({
           <GrantsPanel
             programs={grants}
             scrapMap={grantScrapMap}
+            scrappedGrants={grantScraps}
             category={category as GrantCategory | null}
             scrapedOnly={scrapedOnly}
             onCategoryChange={changeFilter}
