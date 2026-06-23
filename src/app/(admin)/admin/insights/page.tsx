@@ -62,7 +62,7 @@ export default async function InsightsPage({searchParams}: PageProps) {
     () => getAuctionCategories(),
     [...AUCTION_CATEGORIES],
   );
-  // 기본 화훼구분(절화)로 SSR — useAuction 의 초기 gubn 과 일치시켜 단위(속) 혼선을 막는다.
+  // 기본 화훼구분(전체 '')로 SSR — useAuction 의 초기 gubn 과 일치시킨다.
   const auctionSummary = await safe<AuctionSummary>(
     () => getAuctionSummary({gubn: AUCTION_DEFAULT_GUBN}),
     {date: null, source: AUCTION_SOURCE, items: []},
