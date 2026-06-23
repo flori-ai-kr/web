@@ -4,28 +4,21 @@ import {revalidatePath} from 'next/cache';
 import {requireAuth} from '@/lib/auth-guard';
 import {
     DEFAULT_BOTTOM_NAV_ITEMS,
-    type InstagramAccount,
-    type InstagramPostWithAccount,
-    type InstagramRegion,
     type NavItemKey,
     type TrendArticle,
     type TrendCategory,
     type UserPreferences,
 } from '@/types/database';
-import {bottomNavItemsSchema, instagramAccountCreateSchema, instagramAccountUpdateSchema,} from '@/lib/validations';
+import {bottomNavItemsSchema} from '@/lib/validations';
 import {withErrorLogging} from '@/lib/errors';
-import {apiFetch, apiFetchInternal} from '@/lib/api/client';
+import {apiFetch} from '@/lib/api/client';
 import {
     type KotlinTrendArticle,
-    type KotlinInstagramAccount,
-    type KotlinInstagramPost,
     mapTrendArticle,
-    mapAccount,
-    mapPost,
 } from '@/lib/api/insights-mappers';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 공통 DTO/매퍼(KotlinTrendArticle/Account/Post)는 lib/api/insights-mappers.ts 에서 import.
+// 공통 DTO/매퍼(KotlinTrendArticle)는 lib/api/insights-mappers.ts 에서 import.
 
 interface KotlinUserPreferences {
   bottomNavItems: string[];
@@ -52,6 +45,21 @@ async function _getTrendArticles(options: {
 }
 
 export const getTrendArticles = withErrorLogging('getTrendArticles', _getTrendArticles);
+
+/**
+ * 트렌드·뉴스 탭 무한스크롤 추가 로드.
+ */
+async function _loadMoreTrendArticles(
+  offset: number,
+  options: { category?: TrendCategory; limit?: number } = {},
+): Promise<TrendArticle[]> {
+  return _getTrendArticles({ ...options, offset });
+}
+
+export const loadMoreTrendArticles = withErrorLogging(
+  'loadMoreTrendArticles',
+  _loadMoreTrendArticles,
+);
 
 /**
  * 대시보드용: 카테고리별로 최신 N개씩 가져온다.
@@ -111,135 +119,6 @@ async function _getTrendCountsByCategory(
 export const getTrendCountsByCategory = withErrorLogging(
   'getTrendCountsByCategory',
   _getTrendCountsByCategory,
-);
-
-// ─── Instagram 계정 관리 ─────────────────────────────────
-
-async function _getInstagramAccounts(options: {
-  activeOnly?: boolean;
-} = {}): Promise<InstagramAccount[]> {
-  await requireAuth();
-
-  const params = new URLSearchParams();
-  if (options.activeOnly) params.set('activeOnly', 'true');
-
-  const data = await apiFetch<KotlinInstagramAccount[]>(
-    `/insights/accounts?${params.toString()}`,
-  );
-  return (data ?? []).map(mapAccount);
-}
-
-export const getInstagramAccounts = withErrorLogging(
-  'getInstagramAccounts',
-  _getInstagramAccounts,
-);
-
-async function _createInstagramAccount(input: unknown): Promise<InstagramAccount> {
-  // 계정 관리는 서버에 사용자용 엔드포인트가 없어 /internal/** (Bearer INTERNAL_API_KEY)로 호출한다.
-  await requireAuth();
-  const parsed = instagramAccountCreateSchema.parse(input);
-
-  const data = await apiFetchInternal<KotlinInstagramAccount>('/internal/instagram-accounts', {
-    method: 'POST',
-    body: JSON.stringify({
-      username: parsed.username,
-      displayName: parsed.display_name ?? null,
-      region: parsed.region,
-      sortOrder: parsed.sort_order ?? 0,
-      active: parsed.active ?? true,
-      notes: parsed.memo ?? null,
-    }),
-  });
-
-  revalidatePath('/admin/insights/follows');
-  return mapAccount(data);
-}
-
-export const createInstagramAccount = withErrorLogging(
-  'createInstagramAccount',
-  _createInstagramAccount,
-);
-
-async function _updateInstagramAccount(
-  id: string,
-  input: unknown,
-): Promise<InstagramAccount> {
-  await requireAuth();
-  const parsed = instagramAccountUpdateSchema.parse(input);
-
-  const body: Record<string, unknown> = {};
-  if (parsed.username !== undefined) body.username = parsed.username;
-  if (parsed.display_name !== undefined) body.displayName = parsed.display_name;
-  if (parsed.region !== undefined) body.region = parsed.region;
-  if (parsed.sort_order !== undefined) body.sortOrder = parsed.sort_order;
-  if (parsed.active !== undefined) body.active = parsed.active;
-  if (parsed.memo !== undefined) body.notes = parsed.memo;
-
-  const data = await apiFetchInternal<KotlinInstagramAccount>(
-    `/internal/instagram-accounts/${encodeURIComponent(id)}`,
-    { method: 'PUT', body: JSON.stringify(body) },
-  );
-
-  revalidatePath('/admin/insights/follows');
-  return mapAccount(data);
-}
-
-export const updateInstagramAccount = withErrorLogging(
-  'updateInstagramAccount',
-  _updateInstagramAccount,
-);
-
-async function _deleteInstagramAccount(id: string): Promise<void> {
-  await requireAuth();
-
-  await apiFetchInternal<void>(
-    `/internal/instagram-accounts/${encodeURIComponent(id)}`,
-    { method: 'DELETE' },
-  );
-
-  revalidatePath('/admin/insights/follows');
-}
-
-export const deleteInstagramAccount = withErrorLogging(
-  'deleteInstagramAccount',
-  _deleteInstagramAccount,
-);
-
-// ─── Instagram 포스트 조회 ───────────────────────────────
-
-async function _getInstagramPosts(options: {
-  accountId?: string;
-  region?: InstagramRegion;
-  limit?: number;
-  sortBy?: 'latest' | 'likes';
-  daysAgo?: number;
-} = {}): Promise<InstagramPostWithAccount[]> {
-  await requireAuth();
-
-  const params = new URLSearchParams();
-  if (options.accountId) params.set('accountId', options.accountId);
-  if (options.region) params.set('region', options.region);
-  if (options.sortBy) params.set('sortBy', options.sortBy);
-  if (options.daysAgo) params.set('daysAgo', String(options.daysAgo));
-  params.set('limit', String(options.limit ?? 50));
-
-  const data = await apiFetch<KotlinInstagramPost[]>(
-    `/insights/posts?${params.toString()}`,
-  );
-  return (data ?? []).map(mapPost);
-}
-
-export const getInstagramPosts = withErrorLogging('getInstagramPosts', _getInstagramPosts);
-
-async function _getLatestInstagramTimestamp(): Promise<string | null> {
-  await requireAuth();
-  const data = await apiFetch<{ latest: string | null }>('/insights/instagram/latest');
-  return data?.latest ?? null;
-}
-
-export const getLatestInstagramTimestamp = withErrorLogging(
-  'getLatestInstagramTimestamp',
-  _getLatestInstagramTimestamp,
 );
 
 // ─── 유저 설정 (하단바 커스터마이즈) ─────────────────────

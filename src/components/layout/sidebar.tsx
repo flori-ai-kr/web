@@ -11,6 +11,7 @@ import {
     Image,
     LayoutDashboard,
     MessagesSquare,
+    Newspaper,
     PenLine,
     Receipt,
     Settings,
@@ -61,6 +62,7 @@ const navSections: NavSection[] = [
     title: '소통',
     items: [
       { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티' },
+      { href: '/admin/insights', icon: Newspaper, label: '정보' },
     ],
   },
 ];

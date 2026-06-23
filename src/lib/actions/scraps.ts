@@ -6,8 +6,8 @@ import {withErrorLogging} from '@/lib/errors';
 import {scrapMemoSchema, scrapToggleSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 import type {
+    GrantScrap,
     InsightScrap,
-    PostScrap,
     ScrapMap,
     ScrapTargetType,
     ScrapInfo,
@@ -16,14 +16,13 @@ import type {
 import {
     type KotlinScrap,
     type KotlinTrendArticle,
-    type KotlinInstagramPost,
     mapScrap,
     mapTrendArticle,
-    mapPost,
 } from '@/lib/api/insights-mappers';
+import {type KotlinGrantProgram, mapGrantProgram} from '@/lib/api/mappers/grants';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 공통 DTO/매퍼(KotlinScrap/TrendArticle/Account/Post)는 lib/api/insights-mappers.ts 에서 import.
+// 공통 DTO/매퍼(KotlinScrap/TrendArticle/GrantProgram)는 mappers 에서 import.
 // 아래는 scraps 전용 합성 DTO만 정의한다.
 
 interface KotlinScrapInfo {
@@ -36,9 +35,9 @@ interface KotlinTrendScrap {
   article: KotlinTrendArticle;
 }
 
-interface KotlinPostScrap {
+interface KotlinGrantScrap {
   scrap: KotlinScrap;
-  post: KotlinInstagramPost;
+  program: KotlinGrantProgram;
 }
 
 async function _toggleScrap(input: unknown): Promise<{ scraped: boolean }> {
@@ -117,29 +116,29 @@ async function _getTrendScraps(limit = 100): Promise<TrendScrap[]> {
 
 export const getTrendScraps = withErrorLogging('getTrendScraps', _getTrendScraps);
 
-async function _getPostScraps(limit = 100): Promise<PostScrap[]> {
+async function _getGrantScraps(limit = 100): Promise<GrantScrap[]> {
   await requireAuth();
 
   const params = new URLSearchParams();
   params.set('limit', String(limit));
 
-  const data = await apiFetch<KotlinPostScrap[]>(
-    `/insights/scraps/posts?${params.toString()}`,
+  const data = await apiFetch<KotlinGrantScrap[]>(
+    `/insights/scraps/grants?${params.toString()}`,
   );
 
   return (data ?? []).map((row) => ({
     scrap: mapScrap(row.scrap),
-    post: mapPost(row.post),
+    program: mapGrantProgram(row.program),
   }));
 }
 
-export const getPostScraps = withErrorLogging('getPostScraps', _getPostScraps);
+export const getGrantScraps = withErrorLogging('getGrantScraps', _getGrantScraps);
 
-async function _getScrapCounts(): Promise<{ trend: number; post: number }> {
+async function _getScrapCounts(): Promise<{ trend: number; grant: number }> {
   await requireAuth();
 
-  const data = await apiFetch<{ trend: number; post: number }>('/insights/scraps/counts');
-  return { trend: data.trend ?? 0, post: data.post ?? 0 };
+  const data = await apiFetch<{ trend: number; grant: number }>('/insights/scraps/counts');
+  return { trend: data.trend ?? 0, grant: data.grant ?? 0 };
 }
 
 export const getScrapCounts = withErrorLogging('getScrapCounts', _getScrapCounts);
