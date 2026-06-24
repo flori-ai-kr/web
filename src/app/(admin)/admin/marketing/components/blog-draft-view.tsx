@@ -51,9 +51,9 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
   return (
     <Button
       type="button"
-      variant={full ? 'brand' : 'ghost'}
+      variant={full ? 'brand' : 'outline'}
       size="sm"
-      className="gap-1.5"
+      className={full ? 'gap-1.5' : 'gap-1.5 border-foreground/50 text-foreground'}
       onClick={async () => {
         await copyText(text, label);
         setCopied(true);
@@ -130,7 +130,7 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
               <h1 className="text-xl font-bold leading-snug tracking-tight text-foreground sm:text-2xl">
                 {view.title}
               </h1>
-              <div className="opacity-0 transition-opacity group-hover/title:opacity-100 focus-within:opacity-100">
+              <div className="shrink-0">
                 <CopyButton text={view.title} label="제목" />
               </div>
             </div>
@@ -157,7 +157,7 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
                 ) : (
                   <>
                     <h2 className="text-base font-bold text-foreground sm:text-lg">{section.heading}</h2>
-                    <div className="opacity-0 transition-opacity group-hover/section:opacity-100 focus-within:opacity-100">
+                    <div className="shrink-0">
                       <CopyButton text={`${section.heading}\n${section.body}`} label={`${i + 1}번째 단락`} />
                     </div>
                   </>
