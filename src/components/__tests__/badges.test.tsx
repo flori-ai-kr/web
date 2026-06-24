@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CommunityCategoryBadge } from '../community/category-badge'
-import { CategoryBadge } from '../insights/category-badge'
 import { StatusBadge, VerificationBadge, SubscriptionBadge } from '../console/status-badge'
 
 describe('CommunityCategoryBadge', () => {
@@ -18,18 +17,6 @@ describe('CommunityCategoryBadge', () => {
 
   it('알 수 없는 카테고리는 렌더하지 않는다', () => {
     const { container } = render(<CommunityCategoryBadge category={'unknown' as never} />)
-    expect(container).toBeEmptyDOMElement()
-  })
-})
-
-describe('CategoryBadge (insights)', () => {
-  it('트렌드 카테고리 라벨을 렌더한다', () => {
-    render(<CategoryBadge category="flower" />)
-    expect(screen.getByText('꽃 트렌드')).toBeInTheDocument()
-  })
-
-  it('알 수 없는 카테고리는 null', () => {
-    const { container } = render(<CategoryBadge category={'nope' as never} />)
     expect(container).toBeEmptyDOMElement()
   })
 })

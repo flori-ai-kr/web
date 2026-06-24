@@ -1,10 +1,8 @@
 import {requireAuth} from '@/lib/auth-guard';
-import {getAuctionCategories, getAuctionDates, getAuctionSummary} from '@/lib/actions/auction';
+import {getAuctionCategories, getAuctionDates, getAuctionItemScraps, getAuctionSummary} from '@/lib/actions/auction';
 import {getGrants} from '@/lib/actions/grants';
-import {getTrendArticles} from '@/lib/actions/insights';
-import {getScrapMap} from '@/lib/actions/scraps';
-import {GRANT_CATEGORIES, type GrantCategory} from '@/types/grants';
-import {TREND_CATEGORIES, type TrendCategory} from '@/types/insights';
+import {getGrantScraps, getScrapMap} from '@/lib/actions/scraps';
+import {GRANT_CATEGORIES, type GrantCategory, type GrantScrap} from '@/types/grants';
 import {AUCTION_CATEGORIES, AUCTION_DEFAULT_GUBN, AUCTION_SOURCE} from '@/types/auction';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
 import type {ScrapMap} from '@/types/insights';
@@ -15,7 +13,7 @@ interface PageProps {
   searchParams: Promise<{tab?: string; category?: string; scraped?: string}>;
 }
 
-const VALID_TABS: InfoTab[] = ['price', 'grant', 'trend'];
+const VALID_TABS: InfoTab[] = ['price', 'grant'];
 
 /** Next 내부 제어 에러(redirect/notFound)는 전파하고, BFF 미구현/오류만 흡수한다. */
 function isNextControlError(e: unknown): boolean {
@@ -48,32 +46,27 @@ export default async function InsightsPage({searchParams}: PageProps) {
   const scrapedOnly = params.scraped === '1';
 
   // 탭별 카테고리 화이트리스트 검증
-  const trendCategory = TREND_CATEGORIES.some((c) => c.value === rawCategory)
-    ? (rawCategory as TrendCategory)
-    : null;
   const grantCategory = GRANT_CATEGORIES.some((c) => c.value === rawCategory)
     ? (rawCategory as GrantCategory)
     : null;
-  const activeCategory =
-    tab === 'grant' ? grantCategory : tab === 'trend' ? trendCategory : null;
+  const activeCategory = tab === 'grant' ? grantCategory : null;
 
   // 각 탭 데이터를 개별 try/catch 로 적재 — 하나의 BFF 엔드포인트 실패가 페이지를 깨지 않게 한다.
   const auctionCategories = await safe<AuctionCategory[]>(
     () => getAuctionCategories(),
     [...AUCTION_CATEGORIES],
   );
-  // 기본 화훼구분(절화)로 SSR — useAuction 의 초기 gubn 과 일치시켜 단위(속) 혼선을 막는다.
+  // 기본 화훼구분(전체 '')로 SSR — useAuction 의 초기 gubn 과 일치시킨다.
   const auctionSummary = await safe<AuctionSummary>(
     () => getAuctionSummary({gubn: AUCTION_DEFAULT_GUBN}),
     {date: null, source: AUCTION_SOURCE, items: []},
   );
   const auctionDates = await safe<string[]>(() => getAuctionDates(AUCTION_DEFAULT_GUBN), []);
+  const auctionScraps = await safe<string[]>(() => getAuctionItemScraps(), []);
 
   const grants = await safe(() => getGrants({category: grantCategory ?? undefined}), []);
   const grantScrapMap = await safe<ScrapMap>(() => getScrapMap('grant'), {});
-
-  const trends = await safe(() => getTrendArticles({category: trendCategory ?? undefined}), []);
-  const trendScrapMap = await safe<ScrapMap>(() => getScrapMap('trend'), {});
+  const grantScraps = await safe<GrantScrap[]>(() => getGrantScraps(), []);
 
   return (
     <InfoClient
@@ -83,10 +76,10 @@ export default async function InsightsPage({searchParams}: PageProps) {
       auctionCategories={auctionCategories}
       auctionSummary={auctionSummary}
       auctionDates={auctionDates}
+      auctionScraps={auctionScraps}
       grants={grants}
       grantScrapMap={grantScrapMap}
-      trends={trends}
-      trendScrapMap={trendScrapMap}
+      grantScraps={grantScraps}
     />
   );
 }

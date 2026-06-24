@@ -74,7 +74,7 @@ export const AUCTION_CATEGORIES: readonly AuctionCategory[] = [
 export const AUCTION_SOURCE = '화훼유통정보(aT)';
 
 /**
- * 기본 화훼구분 = 절화 (flower_gubn 텍스트 — api는 코드가 아니라 텍스트로 필터한다).
- * 거래단위(절화=속, 관엽/난=분)가 섞이지 않도록 전체('') 대신 단일구분으로 시작한다.
+ * 기본 화훼구분 = 전체('') — 세 구분(절화/관엽/난)을 모두 보여준다.
+ * (거래단위가 절화=속 / 관엽·난=분 으로 섞이지만, 대표가 메타에 '단위는 구분별 상이'로 안내한다.)
  */
-export const AUCTION_DEFAULT_GUBN = '절화';
+export const AUCTION_DEFAULT_GUBN = '';
