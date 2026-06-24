@@ -53,7 +53,7 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
       type="button"
       variant={full ? 'brand' : 'outline'}
       size="sm"
-      className={full ? 'gap-1.5' : 'gap-1.5 border-foreground/50 text-foreground'}
+      className={full ? 'gap-1.5' : 'gap-1.5 border-foreground/30 text-foreground'}
       onClick={async () => {
         await copyText(text, label);
         setCopied(true);
