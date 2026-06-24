@@ -138,11 +138,10 @@ export function MarketingClient() {
         <Button
           type="button"
           variant="outline"
-          size="sm"
           onClick={() => setToneOpen(true)}
-          className="shrink-0 gap-1.5 self-start border-brand/40 bg-brand-muted text-brand hover:border-brand hover:bg-brand-muted hover:text-brand"
+          className="shrink-0 gap-1.5 self-start border-brand/40 bg-brand-muted font-semibold text-brand hover:border-brand hover:bg-brand-muted hover:text-brand"
         >
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
           블로그 말투 설정
         </Button>
       </header>
