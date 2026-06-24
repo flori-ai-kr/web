@@ -30,29 +30,31 @@ const ALL = 'all';
 
 const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: '전체' },
-  { value: 'broadcast', label: 'broadcast' },
-  { value: 'reservation_reminder', label: 'reservation_reminder' },
-  { value: 'notice', label: 'notice' },
+  { value: 'broadcast', label: '마케팅/캠페인' },
+  { value: 'reservation_reminder', label: '예약 리마인더' },
+  { value: 'notice', label: '공지' },
+  { value: 'business_verification', label: '사업자 인증' },
 ];
 
 const SOURCE_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: '전체' },
-  { value: 'web', label: 'web' },
-  { value: 'cron', label: 'cron' },
-  { value: 'system', label: 'system' },
+  { value: 'web', label: '웹' },
+  { value: 'cron', label: '스케줄러' },
+  { value: 'system', label: '시스템' },
+  { value: 'alimtalk', label: '알림톡' },
 ];
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: '전체' },
-  { value: 'sent', label: 'sent' },
-  { value: 'failed', label: 'failed' },
-  { value: 'partial', label: 'partial' },
+  { value: 'sent', label: '성공' },
+  { value: 'failed', label: '실패' },
+  { value: 'partial', label: '부분 성공' },
 ];
 
-const STATUS_DOT: Record<NotificationSendStatus, string> = {
-  sent: 'bg-emerald-500',
-  partial: 'bg-amber-500',
-  failed: 'bg-red-500',
+const STATUS_META: Record<NotificationSendStatus, { tone: 'success' | 'danger' | 'warning'; label: string }> = {
+  sent: { tone: 'success', label: '성공' },
+  failed: { tone: 'danger', label: '실패' },
+  partial: { tone: 'warning', label: '부분 성공' },
 };
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -71,11 +73,24 @@ const TYPE_META: Record<string, { tone: 'info' | 'success' | 'warning' | 'muted'
   broadcast: { tone: 'info', label: '마케팅/캠페인' },
   reservation_reminder: { tone: 'success', label: '예약 리마인더' },
   notice: { tone: 'warning', label: '공지' },
+  business_verification: { tone: 'info', label: '사업자 인증' },
 };
 
 function TypeBadge({ type }: { type: string }) {
   const meta = TYPE_META[type];
   return <StatusBadge tone={meta?.tone ?? 'muted'}>{meta?.label ?? type}</StatusBadge>;
+}
+
+const SOURCE_META: Record<string, { tone: 'success' | 'warning' | 'danger' | 'info' | 'muted'; label: string }> = {
+  web: { tone: 'muted', label: '웹' },
+  cron: { tone: 'muted', label: '스케줄러' },
+  system: { tone: 'muted', label: '시스템' },
+  alimtalk: { tone: 'info', label: '알림톡' },
+};
+
+function SourceBadge({ source }: { source: string }) {
+  const meta = SOURCE_META[source];
+  return <StatusBadge tone={meta?.tone ?? 'muted'}>{meta?.label ?? source}</StatusBadge>;
 }
 
 function formatDateTime(createdAt: string | null) {
@@ -205,7 +220,7 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-8" />
+              <TableHead>상태</TableHead>
               <TableHead>타입</TableHead>
               <TableHead>대상</TableHead>
               <TableHead>요약</TableHead>
@@ -223,12 +238,10 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
             ) : (
               rows.map((log) => (
                 <TableRow key={log.id} className="align-top">
-                  <TableCell className="pt-3.5">
-                    <span
-                      className={`inline-block h-2.5 w-2.5 rounded-full ${STATUS_DOT[log.status]}`}
-                      aria-label={log.status}
-                      title={log.status}
-                    />
+                  <TableCell className="pt-3">
+                    <StatusBadge tone={STATUS_META[log.status]?.tone ?? 'muted'}>
+                      {STATUS_META[log.status]?.label ?? log.status}
+                    </StatusBadge>
                   </TableCell>
                   <TableCell>
                     <TypeBadge type={log.type} />
@@ -249,7 +262,7 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
                       </div>
                     ) : null}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{log.source}</TableCell>
+                  <TableCell><SourceBadge source={log.source} /></TableCell>
                   <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                     {formatDateTime(log.createdAt)}
                   </TableCell>
