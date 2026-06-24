@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -20,8 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/console/status-badge';
-import { activatePrompt, deletePrompt, listPrompts } from '@/lib/actions/admin-prompts';
+import { activatePrompt, deletePrompt, listPrompts, updatePrompt } from '@/lib/actions/admin-prompts';
 import type { PromptSummary } from '@/types/admin-prompt';
 
 const modelLabel = (m: string | null): string => m ?? '기본(ai-server)';
@@ -34,16 +34,27 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
 
   const refresh = () => startTransition(async () => setRows(await listPrompts('blog')));
 
-  const onActivate = (p: PromptSummary) =>
+  const onToggleActive = (p: PromptSummary) => {
+    const activating = !p.isActive;
+    // 낙관적: 활성화 시 같은 채널 단일 active(나머지 false) 불변식 반영, 비활성화 시 해당 행만 false.
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id === p.id) return { ...r, isActive: activating };
+        return activating ? { ...r, isActive: false } : r;
+      }),
+    );
     startTransition(async () => {
       try {
-        await activatePrompt(p.id);
-        toast.success(`${p.version} 활성화되었습니다`);
+        if (activating) await activatePrompt(p.id);
+        else await updatePrompt(p.id, { isActive: false });
+        toast.success(activating ? `${p.version} 활성화` : `${p.version} 비활성화`);
         refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '처리 실패');
+        refresh(); // 서버 상태로 롤백
       }
     });
+  };
 
   const onDelete = (p: PromptSummary) =>
     startTransition(async () => {
@@ -76,7 +87,6 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>버전</TableHead>
-              <TableHead>상태</TableHead>
               <TableHead>모델</TableHead>
               <TableHead className="text-right">temp</TableHead>
               <TableHead className="hidden lg:table-cell">메모</TableHead>
@@ -87,7 +97,7 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   등록된 프롬프트가 없습니다. 비어 있어도 코드 기본값으로 블로그 생성은 동작합니다.
                 </TableCell>
               </TableRow>
@@ -99,11 +109,6 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
                       {p.version}
                     </Link>
                   </TableCell>
-                  <TableCell>
-                    <StatusBadge tone={p.isActive ? 'success' : 'muted'}>
-                      {p.isActive ? '활성' : '비활성'}
-                    </StatusBadge>
-                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{modelLabel(p.model)}</TableCell>
                   <TableCell className="text-right tabular-nums">{tempLabel(p.temperature)}</TableCell>
                   <TableCell className="hidden max-w-[16rem] truncate text-sm text-muted-foreground lg:table-cell">
@@ -113,27 +118,38 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
                     {p.updatedAt?.slice(0, 10) ?? '-'}
                   </TableCell>
                   <TableCell className="sticky right-0 border-l border-border bg-card group-hover:bg-muted/50">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/console/prompts/${p.id}`}>편집</Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={pending || p.isActive}
-                        onClick={() => onActivate(p)}
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={p.isActive}
+                        aria-label={p.isActive ? '활성 (클릭해서 비활성)' : '비활성 (클릭해서 활성화)'}
+                        disabled={pending}
+                        onClick={() => onToggleActive(p)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 ${
+                          p.isActive ? 'bg-success' : 'bg-muted-foreground/30'
+                        }`}
                       >
-                        활성화
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                            p.isActive ? 'translate-x-[18px]' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                      <Button size="sm" variant="ghost" asChild aria-label="수정">
+                        <Link href={`/console/prompts/${p.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button
-                        variant="outline"
                         size="sm"
-                        className="text-destructive"
+                        variant="ghost"
                         disabled={pending || p.isActive}
-                        title={p.isActive ? '활성 버전은 삭제할 수 없습니다' : undefined}
+                        title={p.isActive ? '활성 버전은 삭제할 수 없어요 (토글 OFF 먼저)' : undefined}
+                        aria-label="삭제"
                         onClick={() => setDeleteTarget(p)}
                       >
-                        삭제
+                        <Trash2 className="h-4 w-4 text-danger" />
                       </Button>
                     </div>
                   </TableCell>
