@@ -215,7 +215,7 @@ export function PromptEditorClient({
               id="systemMd"
               value={systemMd}
               onChange={(e) => setSystemMd(e.target.value)}
-              rows={10}
+              rows={8}
               className="font-mono text-xs"
             />
           </div>
@@ -225,7 +225,7 @@ export function PromptEditorClient({
               id="rulesMd"
               value={rulesMd}
               onChange={(e) => setRulesMd(e.target.value)}
-              rows={8}
+              rows={6}
               className="font-mono text-xs"
             />
           </div>
@@ -235,7 +235,7 @@ export function PromptEditorClient({
               id="outputSpecMd"
               value={outputSpecMd}
               onChange={(e) => setOutputSpecMd(e.target.value)}
-              rows={4}
+              rows={3}
               className="font-mono text-xs"
             />
           </div>
@@ -245,8 +245,10 @@ export function PromptEditorClient({
           </p>
         </div>
 
-        {/* 우: 플레이그라운드 */}
-        <PlaygroundPanel draft={draftForPreview} />
+        {/* 우: 플레이그라운드 (데스크톱은 sticky로 항상 보이게, 좁은 화면은 폼 아래로 스택) */}
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <PlaygroundPanel draft={draftForPreview} />
+        </div>
       </div>
     </div>
   );
