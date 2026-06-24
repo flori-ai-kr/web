@@ -8,7 +8,8 @@ export type NavItemKey =
   | 'customers'
   | 'gallery'
   | 'community'
-  | 'insights';
+  | 'insights'
+  | 'marketing';
 
 export interface UserPreferences {
   user_id: string;
@@ -26,6 +27,7 @@ export const NAV_ITEM_LABELS: Record<NavItemKey, string> = {
   gallery: '사진첩',
   community: '커뮤니티',
   insights: '인사이트',
+  marketing: 'AI 블로그',
 };
 
 export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
@@ -38,6 +40,7 @@ export const NAV_ITEM_HREFS: Record<NavItemKey, string> = {
   gallery: '/admin/gallery',
   community: '/admin/community',
   insights: '/admin/insights',
+  marketing: '/admin/marketing',
 };
 
 export const DEFAULT_BOTTOM_NAV_ITEMS: NavItemKey[] = [

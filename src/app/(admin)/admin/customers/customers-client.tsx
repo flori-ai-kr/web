@@ -108,7 +108,8 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
         periodMonth={filters.periodMonth}
         customRange={filters.customRange}
         onMonthNav={filters.handleMonthNav}
-        onRangeApply={filters.setCustomRange}
+        onMonthSelect={filters.handleMonthSelect}
+        onRangeApply={filters.handleRangeApply}
         onRangeReset={() => filters.setCustomRange(null)}
       />
 

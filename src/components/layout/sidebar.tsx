@@ -12,6 +12,7 @@ import {
     LayoutDashboard,
     MessagesSquare,
     Newspaper,
+    PenLine,
     Receipt,
     Settings,
     User,
@@ -49,6 +50,12 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/customers', icon: Users, label: '고객' },
       { href: '/admin/gallery', icon: Image, label: '사진첩' },
+    ],
+  },
+  {
+    title: '마케팅',
+    items: [
+      { href: '/admin/marketing', icon: PenLine, label: 'AI 블로그' },
     ],
   },
   {

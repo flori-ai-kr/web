@@ -6,7 +6,7 @@ import { StatAreaChart } from './stat-area-chart';
 import { StatBarList } from './stat-bar-list';
 import { StatSectionHeader } from './stat-section-header';
 import type { DeltaTone } from './stat-kpi-card';
-import { formatManwon } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 // ─── Grade / gender label helpers ────────────────────────────────────────────
 
@@ -207,7 +207,7 @@ export function CustomerStatPanel({ data }: CustomerStatPanelProps) {
                         {c.purchaseCount}회
                       </td>
                       <td className="px-1.5 py-2.5 border-b border-border text-right tabular-nums text-[13px] text-foreground">
-                        {formatManwon(c.totalAmount)}
+                        {formatCurrency(c.totalAmount)}
                       </td>
                     </tr>
                   ))}

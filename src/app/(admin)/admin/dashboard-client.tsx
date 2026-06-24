@@ -31,7 +31,7 @@ import {RESERVATION_STATUS} from '@/types/database';
 import type {DashboardMonthData, DashboardSummary, DashboardTodayData} from '@/lib/actions/dashboard';
 import {getDashboardTodayData} from '@/lib/actions/dashboard';
 import type {LatestCommunityPost} from '@/lib/actions/community';
-import {formatCurrency, formatManwon, getTodayKST} from '@/lib/utils';
+import {formatCurrency, getTodayKST} from '@/lib/utils';
 import {SectionHeader} from '@/components/dashboard/section-header';
 import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
@@ -195,7 +195,7 @@ export function DashboardClient({greeting, nowISO, initialToday, initialMonth, i
               style={{background: 'linear-gradient(160deg, var(--card), var(--brand-muted))'}}
             >
               <p className="text-xs font-semibold text-muted-foreground">오늘 매출</p>
-              <p className="text-2xl font-bold text-brand tabular-nums mt-1.5">
+              <p className="text-xl font-bold tracking-tight text-brand tabular-nums mt-1.5">
                 {formatCurrency(todaySummary?.totalAmount ?? 0)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">{format(now, 'M월 d일', {locale: ko})}</p>
@@ -205,7 +205,7 @@ export function DashboardClient({greeting, nowISO, initialToday, initialMonth, i
             <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
               <span className="absolute left-0 inset-y-0 w-1 bg-brand" aria-hidden="true" />
               <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 매출</p>
-              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(totalSales)}</p>
+              <p className="text-xl font-bold tracking-tight text-foreground tabular-nums mt-1.5">{formatCurrency(totalSales)}</p>
               <p className="text-xs text-muted-foreground mt-1">이번 달 누적</p>
             </div>
 
@@ -213,7 +213,7 @@ export function DashboardClient({greeting, nowISO, initialToday, initialMonth, i
             <div className="relative rounded-2xl border border-border bg-card p-4 overflow-hidden">
               <span className="absolute left-0 inset-y-0 w-1 bg-muted-foreground/40" aria-hidden="true" />
               <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 지출</p>
-              <p className="text-2xl font-bold text-foreground tabular-nums mt-1.5">{formatManwon(monthExpenseTotal)}</p>
+              <p className="text-xl font-bold tracking-tight text-foreground tabular-nums mt-1.5">{formatCurrency(monthExpenseTotal)}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {totalSales > 0 ? `매출의 ${expenseRatio}%` : '이번 달 누적'}
               </p>
@@ -227,9 +227,9 @@ export function DashboardClient({greeting, nowISO, initialToday, initialMonth, i
               />
               <p className="text-xs font-semibold text-muted-foreground">{format(now, 'M월', {locale: ko})} 순이익</p>
               <p
-                className={`text-2xl font-bold tabular-nums mt-1.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
+                className={`text-xl font-bold tracking-tight tabular-nums mt-1.5 ${netProfit >= 0 ? 'text-foreground' : 'text-danger'}`}
               >
-                {netProfit >= 0 ? '' : '-'}{formatManwon(Math.abs(netProfit))}
+                {netProfit >= 0 ? '' : '-'}{formatCurrency(Math.abs(netProfit))}
               </p>
             </div>
           </div>

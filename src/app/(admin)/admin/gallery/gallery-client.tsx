@@ -20,6 +20,7 @@ import {toast} from 'sonner';
 interface CustomerOption {
   id: string;
   name: string;
+  phone: string | null;
 }
 
 interface GalleryClientProps {
@@ -34,8 +35,9 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialCustomerId = searchParams.get('customer');
+  // BFF가 id를 숫자로 내려줄 수 있어 String 코어션으로 비교(=== 타입 불일치로 필터 누락 방지).
   const initialCustomer = initialCustomerId
-    ? customers.find(c => c.id === initialCustomerId) || null
+    ? customers.find(c => String(c.id) === String(initialCustomerId)) || null
     : null;
 
   // 기간(월 네비/커스텀 범위) — 기본 현재 월(서버와 동일).
@@ -53,6 +55,11 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(initialCustomer);
   const [customerSearch, setCustomerSearch] = useState('');
+
+  // 특정 고객으로 필터링할 때는 기간을 무시하고 그 고객의 사진 전체를 보여준다
+  // (과거 사진이 현재 월 범위 밖이라 안 보이던 문제 해결). 고객 미선택 시에만 기간 적용.
+  const queryFrom = selectedCustomer ? undefined : range.from;
+  const queryTo = selectedCustomer ? undefined : range.to;
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -70,8 +77,13 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
   // 고객 검색 결과 메모이제이션
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return [];
+    const q = customerSearch.toLowerCase();
+    const qDigits = q.replace(/\D/g, '');
     return customers
-      .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+      .filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (qDigits !== '' && (c.phone ?? '').replace(/\D/g, '').includes(qDigits)),
+      )
       .slice(0, 8);
   }, [customers, customerSearch]);
 
@@ -97,7 +109,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
     const customerId = searchParams.get('customer');
     const cardId = searchParams.get('card');
     if (customerId) {
-      const found = customers.find((c) => c.id === customerId);
+      const found = customers.find((c) => String(c.id) === String(customerId));
       if (found) setSelectedCustomer(found);
     }
     if (cardId) {
@@ -121,7 +133,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
 
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id, range.from, range.to);
+      const response = await getPhotoCards(selectedTag || undefined, cursor || undefined, selectedCustomer?.id, queryFrom, queryTo);
       // 무한로딩 차단(api 상태 무관): ①새 카드 0개 ②커서가 전진하지 않음 ③에러 → 즉시 정지.
       const fresh = response.cards.filter(c => !loadedIdsRef.current.has(c.id));
       const cursorAdvanced = !!response.nextCursor && response.nextCursor !== cursor;
@@ -143,14 +155,14 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
     } finally {
       setIsLoading(false);
     }
-  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer, range.from, range.to]);
+  }, [cursor, hasMore, isLoading, selectedTag, selectedCustomer, queryFrom, queryTo]);
 
   // Reset and reload when tag·customer·기간 changes
   useEffect(() => {
     const loadInitial = async () => {
       setIsLoading(true);
       try {
-        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
+        const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, queryFrom, queryTo);
         loadedIdsRef.current = new Set(response.cards.map(c => c.id));
         setCards(response.cards);
         setCursor(response.nextCursor);
@@ -165,7 +177,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
       }
     };
     loadInitial();
-  }, [selectedTag, selectedCustomer, range.from, range.to]);
+  }, [selectedTag, selectedCustomer, queryFrom, queryTo]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -196,7 +208,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
   const refreshCards = async () => {
     setIsLoading(true);
     try {
-      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, range.from, range.to);
+      const response = await getPhotoCards(selectedTag || undefined, undefined, selectedCustomer?.id, queryFrom, queryTo);
       loadedIdsRef.current = new Set(response.cards.map(c => c.id));
       setCards(response.cards);
       setCursor(response.nextCursor);
@@ -226,6 +238,20 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
     setPeriodMonth(m);
   };
 
+  const handleMonthSelect = (year: number, month: number) => {
+    setCustomRange(null);
+    setPeriodYear(year);
+    setPeriodMonth(month);
+  };
+
+  // 기간 적용 시 월 필터는 이번 달로 리셋 — 기간을 해제하면 (이전 월이 아니라) 이번 달로 복귀.
+  const handleRangeApply = (range: CustomRange) => {
+    const now = new Date();
+    setPeriodYear(now.getFullYear());
+    setPeriodMonth(now.getMonth() + 1);
+    setCustomRange(range);
+  };
+
   const handleClearCustomer = () => {
     setSelectedCustomer(null);
     router.push('/admin/gallery', { scroll: false });
@@ -249,15 +275,19 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2">
-      {/* 기간 헤더 — 매출/고객과 동일한 월 네비 + 기간 셀렉터 (등록일 기준) */}
-      <PeriodHeader
-        periodYear={periodYear}
-        periodMonth={periodMonth}
-        customRange={customRange}
-        onMonthNav={handleMonthNav}
-        onRangeApply={setCustomRange}
-        onRangeReset={() => setCustomRange(null)}
-      />
+      {/* 기간 헤더 — 매출/고객과 동일한 월 네비 + 기간 셀렉터 (등록일 기준).
+          단, 특정 고객 필터 중에는 기간을 무시(전체 조회)하므로 헤더를 숨겨 혼란을 막는다. */}
+      {!selectedCustomer && (
+        <PeriodHeader
+          periodYear={periodYear}
+          periodMonth={periodMonth}
+          customRange={customRange}
+          onMonthNav={handleMonthNav}
+          onMonthSelect={handleMonthSelect}
+          onRangeApply={handleRangeApply}
+          onRangeReset={() => setCustomRange(null)}
+        />
+      )}
 
       {/* 요약 — 현재 기간·필터 기준 총 카드 수 + 총 사진 장수 */}
       <div className="flex items-baseline gap-3 flex-wrap">
@@ -286,6 +316,9 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
             <div className="flex items-center gap-2 px-3 py-1.5 bg-brand/10 text-brand rounded-lg text-sm font-medium border border-brand/20">
               <User className="w-3.5 h-3.5" />
               <span>{selectedCustomer.name}</span>
+              {selectedCustomer.phone && (
+                <span className="text-xs text-brand/70 tabular-nums">{selectedCustomer.phone}</span>
+              )}
               <button
                 type="button"
                 onClick={handleClearCustomer}
@@ -298,10 +331,10 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
           ) : (
             <div className="relative" ref={customerDropdownRef}>
               <div className="relative">
-                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="고객으로 필터링..."
+                  placeholder="고객명 또는 연락처로 필터링..."
                   value={customerSearch}
                   onChange={(e) => {
                     setCustomerSearch(e.target.value);
@@ -312,12 +345,12 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
                     if (e.key === 'Enter') e.preventDefault();
                     if (e.key === 'Escape') setShowCustomerDropdown(false);
                   }}
-                  className="h-8 w-48 pl-8 text-sm"
+                  className="h-8 w-72 max-w-full pl-9 text-sm bg-background rounded-full"
                 />
               </div>
               {showCustomerDropdown && customerSearch.length > 0 && (
                 <div
-                  className="absolute z-50 mt-1 w-56 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                  className="absolute z-50 mt-1 w-72 max-w-full bg-popover border rounded-xl shadow-lg max-h-48 overflow-y-auto"
                   role="listbox"
                   aria-label="고객 목록"
                 >
@@ -332,6 +365,11 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
                     >
                       <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <span className="truncate">{customer.name}</span>
+                      {customer.phone && (
+                        <span className="ml-auto text-xs text-muted-foreground tabular-nums shrink-0">
+                          {customer.phone}
+                        </span>
+                      )}
                     </button>
                   ))}
                   {filteredCustomers.length === 0 && (

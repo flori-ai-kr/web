@@ -10,12 +10,15 @@ import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {toast} from 'sonner';
 import {deletePhotoCard, downloadAllPhotos} from '@/lib/actions/photo-cards';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 
 interface PhotoCardDialogProps {
   card: PhotoCard | null;
   onClose: () => void;
-  onEdit: (card: PhotoCard) => void;
-  onDelete: () => void;
+  /** 미지정 시 수정 버튼 숨김(고객 상세 등 조회 전용 컨텍스트). */
+  onEdit?: (card: PhotoCard) => void;
+  /** 미지정 시 삭제 버튼 숨김(조회 전용). */
+  onDelete?: () => void;
 }
 
 export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDialogProps) {
@@ -24,6 +27,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // 사진 클릭 시 라이트박스로 확대(현재 보고 있는 사진 인덱스로 오픈).
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (!card) return null;
 
@@ -40,7 +45,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
     try {
       await deletePhotoCard(card.id);
       toast.success('카드가 삭제되었습니다');
-      onDelete();
+      onDelete?.();
       onClose();
     } catch {
       toast.error('삭제에 실패했습니다');
@@ -90,7 +95,12 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
         <div className="space-y-4">
           {card.photos.length > 0 && (
             <div className="relative">
-              <div className="relative h-[58vh] bg-muted rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(currentIndex)}
+                aria-label="사진 확대 보기"
+                className="relative h-[58vh] w-full bg-muted rounded-lg overflow-hidden cursor-zoom-in"
+              >
                 <Image
                   src={card.photos[currentIndex].url}
                   alt={`${card.title} - ${currentIndex + 1}`}
@@ -98,9 +108,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                   sizes="(max-width: 768px) 100vw, 768px"
                   className="object-contain"
                   priority={currentIndex === 0}
-                  unoptimized
                 />
-              </div>
+              </button>
 
               {card.photos.length > 1 && (
                 <>
@@ -141,7 +150,6 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                     fill
                     sizes="64px"
                     className="object-cover"
-                    unoptimized
                   />
                 </button>
               ))}
@@ -184,7 +192,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
               {card.sale_id && (
                 <Link
-                  href={`/sales?saleId=${card.sale_id}`}
+                  href={`/admin/sales?saleId=${card.sale_id}`}
                   className="inline-flex items-center gap-1.5 text-sm text-brand hover:text-brand hover:underline"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -228,22 +236,37 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                   다운로드
                 </Button>
               )}
-              <Button variant="outline" onClick={() => onEdit(card)}>
-                <Edit className="w-4 h-4 mr-2" />
-                수정
-              </Button>
-              <Button
-                variant="outline"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                삭제
-              </Button>
+              {onEdit && (
+                <Button variant="outline" onClick={() => onEdit(card)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  수정
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  삭제
+                </Button>
+              )}
             </div>
           )}
         </div>
       </DialogContent>
+
+      <ImageLightbox
+        images={card.photos.map((p) => p.url)}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={(next) => {
+          setLightboxIndex(next);
+          setCurrentIndex(next);
+        }}
+        caption={card.title}
+      />
     </Dialog>
   );
 }
