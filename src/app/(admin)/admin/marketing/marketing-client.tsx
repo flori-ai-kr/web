@@ -81,7 +81,7 @@ export function MarketingClient() {
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
       {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl font-semibold tracking-tight text-foreground">
               <span className="text-brand">AI</span> 블로그 글쓰기
