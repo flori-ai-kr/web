@@ -13,6 +13,7 @@ import {
   BellRing,
   Inbox,
   History,
+  Sparkles,
   // [AI 기능 비활성화] Activity,
   ArrowLeft,
 } from 'lucide-react';
@@ -56,6 +57,10 @@ const GROUPS: NavGroup[] = [
       { href: '/console/announcements', label: '공지 배너', icon: Megaphone },
       { href: '/console/inquiries', label: '문의 인박스', icon: Inbox },
     ],
+  },
+  {
+    title: 'AI',
+    items: [{ href: '/console/prompts', label: '프롬프트', icon: Sparkles }],
   },
   {
     title: '시스템',
