@@ -79,9 +79,9 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
               <TableHead>상태</TableHead>
               <TableHead>모델</TableHead>
               <TableHead className="text-right">temp</TableHead>
-              <TableHead>메모</TableHead>
-              <TableHead>수정일</TableHead>
-              <TableHead />
+              <TableHead className="hidden lg:table-cell">메모</TableHead>
+              <TableHead className="hidden md:table-cell">수정일</TableHead>
+              <TableHead className="sticky right-0 bg-card text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,7 +93,7 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
               </TableRow>
             ) : (
               rows.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className="group">
                   <TableCell className="font-medium">
                     <Link href={`/console/prompts/${p.id}`} className="hover:underline">
                       {p.version}
@@ -106,13 +106,13 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{modelLabel(p.model)}</TableCell>
                   <TableCell className="text-right tabular-nums">{tempLabel(p.temperature)}</TableCell>
-                  <TableCell className="max-w-[16rem] truncate text-sm text-muted-foreground">
+                  <TableCell className="hidden max-w-[16rem] truncate text-sm text-muted-foreground lg:table-cell">
                     {p.notes ?? '-'}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                     {p.updatedAt?.slice(0, 10) ?? '-'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="sticky right-0 border-l border-border bg-card group-hover:bg-muted/50">
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/console/prompts/${p.id}`}>편집</Link>
