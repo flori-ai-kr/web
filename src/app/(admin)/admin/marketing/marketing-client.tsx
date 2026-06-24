@@ -220,7 +220,7 @@ function GeneratingSkeleton() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-brand">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span>초안 작성 중… (약 15초 걸려요)</span>
+        <span>초안 작성 중…</span>
       </div>
       <div className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
         <Skeleton className="h-7 w-3/4" />
