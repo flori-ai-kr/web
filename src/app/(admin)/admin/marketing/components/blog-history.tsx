@@ -87,9 +87,14 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     setDeletingId(target.id);
     try {
       await deleteBlogContent(target.id);
-      setItems((prev) => prev.filter((c) => c.id !== target.id));
       toast.success('초안을 삭제했어요.');
       setDeleteTarget(null);
+      if (items.length <= 1 && page > 0) {
+        // 현재 페이지의 마지막 항목 삭제 → 이전 페이지로(빈 페이지 방지, 재조회)
+        setPage((p) => Math.max(0, p - 1));
+      } else {
+        setItems((prev) => prev.filter((c) => c.id !== target.id));
+      }
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '삭제에 실패했어요.');
     } finally {

@@ -32,7 +32,8 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
   const [deleteTarget, setDeleteTarget] = useState<PromptSummary | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const refresh = () => startTransition(async () => setRows(await listPrompts('blog')));
+  // 호출부가 이미 startTransition 안이므로 여기선 plain async (중첩 transition 방지).
+  const refresh = async () => setRows(await listPrompts('blog'));
 
   const onToggleActive = (p: PromptSummary) => {
     const activating = !p.isActive;
@@ -48,10 +49,10 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
         if (activating) await activatePrompt(p.id);
         else await updatePrompt(p.id, { isActive: false });
         toast.success(activating ? `${p.version} 활성화` : `${p.version} 비활성화`);
-        refresh();
+        await refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '처리 실패');
-        refresh(); // 서버 상태로 롤백
+        await refresh(); // 서버 상태로 롤백
       }
     });
   };
@@ -62,7 +63,7 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
         await deletePrompt(p.id);
         toast.success('삭제되었습니다');
         setDeleteTarget(null);
-        refresh();
+        await refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : '처리 실패');
       }
