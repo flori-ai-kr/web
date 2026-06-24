@@ -34,6 +34,7 @@ export function ConsoleTopbar({
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-border bg-background/85 px-5 backdrop-blur lg:px-6">
       <div className="flex items-center gap-3">
+        {/* 모바일: 햄버거(Sheet 열기) */}
         <button
           type="button"
           onClick={onMenu}

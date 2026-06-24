@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { ConsoleSidebar, SidebarContent } from './console-sidebar';
@@ -28,18 +28,37 @@ function metaFor(pathname: string) {
   return META[pathname] ?? { title: '운영 콘솔', subtitle: '' };
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'flori_console_sidebar_collapsed';
+
 export function ConsoleShell({ userEmail, children }: { userEmail: string; children: ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const { title, subtitle } = metaFor(pathname);
+
+  // SSR 안전: 마운트 후 localStorage에서 초기값 동기화
+  useEffect(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored === 'true') setCollapsed(true);
+  }, []);
+
+  const handleToggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-muted">
-      <ConsoleSidebar />
+      {/* 데스크톱: 항상 렌더(접힘 시 w-16 레일). 모바일은 hidden md:block로 Sheet 사용 */}
+      <ConsoleSidebar isCollapsed={collapsed} onToggleCollapse={handleToggleCollapse} />
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 bg-card p-4">
           <SheetTitle className="sr-only">콘솔 내비게이션</SheetTitle>
+          {/* 모바일 Sheet는 항상 풀(접힘 개념 없음) */}
           <SidebarContent onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
