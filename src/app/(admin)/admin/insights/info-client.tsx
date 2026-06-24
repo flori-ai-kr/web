@@ -4,11 +4,10 @@ import {cn} from '@/lib/utils';
 import {PageHeader} from '@/components/layout/page-header';
 import {AuctionPanel} from './components/auction-panel';
 import {GrantsPanel} from './components/grants-panel';
-import {TrendsPanel} from './components/trends-panel';
 import {INFO_TABS, useInfoTabs, type InfoTab} from './hooks/use-info-tabs';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
 import type {GrantCategory, GrantProgram, GrantScrap} from '@/types/grants';
-import type {ScrapMap, TrendArticle, TrendCategory, TrendScrap} from '@/types/insights';
+import type {ScrapMap} from '@/types/insights';
 
 interface InfoClientProps {
   initialTab: InfoTab;
@@ -23,10 +22,6 @@ interface InfoClientProps {
   grants: GrantProgram[];
   grantScrapMap: ScrapMap;
   grantScraps: GrantScrap[];
-  // 트렌드·뉴스
-  trends: TrendArticle[];
-  trendScrapMap: ScrapMap;
-  trendScraps: TrendScrap[];
 }
 
 export function InfoClient({
@@ -40,9 +35,6 @@ export function InfoClient({
   grants,
   grantScrapMap,
   grantScraps,
-  trends,
-  trendScrapMap,
-  trendScraps,
 }: InfoClientProps) {
   const {tab, category, scrapedOnly, changeTab, changeFilter} = useInfoTabs({
     initialTab,
@@ -52,7 +44,7 @@ export function InfoClient({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-1 sm:px-6 sm:py-2">
-      <PageHeader title="인사이트" description="경매 시세 · 지원사업 · 트렌드" />
+      <PageHeader title="인사이트" description="경매 시세 · 지원사업" />
 
       {/* 메인 언더라인 탭 (= statistics 4탭 패턴) */}
       <div role="tablist" aria-label="인사이트 탭" className="flex gap-1 overflow-x-auto border-b border-border">
@@ -93,16 +85,6 @@ export function InfoClient({
             scrapMap={grantScrapMap}
             scrappedGrants={grantScraps}
             category={category as GrantCategory | null}
-            scrapedOnly={scrapedOnly}
-            onCategoryChange={changeFilter}
-          />
-        )}
-        {tab === 'trend' && (
-          <TrendsPanel
-            articles={trends}
-            scrapMap={trendScrapMap}
-            scrappedArticles={trendScraps}
-            category={category as TrendCategory | null}
             scrapedOnly={scrapedOnly}
             onCategoryChange={changeFilter}
           />

@@ -3,8 +3,6 @@
 import type {
   InsightScrap,
   ScrapTargetType,
-  TrendArticle,
-  TrendCategory,
 } from '@/types/database';
 
 export interface KotlinScrap {
@@ -16,19 +14,6 @@ export interface KotlinScrap {
   updatedAt: string;
 }
 
-export interface KotlinTrendArticle {
-  id: string;
-  category: TrendCategory;
-  title: string;
-  summary: string;
-  keyPoints: string[];
-  sourceUrl: string;
-  sourceName: string | null;
-  publishedAt: string | null;
-  collectedAt: string;
-  createdAt: string;
-}
-
 export function mapScrap(s: KotlinScrap): InsightScrap {
   return {
     id: s.id,
@@ -38,20 +23,5 @@ export function mapScrap(s: KotlinScrap): InsightScrap {
     memo: s.memo ?? null,
     created_at: s.createdAt,
     updated_at: s.updatedAt,
-  };
-}
-
-export function mapTrendArticle(a: KotlinTrendArticle): TrendArticle {
-  return {
-    id: a.id,
-    category: a.category,
-    title: a.title,
-    summary: a.summary,
-    key_points: a.keyPoints ?? [],
-    source_url: a.sourceUrl,
-    source_name: a.sourceName ?? null,
-    published_at: a.publishedAt ?? null,
-    collected_at: a.collectedAt,
-    created_at: a.createdAt,
   };
 }

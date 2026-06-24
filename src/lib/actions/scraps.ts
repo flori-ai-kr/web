@@ -11,28 +11,20 @@ import type {
     ScrapMap,
     ScrapTargetType,
     ScrapInfo,
-    TrendScrap,
 } from '@/types/database';
 import {
     type KotlinScrap,
-    type KotlinTrendArticle,
     mapScrap,
-    mapTrendArticle,
 } from '@/lib/api/insights-mappers';
 import {type KotlinGrantProgram, mapGrantProgram} from '@/lib/api/mappers/grants';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 공통 DTO/매퍼(KotlinScrap/TrendArticle/GrantProgram)는 mappers 에서 import.
+// 공통 DTO/매퍼(KotlinScrap/GrantProgram)는 mappers 에서 import.
 // 아래는 scraps 전용 합성 DTO만 정의한다.
 
 interface KotlinScrapInfo {
   id: string;
   memo: string | null;
-}
-
-interface KotlinTrendScrap {
-  scrap: KotlinScrap;
-  article: KotlinTrendArticle;
 }
 
 interface KotlinGrantScrap {
@@ -98,24 +90,6 @@ async function _getScrapMap(targetType: ScrapTargetType): Promise<ScrapMap> {
 
 export const getScrapMap = withErrorLogging('getScrapMap', _getScrapMap);
 
-async function _getTrendScraps(limit = 100): Promise<TrendScrap[]> {
-  await requireAuth();
-
-  const params = new URLSearchParams();
-  params.set('limit', String(limit));
-
-  const data = await apiFetch<KotlinTrendScrap[]>(
-    `/insights/scraps/trends?${params.toString()}`,
-  );
-
-  return (data ?? []).map((row) => ({
-    scrap: mapScrap(row.scrap),
-    article: mapTrendArticle(row.article),
-  }));
-}
-
-export const getTrendScraps = withErrorLogging('getTrendScraps', _getTrendScraps);
-
 async function _getGrantScraps(limit = 100): Promise<GrantScrap[]> {
   await requireAuth();
 
@@ -134,11 +108,11 @@ async function _getGrantScraps(limit = 100): Promise<GrantScrap[]> {
 
 export const getGrantScraps = withErrorLogging('getGrantScraps', _getGrantScraps);
 
-async function _getScrapCounts(): Promise<{ trend: number; grant: number }> {
+async function _getScrapCounts(): Promise<{ grant: number }> {
   await requireAuth();
 
-  const data = await apiFetch<{ trend: number; grant: number }>('/insights/scraps/counts');
-  return { trend: data.trend ?? 0, grant: data.grant ?? 0 };
+  const data = await apiFetch<{ grant: number }>('/insights/scraps/counts');
+  return { grant: data.grant ?? 0 };
 }
 
 export const getScrapCounts = withErrorLogging('getScrapCounts', _getScrapCounts);
