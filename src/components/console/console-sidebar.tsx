@@ -202,6 +202,7 @@ export function SidebarContent({
             type="button"
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+            aria-expanded={!isCollapsed}
             className={cn(
               'flex w-full items-center gap-2 rounded-lg text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
               isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'
@@ -238,14 +239,19 @@ export function SidebarContent({
 export function ConsoleSidebar({
   isCollapsed,
   onToggleCollapse,
+  mounted = false,
 }: {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  /** 마운트 전(첫 페인트)엔 트랜지션을 끄고 폭만 즉시 반영 → FOUC 방지 */
+  mounted?: boolean;
 }) {
   return (
     <aside
+      suppressHydrationWarning
       className={cn(
-        'hidden shrink-0 border-r border-border bg-card transition-[width] duration-200 ease-in-out md:block',
+        'hidden shrink-0 border-r border-border bg-card md:block',
+        mounted ? 'transition-[width] duration-200 ease-in-out' : 'transition-none',
         isCollapsed ? 'w-16 px-2 py-4' : 'w-60 p-4'
       )}
     >

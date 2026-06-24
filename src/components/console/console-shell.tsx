@@ -34,12 +34,15 @@ export function ConsoleShell({ userEmail, children }: { userEmail: string; child
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { title, subtitle } = metaFor(pathname);
 
-  // SSR 안전: 마운트 후 localStorage에서 초기값 동기화
+  // SSR 안전: 마운트 후 localStorage에서 초기값 동기화.
+  // mounted 플래그로 첫 페인트엔 트랜지션을 끄고(FOUC 방지), 폭만 즉시 반영.
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     if (stored === 'true') setCollapsed(true);
+    setMounted(true);
   }, []);
 
   const handleToggleCollapse = () => {
@@ -53,7 +56,11 @@ export function ConsoleShell({ userEmail, children }: { userEmail: string; child
   return (
     <div className="flex min-h-screen bg-muted">
       {/* 데스크톱: 항상 렌더(접힘 시 w-16 레일). 모바일은 hidden md:block로 Sheet 사용 */}
-      <ConsoleSidebar isCollapsed={collapsed} onToggleCollapse={handleToggleCollapse} />
+      <ConsoleSidebar
+        isCollapsed={collapsed}
+        onToggleCollapse={handleToggleCollapse}
+        mounted={mounted}
+      />
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 bg-card p-4">
