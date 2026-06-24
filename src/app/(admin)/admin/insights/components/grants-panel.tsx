@@ -111,7 +111,7 @@ export function GrantsPanel({
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start">
           {displayPrograms.map((program) => (
             <GrantCard
-              key={program.id}
+              key={`${program.id}-${scrapedOnly ? 'scrap' : 'all'}`}
               program={program}
               scraped={scrapedOnly ? true : !!scrapMap[program.id]}
             />

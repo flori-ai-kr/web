@@ -17,6 +17,8 @@ export function GrantCard({program, scraped}: GrantCardProps) {
   const [open, setOpen] = useState(false);
   const cat = GRANT_CATEGORIES.find((c) => c.value === program.category);
   const dday = ddayMeta(program.d_day);
+  // 외부 URL은 http(s)만 신뢰(서버도 적재 시 검증하나 이중 방어). 그 외 스킴이면 링크 미노출.
+  const sourceUrl = /^https?:\/\//i.test(program.source_url) ? program.source_url : null;
 
   return (
     <>
@@ -61,15 +63,17 @@ export function GrantCard({program, scraped}: GrantCardProps) {
           <p className="mt-1 line-clamp-3 pr-7 text-[12.5px] text-muted-foreground">{program.summary}</p>
         )}
 
-        <a
-          href={program.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-brand hover:underline"
-        >
-          원문 보기
-          <ExternalLink className="h-3 w-3" aria-hidden />
-        </a>
+        {sourceUrl && (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-brand hover:underline"
+          >
+            원문 보기
+            <ExternalLink className="h-3 w-3" aria-hidden />
+          </a>
+        )}
 
         {/* 스크랩 토글 — 카드 onClick 가드(closest('a,button'))로 모달과 분리 */}
         <div className="absolute right-3 top-3">

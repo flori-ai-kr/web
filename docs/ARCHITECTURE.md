@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-11 | refactor/with-fable5: Playwright e2e(mock BFF) 신설, types 도메인 8분할, lib/api/mappers/ 통합, hooks/ 공용 훅 2종(use-infinite-list·use-quick-create), 4개 거대 클라이언트 분해(≤300줄), 파일명 kebab-case + colocation 정비, ESLint ignore 정비(0 errors)
+> 최종 업데이트: 2026-06-25 | session1-cleanup: 인사이트 트렌드 탭 제거 → 경매시세·지원사업 2탭. 경매 품목 북마크(낙관적), 지원사업 카드 클릭 상세 모달·데스크탑 2단 그리드·서버 검색. `ScrapTargetType`=grant만. trend_articles·instagram_* 테이블/타입/액션 제거
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -24,7 +24,7 @@ graph TB
 
     subgraph External
         DC["Discord Webhook<br/>에러 로깅"]
-        RT["인제스트 루틴<br/>(트렌드·인스타 수집)"]
+        RT["인제스트 루틴<br/>(지원사업 수집)"]
     end
 
     subgraph KotlinBFF["Kotlin BFF (flori-ai/server)"]
@@ -98,7 +98,7 @@ graph TB
 2. **멀티 플랫폼**: 동일 API를 Flutter 모바일 앱과 web이 함께 사용한다. 데이터 모델·검증·집계를 한 곳에서 관리한다.
 3. **토큰 격리**: 인증 JWT는 httpOnly 쿠키(`flori_access`/`flori_refresh`)에 보관되고 서버 레이어에서만 Authorization 헤더로 부착된다. 브라우저에 노출되지 않는다.
 
-**데이터 접근**: `src/lib/api/client.ts` 의 `apiFetch`(사용자 JWT)가 유일한 데이터 경로다. 서버에 사용자용 엔드포인트가 없는 관리 작업(인스타 계정 CRUD)만 `apiFetchInternal`(Bearer `INTERNAL_API_KEY`)로 BFF `/internal/*` 를 호출한다.
+**데이터 접근**: `src/lib/api/client.ts` 의 `apiFetch`(사용자 JWT)가 유일한 데이터 경로다. 서버에 사용자용 엔드포인트가 없는 내부 관리 작업만 `apiFetchInternal`(Bearer `INTERNAL_API_KEY`)로 BFF `/internal/*` 를 호출한다.
 
 **멀티 테넌시**: 테넌트 격리는 BFF가 JWT 기준으로 수행한다. DB 스키마(아래 'DB 스키마')의 `user_id` 컬럼·복합 UNIQUE 제약은 BFF가 소유·적용하며, web 코드에는 더 이상 `user_id` 삽입이 없다.
 
@@ -566,37 +566,6 @@ erDiagram
         timestamptz updated_at
     }
 
-    trend_articles {
-        uuid id PK
-        string title
-        string category
-        text summary
-        string source_url
-        string image_url
-        jsonb tags
-        timestamptz published_at
-        timestamptz created_at
-    }
-
-    instagram_accounts {
-        uuid id PK
-        string username UK
-        string display_name
-        string profile_image_url
-        bool is_active
-    }
-
-    instagram_posts {
-        uuid id PK
-        uuid account_id FK
-        string post_id UK
-        string caption
-        jsonb image_urls "배열 (멀티 이미지)"
-        string permalink
-        timestamptz posted_at
-        timestamptz created_at
-    }
-
     user_preferences {
         uuid id PK
         uuid user_id FK "UK"
@@ -607,8 +576,8 @@ erDiagram
     insight_scraps {
         uuid id PK
         uuid user_id FK
-        string target_type "trend | post"
-        uuid target_id "trend_articles.id or instagram_posts.id (polymorphic, FK 없음)"
+        string target_type "grant (트렌드·인스타 제거됨)"
+        uuid target_id "support_programs.id (polymorphic, FK 없음)"
         text memo
         timestamptz created_at
     }
@@ -618,7 +587,7 @@ erDiagram
 
 모든 주요 테이블에 `user_id` 컬럼이 있고, BFF가 JWT 기준으로 사용자별 데이터를 격리한다. UNIQUE 제약조건은 `(value, user_id)` 복합키로 걸어서 사용자별 독립적인 카테고리/결제방식/카드사 설정을 지원한다.
 
-인사이트 공유 테이블(`trend_articles`, `instagram_accounts`, `instagram_posts`)은 `user_id` 없이 전체 공유(읽기)이며, 쓰기는 BFF 내부 API(`/internal/*`)만 허용된다. `user_preferences`와 `insight_scraps`는 `user_id` 기준 per-user. `insight_scraps.target_id`는 `trend_articles.id` 또는 `instagram_posts.id`를 가리키는 polymorphic 참조로, FK 없이 2단계 조회로 처리한다. UNIQUE 제약 `(user_id, target_type, target_id)`로 중복 스크랩을 방지한다.
+`user_preferences`와 `insight_scraps`는 `user_id` 기준 per-user. `insight_scraps.target_type`은 `grant`만(트렌드·인스타 스크랩 제거됨). UNIQUE 제약 `(user_id, target_type, target_id)`로 중복 스크랩을 방지한다. 경매 품목 북마크는 `insight_scraps`와 분리된 별도 엔드포인트(`/insights/auction/scraps`)로 관리한다.
 
 ---
 
@@ -635,10 +604,7 @@ erDiagram
 | `/admin/deposits` | 입금 대조 | 카드 결제 입금 확인/취소 |
 | `/admin/gallery` | 사진첩 | 앨범 표지 카드(표지+장수배지+메모아이콘+캡션) + 기간 헤더(월네비+셀렉터, created_at 기준) + 총계 헤더(N개·M장) + #해시태그(색상 없음, 카드당 최대 3) + 월별 섹션 + ?card= 딥링크 + FAB(카드추가/태그관리) + 고객 딥링크·customer_id 직접 필터 |
 | `/admin/calendar` | 예약 캘린더 | 예약 CRUD + 일정(schedules) + 리마인더 + 매출 자동 생성(id 기반) + 픽업 완료 토글 |
-| `/admin/insights` | 인사이트 | 랜딩 (트렌드/팔로우/스크랩 섹션 소개) |
-| `/admin/insights/trends` | 트렌드 | 트렌드 아티클 목록 (카테고리 필터) |
-| `/admin/insights/follows` | 팔로우 | 인스타그램 피드 (계정별, PostDetailDialog 캐러셀) |
-| `/admin/insights/scraps` | 스크랩 | 스크랩한 아티클·포스트 목록 (메모 포함) |
+| `/admin/insights` | 인사이트 | 경매시세·지원사업 2탭 (`?tab=price|grant`). 경매시세: 화훼구분 칩(스크랩/전체/절화/관엽/난)·날짜 네비·품목 검색·드릴다운·품목 북마크. 지원사업: 데스크탑 2단 그리드·카드 클릭 상세 모달·서버 검색. 트렌드·팔로우 탭 제거됨 |
 | `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 `ensureCommunityAccess()` — APPROVED 아니면 /verify 리다이렉트(전원 인증, 운영자 예외 없음). 운영자 작성물에 "관리자" 칩 표시 |
 | `/admin/community/verify` | 사업자 인증 | 사업자등록증 업로드 + 심사 상태 표시 (`BusinessVerificationGate`). APPROVED 상태이면 /admin/community로 리다이렉트 |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
@@ -648,7 +614,7 @@ erDiagram
 | `/login` | 로그인 | 소셜 전용 (카카오·네이버·구글 버튼, 이메일/비밀번호 제거됨) |
 | `/healthz` | 헬스체크 | ALB/Docker 헬스체크 전용. 외부 의존 없는 정적 200 반환. |
 
-> 예약 리마인더·고정비 생성(구 `/api/cron/*`)과 트렌드·인스타 수집(구 `/api/internal/*`)은 web에서 제거되어 Kotlin BFF가 담당한다(`@Scheduled` + `/internal/*`).
+> 예약 리마인더·고정비 생성(구 `/api/cron/*`)과 지원사업 수집(구 `/api/internal/*`)은 web에서 제거되어 Kotlin BFF가 담당한다(`@Scheduled` + `/internal/*`). 트렌드·인스타 수집 루틴은 폐기됨.
 
 ## 네비게이션 구조
 
@@ -682,8 +648,10 @@ erDiagram
 | `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels, createSaleCategory, updateSaleCategory, deleteSaleCategory, **reorderSaleCategories** (`PUT /settings/sale-categories/order`), createPaymentMethod, updatePaymentMethod, deletePaymentMethod, **reorderPaymentMethods** (`PUT /settings/payment-methods/order`), createSaleChannel, updateSaleChannel, deleteSaleChannel, **reorderSaleChannels** (`PUT /settings/sale-channels/order`) |
 | `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory, **reorderExpenseCategories** (`PUT /settings/expense-categories/order`), createExpensePaymentMethod, updateExpensePaymentMethod, deleteExpensePaymentMethod, **reorderExpensePaymentMethods** (`PUT /settings/expense-payment-methods/order`) |
 | `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
-| `insights.ts` | getTrendArticles, getRecentTrendsByCategory, getTrendCountsByCategory, getInstagramAccounts, createInstagramAccount, updateInstagramAccount, deleteInstagramAccount, getInstagramPosts, getLatestInstagramTimestamp, getUserPreferences, updateBottomNavItems |
-| `scraps.ts` | getScraps, createScrap, deleteScrap, updateScrapMemo, isScraped, getScrapCount |
+| `insights.ts` | getUserPreferences, updateBottomNavItems |
+| `auction.ts` | getAuctionCategories, getAuctionDates, getAuctionSummary, getAuctionPrices, getAuctionItemScraps (`/insights/auction/scraps`), toggleAuctionItemScrap (`/insights/auction/scraps/toggle`) |
+| `grants.ts` | getGrants, loadMoreGrants (keyword 서버 검색 지원) |
+| `scraps.ts` | toggleScrap, updateScrapMemo, getScrapMap, getGrantScraps, getScrapCounts — `target_type`은 `grant`만 |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 

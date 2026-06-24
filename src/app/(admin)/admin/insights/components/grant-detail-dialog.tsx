@@ -28,6 +28,8 @@ export function GrantDetailDialog({program, open, onClose, scraped}: GrantDetail
   if (!program) return null;
   const cat = GRANT_CATEGORIES.find((c) => c.value === program.category);
   const dday = ddayMeta(program.d_day);
+  // 외부 URL은 http(s)만 신뢰(서버 적재 검증과 이중 방어). 그 외 스킴이면 링크 미노출.
+  const sourceUrl = /^https?:\/\//i.test(program.source_url) ? program.source_url : null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -72,15 +74,17 @@ export function GrantDetailDialog({program, open, onClose, scraped}: GrantDetail
             <span>신청기간 · {formatPeriod(program.apply_start, program.apply_end)}</span>
             <div className="flex shrink-0 items-center gap-3">
               <ScrapButton targetType="grant" targetId={program.id} scraped={scraped} size="sm" label="스크랩" />
-              <a
-                href={program.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
-              >
-                원문 보기
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-              </a>
+              {sourceUrl && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
+                >
+                  원문 보기
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                </a>
+              )}
             </div>
           </div>
         </div>
