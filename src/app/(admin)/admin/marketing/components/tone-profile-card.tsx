@@ -23,7 +23,7 @@ const MAX_LEN = 4000;
  * 말투 등록 — 내 블로그 글 1~3개를 붙여넣으면 다음 초안부터 그 말투로 작성된다.
  * 게이트웨이 tone_profile에 upsert. 빈 슬롯은 저장 시 제거.
  */
-export function ToneProfileCard() {
+export function ToneProfileCard({onSaved}: {onSaved?: () => void} = {}) {
   const [samples, setSamples] = useState<string[]>(['']);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,6 +71,7 @@ export function ToneProfileCard() {
       toast.success(
         cleaned.length > 0 ? '말투를 저장했어요. 다음 초안부터 적용돼요.' : '말투 샘플을 모두 비웠어요.',
       );
+      onSaved?.();
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '말투 저장에 실패했어요.');
     } finally {
