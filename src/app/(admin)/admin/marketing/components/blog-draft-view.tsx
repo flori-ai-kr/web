@@ -1,20 +1,16 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {Check, Copy, FileText, Pencil, RotateCcw} from 'lucide-react';
+import {Check, Copy, FileText, Pencil} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Textarea} from '@/components/ui/textarea';
-import {cn} from '@/lib/utils';
 import type {BlogDraft} from '@/types/marketing';
 
 interface BlogDraftViewProps {
   draft: BlogDraft;
   /** 인라인 편집 결과를 부모에 반영(목록 캐시·재복사 일관성). */
   onChange?: (draft: BlogDraft) => void;
-  /** "다시 생성" — 같은 입력으로 재요청. 미지정 시 버튼 숨김. */
-  onRegenerate?: () => void;
-  regenerating?: boolean;
 }
 
 /** draft → 네이버에 붙여넣기 좋은 평문(제목·본문·FAQ·해시태그). */
@@ -69,7 +65,7 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
   );
 }
 
-export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: BlogDraftViewProps) {
+export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
   const [editing, setEditing] = useState(false);
   // 편집 중 임시 상태 — 저장 시에만 부모로 commit.
   const [local, setLocal] = useState<BlogDraft>(draft);
@@ -101,22 +97,9 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <FileText className="h-3.5 w-3.5" />
-          네이버 블로그에 복붙해서 쓰세요 · 자동 업로드는 없어요
+          필요한 부분을 복사해서 사용하세요.
         </p>
         <div className="flex items-center gap-1.5">
-          {onRegenerate && !editing && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={onRegenerate}
-              disabled={regenerating}
-            >
-              <RotateCcw className={cn('h-4 w-4', regenerating && 'animate-spin')} />
-              다시 생성
-            </Button>
-          )}
           {onChange &&
             (editing ? (
               <>

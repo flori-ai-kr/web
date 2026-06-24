@@ -1,13 +1,14 @@
 'use client';
 
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {Flower2, Loader2, Sparkles, Wand2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {Skeleton} from '@/components/ui/skeleton';
-import {generateBlogDraft} from '@/lib/actions/marketing';
+import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
+import {generateBlogDraft, getToneProfile} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
 import type {BlogContentDetail, BlogDraft, GenerateBlogInput} from '@/types/marketing';
 import {PhotoPicker} from './components/photo-picker';
@@ -32,11 +33,32 @@ export function MarketingClient() {
 
   const [generating, setGenerating] = useState(false);
   const [draft, setDraft] = useState<BlogDraft | null>(null);
-  // 결과 메타(목록에서 연 항목 표시·"다시 생성"용 마지막 입력)
-  const [lastInput, setLastInput] = useState<GenerateBlogInput | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
+  // 블로그 말투 설정(모달) — 적용 여부 배지용 카운트는 부모가 직접 조회/갱신.
+  const [toneOpen, setToneOpen] = useState(false);
+  const [toneCount, setToneCount] = useState(0);
+
   const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    getToneProfile()
+      .then((p) => active && setToneCount(p.samples.length))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function onToneOpenChange(open: boolean) {
+    setToneOpen(open);
+    if (!open) {
+      getToneProfile()
+        .then((p) => setToneCount(p.samples.length))
+        .catch(() => {});
+    }
+  }
 
   async function run(input: GenerateBlogInput) {
     setGenerating(true);
@@ -46,7 +68,6 @@ export function MarketingClient() {
     try {
       const res = await generateBlogDraft(input);
       setDraft(res.draft);
-      setLastInput(input);
       setHistoryKey((k) => k + 1);
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '초안 생성에 실패했어요. 잠시 후 다시 시도해 주세요.');
@@ -70,18 +91,8 @@ export function MarketingClient() {
     });
   }
 
-  function regenerate() {
-    if (lastInput) run(lastInput);
-  }
-
   function openHistory(detail: BlogContentDetail) {
     setDraft(detail.draft);
-    setLastInput({
-      keyword: detail.keyword,
-      situation: detail.situation ?? undefined,
-      memo: detail.memo ?? undefined,
-      photoUrls: detail.photoUrls.length > 0 ? detail.photoUrls : undefined,
-    });
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
   }
 
@@ -104,6 +115,18 @@ export function MarketingClient() {
             <Sparkles className="h-3 w-3" aria-hidden="true" />
             Premium
           </span>
+          <button
+            type="button"
+            onClick={() => setToneOpen(true)}
+            className={`ml-auto flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              toneCount > 0
+                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                : 'bg-brand-muted text-brand hover:opacity-90'
+            }`}
+          >
+            <Sparkles className="h-3 w-3" aria-hidden="true" />
+            {toneCount > 0 ? '말투 적용됨' : '블로그 말투 설정'}
+          </button>
         </div>
         <p className="text-sm text-muted-foreground">
           사진과 키워드만 주면, 내 말투로 쓴 네이버 검색 최적화 블로그 초안을 만들어 드려요.
@@ -188,12 +211,7 @@ export function MarketingClient() {
           {generating ? (
             <GeneratingSkeleton />
           ) : draft ? (
-            <BlogDraftView
-              draft={draft}
-              onChange={setDraft}
-              onRegenerate={regenerate}
-              regenerating={generating}
-            />
+            <BlogDraftView draft={draft} onChange={setDraft} />
           ) : (
             <EmptyResult />
           )}
@@ -206,11 +224,13 @@ export function MarketingClient() {
         <BlogHistory refreshKey={historyKey} onOpen={openHistory} />
       </section>
 
-      {/* 말투 설정 */}
-      <section aria-label="말투 설정" className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground">말투 설정</h2>
-        <ToneProfileCard />
-      </section>
+      {/* 블로그 말투 설정 모달 */}
+      <Dialog open={toneOpen} onOpenChange={onToneOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="sr-only">블로그 말투 설정</DialogTitle>
+          <ToneProfileCard />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

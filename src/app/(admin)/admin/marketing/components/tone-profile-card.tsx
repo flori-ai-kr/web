@@ -3,7 +3,6 @@
 import {useEffect, useState} from 'react';
 import {Loader2, Plus, Save, Sparkles, Trash2} from 'lucide-react';
 import {toast} from 'sonner';
-import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Textarea} from '@/components/ui/textarea';
 import {getToneProfile, saveToneProfile} from '@/lib/actions/marketing';
@@ -73,24 +72,23 @@ export function ToneProfileCard() {
   const filledCount = samples.filter((s) => s.trim().length > 0).length;
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-4 sm:p-5">
-        <div className="flex items-start gap-2.5">
-          <span
-            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-            style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
-            aria-hidden="true"
-          >
-            <Sparkles className="h-4 w-4 text-white" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">내 말투 설정</h3>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              내가 쓴 블로그 글을 1~3개 붙여넣으면, AI가 그 말투를 학습해 비슷한 톤으로 초안을 써요. 저장된 말투는
-              초안을 만들 때 자동으로 적용됩니다.
-            </p>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-start gap-2.5">
+        <span
+          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
+          aria-hidden="true"
+        >
+          <Sparkles className="h-4 w-4 text-white" />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">블로그 말투 설정</h3>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            사장님이 쓴 블로그 글을 1~3개 붙여넣으면, AI가 그 말투를 학습해 비슷한 톤으로 초안을 써요. 저장된 말투는
+            초안을 만들 때 자동으로 적용됩니다.
+          </p>
         </div>
+      </div>
 
         {loading ? (
           <div className="space-y-2">
@@ -146,7 +144,6 @@ export function ToneProfileCard() {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
