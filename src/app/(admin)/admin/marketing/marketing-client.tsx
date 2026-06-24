@@ -199,7 +199,7 @@ export function MarketingClient() {
                   maxLength={SITUATION_MAX}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  시즌·기념일을 적으면 그 맥락에 맞춰 써드려요.
+                  상황, 시즌 등을 적으면 그 맥락에 맞춰 써드려요.
                 </p>
               </div>
 

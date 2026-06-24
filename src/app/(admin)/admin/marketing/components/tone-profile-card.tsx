@@ -157,7 +157,7 @@ export function ToneProfileCard() {
       <Dialog open={deleteIndex !== null} onOpenChange={(o) => !o && setDeleteIndex(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>말투 샘플을 삭제할까요?</DialogTitle>
+            <DialogTitle>글 샘플을 삭제할까요?</DialogTitle>
             <DialogDescription>붙여넣은 글 샘플이 삭제됩니다. 저장하면 적용돼요.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">

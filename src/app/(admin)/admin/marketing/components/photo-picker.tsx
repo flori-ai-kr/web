@@ -70,7 +70,6 @@ export function PhotoPicker({selected, onChange}: PhotoPickerProps) {
           </button>
         )}
       </div>
-      <p className="text-[11px] text-muted-foreground">사진은 선택 사항이에요.</p>
 
       <PhotoPickerDialog
         open={open}
