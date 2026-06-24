@@ -108,7 +108,7 @@ export function GrantsPanel({
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start">
           {displayPrograms.map((program) => (
             <GrantCard
               key={program.id}

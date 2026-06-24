@@ -45,12 +45,12 @@ export function GrantCard({program, scraped}: GrantCardProps) {
         </span>
       </div>
 
-      <h4 className="pr-7 text-sm font-semibold text-foreground">{program.title}</h4>
+      <h4 className="line-clamp-2 pr-7 text-sm font-semibold text-foreground">{program.title}</h4>
       {program.target && (
-        <p className="mt-1 pr-7 text-[12.5px] text-muted-foreground">{program.target}</p>
+        <p className="mt-1 line-clamp-1 pr-7 text-[12.5px] text-muted-foreground">{program.target}</p>
       )}
       {program.summary && (
-        <p className="mt-1 pr-7 text-[12.5px] text-muted-foreground">{program.summary}</p>
+        <p className="mt-1 line-clamp-3 pr-7 text-[12.5px] text-muted-foreground">{program.summary}</p>
       )}
 
       <a
