@@ -88,9 +88,9 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
             <TableRow>
               <TableHead>버전</TableHead>
               <TableHead>모델</TableHead>
-              <TableHead className="text-right">temp</TableHead>
-              <TableHead className="hidden lg:table-cell">메모</TableHead>
-              <TableHead className="hidden md:table-cell">수정일</TableHead>
+              <TableHead>temp</TableHead>
+              <TableHead className="w-full">메모</TableHead>
+              <TableHead className="hidden lg:table-cell">수정일</TableHead>
               <TableHead className="sticky right-0 bg-card text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
@@ -110,11 +110,11 @@ export function PromptsClient({ initial }: { initial: PromptSummary[] }) {
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{modelLabel(p.model)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{tempLabel(p.temperature)}</TableCell>
-                  <TableCell className="hidden max-w-[16rem] truncate text-sm text-muted-foreground lg:table-cell">
+                  <TableCell className="tabular-nums">{tempLabel(p.temperature)}</TableCell>
+                  <TableCell className="w-full max-w-0 truncate text-sm text-muted-foreground">
                     {p.notes ?? '-'}
                   </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                  <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
                     {p.updatedAt?.slice(0, 10) ?? '-'}
                   </TableCell>
                   <TableCell className="sticky right-0 border-l border-border bg-card group-hover:bg-muted/50">
