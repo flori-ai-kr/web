@@ -3,8 +3,15 @@
 import {useEffect, useState} from 'react';
 import {Loader2, Plus, Save, Sparkles, Trash2} from 'lucide-react';
 import {toast} from 'sonner';
-import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {Textarea} from '@/components/ui/textarea';
 import {getToneProfile, saveToneProfile} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
@@ -16,10 +23,11 @@ const MAX_LEN = 4000;
  * 말투 등록 — 내 블로그 글 1~3개를 붙여넣으면 다음 초안부터 그 말투로 작성된다.
  * 게이트웨이 tone_profile에 upsert. 빈 슬롯은 저장 시 제거.
  */
-export function ToneProfileCard() {
+export function ToneProfileCard({onSaved}: {onSaved?: () => void} = {}) {
   const [samples, setSamples] = useState<string[]>(['']);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +71,7 @@ export function ToneProfileCard() {
       toast.success(
         cleaned.length > 0 ? '말투를 저장했어요. 다음 초안부터 적용돼요.' : '말투 샘플을 모두 비웠어요.',
       );
+      onSaved?.();
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '말투 저장에 실패했어요.');
     } finally {
@@ -73,24 +82,23 @@ export function ToneProfileCard() {
   const filledCount = samples.filter((s) => s.trim().length > 0).length;
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-4 sm:p-5">
-        <div className="flex items-start gap-2.5">
-          <span
-            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-            style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
-            aria-hidden="true"
-          >
-            <Sparkles className="h-4 w-4 text-white" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">내 말투 설정</h3>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              내가 쓴 블로그 글을 1~3개 붙여넣으면, AI가 그 말투를 학습해 비슷한 톤으로 초안을 써요. 저장된 말투는
-              초안을 만들 때 자동으로 적용됩니다.
-            </p>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-start gap-2.5">
+        <span
+          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
+          aria-hidden="true"
+        >
+          <Sparkles className="h-4 w-4 text-white" />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">블로그 말투 설정</h3>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            사장님이 쓴 블로그 글을 1~3개 붙여넣으면, AI가 그 말투를 학습해 비슷한 톤으로 초안을 써요. 저장된 말투는
+            초안을 만들 때 자동으로 적용됩니다.
+          </p>
         </div>
+      </div>
 
         {loading ? (
           <div className="space-y-2">
@@ -107,7 +115,7 @@ export function ToneProfileCard() {
                   {(samples.length > 1 || sample.trim().length > 0) && (
                     <button
                       type="button"
-                      onClick={() => removeSlot(i)}
+                      onClick={() => (sample.trim().length > 0 ? setDeleteIndex(i) : removeSlot(i))}
                       className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-destructive"
                       aria-label={`글 샘플 ${i + 1} 삭제`}
                     >
@@ -146,7 +154,29 @@ export function ToneProfileCard() {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+
+      <Dialog open={deleteIndex !== null} onOpenChange={(o) => !o && setDeleteIndex(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>글 샘플을 삭제할까요?</DialogTitle>
+            <DialogDescription>붙여넣은 글 샘플이 삭제됩니다. 저장하면 적용돼요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteIndex(null)}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteIndex !== null) removeSlot(deleteIndex);
+                setDeleteIndex(null);
+              }}
+            >
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

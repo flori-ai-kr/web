@@ -18,12 +18,17 @@ const META: Record<string, { title: string; subtitle: string }> = {
   '/console/announcements': { title: '공지 배너', subtitle: '앱 내 모달·상단바 공지 관리' },
   '/console/inquiries': { title: '문의 인박스', subtitle: '1:1 문의 · 피드백 처리' },
   '/console/audit-logs': { title: '감사 로그', subtitle: '운영자 액션 추적' },
+  '/console/prompts': { title: 'AI 프롬프트', subtitle: '마케팅 생성 프롬프트 버전·활성화·플레이그라운드' },
+  '/console/prompts/new': { title: 'AI 프롬프트', subtitle: '새 버전 작성' },
   // [AI 기능 비활성화] '/console/health': { title: 'AI 헬스', subtitle: 'ai-server / litellm 상태' },
 };
 
 function metaFor(pathname: string) {
   if (pathname.startsWith('/console/users/')) {
     return { title: '유저 상세', subtitle: '점주 운영 정보' };
+  }
+  if (pathname.startsWith('/console/prompts/')) {
+    return META[pathname] ?? { title: 'AI 프롬프트', subtitle: '버전 편집 · 플레이그라운드' };
   }
   return META[pathname] ?? { title: '운영 콘솔', subtitle: '' };
 }

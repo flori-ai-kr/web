@@ -1,20 +1,16 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {Check, Copy, FileText, Pencil, RotateCcw} from 'lucide-react';
+import {Check, Copy, FileText, Pencil} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Textarea} from '@/components/ui/textarea';
-import {cn} from '@/lib/utils';
 import type {BlogDraft} from '@/types/marketing';
 
 interface BlogDraftViewProps {
   draft: BlogDraft;
   /** 인라인 편집 결과를 부모에 반영(목록 캐시·재복사 일관성). */
   onChange?: (draft: BlogDraft) => void;
-  /** "다시 생성" — 같은 입력으로 재요청. 미지정 시 버튼 숨김. */
-  onRegenerate?: () => void;
-  regenerating?: boolean;
 }
 
 /** draft → 네이버에 붙여넣기 좋은 평문(제목·본문·FAQ·해시태그). */
@@ -55,9 +51,9 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
   return (
     <Button
       type="button"
-      variant={full ? 'brand' : 'ghost'}
+      variant={full ? 'brand' : 'outline'}
       size="sm"
-      className="gap-1.5"
+      className={full ? 'gap-1.5' : 'gap-1.5 border-foreground/30 text-muted-foreground'}
       onClick={async () => {
         await copyText(text, label);
         setCopied(true);
@@ -69,7 +65,7 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
   );
 }
 
-export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: BlogDraftViewProps) {
+export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
   const [editing, setEditing] = useState(false);
   // 편집 중 임시 상태 — 저장 시에만 부모로 commit.
   const [local, setLocal] = useState<BlogDraft>(draft);
@@ -96,52 +92,31 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
   }
 
   return (
-    <div className="space-y-4">
-      {/* 액션 바 */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <FileText className="h-3.5 w-3.5" />
-          네이버 블로그에 복붙해서 쓰세요 · 자동 업로드는 없어요
-        </p>
-        <div className="flex items-center gap-1.5">
-          {onRegenerate && !editing && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={onRegenerate}
-              disabled={regenerating}
-            >
-              <RotateCcw className={cn('h-4 w-4', regenerating && 'animate-spin')} />
-              다시 생성
-            </Button>
-          )}
-          {onChange &&
-            (editing ? (
-              <>
-                <Button type="button" variant="ghost" size="sm" onClick={cancel}>
-                  취소
-                </Button>
-                <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit}>
-                  <Check className="h-4 w-4" />
-                  수정 완료
-                </Button>
-              </>
-            ) : (
-              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
-                <Pencil className="h-4 w-4" />
-                편집
+    <article className="rounded-2xl border border-border bg-card p-5 sm:p-7">
+      {/* 액션 (편집/복사) — 우측 상단. 결과 카드 상단을 작성 폼과 정렬 */}
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-1.5">
+        {onChange &&
+          (editing ? (
+            <>
+              <Button type="button" variant="ghost" size="sm" onClick={cancel}>
+                취소
               </Button>
-            ))}
-          {!editing && <CopyButton text={draftToPlainText(draft)} label="전체 글" full />}
-        </div>
+              <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit}>
+                <Check className="h-4 w-4" />
+                수정 완료
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" />
+              편집
+            </Button>
+          ))}
+        {!editing && <CopyButton text={draftToPlainText(draft)} label="전체 글" full />}
       </div>
 
-      {/* 블로그처럼 보이는 본문 */}
-      <article className="rounded-2xl border border-border bg-card p-5 sm:p-7">
-        {/* 제목 */}
-        <header className="group/title mb-6 border-b border-border pb-5">
+      {/* 제목 */}
+      <header className="group/title mb-6 border-b border-border pb-5">
           {editing ? (
             <Textarea
               value={local.title}
@@ -155,7 +130,7 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
               <h1 className="text-xl font-bold leading-snug tracking-tight text-foreground sm:text-2xl">
                 {view.title}
               </h1>
-              <div className="opacity-0 transition-opacity group-hover/title:opacity-100 focus-within:opacity-100">
+              <div className="shrink-0">
                 <CopyButton text={view.title} label="제목" />
               </div>
             </div>
@@ -182,7 +157,7 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
                 ) : (
                   <>
                     <h2 className="text-base font-bold text-foreground sm:text-lg">{section.heading}</h2>
-                    <div className="opacity-0 transition-opacity group-hover/section:opacity-100 focus-within:opacity-100">
+                    <div className="shrink-0">
                       <CopyButton text={`${section.heading}\n${section.body}`} label={`${i + 1}번째 단락`} />
                     </div>
                   </>
@@ -210,7 +185,15 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
         {/* FAQ */}
         {view.faq.length > 0 && (
           <div className="mt-8 border-t border-border pt-6">
-            <h2 className="mb-3 text-base font-bold text-foreground sm:text-lg">자주 묻는 질문</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold text-foreground sm:text-lg">자주 묻는 질문</h2>
+              {!editing && (
+                <CopyButton
+                  text={view.faq.map((f) => `Q. ${f.q}\nA. ${f.a}`).join('\n\n')}
+                  label="자주 묻는 질문"
+                />
+              )}
+            </div>
             <dl className="space-y-3">
               {view.faq.map((f, i) => (
                 <div key={i} className="rounded-xl bg-muted/40 p-3.5">
@@ -288,7 +271,12 @@ export function BlogDraftView({draft, onChange, onRegenerate, regenerating}: Blo
             )}
           </div>
         )}
+
+        {/* 안내 — 하단 */}
+        <p className="mt-6 flex items-center gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
+          <FileText className="h-3.5 w-3.5" />
+          필요한 부분을 복사해서 사용하세요.
+        </p>
       </article>
-    </div>
   );
 }
