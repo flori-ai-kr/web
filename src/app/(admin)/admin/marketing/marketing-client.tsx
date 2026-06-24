@@ -254,7 +254,7 @@ export function MarketingClient() {
 
       {/* 블로그 말투 설정 모달 */}
       <Dialog open={toneOpen} onOpenChange={setToneOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogTitle className="sr-only">블로그 말투 설정</DialogTitle>
           <ToneProfileCard onSaved={() => setToneOpen(false)} />
         </DialogContent>
