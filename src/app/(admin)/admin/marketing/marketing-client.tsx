@@ -79,32 +79,23 @@ export function MarketingClient() {
 
   return (
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
-      {/* 헤더 */}
-      <header className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            <span className="text-brand">AI</span> 블로그 글쓰기
-          </h1>
-          <span
-            className="premium-badge flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-white shadow-sm"
-            style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
-          >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            Premium
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setToneOpen(true)}
-            className="ml-auto shrink-0 gap-1.5 border-brand/40 bg-brand-muted text-brand hover:border-brand hover:bg-brand-muted hover:text-brand"
-          >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            블로그 말투 설정
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          사진과 키워드만 주면, 사장님 말투로 쓴{' '}
+      {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              <span className="text-brand">AI</span> 블로그 글쓰기
+            </h1>
+            <span
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-white shadow-sm"
+              style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              Premium
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            사진과 키워드만 주면, 사장님 말투로 쓴{' '}
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -132,8 +123,7 @@ export function MarketingClient() {
                   <li>· 손님이 자주 검색하는 질문(가격·추천·관리법 등)을 소제목으로 만들어요</li>
                   <li>· 문단마다 궁금증을 바로 풀어줘서 끝까지 읽기 좋아요</li>
                   <li>· 여러 검색어에 걸리도록 다양한 질문을 골고루 담아요</li>
-                  <li>· 꽃 이름·동네·가게 이름을 자연스럽게 넣어요 (억지 반복은 안 해요)</li>
-                  <li>· 우리 가게 이야기를 사장님이 직접 쓴 것처럼 담아요</li>
+                  <li>· 꽃 이름·동네·가게 이름을 자연스럽게 넣어요 (억지 반복은 하지 않아요)</li>
                   <li>· 자주 묻는 질문(FAQ)과 해시태그까지 자동으로 붙여요</li>
                 </ul>
                 <p className="border-t border-border pt-2 text-[11px] text-muted-foreground">
@@ -142,8 +132,19 @@ export function MarketingClient() {
               </div>
             </PopoverContent>
           </Popover>{' '}
-          블로그 초안을 만들어 드려요.
-        </p>
+            블로그 초안을 만들어 드려요.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setToneOpen(true)}
+          className="shrink-0 gap-1.5 self-start border-brand/40 bg-brand-muted text-brand hover:border-brand hover:bg-brand-muted hover:text-brand"
+        >
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          블로그 말투 설정
+        </Button>
       </header>
 
       {/* 2-pane: 작성 폼 ↔ 결과 미리보기 (모바일은 세로 스택) */}
@@ -154,7 +155,7 @@ export function MarketingClient() {
             <div className="space-y-5">
               {/* 작성 가이드 */}
               <p className="rounded-lg bg-brand-muted px-3 py-2 text-xs leading-relaxed text-brand">
-                입력이 구체적일수록 더 &quot;그 가게다운&quot; 글이 나와요. 아래 항목을 채워 보세요.
+                입력이 구체적일수록 더 좋은 초안이 나와요. 아래 항목을 채워 보세요.
               </p>
 
               {/* 사진 */}
@@ -211,7 +212,7 @@ export function MarketingClient() {
                   id="mkt-memo"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value.slice(0, MEMO_MAX))}
-                  placeholder="강조하고 싶은 점이 있으면 적어주세요. 예) 비누꽃도 추천, 당일 배송 가능"
+                  placeholder="강조하고 싶은 점이 있으면 적어주세요. 예) 24시간 무인 영업, 당일 배송 가능"
                   className="min-h-[80px] resize-y text-sm"
                   maxLength={MEMO_MAX}
                 />
@@ -305,7 +306,7 @@ function EmptyResult() {
       </span>
       <p className="text-sm font-medium text-foreground">키워드를 넣고 초안을 만들어 보세요</p>
       <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-        제목·소제목·FAQ·해시태그까지 한 번에. 네이버에 복붙해서 바로 올릴 수 있어요.
+        제목·소제목·FAQ·해시태그까지 한 번에 뽑아드려요.
       </p>
     </div>
   );

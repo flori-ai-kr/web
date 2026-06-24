@@ -5,6 +5,14 @@ import {Clock, FileText, Loader2, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {ko} from '@/lib/date-locale';
 import {deleteBlogContent, getBlogContent, listBlogContents} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
@@ -24,6 +32,7 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BlogContentSummary | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
@@ -72,13 +81,15 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     }
   }
 
-  async function remove(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    setDeletingId(id);
+  async function confirmDelete() {
+    const target = deleteTarget;
+    if (!target) return;
+    setDeletingId(target.id);
     try {
-      await deleteBlogContent(id);
-      setItems((prev) => prev.filter((c) => c.id !== id));
+      await deleteBlogContent(target.id);
+      setItems((prev) => prev.filter((c) => c.id !== target.id));
       toast.success('초안을 삭제했어요.');
+      setDeleteTarget(null);
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '삭제에 실패했어요.');
     } finally {
@@ -140,11 +151,15 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => remove(item.id, e)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(item);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  remove(item.id, e as unknown as React.MouseEvent);
+                  e.stopPropagation();
+                  setDeleteTarget(item);
                 }
               }}
               aria-label="초안 삭제"
@@ -184,6 +199,25 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
           </Button>
         </div>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>초안을 삭제할까요?</DialogTitle>
+            <DialogDescription>
+              &quot;{deleteTarget?.title}&quot; 초안을 삭제합니다. 이 작업은 되돌릴 수 없어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={!!deletingId} onClick={() => setDeleteTarget(null)}>
+              취소
+            </Button>
+            <Button variant="destructive" disabled={!!deletingId} onClick={confirmDelete}>
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

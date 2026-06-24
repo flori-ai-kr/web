@@ -70,9 +70,7 @@ export function PhotoPicker({selected, onChange}: PhotoPickerProps) {
           </button>
         )}
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        사진은 선택 사항이에요. 최대 {MAX_PHOTOS}장까지 — 사진첩에서 고르거나 새로 올릴 수 있어요.
-      </p>
+      <p className="text-[11px] text-muted-foreground">사진은 선택 사항이에요.</p>
 
       <PhotoPickerDialog
         open={open}

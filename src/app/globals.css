@@ -316,34 +316,6 @@
   }
 }
 
-/* Premium 뱃지 — 빛이 스쳐 지나가는 sheen(반짝임). reduced-motion이면 정지. */
-@keyframes premium-sheen {
-  0% {
-    transform: translateX(-150%) skewX(-20deg);
-  }
-  60%,
-  100% {
-    transform: translateX(320%) skewX(-20deg);
-  }
-}
-.premium-badge {
-  position: relative;
-  overflow: hidden;
-}
-.premium-badge::after {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 45%;
-  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.7), transparent);
-  animation: premium-sheen 2.8s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .premium-badge::after {
-    animation: none;
-  }
-}
-
 /* Display 폰트 헬퍼 (flori 워드마크 로고) — public(--font-display)·admin(--font-cormorant) 공통 */
 /* 'liga' 비활성 + font-variant-ligatures:none → "fl" 합자(f·l 붙음) 방지 */
 .font-display {

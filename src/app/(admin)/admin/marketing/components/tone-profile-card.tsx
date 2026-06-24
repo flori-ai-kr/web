@@ -4,6 +4,14 @@ import {useEffect, useState} from 'react';
 import {Loader2, Plus, Save, Sparkles, Trash2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {Textarea} from '@/components/ui/textarea';
 import {getToneProfile, saveToneProfile} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
@@ -19,6 +27,7 @@ export function ToneProfileCard() {
   const [samples, setSamples] = useState<string[]>(['']);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -105,7 +114,7 @@ export function ToneProfileCard() {
                   {(samples.length > 1 || sample.trim().length > 0) && (
                     <button
                       type="button"
-                      onClick={() => removeSlot(i)}
+                      onClick={() => (sample.trim().length > 0 ? setDeleteIndex(i) : removeSlot(i))}
                       className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-destructive"
                       aria-label={`글 샘플 ${i + 1} 삭제`}
                     >
@@ -144,6 +153,29 @@ export function ToneProfileCard() {
             </div>
           </div>
         )}
+
+      <Dialog open={deleteIndex !== null} onOpenChange={(o) => !o && setDeleteIndex(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>말투 샘플을 삭제할까요?</DialogTitle>
+            <DialogDescription>붙여넣은 글 샘플이 삭제됩니다. 저장하면 적용돼요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteIndex(null)}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteIndex !== null) removeSlot(deleteIndex);
+                setDeleteIndex(null);
+              }}
+            >
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

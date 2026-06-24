@@ -92,39 +92,31 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* 액션 바 */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <FileText className="h-3.5 w-3.5" />
-          필요한 부분을 복사해서 사용하세요.
-        </p>
-        <div className="flex items-center gap-1.5">
-          {onChange &&
-            (editing ? (
-              <>
-                <Button type="button" variant="ghost" size="sm" onClick={cancel}>
-                  취소
-                </Button>
-                <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit}>
-                  <Check className="h-4 w-4" />
-                  수정 완료
-                </Button>
-              </>
-            ) : (
-              <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
-                <Pencil className="h-4 w-4" />
-                편집
+    <article className="rounded-2xl border border-border bg-card p-5 sm:p-7">
+      {/* 액션 (편집/복사) — 우측 상단. 결과 카드 상단을 작성 폼과 정렬 */}
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-1.5">
+        {onChange &&
+          (editing ? (
+            <>
+              <Button type="button" variant="ghost" size="sm" onClick={cancel}>
+                취소
               </Button>
-            ))}
-          {!editing && <CopyButton text={draftToPlainText(draft)} label="전체 글" full />}
-        </div>
+              <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit}>
+                <Check className="h-4 w-4" />
+                수정 완료
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" />
+              편집
+            </Button>
+          ))}
+        {!editing && <CopyButton text={draftToPlainText(draft)} label="전체 글" full />}
       </div>
 
-      {/* 블로그처럼 보이는 본문 */}
-      <article className="rounded-2xl border border-border bg-card p-5 sm:p-7">
-        {/* 제목 */}
-        <header className="group/title mb-6 border-b border-border pb-5">
+      {/* 제목 */}
+      <header className="group/title mb-6 border-b border-border pb-5">
           {editing ? (
             <Textarea
               value={local.title}
@@ -271,7 +263,12 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
             )}
           </div>
         )}
+
+        {/* 안내 — 하단 */}
+        <p className="mt-6 flex items-center gap-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
+          <FileText className="h-3.5 w-3.5" />
+          필요한 부분을 복사해서 사용하세요.
+        </p>
       </article>
-    </div>
   );
 }
