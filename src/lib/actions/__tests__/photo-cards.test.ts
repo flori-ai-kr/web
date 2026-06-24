@@ -252,6 +252,24 @@ describe('createOrUpdatePhotoCardForSale', () => {
       .mockResolvedValueOnce(kCard) // POST
     await createOrUpdatePhotoCardForSale('9', '제목', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }])
     expect(mockApiFetch.mock.calls[1][0]).toBe('/photo-cards')
-    expect(body(1)).toMatchObject({ title: '제목', saleId: '9' })
+    expect(body(1)).toMatchObject({ title: '제목', saleId: '9', customerId: null })
+  })
+
+  it('신규 생성 시 customerId를 숫자로 POST(고객 연결)', async () => {
+    mockApiFetch
+      .mockResolvedValueOnce(undefined) // getPhotoCardBySaleId → null
+      .mockResolvedValueOnce(kCard) // POST
+    await createOrUpdatePhotoCardForSale('9', '제목', [], null, [], '42')
+    expect(body(1)).toMatchObject({ saleId: '9', customerId: 42 })
+  })
+
+  it('PATCH(기존 카드)에는 고객 신호를 보내지 않는다(수동 연결 보존)', async () => {
+    mockApiFetch
+      .mockResolvedValueOnce(kCard) // getPhotoCardBySaleId
+      .mockResolvedValueOnce(kCard) // PATCH
+    await createOrUpdatePhotoCardForSale('9', '제목', [], null, [], '42')
+    const patchBody = body(1)
+    expect(patchBody).not.toHaveProperty('customerId')
+    expect(patchBody).not.toHaveProperty('clearCustomer')
   })
 })

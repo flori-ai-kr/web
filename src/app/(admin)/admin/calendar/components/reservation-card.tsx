@@ -34,7 +34,7 @@ export function ReservationCard({
   saleCategories: SaleCategory[];
   onCustomerClick: (customerId: string) => void;
   onSaleClick: (saleId: string) => void;
-  onPhotoClick: (saleId: string, defaultTitle: string) => void;
+  onPhotoClick: (saleId: string, defaultTitle: string, customerId?: string | null) => void;
   onEdit: (r: CalendarReservation) => void;
   onDelete: (r: CalendarReservation) => void;
   onToggleCompletion: (r: CalendarReservation) => void;
@@ -157,7 +157,7 @@ export function ReservationCard({
                         ? saleCategories.find(c => c.value === r.product_category)?.label || r.product_category
                         : r.title;
                       const dateStr = format(new Date(r.date), 'yy/MM/dd');
-                      onPhotoClick(r.sale_id ?? '', `${dateStr} ${catLabel}`);
+                      onPhotoClick(r.sale_id ?? '', `${dateStr} ${catLabel}`, r.customer_id);
                     }}
                     aria-label={hasPhoto ? '사진 수정' : '사진 등록'}
                   >

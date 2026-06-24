@@ -50,7 +50,7 @@ export function DayPanel({
   siblingReservations: Map<string, CalendarReservation[]>;
   saleIdsWithPhotos: Set<string>;
   saleCategories: SaleCategory[];
-  onPhotoClick: (saleId: string, defaultTitle: string) => void;
+  onPhotoClick: (saleId: string, defaultTitle: string, customerId?: string | null) => void;
   onEditReservation: (r: CalendarReservation) => void;
   onDeleteReservation: (r: CalendarReservation) => void;
   onToggleCompletion: (r: CalendarReservation) => void;

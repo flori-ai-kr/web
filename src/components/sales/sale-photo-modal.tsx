@@ -33,6 +33,8 @@ interface SalePhotoModalProps {
   onClose: () => void;
   saleId: string;
   defaultTitle: string;
+  /** 매출에 연결된 고객 id — 신규 카드 생성 시 함께 연결한다(사진첩 고객 필터용). */
+  customerId?: string | null;
   onSuccess?: () => void;
 }
 
@@ -41,6 +43,7 @@ export function SalePhotoModal({
   onClose,
   saleId,
   defaultTitle,
+  customerId,
   onSuccess,
 }: SalePhotoModalProps) {
   const [title, setTitle] = useState(defaultTitle);
@@ -230,13 +233,14 @@ export function SalePhotoModal({
       const newFileItems = photoItems
         .filter((item): item is { type: 'new'; file: File; preview: string } => item.type === 'new');
 
-      // 카드 생성/업데이트 (sale_id 연결, tags 포함)
+      // 카드 생성/업데이트 (sale_id 연결, tags 포함, 신규 생성 시 고객도 연결)
       const card = await createOrUpdatePhotoCardForSale(
         saleId,
         title.trim(),
         existingPhotos,
         memo.trim() || null,
-        selectedTags
+        selectedTags,
+        customerId ?? null
       );
 
       if (newFileItems.length > 0) {
