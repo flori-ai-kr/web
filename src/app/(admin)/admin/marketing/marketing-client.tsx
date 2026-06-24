@@ -100,7 +100,7 @@ export function MarketingClient() {
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
       {/* 헤더 */}
       <header className="flex flex-col gap-1">
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] shadow-sm"
             style={{background: 'linear-gradient(135deg,var(--ai-grad-from),var(--ai-grad-to))'}}
@@ -115,18 +115,17 @@ export function MarketingClient() {
             <Sparkles className="h-3 w-3" aria-hidden="true" />
             Premium
           </span>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setToneOpen(true)}
-            className={`ml-auto flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-              toneCount > 0
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                : 'bg-brand-muted text-brand hover:opacity-90'
-            }`}
+            className="ml-auto shrink-0 gap-1.5"
           >
-            <Sparkles className="h-3 w-3" aria-hidden="true" />
-            {toneCount > 0 ? '말투 적용됨' : '블로그 말투 설정'}
-          </button>
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            블로그 말투 설정
+            {toneCount > 0 && <span className="font-semibold text-emerald-600">· 적용됨</span>}
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           사진과 키워드만 주면, 내 말투로 쓴 네이버 검색 최적화 블로그 초안을 만들어 드려요.
@@ -218,9 +217,9 @@ export function MarketingClient() {
         </div>
       </div>
 
-      {/* 과거 초안 목록 */}
-      <section aria-label="내가 만든 초안" className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground">내가 만든 초안</h2>
+      {/* 생성된 초안 목록 */}
+      <section aria-label="생성된 초안" className="space-y-3">
+        <h2 className="text-base font-semibold text-foreground">생성된 초안</h2>
         <BlogHistory refreshKey={historyKey} onOpen={openHistory} />
       </section>
 
