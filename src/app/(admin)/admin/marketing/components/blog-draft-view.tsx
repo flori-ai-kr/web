@@ -185,7 +185,15 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
         {/* FAQ */}
         {view.faq.length > 0 && (
           <div className="mt-8 border-t border-border pt-6">
-            <h2 className="mb-3 text-base font-bold text-foreground sm:text-lg">자주 묻는 질문</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold text-foreground sm:text-lg">자주 묻는 질문</h2>
+              {!editing && (
+                <CopyButton
+                  text={view.faq.map((f) => `Q. ${f.q}\nA. ${f.a}`).join('\n\n')}
+                  label="자주 묻는 질문"
+                />
+              )}
+            </div>
             <dl className="space-y-3">
               {view.faq.map((f, i) => (
                 <div key={i} className="rounded-xl bg-muted/40 p-3.5">
