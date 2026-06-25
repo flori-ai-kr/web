@@ -19,6 +19,7 @@
 ```
 
 - 삭제 확인은 **Dialog** 사용 — 브라우저 `confirm()` 금지
+- 스크롤되는 다이얼로그 본문은 `flex-1`로 채우지 말 것 → 본문에 직접 `max-h-[..] overflow-y-auto`. 상세: `26-06-25-dialog-scrollable-body.md`
 
 ## 3. 접근성 (a11y)
 

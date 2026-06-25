@@ -73,12 +73,12 @@ export function LabelSettingsManager({
 }: LabelSettingsManagerProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue={tabs[0]?.key} className="flex-1 min-h-0 flex flex-col">
+        <Tabs defaultValue={tabs[0]?.key}>
           {tabs.length > 1 && (
             <TabsList className="w-full">
               {tabs.map((tab) => (
@@ -89,7 +89,7 @@ export function LabelSettingsManager({
             </TabsList>
           )}
           {tabs.map((tab) => (
-            <TabsContent key={tab.key} value={tab.key} className="flex-1 min-h-0 flex flex-col">
+            <TabsContent key={tab.key} value={tab.key}>
               <LabelTabPanel tab={tab} onRefresh={onRefresh} />
             </TabsContent>
           ))}
@@ -229,7 +229,7 @@ function LabelTabPanel({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-4 py-4">
+    <div className="space-y-4 py-4">
       <div className="flex gap-2">
         <Input
           placeholder={tab.addPlaceholder}
