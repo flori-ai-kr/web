@@ -22,7 +22,6 @@ import {
   listNotificationLogs,
   type NotificationLogFilters,
 } from '@/lib/actions/admin-notification-logs';
-import { PushTestDialog } from './push-test-dialog';
 import type { NotificationLog, NotificationSendStatus } from '@/types/admin';
 
 const PAGE_SIZE = 50;
@@ -174,11 +173,6 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">발송 로그</h1>
-        <PushTestDialog />
-      </div>
-
       <div className="flex flex-wrap items-center gap-2">
         <Select value={type} onValueChange={onTypeChange}>
           <SelectTrigger className="w-44 bg-card">

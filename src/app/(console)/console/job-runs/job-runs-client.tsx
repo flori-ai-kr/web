@@ -145,8 +145,6 @@ export function JobRunsClient({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold text-foreground">작업 로그</h1>
-
       {/* 작업별 상태 카드 */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {summary.map((s) => {

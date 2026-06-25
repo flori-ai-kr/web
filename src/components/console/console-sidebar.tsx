@@ -53,7 +53,7 @@ const GROUPS: NavGroup[] = [
     title: '알림',
     items: [
       { href: '/console/broadcasts', label: '브로드캐스트', icon: BellRing },
-      { href: '/console/notification-logs', label: '발송 로그', icon: ScrollText },
+      { href: '/console/notifications', label: '알림 테스트', icon: ScrollText },
     ],
   },
   {

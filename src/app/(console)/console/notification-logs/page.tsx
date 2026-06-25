@@ -1,7 +1,6 @@
-import { listNotificationLogs } from '@/lib/actions/admin-notification-logs';
-import { NotificationLogsClient } from './notification-logs-client';
+import { redirect } from 'next/navigation';
 
-export default async function NotificationLogsPage() {
-  const logs = await listNotificationLogs();
-  return <NotificationLogsClient initial={logs} />;
+// 발송 로그는 작업 로그의 '알림 발송' 탭으로 통합됨. 기존 링크/북마크 보존용 리다이렉트.
+export default function NotificationLogsPage() {
+  redirect('/console/job-runs?tab=notifications');
 }

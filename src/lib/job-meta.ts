@@ -8,6 +8,9 @@ export const JOB_META: Record<string, { label: string; schedule: string }> = {
   reservation_reminder: { label: '픽업 리마인더', schedule: '5분마다' },
   daily_pickup_summary: { label: '일일 픽업 요약', schedule: '매일 08:00' },
   recurring_expense_generate: { label: '고정비 자동생성', schedule: '매일 00:30' },
+  auction_scrap_push: { label: '경매 스크랩 푸시', schedule: '매일 06:35' },
+  grant_new_push: { label: '지원사업 신규 푸시', schedule: '매일 06:40' },
+  grant_deadline_push: { label: '지원사업 마감 푸시', schedule: '매일 06:45' },
 };
 
 export function jobLabel(jobName: string): string {
