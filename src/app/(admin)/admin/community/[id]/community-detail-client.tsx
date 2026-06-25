@@ -4,7 +4,7 @@ import {useState} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {useRouter} from 'next/navigation';
-import {ArrowLeft, Lock, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
+import {ArrowLeft, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityComment, CommunityPost} from '@/types/database';
@@ -92,30 +92,17 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
         <ArrowLeft className="w-4 h-4" /> 목록
       </Link>
 
-      {/* 비밀글 비권한자 */}
-      {!post.can_view ? (
-        <div className="flex flex-col items-center justify-center text-center py-16 rounded-xl border border-dashed border-border bg-card/50">
-          <Lock className="w-8 h-8 text-muted-foreground mb-3" />
-          <h2 className="font-medium text-foreground mb-1">비밀글입니다</h2>
-          <p className="text-sm text-muted-foreground">작성자와 관리자만 볼 수 있어요.</p>
-        </div>
-      ) : (
-        <>
+      <>
           {/* Header */}
           <header className="space-y-3 border-b border-border pb-5">
             <div className="flex items-center gap-2 flex-wrap">
               {isPinned && <Pin className="h-4 w-4 text-brand" aria-label="고정글" />}
               <CommunityCategoryBadge category={post.category} />
-              {post.is_secret && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3.5 w-3.5" /> 비밀글
-                </span>
-              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{post.title}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground/80">{post.author_nickname}</span>
-              {post.can_view && post.author_is_admin && <AdminBadge />}
+              {post.author_is_admin && <AdminBadge />}
               <span>·</span>
               <span>
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}
@@ -187,7 +174,6 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             />
           </section>
         </>
-      )}
 
       {/* Delete confirm */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

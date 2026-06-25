@@ -12,8 +12,15 @@ const nextConfig: NextConfig = {
   // Docker 배포용 독립 실행 번들(.next/standalone) — server.js + 최소 node_modules만 포함.
   output: 'standalone',
   images: {
-    // AVIF 우선(미지원 브라우저는 WebP 폴백) — 갤러리·인스타·공개 hero 등
-    // 최적화 대상 이미지 전송량 감소.
+    // [OOM 방지] 서버사이드 이미지 최적화(sharp/libvips) 비활성화 — 2026-06-25.
+    // 사진은 전부 CloudFront(영구 URL·CDN 캐시)에서 서빙되어 Next 재최적화가 중복이고,
+    // 고해상도 원본을 libvips로 디코드하다 512MB 컨테이너 한도를 넘겨 next-server 가
+    // cgroup OOM-kill 되던 원인이었다(2026-06-24 15:50 dmesg 확인). libvips 메모리는
+    // 파일 크기가 아닌 픽셀 수에 비례 + Node 힙 밖 네이티브라 max-old-space-size 로 못 잡는다.
+    // 인스타 이미지 기능 제거됨(코드 내 cdninstagram 렌더 0건) → 만료-후-캐시 의존 없음.
+    // 아래 formats/minimumCacheTTL/remotePatterns 는 unoptimized=true 동안 미사용(최적화 경로 비활성).
+    unoptimized: true,
+    // AVIF 우선(미지원 브라우저는 WebP 폴백) — 최적화 재활성 시 대비해 보존.
     formats: ['image/avif', 'image/webp'],
     // Instagram signed URL은 며칠 뒤 만료. 최적화 캐시 30일 유지해서
     // 원본 만료 후에도 Next 이미지 최적화 캐시에서 계속 서빙 가능.

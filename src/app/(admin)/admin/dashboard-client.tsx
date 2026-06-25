@@ -33,7 +33,7 @@ import {getDashboardTodayData} from '@/lib/actions/dashboard';
 import type {LatestCommunityPost} from '@/lib/actions/community';
 import {formatCurrency, getTodayKST} from '@/lib/utils';
 import {SectionHeader} from '@/components/dashboard/section-header';
-import {AiBriefingCard} from '@/components/dashboard/ai-briefing-card';
+import {MarketingNudgeCard} from '@/components/dashboard/marketing-nudge-card';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
 
 const PAGE_SIZE = 5;
@@ -236,8 +236,8 @@ export function DashboardClient({greeting, nowISO, initialToday, initialMonth, i
         )}
       </section>
 
-      {/* flori AI 오늘의 브리핑 (개발 중 — 잠금 미리보기) */}
-      <AiBriefingCard />
+      {/* AI 블로그(네이버 검색 AI) 유도 카드 — 구 '오늘의 브리핑' 대체 */}
+      <MarketingNudgeCard />
 
       {/* Two Column: Reservations + (오늘 매출 + 이번 달 요약) */}
       <div className="grid lg:grid-cols-2 gap-4 items-stretch">
