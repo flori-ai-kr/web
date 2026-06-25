@@ -23,6 +23,7 @@ import { InquiryStatusBadge, CATEGORY_LABELS } from './inquiry-meta';
 import type { InquiryStatus, SupportInquiry } from '@/types/admin';
 
 const isImage = (url: string) => /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url);
+const isSafe = (url: string) => url.startsWith('https://');
 
 const STATUS_OPTIONS: { value: InquiryStatus; label: string }[] = [
   { value: 'open', label: '접수' },
@@ -48,9 +49,9 @@ export function InquiryDetailDialog({
   const [status, setStatus] = useState<InquiryStatus>('open');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // 라이트박스 네비게이션 대상은 이미지 URL만(첨부 파일 링크 제외)
+  // 라이트박스 네비게이션 대상은 이미지 URL만(첨부 파일 링크 제외), https:// 안전 URL만 포함
   const imageList = useMemo(
-    () => (inquiry?.imageUrls ?? []).filter(isImage),
+    () => (inquiry?.imageUrls ?? []).filter((url) => isImage(url) && isSafe(url)),
     [inquiry],
   );
 
@@ -86,9 +87,9 @@ export function InquiryDetailDialog({
               {inquiry.body}
             </div>
 
-            {inquiry.imageUrls.length > 0 && (
+            {inquiry.imageUrls.filter(isSafe).length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {inquiry.imageUrls.map((url) =>
+                {inquiry.imageUrls.filter(isSafe).map((url) =>
                   isImage(url) ? (
                     <button
                       key={url}

@@ -51,9 +51,9 @@ export function InquiryDetailClient({ inquiry }: { inquiry: MyInquiry }) {
       </div>
 
       {/* 첨부 이미지 */}
-      {inquiry.imageUrls.length > 0 && (
+      {inquiry.imageUrls.filter((url) => url.startsWith('https://')).length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {inquiry.imageUrls.map((url) => (
+          {inquiry.imageUrls.filter((url) => url.startsWith('https://')).map((url) => (
             <a key={url} href={url} target="_blank" rel="noopener noreferrer">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

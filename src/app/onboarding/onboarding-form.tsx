@@ -216,6 +216,11 @@ export function OnboardingForm({
       return
     }
 
+    if (!ownerAgeRange || referralSources.length === 0) {
+      setStep(2)
+      return
+    }
+
     setError(null)
     setEmailError(null)
     setNicknameError(null)
@@ -229,7 +234,7 @@ export function OnboardingForm({
       email: email.trim(),
       regionSido,
       regionSigungu: regionSigungu.trim() || undefined,
-      ownerAgeRange: ownerAgeRange!,
+      ownerAgeRange,
       interests,
       specialties,
       referralSources,
