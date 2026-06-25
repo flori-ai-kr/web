@@ -353,6 +353,7 @@ export function OnboardingForm({
 
             <div className="space-y-2">
               <Label htmlFor="nickname">닉네임 <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground">커뮤니티 등 서비스 안에서 보이는 이름이에요.</p>
               <div className="flex gap-2">
                 <Input
                   id="nickname"
