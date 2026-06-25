@@ -14,7 +14,7 @@ export default async function CommunityPostPage({
   const post = await getCommunityPost(id);
   if (!post) notFound();
 
-  const comments = post.can_view ? await getComments(id) : [];
+  const comments = await getComments(id);
 
   return <CommunityDetailClient post={post} initialComments={comments} />;
 }

@@ -13,11 +13,14 @@ export function useSalesUrlFilters({
   currentYear,
   currentMonth,
   currentDay,
+  dateRange,
   initialFilters,
 }: {
   currentYear: number;
   currentMonth: number;
   currentDay: number;
+  /** 커스텀 기간(시작~종료)이 활성이면 전달 — 필터 변경 시 기간이 풀리지 않도록 보존. */
+  dateRange: { startDate: string; endDate: string } | null;
   initialFilters: SalesFilters;
 }) {
   const router = useRouter();
@@ -29,11 +32,15 @@ export function useSalesUrlFilters({
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
   const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
 
-  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값
+  // URL 빌드 헬퍼: 'all' 값이면 파라미터 생략. category/payment/channel은 쉼표 구분 다중값.
+  // 커스텀 기간(dateRange)이 활성인 상태에서 기간 외 필터만 바꾸면(월/일 override 없음)
+  // startDate/endDate를 보존한다 — 카테고리·결제·채널 변경 시 기간이 풀리던 버그 방지.
+  // (월 네비/월 선택/오늘 등 기간 자체를 바꾸는 호출은 year/month/day override를 주므로 자연히 기간 모드로 전환된다.)
   const buildUrl = useCallback((overrides: {
     year?: string; month?: string; day?: string;
     category?: string[]; payment?: string[]; channel?: string[];
   } = {}) => {
+    const changingPeriod = overrides.year !== undefined || overrides.month !== undefined || overrides.day !== undefined;
     const p = {
       year: yearParam,
       month: monthParam,
@@ -46,14 +53,19 @@ export function useSalesUrlFilters({
     // 년/월이 'all'이면 일은 자동 'all'
     if (p.year === 'all' || p.month === 'all') p.day = 'all';
     const params = new URLSearchParams();
-    params.set('year', p.year);
-    params.set('month', p.month);
-    if (p.day !== 'all') params.set('day', p.day);
+    if (dateRange && !changingPeriod) {
+      params.set('startDate', dateRange.startDate);
+      params.set('endDate', dateRange.endDate);
+    } else {
+      params.set('year', p.year);
+      params.set('month', p.month);
+      if (p.day !== 'all') params.set('day', p.day);
+    }
     if (p.category.length > 0) params.set('category', p.category.join(','));
     if (p.payment.length > 0) params.set('payment', p.payment.join(','));
     if (p.channel.length > 0) params.set('channel', p.channel.join(','));
     return `/admin/sales?${params.toString()}`;
-  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter]);
+  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, channelFilter, dateRange]);
 
   const handleTodayOnly = () => {
     const now = new Date();
@@ -103,9 +115,16 @@ export function useSalesUrlFilters({
     router.push(buildUrl({ channel }));
   };
 
-  /** 카테고리·결제·채널 URL 필터 초기화(검색어 등 로컬 상태는 호출부에서 함께 리셋). */
+  /** 카테고리·결제·채널 + 기간(커스텀 범위 해제 → 이번 달) 초기화. 검색어 등 로컬 상태는 호출부에서 함께 리셋.
+   *  year/month/day override 를 주어 buildUrl 이 기간 변경으로 인식 → startDate/endDate 를 떨궈 범위를 해제한다. */
   const resetUrlFilters = () => {
-    router.push(buildUrl({ category: [], payment: [], channel: [] }));
+    const now = new Date();
+    router.push(buildUrl({
+      year: now.getFullYear().toString(),
+      month: (now.getMonth() + 1).toString(),
+      day: 'all',
+      category: [], payment: [], channel: [],
+    }));
   };
 
   return {

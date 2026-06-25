@@ -1,8 +1,10 @@
 'use client';
 
+import {useState} from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import type { MyInquiry } from '@/types/support';
+import {ImageLightbox} from '@/components/ui/image-lightbox';
 
 const CATEGORY_LABELS: Record<string, string> = {
   bug: '버그',
@@ -21,6 +23,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function InquiryDetailClient({ inquiry }: { inquiry: MyInquiry }) {
+  const images = inquiry.imageUrls.filter((url) => url.startsWith('https://'));
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   return (
     <div className="mx-auto max-w-lg space-y-4 p-4">
       <Link
@@ -50,18 +55,24 @@ export function InquiryDetailClient({ inquiry }: { inquiry: MyInquiry }) {
         </div>
       </div>
 
-      {/* 첨부 이미지 */}
-      {inquiry.imageUrls.filter((url) => url.startsWith('https://')).length > 0 && (
+      {/* 첨부 이미지 — 클릭 시 라이트박스(좌우 내비, 순서대로). 새 탭 링크 대신 인앱 확대. */}
+      {images.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {inquiry.imageUrls.filter((url) => url.startsWith('https://')).map((url) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+          {images.map((url, i) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => setLightboxIndex(i)}
+              aria-label={`첨부 이미지 ${i + 1} 확대 보기`}
+              className="h-20 w-20 overflow-hidden rounded-lg border border-border cursor-zoom-in"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
-                alt="첨부 이미지"
-                className="h-20 w-20 rounded-lg border border-border object-cover"
+                alt={`첨부 이미지 ${i + 1}`}
+                className="h-full w-full object-cover"
               />
-            </a>
+            </button>
           ))}
         </div>
       )}
@@ -82,6 +93,14 @@ export function InquiryDetailClient({ inquiry }: { inquiry: MyInquiry }) {
           </div>
         </div>
       )}
+
+      <ImageLightbox
+        images={images}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onNavigate={setLightboxIndex}
+        caption={inquiry.title}
+      />
     </div>
   );
 }
