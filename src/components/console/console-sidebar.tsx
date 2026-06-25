@@ -14,6 +14,7 @@ import {
   Inbox,
   History,
   Sparkles,
+  Ticket,
   // [AI 기능 비활성화] Activity,
   ArrowLeft,
   ChevronsLeft,
@@ -42,6 +43,7 @@ const GROUPS: NavGroup[] = [
       { href: '/console/verifications', label: '사업자 인증', icon: FileCheck },
       { href: '/console/users', label: '유저 관리', icon: Users },
       { href: '/console/subscriptions', label: '구독 현황', icon: CreditCard },
+      { href: '/console/coupons', label: '쿠폰', icon: Ticket },
     ],
   },
   {
