@@ -280,34 +280,47 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
 
       <form id="profile-form" onSubmit={handleSave} className="space-y-8">
         {/* Avatar */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <button
             type="button"
             onClick={handleAvatarClick}
-            className="relative group w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="relative group w-24 h-24 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label="프로필 사진 변경"
           >
-            {avatarPreview ? (
-              <Image
-                src={avatarPreview}
-                alt="프로필 사진"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl font-semibold text-muted-foreground">
-                {(nickname.charAt(0) || name.charAt(0) || '?').toUpperCase()}
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-              {isUploadingAvatar ? (
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
+            <span className="block w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border">
+              {avatarPreview ? (
+                <Image
+                  src={avatarPreview}
+                  alt="프로필 사진"
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
               ) : (
-                <Camera className="w-5 h-5 text-white" />
+                <span className="w-full h-full flex items-center justify-center text-2xl font-semibold text-muted-foreground">
+                  {(nickname.charAt(0) || name.charAt(0) || '?').toUpperCase()}
+                </span>
               )}
-            </div>
+              <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <Camera className="w-5 h-5 text-white" />
+              </span>
+            </span>
+            {/* 항상 보이는 카메라 배지 — 탭하면 사진 변경(모바일 hover 불가 대응) */}
+            <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-brand text-brand-foreground border-2 border-background shadow-sm">
+              {isUploadingAvatar ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4" />
+              )}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={handleAvatarClick}
+            className="text-xs font-medium text-brand hover:underline"
+          >
+            프로필 사진 변경
           </button>
           <input
             ref={fileInputRef}
