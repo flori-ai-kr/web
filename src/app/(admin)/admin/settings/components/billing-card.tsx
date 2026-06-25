@@ -83,6 +83,7 @@ export function BillingCard() {
   const [isLoading, setIsLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [isChangingCard, setIsChangingCard] = useState(false);
 
   const fetchBilling = useCallback(async () => {
     try {
@@ -100,21 +101,22 @@ export function BillingCard() {
   }, [fetchBilling]);
 
   // 카드 교체: 토스 빌링 재인증 → /billing/card 복귀에서 changeCard() 실행
-  const handleChangeCard = () => {
-    startTransition(async () => {
-      try {
-        const {customerKey} = await prepareBilling();
-        const tp = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
-        const payment = tp.payment({customerKey});
-        await payment.requestBillingAuth({
-          method: 'CARD',
-          successUrl: `${location.origin}/billing/card`,
-          failUrl: `${location.origin}/billing/fail`,
-        });
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : '카드 교체 준비 중 오류가 발생했어요.');
-      }
-    });
+  const handleChangeCard = async () => {
+    setIsChangingCard(true);
+    try {
+      const {customerKey} = await prepareBilling();
+      const tp = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY!);
+      const payment = tp.payment({customerKey});
+      await payment.requestBillingAuth({
+        method: 'CARD',
+        successUrl: `${location.origin}/billing/card`,
+        failUrl: `${location.origin}/billing/fail`,
+      });
+      // 성공 시 토스 페이지로 리다이렉트되므로 setIsChangingCard(false) 불필요
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '카드 교체 준비 중 오류가 발생했어요.');
+      setIsChangingCard(false);
+    }
   };
 
   const handleCancel = () => {
@@ -289,7 +291,8 @@ export function BillingCard() {
                 {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 구독 계속하기
               </Button>
-              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isPending}>
+              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
+                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 카드 교체
               </Button>
             </>
@@ -297,15 +300,16 @@ export function BillingCard() {
             <Button
               size="sm"
               onClick={handleChangeCard}
-              disabled={isPending}
+              disabled={isChangingCard}
               className="bg-warning text-warning-foreground hover:bg-warning/90"
             >
-              {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               카드 교체
             </Button>
           ) : (
             <>
-              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isPending}>
+              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
+                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 카드 교체
               </Button>
               <Button

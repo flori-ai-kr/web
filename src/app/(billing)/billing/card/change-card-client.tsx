@@ -29,7 +29,7 @@ export function ChangeCardClient({authKey, customerKey}: Props) {
         await changeCard(authKey, customerKey);
         router.replace('/admin/settings');
       } catch {
-        router.replace('/billing/fail?code=CHANGE_CARD_FAILED&message=카드 교체에 실패했어요');
+        router.replace(`/billing/fail?code=CHANGE_CARD_FAILED&message=${encodeURIComponent('카드 교체에 실패했어요')}`);
       }
     })();
   }, [authKey, customerKey, router]);
