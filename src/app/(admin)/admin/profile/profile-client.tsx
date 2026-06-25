@@ -552,7 +552,7 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
                 )}
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0">
+              <DialogFooter className="gap-2 sm:gap-3">
                 <Button
                   type="button"
                   variant="outline"
