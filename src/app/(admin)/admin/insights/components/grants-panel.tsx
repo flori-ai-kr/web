@@ -44,7 +44,7 @@ export function GrantsPanel({
   return (
     <div>
       {/* 카테고리 필터 칩 */}
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <FilterPill
           active={scrapedOnly}
           onClick={() => onCategoryChange(category, !scrapedOnly)}

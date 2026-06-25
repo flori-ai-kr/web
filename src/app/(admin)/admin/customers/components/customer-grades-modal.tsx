@@ -179,7 +179,7 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[88vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>등급 관리</DialogTitle>
             <DialogDescription>
@@ -187,7 +187,7 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1 py-1">
+          <div className="flex flex-col gap-4 overflow-y-auto pr-1 py-1 max-h-[70vh]">
             {/* 안내 */}
             <div className="text-xs rounded-xl p-3 space-y-1.5 bg-brand-muted text-brand">
               <div>📈 <b>평소엔 자동</b> — 구매횟수가 임계값에 도달하면 자동 승급돼요. (예: 10회 → 단골)</div>

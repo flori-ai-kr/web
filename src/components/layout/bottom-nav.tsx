@@ -186,13 +186,15 @@ export function BottomNav({ items }: BottomNavProps) {
                 <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <span>이용약관</span>
               </a>
-              <span
-                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
-                aria-disabled="true"
-              >
-                <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                <span>버그 제보 · 문의</span>
-              </span>
+              <SheetClose asChild>
+                <Link
+                  href="/admin/support"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <MessageCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>고객센터</span>
+                </Link>
+              </SheetClose>
             </div>
           </div>
         </SheetContent>

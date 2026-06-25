@@ -27,7 +27,7 @@ export function AuctionFilterPills({
   onScrapToggle,
 }: AuctionFilterPillsProps) {
   return (
-    <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
       <FilterPill
         active={scrapedOnly}
         onClick={onScrapToggle}
