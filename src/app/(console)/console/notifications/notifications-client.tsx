@@ -24,13 +24,16 @@ export function NotificationsClient() {
   const send = (type: string) => {
     setPendingType(type);
     startTransition(async () => {
-      const result = await sendTestNotification(type);
-      if (result.success) {
-        toast.success('테스트 알림 발송 완료');
-      } else {
-        toast.error(result.error ?? '발송 실패');
+      try {
+        const result = await sendTestNotification(type);
+        if (result.success) {
+          toast.success('테스트 알림 발송 완료');
+        } else {
+          toast.error(result.error ?? '발송 실패');
+        }
+      } finally {
+        setPendingType(null);
       }
-      setPendingType(null);
     });
   };
 

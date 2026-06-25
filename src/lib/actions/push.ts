@@ -91,7 +91,7 @@ async function _sendTestNotification(
   await requireAuth();
 
   try {
-    const params = type ? `?type=${type}` : '';
+    const params = type ? `?type=${encodeURIComponent(type)}` : '';
     const result = await apiFetch<{ sent: number } | void>(`/push/test${params}`, { method: 'POST' });
     const sent = result?.sent ?? 0;
     if (result && sent === 0) {

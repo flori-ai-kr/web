@@ -30,6 +30,8 @@ export const listJobRuns = withErrorLogging('listJobRuns', _listJobRuns);
 // BFF: POST /admin/job-runs/{jobName}/trigger — 즉시 실행 후 최신 상태 반환.
 async function _triggerJob(jobName: string): Promise<JobRunSummary> {
   await requireAdmin();
-  return apiFetch<JobRunSummary>(`/admin/job-runs/${jobName}/trigger`, { method: 'POST' });
+  return apiFetch<JobRunSummary>(`/admin/job-runs/${encodeURIComponent(jobName)}/trigger`, {
+    method: 'POST',
+  });
 }
 export const triggerJob = withErrorLogging('triggerJob', _triggerJob);
