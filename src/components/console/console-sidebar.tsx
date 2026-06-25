@@ -14,6 +14,7 @@ import {
   Inbox,
   History,
   Sparkles,
+  Clock,
   // [AI 기능 비활성화] Activity,
   ArrowLeft,
   ChevronsLeft,
@@ -68,7 +69,10 @@ const GROUPS: NavGroup[] = [
   },
   {
     title: '시스템',
-    items: [{ href: '/console/audit-logs', label: '감사 로그', icon: History }],
+    items: [
+      { href: '/console/job-runs', label: '작업 로그', icon: Clock },
+      { href: '/console/audit-logs', label: '감사 로그', icon: History },
+    ],
   },
   // [AI 기능 비활성화] AI 헬스 네비 — 출시 시 제거
 ];

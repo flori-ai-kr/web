@@ -17,6 +17,7 @@ const META: Record<string, { title: string; subtitle: string }> = {
   '/console/notification-logs': { title: '발송 로그', subtitle: '모든 알림 발송 이력' },
   '/console/announcements': { title: '공지 배너', subtitle: '앱 내 모달·상단바 공지 관리' },
   '/console/inquiries': { title: '문의 인박스', subtitle: '1:1 문의 · 피드백 처리' },
+  '/console/job-runs': { title: '작업 로그', subtitle: '백그라운드 cron 실행 현황 · 수동 실행' },
   '/console/audit-logs': { title: '감사 로그', subtitle: '운영자 액션 추적' },
   '/console/prompts': { title: 'AI 프롬프트', subtitle: '마케팅 생성 프롬프트 버전·활성화·플레이그라운드' },
   '/console/prompts/new': { title: 'AI 프롬프트', subtitle: '새 버전 작성' },
