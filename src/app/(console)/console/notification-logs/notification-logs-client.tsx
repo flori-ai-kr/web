@@ -31,13 +31,22 @@ const ALL = 'all';
 const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: '전체' },
   { value: 'broadcast', label: '마케팅/캠페인' },
+  { value: 'community_notice', label: '공지' },
+  { value: 'community_comment', label: '댓글·답글' },
   { value: 'reservation_reminder', label: '예약 리마인더' },
-  { value: 'notice', label: '공지' },
+  { value: 'daily_pickup_summary', label: '일일 픽업 요약' },
+  { value: 'auction_scrap_update', label: '경매 스크랩 시세' },
+  { value: 'grant_new', label: '지원사업 신규' },
+  { value: 'grant_deadline', label: '지원사업 마감' },
+  { value: 'inquiry_answered', label: '문의 답변' },
+  { value: 'test', label: '테스트' },
   { value: 'business_verification', label: '사업자 인증' },
 ];
 
 const SOURCE_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: '전체' },
+  { value: 'web_push', label: '웹푸시' },
+  { value: 'fcm', label: '앱(FCM)' },
   { value: 'web', label: '웹' },
   { value: 'cron', label: '스케줄러' },
   { value: 'system', label: '시스템' },
@@ -71,8 +80,15 @@ function segmentLabel(segment: string) {
 
 const TYPE_META: Record<string, { tone: 'info' | 'success' | 'warning' | 'muted'; label: string }> = {
   broadcast: { tone: 'info', label: '마케팅/캠페인' },
+  community_notice: { tone: 'warning', label: '공지' },
+  community_comment: { tone: 'muted', label: '댓글·답글' },
   reservation_reminder: { tone: 'success', label: '예약 리마인더' },
-  notice: { tone: 'warning', label: '공지' },
+  daily_pickup_summary: { tone: 'success', label: '일일 픽업 요약' },
+  auction_scrap_update: { tone: 'info', label: '경매 스크랩 시세' },
+  grant_new: { tone: 'info', label: '지원사업 신규' },
+  grant_deadline: { tone: 'warning', label: '지원사업 마감' },
+  inquiry_answered: { tone: 'info', label: '문의 답변' },
+  test: { tone: 'muted', label: '테스트' },
   business_verification: { tone: 'info', label: '사업자 인증' },
 };
 
@@ -82,6 +98,8 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 const SOURCE_META: Record<string, { tone: 'success' | 'warning' | 'danger' | 'info' | 'muted'; label: string }> = {
+  web_push: { tone: 'muted', label: '웹푸시' },
+  fcm: { tone: 'muted', label: '앱(FCM)' },
   web: { tone: 'muted', label: '웹' },
   cron: { tone: 'muted', label: '스케줄러' },
   system: { tone: 'muted', label: '시스템' },
