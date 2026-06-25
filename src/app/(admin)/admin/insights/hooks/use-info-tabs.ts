@@ -3,12 +3,11 @@
 import {useCallback, useState, useTransition} from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 
-export type InfoTab = 'price' | 'grant' | 'trend';
+export type InfoTab = 'price' | 'grant';
 
 export const INFO_TABS: {value: InfoTab; label: string}[] = [
   {value: 'price', label: '경매 시세'},
   {value: 'grant', label: '지원사업'},
-  {value: 'trend', label: '트렌드 · 뉴스'},
 ];
 
 interface State {
@@ -19,7 +18,7 @@ interface State {
 
 /**
  * 정보 페이지의 탭/카테고리/스크랩 필터 URL 상태(?tab=&category=&scraped=).
- * statistics/trends 와 동일하게 router.replace 로 동기화한다.
+ * statistics 와 동일하게 router.replace 로 동기화한다.
  */
 export function useInfoTabs({initialTab, initialCategory, initialScrapedOnly}: State) {
   const router = useRouter();

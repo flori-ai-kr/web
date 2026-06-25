@@ -268,6 +268,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
           onClose={() => setPhotoModalSale(null)}
           saleId={photoModalSale.id}
           defaultTitle={getDefaultPhotoTitle(photoModalSale)}
+          customerId={photoModalSale.customer_id}
           onSuccess={() => router.refresh()}
         />
       )}

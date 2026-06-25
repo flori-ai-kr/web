@@ -18,8 +18,8 @@ function item(
 }
 
 describe('AUCTION_DEFAULT_GUBN', () => {
-  it("기본 화훼구분은 절화 (flower_gubn 텍스트 — api가 텍스트로 필터)", () => {
-    expect(AUCTION_DEFAULT_GUBN).toBe('절화');
+  it("기본 화훼구분은 전체('') — 세 구분을 모두 노출", () => {
+    expect(AUCTION_DEFAULT_GUBN).toBe('');
   });
 });
 

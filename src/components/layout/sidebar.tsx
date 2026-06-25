@@ -59,10 +59,10 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: '소통',
+    title: '정보·소통',
     items: [
+      { href: '/admin/insights', icon: Newspaper, label: '인사이트' },
       { href: '/admin/community', icon: MessagesSquare, label: '커뮤니티' },
-      { href: '/admin/insights', icon: Newspaper, label: '정보' },
     ],
   },
 ];

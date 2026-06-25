@@ -1,13 +1,13 @@
 'use client';
 
 import {cn} from '@/lib/utils';
+import {PageHeader} from '@/components/layout/page-header';
 import {AuctionPanel} from './components/auction-panel';
 import {GrantsPanel} from './components/grants-panel';
-import {TrendsPanel} from './components/trends-panel';
 import {INFO_TABS, useInfoTabs, type InfoTab} from './hooks/use-info-tabs';
 import type {AuctionCategory, AuctionSummary} from '@/types/auction';
-import type {GrantCategory, GrantProgram} from '@/types/grants';
-import type {ScrapMap, TrendArticle, TrendCategory} from '@/types/insights';
+import type {GrantCategory, GrantProgram, GrantScrap} from '@/types/grants';
+import type {ScrapMap} from '@/types/insights';
 
 interface InfoClientProps {
   initialTab: InfoTab;
@@ -17,12 +17,11 @@ interface InfoClientProps {
   auctionCategories: AuctionCategory[];
   auctionSummary: AuctionSummary;
   auctionDates: string[];
+  auctionScraps: string[];
   // 지원사업
   grants: GrantProgram[];
   grantScrapMap: ScrapMap;
-  // 트렌드·뉴스
-  trends: TrendArticle[];
-  trendScrapMap: ScrapMap;
+  grantScraps: GrantScrap[];
 }
 
 export function InfoClient({
@@ -32,10 +31,10 @@ export function InfoClient({
   auctionCategories,
   auctionSummary,
   auctionDates,
+  auctionScraps,
   grants,
   grantScrapMap,
-  trends,
-  trendScrapMap,
+  grantScraps,
 }: InfoClientProps) {
   const {tab, category, scrapedOnly, changeTab, changeFilter} = useInfoTabs({
     initialTab,
@@ -45,8 +44,10 @@ export function InfoClient({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-1 sm:px-6 sm:py-2">
+      <PageHeader title="인사이트" description="경매 시세 · 지원사업" />
+
       {/* 메인 언더라인 탭 (= statistics 4탭 패턴) */}
-      <div role="tablist" aria-label="정보 탭" className="flex gap-1 overflow-x-auto border-b border-border">
+      <div role="tablist" aria-label="인사이트 탭" className="flex gap-1 overflow-x-auto border-b border-border">
         {INFO_TABS.map((t) => (
           <button
             key={t.value}
@@ -75,22 +76,15 @@ export function InfoClient({
             categories={auctionCategories}
             initialSummary={auctionSummary}
             initialDates={auctionDates}
+            initialScraps={auctionScraps}
           />
         )}
         {tab === 'grant' && (
           <GrantsPanel
             programs={grants}
             scrapMap={grantScrapMap}
+            scrappedGrants={grantScraps}
             category={category as GrantCategory | null}
-            scrapedOnly={scrapedOnly}
-            onCategoryChange={changeFilter}
-          />
-        )}
-        {tab === 'trend' && (
-          <TrendsPanel
-            articles={trends}
-            scrapMap={trendScrapMap}
-            category={category as TrendCategory | null}
             scrapedOnly={scrapedOnly}
             onCategoryChange={changeFilter}
           />

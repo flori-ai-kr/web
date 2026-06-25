@@ -4,6 +4,15 @@ import {useEffect, useState} from 'react';
 import {Clock, FileText, Loader2, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {toast} from 'sonner';
+import {Button} from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {ko} from '@/lib/date-locale';
 import {deleteBlogContent, getBlogContent, listBlogContents} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
@@ -23,6 +32,16 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BlogContentSummary | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  // 새 초안 생성/삭제로 refreshKey가 바뀌면 1페이지로 리셋(렌더 중 state 비교 — React 권장 패턴).
+  const [syncedRefresh, setSyncedRefresh] = useState(refreshKey);
+  if (syncedRefresh !== refreshKey) {
+    setSyncedRefresh(refreshKey);
+    setPage(0);
+  }
 
   useEffect(() => {
     let active = true;
@@ -30,10 +49,16 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     const load = async () => {
       setLoading(true);
       try {
-        const page = await listBlogContents({offset: 0, limit: PAGE_SIZE});
-        if (active) setItems(page.contents);
+        const result = await listBlogContents({offset: page * PAGE_SIZE, limit: PAGE_SIZE});
+        if (active) {
+          setItems(result.contents);
+          setHasMore(result.hasMore);
+        }
       } catch {
-        if (active) setItems([]);
+        if (active) {
+          setItems([]);
+          setHasMore(false);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -42,7 +67,7 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     return () => {
       active = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, page]);
 
   async function open(id: string) {
     setOpeningId(id);
@@ -56,13 +81,20 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     }
   }
 
-  async function remove(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    setDeletingId(id);
+  async function confirmDelete() {
+    const target = deleteTarget;
+    if (!target) return;
+    setDeletingId(target.id);
     try {
-      await deleteBlogContent(id);
-      setItems((prev) => prev.filter((c) => c.id !== id));
+      await deleteBlogContent(target.id);
       toast.success('초안을 삭제했어요.');
+      setDeleteTarget(null);
+      if (items.length <= 1 && page > 0) {
+        // 현재 페이지의 마지막 항목 삭제 → 이전 페이지로(빈 페이지 방지, 재조회)
+        setPage((p) => Math.max(0, p - 1));
+      } else {
+        setItems((prev) => prev.filter((c) => c.id !== target.id));
+      }
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '삭제에 실패했어요.');
     } finally {
@@ -80,21 +112,22 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && page === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-10 text-center">
         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-muted">
           <FileText className="h-5 w-5 text-muted-foreground" />
         </div>
-        <p className="text-sm font-medium text-foreground">아직 만든 초안이 없어요</p>
+        <p className="text-sm font-medium text-foreground">아직 생성된 초안이 없어요</p>
         <p className="mt-1 text-xs text-muted-foreground">키워드를 넣고 첫 블로그 초안을 만들어 보세요.</p>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-2">
-      {items.map((item) => (
+    <div className="space-y-3">
+      <ul className="space-y-2">
+        {items.map((item) => (
         <li key={item.id}>
           <button
             type="button"
@@ -123,11 +156,15 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => remove(item.id, e)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(item);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  remove(item.id, e as unknown as React.MouseEvent);
+                  e.stopPropagation();
+                  setDeleteTarget(item);
                 }
               }}
               aria-label="초안 삭제"
@@ -141,7 +178,51 @@ export function BlogHistory({refreshKey, onOpen}: BlogHistoryProps) {
             </span>
           </button>
         </li>
-      ))}
-    </ul>
+        ))}
+      </ul>
+
+      {(page > 0 || hasMore) && (
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0 || loading}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            이전
+          </Button>
+          <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground">
+            {page + 1} 페이지
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasMore || loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            다음
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>초안을 삭제할까요?</DialogTitle>
+            <DialogDescription>
+              &quot;{deleteTarget?.title}&quot; 초안을 삭제합니다. 이 작업은 되돌릴 수 없어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={!!deletingId} onClick={() => setDeleteTarget(null)}>
+              취소
+            </Button>
+            <Button variant="destructive" disabled={!!deletingId} onClick={confirmDelete}>
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

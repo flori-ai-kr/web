@@ -8,7 +8,6 @@ import {
   scheduleSchema,
   bottomNavItemsSchema,
   photoCardSchema,
-  trendArticleInputSchema,
   scrapMemoSchema,
   scrapToggleSchema,
 } from '../validations'
@@ -196,30 +195,12 @@ describe('photoCardSchema', () => {
   })
 })
 
-// ─── httpUrlSchema (XSS 차단) via trendArticleInputSchema ────
-
-describe('trendArticleInputSchema (httpUrl XSS 차단)', () => {
-  const base = { category: 'flower' as const, title: '제목', summary: '요약' }
-
-  it('https URL을 허용한다', () => {
-    expect(trendArticleInputSchema.safeParse({ ...base, source_url: 'https://example.com/a' }).success).toBe(true)
-  })
-
-  it('javascript: 스킴은 차단한다', () => {
-    expect(trendArticleInputSchema.safeParse({ ...base, source_url: 'javascript:alert(1)' }).success).toBe(false)
-  })
-
-  it('data: 스킴은 차단한다', () => {
-    expect(trendArticleInputSchema.safeParse({ ...base, source_url: 'data:text/html,<script>1</script>' }).success).toBe(false)
-  })
-})
-
 // ─── 스크랩 ──────────────────────────────────────────────────
 
 describe('scrap schemas', () => {
   it('scrapToggleSchema는 target_type/target_id를 검증한다', () => {
-    expect(scrapToggleSchema.safeParse({ target_type: 'trend', target_id: '12' }).success).toBe(true)
     expect(scrapToggleSchema.safeParse({ target_type: 'grant', target_id: '12' }).success).toBe(true)
+    expect(scrapToggleSchema.safeParse({ target_type: 'trend', target_id: '12' }).success).toBe(false)
     expect(scrapToggleSchema.safeParse({ target_type: 'post', target_id: '12' }).success).toBe(false)
     expect(scrapToggleSchema.safeParse({ target_type: 'invalid', target_id: '12' }).success).toBe(false)
   })

@@ -206,30 +206,6 @@ export const customerGradeConfigUpdateSchema = z.object({
 
 // ─── 인사이트 섹션 ──────────────────────────────────────────
 
-// javascript:/data: URI 차단 — DB에 저장되어 <a href>로 렌더링되므로 XSS 방지.
-const httpUrlSchema = z
-  .string()
-  .url()
-  .max(1000)
-  .refine((u) => /^https?:\/\//i.test(u), {
-    message: 'http 또는 https URL만 허용됩니다',
-  });
-
-// 트렌드 기사 (루틴이 POST로 저장)
-export const trendArticleInputSchema = z.object({
-  category: z.enum(['flower', 'inspiration', 'business', 'industry']),
-  title: z.string().min(1).max(300),
-  summary: z.string().min(1).max(2000),
-  key_points: z.array(z.string().max(500)).max(20).optional().default([]),
-  source_url: httpUrlSchema,
-  source_name: z.string().max(100).nullable().optional(),
-  published_at: z.string().datetime({ offset: true }).nullable().optional(),
-});
-
-export const trendArticlesBulkSchema = z.object({
-  articles: z.array(trendArticleInputSchema).min(1).max(20),
-});
-
 // 하단바 커스터마이즈
 // types/database.ts 의 NavItemKey 와 동기화할 것
 export const navItemKeySchema = z.enum([
@@ -241,6 +217,7 @@ export const navItemKeySchema = z.enum([
   'customers',
   'gallery',
   'community',
+  'insights',
 ]);
 
 export const bottomNavItemsSchema = z
@@ -252,7 +229,7 @@ export const bottomNavItemsSchema = z
   });
 
 // 스크랩/메모
-export const scrapTargetTypeSchema = z.enum(['trend', 'grant']);
+export const scrapTargetTypeSchema = z.enum(['grant']);
 
 export const scrapToggleSchema = z.object({
   target_type: scrapTargetTypeSchema,

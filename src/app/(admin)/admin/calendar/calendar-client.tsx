@@ -46,7 +46,7 @@ export function CalendarClient() {
   const [salePaymentMethods, setSalePaymentMethods] = useState<PaymentMethodType[]>([]);
 
   // Photo modal
-  const [photoModal, setPhotoModal] = useState<{ saleId: string; defaultTitle: string } | null>(null);
+  const [photoModal, setPhotoModal] = useState<{ saleId: string; defaultTitle: string; customerId?: string | null } | null>(null);
 
   // 월 데이터 로딩 + 날짜별 파생 맵
   const {
@@ -178,7 +178,7 @@ export function CalendarClient() {
           siblingReservations={siblingReservations}
           saleIdsWithPhotos={saleIdsWithPhotos}
           saleCategories={saleCategories}
-          onPhotoClick={(saleId, defaultTitle) => setPhotoModal({ saleId, defaultTitle })}
+          onPhotoClick={(saleId, defaultTitle, customerId) => setPhotoModal({ saleId, defaultTitle, customerId })}
           onEditReservation={startEdit}
           onDeleteReservation={setDeleteTarget}
           onToggleCompletion={toggleCompletion}
@@ -210,6 +210,7 @@ export function CalendarClient() {
           onClose={() => setPhotoModal(null)}
           saleId={photoModal.saleId}
           defaultTitle={photoModal.defaultTitle}
+          customerId={photoModal.customerId}
           onSuccess={() => { refreshData(); }}
         />
       )}

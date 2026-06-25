@@ -24,6 +24,7 @@ import {
     Image as ImageIcon,
     LayoutDashboard,
     MessagesSquare,
+    Newspaper,
     PenLine,
     Plus,
     Receipt,
@@ -57,6 +58,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   customers: Users,
   gallery: ImageIcon,
   community: MessagesSquare,
+  insights: Newspaper,
   marketing: PenLine,
 };
 
@@ -69,10 +71,11 @@ const ALL_KEYS: NavItemKey[] = [
   'customers',
   'gallery',
   'community',
+  'insights',
   'marketing',
 ];
 
-// 저장된 설정에 제거된 키(insights/follows)가 남아있어도 유효한 키만 남긴다
+// 저장된 설정에 제거된 키(follows 등)가 남아있어도 유효한 키만 남긴다
 function sanitize(keys: NavItemKey[]): NavItemKey[] {
   return keys.filter((k) => ALL_KEYS.includes(k));
 }

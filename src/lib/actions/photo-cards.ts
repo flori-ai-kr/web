@@ -437,7 +437,8 @@ async function _createOrUpdatePhotoCardForSale(
   title: string,
   photos: PhotoFile[],
   memo?: string | null,
-  tags?: string[]
+  tags?: string[],
+  customerId?: string | null
 ): Promise<PhotoCard> {
   await requireAuth();
 
@@ -447,6 +448,8 @@ async function _createOrUpdatePhotoCardForSale(
   const existingCard = await getPhotoCardBySaleId(saleId);
 
   if (existingCard) {
+    // 수정 시에는 고객 신호를 보내지 않는다 — 서버가 customer_id가 비어 있을 때만 매출 고객을 백필하므로,
+    // 사진첩에서 수동 연결한 고객이 덮어써지지 않는다.
     const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${existingCard.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -467,6 +470,8 @@ async function _createOrUpdatePhotoCardForSale(
       tags: tags || [],
       photos: photoPayload,
       saleId,
+      // 매출의 고객을 사진 카드에 함께 연결. 서버도 saleId로부터 상속하지만, 명시 전달로 이중 보장(방어 심화).
+      customerId: customerId ? Number(customerId) : null,
     }),
   });
   return toPhotoCard(dto);

@@ -13,6 +13,7 @@ import {
     MessageCircle,
     MessagesSquare,
     MoreHorizontal,
+    Newspaper,
     PenLine,
     Receipt,
     Settings as SettingsIcon,
@@ -34,6 +35,7 @@ const ICON_MAP: Record<NavItemKey, React.ComponentType<{ className?: string }>> 
   customers: Users,
   gallery: ImageIcon,
   community: MessagesSquare,
+  insights: Newspaper,
   marketing: PenLine,
 };
 
@@ -46,10 +48,11 @@ const ALL_NAV_ITEMS: NavItemKey[] = [
   'customers',
   'gallery',
   'community',
+  'insights',
   'marketing',
 ];
 
-// 저장된 사용자 설정에 제거된 키(insights/follows)가 남아있어도 안전하게 거른다
+// 저장된 사용자 설정에 제거된 키(follows 등)가 남아있어도 안전하게 거른다
 function sanitize(keys: NavItemKey[]): NavItemKey[] {
   return keys.filter((k): k is NavItemKey => k in ICON_MAP);
 }
