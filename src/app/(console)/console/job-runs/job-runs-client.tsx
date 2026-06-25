@@ -25,24 +25,11 @@ import {
   triggerJob,
   type JobRunFilters,
 } from '@/lib/actions/admin-job-runs';
+import { JOB_META, jobLabel } from '@/lib/job-meta';
 import type { JobRunLog, JobRunStatus, JobRunSummary } from '@/types/admin';
 
 const PAGE_SIZE = 50;
 const ALL = 'all';
-
-// 작업명 → 한글 라벨·주기·설명 (백엔드 JobNames 상수와 1:1).
-const JOB_META: Record<string, { label: string; schedule: string; desc: string }> = {
-  flower_auction_ingest: { label: '경매시세 적재', schedule: '매일 06:30', desc: 'aT 화훼공판장 경락가' },
-  support_program_ingest: { label: 'K-Startup 적재', schedule: '매일 06:31', desc: 'K-Startup 공고' },
-  bizinfo_ingest: { label: '비즈인포 적재', schedule: '매일 06:32', desc: '기업마당(비즈인포) 공고' },
-  reservation_reminder: { label: '픽업 리마인더', schedule: '5분마다', desc: '예약 리마인더 푸시' },
-  daily_pickup_summary: { label: '일일 픽업 요약', schedule: '매일 08:00', desc: '당일 예약 요약 푸시' },
-  recurring_expense_generate: { label: '고정비 자동생성', schedule: '매일 00:30', desc: '반복 지출 생성' },
-};
-
-function jobLabel(jobName: string) {
-  return JOB_META[jobName]?.label ?? jobName;
-}
 
 const STATUS_META: Record<JobRunStatus, { tone: 'success' | 'danger' | 'warning'; label: string }> = {
   success: { tone: 'success', label: '성공' },
