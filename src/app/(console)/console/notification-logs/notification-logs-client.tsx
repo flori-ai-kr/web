@@ -173,8 +173,6 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">발송 로그</h1>
-
       <div className="flex flex-wrap items-center gap-2">
         <Select value={type} onValueChange={onTypeChange}>
           <SelectTrigger className="w-44 bg-card">

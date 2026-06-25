@@ -8,6 +8,7 @@ import {toast} from 'sonner';
 import type {PushSubscriptionData} from '@/lib/actions/push';
 import {sendTestNotification, subscribeToPush, unsubscribeFromPush} from '@/lib/actions/push';
 import {BottomNavCustomizer} from './components/bottom-nav-customizer';
+import {PushPreferences} from './components/push-preferences';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -214,22 +215,25 @@ export default function SettingsPage() {
               </div>
 
               {pushSubscription && (
-                <div className="pt-2 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleTestNotification}
-                    disabled={isSendingTest}
-                    className="text-muted-foreground"
-                  >
-                    {isSendingTest ? (
-                      <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-1.5" />
-                    )}
-                    테스트 알림 보내기
-                  </Button>
-                </div>
+                <>
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleTestNotification}
+                      disabled={isSendingTest}
+                      className="text-muted-foreground"
+                    >
+                      {isSendingTest ? (
+                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4 mr-1.5" />
+                      )}
+                      테스트 알림 보내기
+                    </Button>
+                  </div>
+                  <PushPreferences />
+                </>
               )}
             </div>
           )}

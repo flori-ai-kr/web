@@ -607,7 +607,7 @@ erDiagram
 | `/admin/insights` | 인사이트 | 경매시세·지원사업 2탭 (`?tab=price|grant`). 경매시세: 화훼구분 칩(스크랩/전체/절화/관엽/난)·날짜 네비·품목 검색·드릴다운·품목 북마크. 지원사업: 데스크탑 2단 그리드·카드 클릭 상세 모달·서버 검색. 트렌드·팔로우 탭 제거됨 |
 | `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 `ensureCommunityAccess()` — APPROVED 아니면 /verify 리다이렉트(전원 인증, 운영자 예외 없음). 운영자 작성물에 "관리자" 칩 표시 |
 | `/admin/community/verify` | 사업자 인증 | 사업자등록증 업로드 + 심사 상태 표시 (`BusinessVerificationGate`). APPROVED 상태이면 /admin/community로 리다이렉트 |
-| `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 |
+| `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 + 푸시 타입별 수신 on/off 토글(PushPreferences) |
 | `/auth/login/[provider]` | OAuth 개시 | CSRF state 쿠키 발급 → 공급자 authorize 화면 302 redirect (kakao·google·naver) |
 | `/auth/callback/[provider]` | OAuth 콜백 | state 검증 → Kotlin BFF 토큰 교환 → registered 분기 (/admin 또는 /onboarding) |
 | `/onboarding` | 온보딩 | 소셜 신규 가입 2단계 폼 (registerToken 쿠키 가드). Step1에 전화번호 필수 입력 포함 |
@@ -647,13 +647,14 @@ erDiagram
 | `photo-tags.ts` | CRUD |
 | `sale-settings.ts` | getSaleCategories, getPaymentMethods, getSaleChannels, createSaleCategory, updateSaleCategory, deleteSaleCategory, **reorderSaleCategories** (`PUT /settings/sale-categories/order`), createPaymentMethod, updatePaymentMethod, deletePaymentMethod, **reorderPaymentMethods** (`PUT /settings/payment-methods/order`), createSaleChannel, updateSaleChannel, deleteSaleChannel, **reorderSaleChannels** (`PUT /settings/sale-channels/order`) |
 | `expense-settings.ts` | getExpenseCategories, getExpensePaymentMethods, createExpenseCategory, updateExpenseCategory, deleteExpenseCategory, **reorderExpenseCategories** (`PUT /settings/expense-categories/order`), createExpensePaymentMethod, updateExpensePaymentMethod, deleteExpensePaymentMethod, **reorderExpensePaymentMethods** (`PUT /settings/expense-payment-methods/order`) |
-| `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification (BFF `POST /push/test`) |
+| `push.ts` | subscribeToPush, unsubscribeFromPush, getPushSubscriptionStatus, sendTestNotification(type?) (BFF `POST /push/test?type=`), getPushPreferences (BFF `GET /push/preferences`), setPushPreference(type, enabled) (BFF `PUT /push/preferences`) |
 | `insights.ts` | getUserPreferences, updateBottomNavItems |
 | `auction.ts` | getAuctionCategories, getAuctionDates, getAuctionSummary, getAuctionPrices, getAuctionItemScraps (`/insights/auction/scraps`), toggleAuctionItemScrap (`/insights/auction/scraps/toggle`) |
 | `grants.ts` | getGrants, loadMoreGrants (keyword 서버 검색 지원) |
 | `scraps.ts` | toggleScrap, updateScrapMemo, getScrapMap, getGrantScraps, getScrapCounts — `target_type`은 `grant`만 |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
+| `admin-job-runs.ts` | getJobRunSummary (BFF `GET /admin/job-runs/summary` — 작업별 최신 상태 카드), listJobRuns(filters, page) (BFF `GET /admin/job-runs`), triggerJob(jobName) (BFF `POST /admin/job-runs/{jobName}/trigger` — 즉시 실행) |
 
 ## 타입 시스템
 
@@ -779,7 +780,9 @@ export const createSale = withErrorLogging('createSale', async (data) => {
 public/sw.js                  -- Service Worker (푸시 수신/클릭)
 src/app/manifest.ts           -- PWA 매니페스트
 public/icons/                 -- PWA 아이콘 (192/512, maskable)
-src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubscribe/status/test)
+src/lib/actions/push.ts       -- 푸시 구독 Server Actions (subscribe/unsubscribe/status/sendTestNotification/getPushPreferences/setPushPreference)
+src/lib/push-types.ts         -- PUSH_TYPE_META (타입별 라벨·설명 SSOT, 점주 수신설정·콘솔 테스트 공유)
+src/lib/job-meta.ts           -- JOB_META, jobLabel() (cron 작업 라벨·주기 SSOT, 작업 로그·감사 로그 공유)
 ```
 
 ### 푸시 발송 흐름
