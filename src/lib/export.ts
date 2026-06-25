@@ -11,6 +11,48 @@ export interface ExportConfig<T = Record<string, unknown>> {
   data: T[];
 }
 
+const padN = (n: number) => String(n).padStart(2, '0');
+
+function todayKst(): string {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return `${kst.getUTCFullYear()}-${padN(kst.getUTCMonth() + 1)}-${padN(kst.getUTCDate())}`;
+}
+
+/** 내보내기 기간 입력 — 커스텀 범위 또는 년/월(+선택 일). */
+export type ExportPeriodInput =
+  | { range: { startDate: string; endDate: string } }
+  | { year: number; month: number; day?: number };
+
+/**
+ * 활성 기간 → 파일명 접미사 + 제목 범위 라벨.
+ * - 종료일은 오늘(KST)로 캡한다(이번 달/미래엔 데이터가 없으므로 260601~오늘 식으로 표기).
+ * - 단일 일/전체도 처리. 예: '_260601~260625' / '_260625' / '_전체'.
+ */
+export function exportPeriodLabels(input: ExportPeriodInput | null): { fileSuffix: string; rangeLabel: string } {
+  let start: string | null = null;
+  let end: string | null = null;
+  if (input && 'range' in input) {
+    start = input.range.startDate;
+    end = input.range.endDate;
+  } else if (input && input.year > 0 && input.month > 0) {
+    if (input.day && input.day > 0) {
+      start = end = `${input.year}-${padN(input.month)}-${padN(input.day)}`;
+    } else {
+      start = `${input.year}-${padN(input.month)}-01`;
+      const lastDay = new Date(Date.UTC(input.year, input.month, 0)).getUTCDate();
+      end = `${input.year}-${padN(input.month)}-${padN(lastDay)}`;
+    }
+  }
+  if (!start || !end) return { fileSuffix: '_전체', rangeLabel: '전체' };
+  const today = todayKst();
+  if (end > today) end = today; // 이번 달/미래 → 오늘로 캡
+  if (end < start) return { fileSuffix: '_전체', rangeLabel: '전체' }; // 시작이 미래 등 비정상 범위
+  const ymd = (d: string) => d.slice(2).replace(/-/g, ''); // 2026-06-01 → 260601
+  const dot = (d: string) => d.replace(/-/g, '.'); // 2026.06.01
+  if (start === end) return { fileSuffix: `_${ymd(start)}`, rangeLabel: dot(start) };
+  return { fileSuffix: `_${ymd(start)}~${ymd(end)}`, rangeLabel: `${dot(start)} ~ ${dot(end)}` };
+}
+
 function formatCellValue(value: string | number, format?: string): string {
   if (value === null || value === undefined) return '';
   if (format === 'currency' && typeof value === 'number') {
@@ -75,8 +117,8 @@ export async function exportToExcel<T>(config: ExportConfig<T>): Promise<void> {
   });
   headerRow.height = 28;
 
-  // 데이터 행 — 교차행 배경(brand-muted #F7E9EF)으로 가독성 + DS 정렬
-  config.data.forEach((row, rowIdx) => {
+  // 데이터 행 — 화이트(헤더만 컬러). 통화 컬럼만 우측정렬 + 천단위.
+  config.data.forEach((row) => {
     const values = config.columns.map(col => {
       const val = col.accessor(row);
       if (col.format === 'currency' && typeof val === 'number') return val;
@@ -84,14 +126,10 @@ export async function exportToExcel<T>(config: ExportConfig<T>): Promise<void> {
     });
 
     const dataRow = sheet.addRow(values);
-    const striped = rowIdx % 2 === 1;
 
     config.columns.forEach((col, colIdx) => {
-      const cell = dataRow.getCell(colIdx + 1);
-      if (striped) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7E9EF' } };
-      }
       if (col.format === 'currency') {
+        const cell = dataRow.getCell(colIdx + 1);
         cell.numFmt = '#,##0';
         cell.alignment = { horizontal: 'right' };
       }
@@ -162,12 +200,9 @@ export async function exportToPDF<T>(config: ExportConfig<T>): Promise<void> {
       cellPadding: 3,
     },
     headStyles: {
-      fillColor: [168, 84, 117], // 브랜드 로즈 #A85475
+      fillColor: [168, 84, 117], // 브랜드 로즈 #A85475 (헤더만 컬러, 데이터행은 화이트)
       textColor: 255,
       fontStyle: 'normal',
-    },
-    alternateRowStyles: {
-      fillColor: [247, 233, 239], // brand-muted #F7E9EF
     },
     margin: { left: 14, right: 14 },
   });

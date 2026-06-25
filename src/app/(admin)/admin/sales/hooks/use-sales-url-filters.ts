@@ -115,9 +115,16 @@ export function useSalesUrlFilters({
     router.push(buildUrl({ channel }));
   };
 
-  /** 카테고리·결제·채널 URL 필터 초기화(검색어 등 로컬 상태는 호출부에서 함께 리셋). */
+  /** 카테고리·결제·채널 + 기간(커스텀 범위 해제 → 이번 달) 초기화. 검색어 등 로컬 상태는 호출부에서 함께 리셋.
+   *  year/month/day override 를 주어 buildUrl 이 기간 변경으로 인식 → startDate/endDate 를 떨궈 범위를 해제한다. */
   const resetUrlFilters = () => {
-    router.push(buildUrl({ category: [], payment: [], channel: [] }));
+    const now = new Date();
+    router.push(buildUrl({
+      year: now.getFullYear().toString(),
+      month: (now.getMonth() + 1).toString(),
+      day: 'all',
+      category: [], payment: [], channel: [],
+    }));
   };
 
   return {

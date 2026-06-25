@@ -150,8 +150,8 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || channelFilter.length > 0 || searchQuery !== '';
 
   const getExportConfig = useCallback(
-    () => buildSalesExportConfig({ sales: filteredSales, currentYear, currentMonth, currentDay }),
-    [filteredSales, currentYear, currentMonth, currentDay],
+    () => buildSalesExportConfig({ sales: filteredSales, currentYear, currentMonth, currentDay, dateRange: serverDateRange }),
+    [filteredSales, currentYear, currentMonth, currentDay, serverDateRange],
   );
 
   const handleOpenPhotoModal = async (sale: Sale) => {

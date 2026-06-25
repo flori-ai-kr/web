@@ -5,9 +5,8 @@ import {useRouter} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
 import {Search, Users} from 'lucide-react';
-import {format} from 'date-fns';
 import type {Customer, CustomerGradeConfig} from '@/types/database';
-import type {ExportConfig} from '@/lib/export';
+import {type ExportConfig, exportPeriodLabels} from '@/lib/export';
 import type {SaleCategory} from '@/lib/actions/sale-settings';
 import {PeriodHeader} from '@/components/layout/period-header';
 import {CustomerCard, genderLabels} from './components/customer-card';
@@ -56,21 +55,30 @@ export function CustomersClient({ initialCustomers, initialGrades }: Props) {
   const filters = useCustomerFilters({ customers: optimisticCustomers, grades: initialGrades });
   const { filteredCustomers, groupedCustomers, isSearching, headerStats, hasActiveFilters, resetFilters } = filters;
 
-  const getExportConfig = useCallback((): ExportConfig<Customer> => ({
-    filename: `고객_${format(new Date(), 'yyyy-MM-dd')}`,
-    title: '고객 목록',
-    columns: [
-      { header: '이름', accessor: (c) => String(c.name || '') },
-      { header: '전화번호', accessor: (c) => String(c.phone || '') },
-      { header: '등급', accessor: (c) => c.grade || '' },
-      { header: '성별', accessor: (c) => c.gender ? genderLabels[c.gender] || '' : '' },
-      { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
-      { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },
-      { header: '최근구매일', accessor: (c) => String(c.last_purchase_date || '') },
-      { header: '메모', accessor: (c) => String(c.memo || '') },
-    ],
-    data: filteredCustomers,
-  }), [filteredCustomers]);
+  const getExportConfig = useCallback((): ExportConfig<Customer> => {
+    const { fileSuffix, rangeLabel } = exportPeriodLabels(
+      filters.customRange
+        ? { range: { startDate: filters.customRange.start, endDate: filters.customRange.end } }
+        : { year: filters.periodYear, month: filters.periodMonth },
+    );
+    // 등급 높은 순 정렬 — 등급별 그룹(임계값 높은 순)을 평탄화. 특정 등급 필터 중이면 그 그룹만.
+    const gradeSorted = groupedCustomers ? groupedCustomers.flatMap(g => g.customers) : filteredCustomers;
+    return {
+      filename: `고객${fileSuffix}`,
+      title: `고객 목록 (${rangeLabel})`,
+      columns: [
+        { header: '이름', accessor: (c) => String(c.name || '') },
+        { header: '연락처', accessor: (c) => String(c.phone || '') },
+        { header: '등급', accessor: (c) => c.grade || '' },
+        { header: '성별', accessor: (c) => c.gender ? genderLabels[c.gender] || '' : '' },
+        { header: '구매횟수', accessor: (c) => Number(c.total_purchase_count) || 0 },
+        { header: '총구매금액', accessor: (c) => Number(c.total_purchase_amount) || 0, format: 'currency' },
+        { header: '최근구매일', accessor: (c) => String(c.last_purchase_date || '') },
+        { header: '메모', accessor: (c) => String(c.memo || '') },
+      ],
+      data: gradeSorted,
+    };
+  }, [filteredCustomers, groupedCustomers, filters.customRange, filters.periodYear, filters.periodMonth]);
 
   const handleFormSuccess = () => {
     router.refresh();

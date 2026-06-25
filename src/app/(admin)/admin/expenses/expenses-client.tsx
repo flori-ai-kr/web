@@ -25,7 +25,7 @@ import {
 } from '@/lib/actions/expense-settings';
 import {ExpenseSettingsModal} from '@/app/(admin)/admin/expenses/components/expense-settings-modal';
 import type {Expense} from '@/types/database';
-import type {ExportConfig} from '@/lib/export';
+import {type ExportConfig, exportPeriodLabels} from '@/lib/export';
 import {useInfiniteList} from '@/hooks/use-infinite-list';
 import {useQuickCreate} from '@/hooks/use-quick-create';
 
@@ -108,10 +108,6 @@ export function ExpensesClient({
   const filteredExpenses = del.optimisticExpenses;
   const hasActiveFilters = paymentFilter.length > 0 || categoryFilter.length > 0 || searchQuery !== '';
 
-  const yearLabel = currentYear === 0 ? '전체' : `${currentYear}년`;
-  const monthLabel = currentMonth === 0 ? '전체' : `${currentMonth}월`;
-  const dayLabel = currentDay === 0 ? '' : ` ${currentDay}일`;
-
   const refreshSettings = async () => {
     const [cats, pays] = await Promise.all([getExpenseCategories(), getExpensePaymentMethods()]);
     setCategories(cats);
@@ -119,25 +115,26 @@ export function ExpensesClient({
   };
 
   const getExportConfig = useCallback((): ExportConfig<Expense> => {
-    const isAll = currentYear === 0 || currentMonth === 0;
-    const monthSuffix = isAll ? '' : `_${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const daySuffix = currentDay === 0 ? '' : `-${String(currentDay).padStart(2, '0')}`;
+    const { fileSuffix, rangeLabel } = exportPeriodLabels(
+      serverDateRange ? { range: serverDateRange } : { year: currentYear, month: currentMonth, day: currentDay },
+    );
     return ({
-      filename: isAll ? '지출_전체' : `지출${monthSuffix}${daySuffix}`,
-      title: `지출 내역 (${yearLabel} ${monthLabel}${dayLabel})`,
+      filename: `지출${fileSuffix}`,
+      title: `지출 내역 (${rangeLabel})`,
       columns: [
         { header: '날짜', accessor: (e) => String(e.date || '') },
         { header: '카테고리', accessor: (e) => e.category_label || '' },
-        { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
-        { header: '결제방법', accessor: (e) => e.payment_method_label ?? '' },
-        { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
         { header: '품목명', accessor: (e) => String(e.item_name || '') },
+        { header: '단가', accessor: (e) => Number(e.unit_price) || 0, format: 'currency' },
+        { header: '수량', accessor: (e) => Number(e.quantity) || 0 },
+        { header: '금액', accessor: (e) => Number(e.total_amount) || 0, format: 'currency' },
+        { header: '결제방식', accessor: (e) => e.payment_method_label ?? '' },
         { header: '거래처', accessor: (e) => String(e.vendor || '') },
         { header: '메모', accessor: (e) => String(e.memo || '') },
       ],
       data: filteredExpenses,
     });
-  }, [filteredExpenses, currentYear, currentMonth, currentDay, yearLabel, monthLabel, dayLabel]);
+  }, [filteredExpenses, currentYear, currentMonth, currentDay, serverDateRange]);
 
   const handleSelectExpense = (expense: Expense) => {
     setSelectedExpense(expense);
@@ -208,7 +205,14 @@ export function ExpensesClient({
 
   const handleResetFilters = () => {
     setSearchQuery('');
-    router.push(buildUrl({ category: [], payment: [] }));
+    // 기간(커스텀 범위)도 함께 해제 → 이번 달. year/month override 로 buildUrl 이 범위를 떨구게 한다.
+    const now = new Date();
+    router.push(buildUrl({
+      year: now.getFullYear().toString(),
+      month: (now.getMonth() + 1).toString(),
+      day: 'all',
+      category: [], payment: [],
+    }));
   };
 
   return (
