@@ -82,14 +82,8 @@ export interface AdminUserPage {
   total: number;
 }
 
-export interface AdminSubscriptionRow {
-  userId: number;
-  status: string;
-  store: string;
-  productId: string;
-  entitlement: string;
-  currentPeriodEnd: string | null;
-}
+// 구독 현황 타입은 billing.ts를 단일 진실 원천으로 유지한다.
+export type { AdminSubscriptionRow } from './billing';
 
 export interface AiHealthTarget {
   name: string;
