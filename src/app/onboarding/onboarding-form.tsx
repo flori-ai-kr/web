@@ -484,6 +484,22 @@ export function OnboardingForm({
 
             <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
+                flori를 알게 된 경로 <span className="text-destructive">*</span>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {REFERRAL_SOURCES.map((item) => (
+                  <Chip
+                    key={item}
+                    label={item}
+                    pressed={referralSources.includes(item)}
+                    onToggle={() => toggleInArray(item, referralSources, setReferralSources)}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-3" disabled={isLoading}>
+              <legend className="text-sm font-medium text-foreground">
                 관심사 <span className="text-muted-foreground">(선택)</span>
               </legend>
               <div className="flex flex-wrap gap-2">
@@ -509,22 +525,6 @@ export function OnboardingForm({
                     label={item}
                     pressed={specialties.includes(item)}
                     onToggle={() => toggleInArray(item, specialties, setSpecialties)}
-                  />
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-3" disabled={isLoading}>
-              <legend className="text-sm font-medium text-foreground">
-                flori를 알게 된 경로 <span className="text-destructive">*</span>
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {REFERRAL_SOURCES.map((item) => (
-                  <Chip
-                    key={item}
-                    label={item}
-                    pressed={referralSources.includes(item)}
-                    onToggle={() => toggleInArray(item, referralSources, setReferralSources)}
                   />
                 ))}
               </div>
