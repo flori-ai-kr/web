@@ -47,7 +47,7 @@ export function InfoClient({
       <PageHeader title="인사이트" description="경매 시세 · 지원사업" />
 
       {/* 메인 언더라인 탭 (= statistics 4탭 패턴) */}
-      <div role="tablist" aria-label="인사이트 탭" className="flex gap-1 overflow-x-auto border-b border-border">
+      <div role="tablist" aria-label="인사이트 탭" className="flex gap-1 overflow-x-auto border-b border-border scrollbar-hide">
         {INFO_TABS.map((t) => (
           <button
             key={t.value}
