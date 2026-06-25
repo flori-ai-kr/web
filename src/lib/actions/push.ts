@@ -84,12 +84,16 @@ export const getPushSubscriptionStatus = withErrorLogging(
 
 // ─── 테스트 알림 전송 ──────────────────────────────────────────
 
-async function _sendTestNotification(): Promise<{ success: boolean; error?: string }> {
+export type PushTestType = 'pickup_reminder' | 'daily_summary' | 'test';
+
+async function _sendTestNotification(
+  type?: PushTestType,
+): Promise<{ success: boolean; error?: string }> {
   await requireAuth();
 
-  // 서버가 현재 사용자의 활성 웹푸시 구독에 테스트 페이로드를 발송한다.
   try {
-    const result = await apiFetch<{ sent: number } | void>('/push/test', { method: 'POST' });
+    const params = type ? `?type=${type}` : '';
+    const result = await apiFetch<{ sent: number } | void>(`/push/test${params}`, { method: 'POST' });
     const sent = result?.sent ?? 0;
     if (result && sent === 0) {
       return { success: false, error: '활성 구독이 없습니다' };

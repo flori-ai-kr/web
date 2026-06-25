@@ -22,7 +22,15 @@ import {
   listNotificationLogs,
   type NotificationLogFilters,
 } from '@/lib/actions/admin-notification-logs';
+import { sendTestNotification, type PushTestType } from '@/lib/actions/push';
+import { toast } from 'sonner';
 import type { NotificationLog, NotificationSendStatus } from '@/types/admin';
+
+const PUSH_TEST_TYPES: { type: PushTestType; label: string }[] = [
+  { type: 'pickup_reminder', label: '예약 리마인더' },
+  { type: 'daily_summary', label: '일일 요약' },
+  { type: 'test', label: '기본 테스트' },
+];
 
 const PAGE_SIZE = 50;
 
@@ -171,9 +179,37 @@ export function NotificationLogsClient({ initial }: { initial: NotificationLog[]
     });
   };
 
+  const [testPending, startTestTransition] = useTransition();
+
+  const handleTestPush = (type: PushTestType) => {
+    startTestTransition(async () => {
+      const result = await sendTestNotification(type);
+      if (result.success) {
+        toast.success('테스트 알림 발송 완료');
+      } else {
+        toast.error(result.error ?? '발송 실패');
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">발송 로그</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-foreground">발송 로그</h1>
+        <div className="flex items-center gap-1.5">
+          {PUSH_TEST_TYPES.map(({ type, label }) => (
+            <Button
+              key={type}
+              variant="outline"
+              size="sm"
+              disabled={testPending}
+              onClick={() => handleTestPush(type)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={type} onValueChange={onTypeChange}>
