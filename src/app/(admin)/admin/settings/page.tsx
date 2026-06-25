@@ -149,7 +149,7 @@ export default function SettingsPage() {
         <CardContent className="p-4">
           <h3 className="text-sm font-medium text-foreground mb-1">푸시 알림</h3>
           <p className="text-xs text-muted-foreground mb-4">
-            예약 리마인더와 중요 알림을 푸시로 받을 수 있어요. 매일 오전 8시에 오늘의 예약 알림이 발송됩니다.
+            다양한 알림을 푸시로 받을 수 있어요.
           </p>
 
           {isPushLoading ? (
@@ -238,12 +238,6 @@ export default function SettingsPage() {
 
       {/* 하단바 커스터마이즈 */}
       <BottomNavCustomizer />
-
-      <div className="p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-        <p>매출 카테고리·결제방식·채널은 매출 페이지의 설정 버튼에서 설정할 수 있습니다.</p>
-        <p className="mt-1">지출 카테고리·결제방식은 지출 페이지의 설정 버튼에서 설정할 수 있습니다.</p>
-        <p className="mt-1">사진첩 태그는 사진첩 페이지의 태그 설정에서 설정할 수 있습니다.</p>
-      </div>
     </div>
   );
 }
