@@ -3,7 +3,7 @@
 import {useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import {toast} from 'sonner';
-import {Loader2, Lock, MessageSquare, MessagesSquare, PenSquare, Pin, Search} from 'lucide-react';
+import {Loader2, MessageSquare, MessagesSquare, PenSquare, Pin, Search} from 'lucide-react';
 import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
@@ -194,7 +194,6 @@ function CategoryTab({
 }
 
 function NoticeRow({ post }: { post: CommunityPost }) {
-  const masked = post.is_secret && !post.can_view;
   return (
     <li>
       <Link
@@ -202,13 +201,12 @@ function NoticeRow({ post }: { post: CommunityPost }) {
         className="flex items-center gap-2 px-4 py-2.5 hover:bg-amber-500/10 transition-colors"
       >
         <CommunityCategoryBadge category={post.category} className="shrink-0" />
-        {post.is_secret && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-label="비밀글" />}
         <span className="font-medium text-foreground truncate flex-1 min-w-0">
-          {masked ? '비밀글입니다' : post.title}
+          {post.title}
         </span>
         <span className="hidden sm:flex items-center gap-2.5 text-xs text-muted-foreground shrink-0">
-          <span>{masked ? '비공개' : post.author_nickname}</span>
-          {!masked && post.author_is_admin && <AdminBadge />}
+          <span>{post.author_nickname}</span>
+          {post.author_is_admin && <AdminBadge />}
           {post.comment_count > 0 && (
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" /> {post.comment_count}

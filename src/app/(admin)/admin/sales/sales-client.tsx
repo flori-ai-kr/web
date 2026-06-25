@@ -74,7 +74,7 @@ export function SalesClient({ initialSales, initialHasMore, initialSummary, mont
     handlePaymentChange,
     handleChannelChange,
     resetUrlFilters,
-  } = useSalesUrlFilters({ currentYear, currentMonth, currentDay, initialFilters });
+  } = useSalesUrlFilters({ currentYear, currentMonth, currentDay, dateRange: serverDateRange, initialFilters });
 
   // 매출 상세 선택 + 연결 사진/예약 로드 + URL saleId 딥링크
   const {

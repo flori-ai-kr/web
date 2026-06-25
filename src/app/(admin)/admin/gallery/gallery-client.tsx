@@ -179,6 +179,12 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
     loadInitial();
   }, [selectedTag, selectedCustomer, queryFrom, queryTo]);
 
+  // 모달이 열려 있으면 body 스크롤이 잠겨(Radix Dialog) 센티넬이 뷰포트에 고정된 채로 남아
+  // IntersectionObserver가 loadMore를 연쇄 호출(런어웨이 페이지네이션 → 무한 로딩)한다.
+  // 매출 상세 → '사진첩에서 보기' 딥링크(?card=)로 진입 시 모달이 즉시 떠 이 현상이 발생.
+  // 모달이 열린 동안에는 무한스크롤을 일시 정지하고, 닫히면 정상 재개한다.
+  const isAnyModalOpen = !!selectedCard || isUploadModalOpen || isTagModalOpen;
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
     if (observerRef.current) {
@@ -187,7 +193,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        if (entries[0].isIntersecting && hasMore && !isLoading && !isAnyModalOpen) {
           loadMore();
         }
       },
@@ -203,7 +209,7 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
         observerRef.current.disconnect();
       }
     };
-  }, [hasMore, isLoading, loadMore]);
+  }, [hasMore, isLoading, loadMore, isAnyModalOpen]);
 
   const refreshCards = async () => {
     setIsLoading(true);

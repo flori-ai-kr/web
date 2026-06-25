@@ -59,24 +59,24 @@ export async function exportToExcel<T>(config: ExportConfig<T>): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(config.title || 'Sheet1');
 
-  // 헤더 행
+  // 헤더 행 — 브랜드 로즈(#A85475) 배경 + 흰 글자(WCAG AA 5.01:1)
   const headerRow = sheet.addRow(config.columns.map(c => c.header));
   headerRow.eachCell((cell) => {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFE5614E' },
+      fgColor: { argb: 'FFA85475' },
     };
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = {
-      bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+      bottom: { style: 'thin', color: { argb: 'FFF0E6EC' } },
     };
   });
   headerRow.height = 28;
 
-  // 데이터 행
-  config.data.forEach((row) => {
+  // 데이터 행 — 교차행 배경(brand-muted #F7E9EF)으로 가독성 + DS 정렬
+  config.data.forEach((row, rowIdx) => {
     const values = config.columns.map(col => {
       const val = col.accessor(row);
       if (col.format === 'currency' && typeof val === 'number') return val;
@@ -84,10 +84,14 @@ export async function exportToExcel<T>(config: ExportConfig<T>): Promise<void> {
     });
 
     const dataRow = sheet.addRow(values);
+    const striped = rowIdx % 2 === 1;
 
     config.columns.forEach((col, colIdx) => {
+      const cell = dataRow.getCell(colIdx + 1);
+      if (striped) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7E9EF' } };
+      }
       if (col.format === 'currency') {
-        const cell = dataRow.getCell(colIdx + 1);
         cell.numFmt = '#,##0';
         cell.alignment = { horizontal: 'right' };
       }
@@ -131,15 +135,16 @@ export async function exportToPDF<T>(config: ExportConfig<T>): Promise<void> {
   doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
   doc.setFont('NanumGothic');
 
-  // 제목
+  // 제목 — ink(#1C2024)
   doc.setFontSize(16);
+  doc.setTextColor(28, 32, 36);
   doc.text(config.title || config.filename, 14, 15);
 
-  // 내보내기 일시
+  // 내보내기 일시 — sage(#8A929E)
   doc.setFontSize(9);
-  doc.setTextColor(128);
+  doc.setTextColor(138, 146, 158);
   doc.text(`내보내기 일시: ${new Date().toLocaleString('ko-KR')}`, 14, 22);
-  doc.setTextColor(0);
+  doc.setTextColor(28, 32, 36);
 
   const head = [config.columns.map(c => c.header)];
   const body = config.data.map(row =>
@@ -157,12 +162,12 @@ export async function exportToPDF<T>(config: ExportConfig<T>): Promise<void> {
       cellPadding: 3,
     },
     headStyles: {
-      fillColor: [229, 97, 78],
+      fillColor: [168, 84, 117], // 브랜드 로즈 #A85475
       textColor: 255,
       fontStyle: 'normal',
     },
     alternateRowStyles: {
-      fillColor: [248, 248, 248],
+      fillColor: [247, 233, 239], // brand-muted #F7E9EF
     },
     margin: { left: 14, right: 14 },
   });

@@ -3,11 +3,10 @@
 import {useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
-import {ArrowLeft, Lock} from 'lucide-react';
+import {ArrowLeft} from 'lucide-react';
 import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost,} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
-import {Checkbox} from '@/components/ui/checkbox';
 import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import dynamic from 'next/dynamic';
@@ -37,10 +36,8 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [content, setContent] = useState<unknown>(post?.content ?? null);
   const [contentText, setContentText] = useState(post?.content_text ?? '');
-  const [isSecret, setIsSecret] = useState(post?.is_secret ?? false);
   const [pending, setPending] = useState(false);
 
-  // 공지 카테고리는 비밀글과 무관 — 그대로 허용
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pending) return;
@@ -58,7 +55,7 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
     }
     setPending(true);
     try {
-      const payload = { category, title, content, contentText, isSecret, imageUrls: post?.image_urls ?? [] };
+      const payload = { category, title, content, contentText, imageUrls: post?.image_urls ?? [] };
       if (isEdit) {
         await updateCommunityPost(post.id, payload);
         toast.success('게시글을 수정했어요');
@@ -146,12 +143,6 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
             }}
           />
         </div>
-
-        {/* 비밀글 */}
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-          <Checkbox checked={isSecret} onCheckedChange={(v) => setIsSecret(v === true)} />
-          <Lock className="h-3.5 w-3.5" /> 비밀글로 작성 (작성자와 관리자만 볼 수 있어요)
-        </label>
 
         {/* 액션 */}
         <div className="flex items-center justify-end gap-2 border-t border-border -mx-5 sm:-mx-6 px-5 sm:px-6 pt-4">

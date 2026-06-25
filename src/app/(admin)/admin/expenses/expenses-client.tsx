@@ -147,9 +147,12 @@ export function ExpensesClient({
   const monthParam = currentMonth === 0 ? 'all' : currentMonth.toString();
   const dayParam = currentDay === 0 ? 'all' : currentDay.toString();
 
+  // 커스텀 기간(serverDateRange)이 활성인데 기간 외 필터만 바꾸면(월/일 override 없음)
+  // startDate/endDate를 보존한다 — 카테고리·결제 변경 시 기간이 풀리던 버그 방지.
   const buildUrl = useCallback((overrides: {
     year?: string; month?: string; day?: string; category?: string[]; payment?: string[];
   } = {}) => {
+    const changingPeriod = overrides.year !== undefined || overrides.month !== undefined || overrides.day !== undefined;
     const p = {
       year: yearParam,
       month: monthParam,
@@ -160,13 +163,18 @@ export function ExpensesClient({
     };
     if (p.year === 'all' || p.month === 'all') p.day = 'all';
     const params = new URLSearchParams();
-    params.set('year', p.year);
-    params.set('month', p.month);
-    if (p.day !== 'all') params.set('day', p.day);
+    if (serverDateRange && !changingPeriod) {
+      params.set('startDate', serverDateRange.startDate);
+      params.set('endDate', serverDateRange.endDate);
+    } else {
+      params.set('year', p.year);
+      params.set('month', p.month);
+      if (p.day !== 'all') params.set('day', p.day);
+    }
     if (p.category.length > 0) params.set('category', p.category.join(','));
     if (p.payment.length > 0) params.set('payment', p.payment.join(','));
     return `/admin/expenses?${params.toString()}`;
-  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter]);
+  }, [yearParam, monthParam, dayParam, categoryFilter, paymentFilter, serverDateRange]);
 
   const handleMonthNav = (direction: -1 | 1) => {
     let y = currentYear || new Date().getFullYear();

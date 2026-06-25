@@ -21,14 +21,12 @@ interface PostResponseDto {
   content: unknown; // Tiptap JSON
   contentText: string;
   imageUrls: string[];
-  isSecret: boolean;
   isPinned: boolean;
   likeCount: number;
   commentCount: number;
   liked: boolean;
   isMine: boolean;
   viewerIsAdmin: boolean;
-  canView: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,14 +67,12 @@ function toPost(dto: PostResponseDto): CommunityPost {
     content: dto.content,
     content_text: dto.contentText,
     image_urls: dto.imageUrls ?? [],
-    is_secret: dto.isSecret,
     is_pinned: dto.isPinned,
     like_count: dto.likeCount,
     liked: dto.liked,
     comment_count: dto.commentCount,
     is_mine: dto.isMine,
     viewer_is_admin: dto.viewerIsAdmin,
-    can_view: dto.canView,
     created_at: dto.createdAt,
     updated_at: dto.updatedAt,
   };
@@ -182,15 +178,12 @@ export interface LatestCommunityPost {
   createdAt: string;
 }
 
-// BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 비밀글은 제외하고 상위 limit개만 반환.
+// BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 상위 limit개만 반환.
 async function _getLatestCommunityPosts(limit = 8): Promise<LatestCommunityPost[]> {
   await requireAuth();
 
-  // 비밀글이 상위에 끼면 결과가 limit개 미만으로 줄어드므로, 넉넉히 받아온 뒤 필터링하고 자른다.
-  const fetchSize = Math.min(limit * 3, 100);
-  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${fetchSize}`);
+  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${limit}`);
   return (page.posts || [])
-    .filter((p) => !p.isSecret)
     .slice(0, limit)
     .map((p) => ({
       id: String(p.id),
@@ -212,7 +205,6 @@ export interface CommunityPostInput {
   title: string;
   content: unknown; // Tiptap JSON
   contentText: string;
-  isSecret: boolean;
   imageUrls?: string[];
 }
 
@@ -222,7 +214,6 @@ function postBody(input: CommunityPostInput) {
     title: input.title.trim(),
     contentJson: input.content,
     contentText: input.contentText,
-    isSecret: input.isSecret,
     imageUrls: input.imageUrls ?? [],
   };
 }
