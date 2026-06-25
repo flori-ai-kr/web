@@ -21,7 +21,7 @@ export function SupportClient({ initial }: { initial: MyInquiry[] }) {
       >
         <div>
           <div className="text-[15px] font-semibold">문의·제보하기</div>
-          <div className="text-xs opacity-80">버그, 기능 제안, 의견 무엇이든!</div>
+          <div className="text-xs opacity-80">버그, 기능 제안, 의견 무엇이든 좋아요</div>
         </div>
         <PenLine className="h-6 w-6 opacity-80" />
       </button>

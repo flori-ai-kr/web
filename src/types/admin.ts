@@ -229,6 +229,10 @@ export type InquiryStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export interface SupportInquiry {
   id: number;
   userId: number;
+  /** 작성자 닉네임(users.nickname). 콘솔 전용 */
+  authorNickname: string | null;
+  /** 작성자 가게명(user_profiles.store_name). 온보딩 전이면 null */
+  authorStoreName: string | null;
   category: InquiryCategory;
   title: string;
   body: string;

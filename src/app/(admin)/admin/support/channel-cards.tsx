@@ -1,12 +1,12 @@
 'use client';
 
-import { ExternalLink } from 'lucide-react';
-
 const CHANNELS = [
-  { icon: '💬', name: '카카오톡', desc: '비즈채널 상담', href: 'https://pf.kakao.com/_flori' },
-  { icon: '📸', name: '인스타그램', desc: '@flori.official', href: 'https://instagram.com/flori.official' },
+  { icon: '💬', name: '카카오톡', desc: '채널 상담', href: 'http://pf.kakao.com/_eGxcXX/chat' },
+  { icon: '👥', name: '오픈채팅방', desc: '실시간 소통', href: 'https://open.kakao.com/o/gLSH2Uyi' },
+  { icon: '📸', name: '인스타그램', desc: '@flori.ai.official', href: 'https://www.instagram.com/flori.ai.official/' },
+  { icon: '🌀', name: '스레드', desc: '@flori.ai.official', href: 'https://www.threads.com/@flori.ai.official/' },
   { icon: '📖', name: '이용 가이드', desc: '사용법 안내', href: '/admin/guide' },
-  { icon: '📋', name: '이용약관', desc: '서비스 정책', href: '/policy/terms' },
+  { icon: '📋', name: '이용약관', desc: '서비스 정책', href: 'https://flori.ai.kr/policy/terms/' },
 ] as const;
 
 export function ChannelCards() {

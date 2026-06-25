@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import {
   listInquiries,
   answerInquiry,
@@ -21,7 +20,10 @@ import type { InquiryStatus, SupportInquiry } from '@/types/admin';
 import { InquiryStatusBadge, InquiryCategoryBadge } from './inquiry-meta';
 import { InquiryDetailDialog } from './inquiry-detail-dialog';
 
-const TABS: { value: InquiryStatus; label: string }[] = [
+type InquiryFilter = InquiryStatus | 'all';
+
+const TABS: { value: InquiryFilter; label: string }[] = [
+  { value: 'all', label: '전체' },
   { value: 'open', label: '접수' },
   { value: 'in_progress', label: '처리중' },
   { value: 'resolved', label: '완료' },
@@ -29,16 +31,19 @@ const TABS: { value: InquiryStatus; label: string }[] = [
 ];
 
 export function InquiriesClient({ initial }: { initial: SupportInquiry[] }) {
-  const [status, setStatus] = useState<InquiryStatus>('open');
+  const [status, setStatus] = useState<InquiryFilter>('all');
   const [rows, setRows] = useState<SupportInquiry[]>(initial);
   const [selected, setSelected] = useState<SupportInquiry | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const load = (next: InquiryStatus) => {
+  const fetchByFilter = (filter: InquiryFilter) =>
+    listInquiries(filter === 'all' ? undefined : filter);
+
+  const load = (next: InquiryFilter) => {
     setStatus(next);
-    startTransition(async () => setRows(await listInquiries(next)));
+    startTransition(async () => setRows(await fetchByFilter(next)));
   };
-  const refresh = () => startTransition(async () => setRows(await listInquiries(status)));
+  const refresh = () => startTransition(async () => setRows(await fetchByFilter(status)));
 
   const onAnswer = (id: number, answer: string, next: InquiryStatus) => {
     if (!answer.trim()) {
@@ -73,7 +78,7 @@ export function InquiriesClient({ initial }: { initial: SupportInquiry[] }) {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">1:1 문의 · 피드백</h1>
-      <Tabs value={status} onValueChange={(v) => load(v as InquiryStatus)}>
+      <Tabs value={status} onValueChange={(v) => load(v as InquiryFilter)}>
         <TabsList>
           {TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value}>
@@ -92,33 +97,38 @@ export function InquiriesClient({ initial }: { initial: SupportInquiry[] }) {
               <TableHead>작성자</TableHead>
               <TableHead>상태</TableHead>
               <TableHead>등록일</TableHead>
-              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   문의가 없습니다
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((q) => (
-                <TableRow key={q.id}>
+                <TableRow
+                  key={q.id}
+                  onClick={() => setSelected(q)}
+                  className="cursor-pointer hover:bg-muted/40"
+                >
                   <TableCell>
                     <InquiryCategoryBadge category={q.category} />
                   </TableCell>
                   <TableCell className="max-w-xs truncate">{q.title}</TableCell>
-                  <TableCell className="tabular-nums">{q.userId}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">
+                      {q.authorStoreName ?? q.authorNickname ?? `#${q.userId}`}
+                    </div>
+                    {q.authorStoreName && q.authorNickname && (
+                      <div className="text-xs text-muted-foreground">{q.authorNickname}</div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <InquiryStatusBadge status={q.status} />
                   </TableCell>
                   <TableCell className="tabular-nums">{q.createdAt.slice(0, 10)}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => setSelected(q)}>
-                      상세
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))
             )}

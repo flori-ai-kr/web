@@ -1,7 +1,7 @@
 // src/app/(admin)/admin/support/create-inquiry-modal.tsx
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -19,14 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { ImagePlus, Loader2, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { createInquiry, createInquiryUploadTargets } from '@/lib/actions/support';
 import type { InquiryCategory, MyInquiry } from '@/types/support';
 
+const TITLE_MAX = 200;
+const BODY_MAX = 2000;
+
 const CATEGORIES: { value: InquiryCategory; label: string }[] = [
-  { value: 'bug', label: '버그 제보 🐛' },
-  { value: 'feature', label: '기능 제안 💡' },
-  { value: 'feedback', label: '피드백 🙌' },
+  { value: 'bug', label: '버그 제보' },
+  { value: 'feature', label: '기능 제안' },
+  { value: 'feedback', label: '피드백' },
   { value: 'account', label: '계정 문의' },
   { value: 'payment', label: '결제 문의' },
   { value: 'etc', label: '기타' },
@@ -46,6 +50,10 @@ export function CreateInquiryModal({
   const [body, setBody] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
+
+  // 선택한 파일의 미리보기 URL 생성 + 언마운트/변경 시 해제(메모리 누수 방지)
+  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
   const reset = () => {
     setCategory('bug');
@@ -120,8 +128,9 @@ export function CreateInquiryModal({
             <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">제목</label>
             <Input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX))}
               placeholder="한 줄로 요약해주세요"
+              maxLength={TITLE_MAX}
             />
           </div>
 
@@ -129,30 +138,64 @@ export function CreateInquiryModal({
             <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">내용</label>
             <Textarea
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => setBody(e.target.value.slice(0, BODY_MAX))}
               placeholder="자세히 적어주시면 더 빨리 도움드릴 수 있어요"
               rows={4}
+              maxLength={BODY_MAX}
             />
+            <div
+              className={cn(
+                'mt-1 text-right text-xs',
+                body.length >= BODY_MAX ? 'text-danger' : 'text-muted-foreground',
+              )}
+            >
+              {body.length}/{BODY_MAX}
+            </div>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
               첨부 이미지 (선택, 최대 5장)
             </label>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-brand">
-              <ImagePlus className="h-4 w-4" />
-              {files.length > 0 ? `${files.length}장 선택됨` : '이미지를 선택하세요'}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const selected = Array.from(e.target.files ?? []).slice(0, 5);
-                  setFiles(selected);
-                }}
-              />
-            </label>
+            {previews.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {previews.map((url, i) => (
+                  <div key={url} className="relative h-20 w-20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`첨부 이미지 ${i + 1}`}
+                      className="h-20 w-20 rounded-lg border border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      aria-label="이미지 제거"
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground/80 text-background hover:bg-foreground"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {files.length < 5 && (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-brand">
+                <ImagePlus className="h-4 w-4" />
+                {files.length > 0 ? `이미지 추가 (${files.length}/5)` : '이미지를 선택하세요'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const incoming = Array.from(e.target.files ?? []);
+                    setFiles((prev) => [...prev, ...incoming].slice(0, 5));
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
 

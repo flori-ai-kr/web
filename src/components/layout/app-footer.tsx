@@ -30,7 +30,7 @@ export function AppFooter() {
         </a>
         <Link href="/admin/support" className={linkClass}>
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          버그 제보 · 문의
+          고객센터
         </Link>
         <span className="ml-auto text-xs text-muted-foreground/70">© flori</span>
       </nav>
