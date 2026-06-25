@@ -84,12 +84,15 @@ export const getPushSubscriptionStatus = withErrorLogging(
 
 // ─── 테스트 알림 전송 ──────────────────────────────────────────
 
-async function _sendTestNotification(): Promise<{ success: boolean; error?: string }> {
+// 백엔드 PushTemplates.forTestType이 받는 값(실제 PushTypes 값 + 'test'). 콘솔 테스트가 임의 타입 전달.
+async function _sendTestNotification(
+  type?: string,
+): Promise<{ success: boolean; error?: string }> {
   await requireAuth();
 
-  // 서버가 현재 사용자의 활성 웹푸시 구독에 테스트 페이로드를 발송한다.
   try {
-    const result = await apiFetch<{ sent: number } | void>('/push/test', { method: 'POST' });
+    const params = type ? `?type=${encodeURIComponent(type)}` : '';
+    const result = await apiFetch<{ sent: number } | void>(`/push/test${params}`, { method: 'POST' });
     const sent = result?.sent ?? 0;
     if (result && sent === 0) {
       return { success: false, error: '활성 구독이 없습니다' };
@@ -102,3 +105,37 @@ async function _sendTestNotification(): Promise<{ success: boolean; error?: stri
 }
 
 export const sendTestNotification = withErrorLogging('sendTestNotification', _sendTestNotification);
+
+// ─── 타입별 수신 설정 ──────────────────────────────────────────
+
+export interface PushPreference {
+  type: string;
+  enabled: boolean;
+}
+
+// BFF: GET /push/preferences — 토글 가능 타입 + 현재 on/off (기본 켜짐)
+async function _getPushPreferences(): Promise<PushPreference[]> {
+  await requireAuth();
+  const res = await apiFetch<{ preferences: PushPreference[] }>('/push/preferences');
+  return res.preferences;
+}
+export const getPushPreferences = withErrorLogging('getPushPreferences', _getPushPreferences);
+
+// BFF: PUT /push/preferences { type, enabled } (204)
+async function _setPushPreference(
+  type: string,
+  enabled: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  await requireAuth();
+  try {
+    await apiFetch<void>('/push/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ type, enabled }),
+    });
+    return { success: true };
+  } catch (error) {
+    if (error instanceof AppError) return { success: false, error: error.message };
+    throw error;
+  }
+}
+export const setPushPreference = withErrorLogging('setPushPreference', _setPushPreference);

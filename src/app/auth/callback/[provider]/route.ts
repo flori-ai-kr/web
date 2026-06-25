@@ -88,7 +88,7 @@ export async function GET(
         onboardingUrl.searchParams.set('email', result.socialEmail)
       }
       if (result.socialNickname) {
-        onboardingUrl.searchParams.set('nickname', result.socialNickname)
+        onboardingUrl.searchParams.set('name', result.socialNickname)
       }
       return NextResponse.redirect(onboardingUrl)
     }

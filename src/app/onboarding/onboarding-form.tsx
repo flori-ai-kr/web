@@ -72,18 +72,19 @@ function Chip({
 
 export function OnboardingForm({
   defaultEmail,
-  defaultNickname,
+  defaultOwnerName,
 }: {
   defaultEmail: string
-  defaultNickname: string
+  defaultOwnerName: string
 }) {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
 
   // Step 1 (필수)
+  const [ownerName, setOwnerName] = useState(defaultOwnerName)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [nickname, setNickname] = useState(defaultNickname)
+  const [nickname, setNickname] = useState('')
   const [email, setEmail] = useState(defaultEmail)
   const [regionSido, setRegionSido] = useState('')
   const [regionSigungu, setRegionSigungu] = useState('')
@@ -111,6 +112,7 @@ export function OnboardingForm({
       const raw = sessionStorage.getItem(DRAFT_KEY)
       if (raw) {
         const d = JSON.parse(raw) as Record<string, unknown>
+        if (typeof d.ownerName === 'string') setOwnerName(d.ownerName)
         if (typeof d.name === 'string') setName(d.name)
         if (typeof d.phone === 'string') setPhone(d.phone)
         if (typeof d.nickname === 'string') setNickname(d.nickname)
@@ -141,6 +143,7 @@ export function OnboardingForm({
       sessionStorage.setItem(
         DRAFT_KEY,
         JSON.stringify({
+          ownerName,
           name,
           phone,
           nickname,
@@ -156,15 +159,20 @@ export function OnboardingForm({
     } catch {
       // 저장 실패(용량/프라이버시 모드)는 무시 — 캐싱은 best-effort
     }
-  }, [hydrated, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties, referralSources])
+  }, [hydrated, ownerName, name, phone, nickname, email, regionSido, regionSigungu, ownerAgeRange, interests, specialties, referralSources])
 
   const step1Valid =
+    ownerName.trim().length > 0 &&
     name.trim().length > 0 &&
     PHONE_REGEX.test(phone.replace(/\D/g, '')) &&
     nickname.trim().length > 0 &&
     nicknameStatus === 'available' &&
     EMAIL_REGEX.test(email.trim()) &&
     regionSido.length > 0
+
+  const step2Valid =
+    (ownerAgeRange?.trim().length ?? 0) > 0 &&
+    referralSources.length > 0
 
   const toggleInArray = (
     value: string,
@@ -200,11 +208,16 @@ export function OnboardingForm({
     }
   }
 
-  // 완료/건너뛰기 공통 제출. 선택값이 비어도 완료 가능.
+  // 가입 완료 제출. 관심사·가게 주력(선택)은 비어도 가능. 나이대·경로는 step2Valid로 강제.
   const handleComplete = async () => {
     if (!step1Valid) {
       setStep(1)
       setError('가게명·전화번호·닉네임·이메일·지역(시/도)을 모두 입력해 주세요.')
+      return
+    }
+
+    if (!ownerAgeRange || referralSources.length === 0) {
+      setStep(2)
       return
     }
 
@@ -214,13 +227,14 @@ export function OnboardingForm({
     setIsLoading(true)
 
     const result = await completeRegistration({
+      ownerName: ownerName.trim(),
       name: name.trim(),
       phoneNumber: phone.replace(/\D/g, ''),
       nickname: nickname.trim(),
       email: email.trim(),
       regionSido,
       regionSigungu: regionSigungu.trim() || undefined,
-      ownerAgeRange: ownerAgeRange ?? undefined,
+      ownerAgeRange,
       interests,
       specialties,
       referralSources,
@@ -292,20 +306,14 @@ export function OnboardingForm({
             className="space-y-5"
           >
             <div className="space-y-2">
-              <Label htmlFor="name">가게명 <span className="text-destructive">*</span></Label>
+              <Label htmlFor="ownerName">이름 <span className="text-destructive">*</span></Label>
               <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="예: 헤이즐 플라워"
-                autoComplete="organization"
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id="ownerName"
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                placeholder="예: 홍길동"
+                maxLength={100}
               />
-              <p className="text-xs text-muted-foreground">
-                사업자등록증의 상호와 동일하게 정확히 입력해 주세요.
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -333,7 +341,24 @@ export function OnboardingForm({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="name">가게명 <span className="text-destructive">*</span></Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="예: 헤이즐 플라워"
+                autoComplete="organization"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                사업자등록증의 상호와 동일하게 정확히 입력해 주세요.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="nickname">닉네임 <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground">커뮤니티 등 서비스 안에서 보이는 이름이에요.</p>
               <div className="flex gap-2">
                 <Input
                   id="nickname"
@@ -449,7 +474,7 @@ export function OnboardingForm({
           >
             <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
-                나이대 <span className="text-muted-foreground">(선택)</span>
+                나이대 <span className="text-destructive">*</span>
               </legend>
               <div className="flex flex-wrap gap-2">
                 {AGE_RANGES.map((age) => (
@@ -465,7 +490,23 @@ export function OnboardingForm({
 
             <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
-                관심사 <span className="text-muted-foreground">(선택 · 다중)</span>
+                flori를 알게 된 경로 <span className="text-destructive">*</span>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {REFERRAL_SOURCES.map((item) => (
+                  <Chip
+                    key={item}
+                    label={item}
+                    pressed={referralSources.includes(item)}
+                    onToggle={() => toggleInArray(item, referralSources, setReferralSources)}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-3" disabled={isLoading}>
+              <legend className="text-sm font-medium text-foreground">
+                관심사 <span className="text-muted-foreground">(선택)</span>
               </legend>
               <div className="flex flex-wrap gap-2">
                 {INTERESTS.map((item) => (
@@ -481,7 +522,7 @@ export function OnboardingForm({
 
             <fieldset className="space-y-3" disabled={isLoading}>
               <legend className="text-sm font-medium text-foreground">
-                가게 주력 <span className="text-muted-foreground">(선택 · 다중)</span>
+                가게 주력 <span className="text-muted-foreground">(선택)</span>
               </legend>
               <div className="flex flex-wrap gap-2">
                 {SPECIALTIES.map((item) => (
@@ -490,22 +531,6 @@ export function OnboardingForm({
                     label={item}
                     pressed={specialties.includes(item)}
                     onToggle={() => toggleInArray(item, specialties, setSpecialties)}
-                  />
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-3" disabled={isLoading}>
-              <legend className="text-sm font-medium text-foreground">
-                flori를 알게 된 경로 <span className="text-muted-foreground">(선택 · 다중)</span>
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {REFERRAL_SOURCES.map((item) => (
-                  <Chip
-                    key={item}
-                    label={item}
-                    pressed={referralSources.includes(item)}
-                    onToggle={() => toggleInArray(item, referralSources, setReferralSources)}
                   />
                 ))}
               </div>
@@ -531,21 +556,11 @@ export function OnboardingForm({
                 <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
                 이전
               </Button>
-              <Button type="submit" className="h-10 flex-1" disabled={isLoading}>
+              <Button type="submit" className="h-10 flex-1" disabled={isLoading || !step2Valid}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />}
-                {isLoading ? '저장하는 중...' : '완료'}
+                {isLoading ? '저장하는 중...' : '시작하기'}
               </Button>
             </div>
-
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-9 w-full text-muted-foreground"
-              disabled={isLoading}
-              onClick={() => void handleComplete()}
-            >
-              건너뛰기
-            </Button>
           </form>
         )}
       </div>

@@ -28,14 +28,10 @@ export function AppFooter() {
           <FileText className="h-4 w-4" aria-hidden="true" />
           이용약관
         </a>
-        {/* 버그 제보/문의 — 연결 대상 미정(추후 활성화) */}
-        <span
-          className="inline-flex cursor-not-allowed items-center gap-1.5 text-muted-foreground/50"
-          aria-disabled="true"
-        >
+        <Link href="/admin/support" className={linkClass}>
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          버그 제보 · 문의
-        </span>
+          고객센터
+        </Link>
         <span className="ml-auto text-xs text-muted-foreground/70">© flori</span>
       </nav>
     </footer>

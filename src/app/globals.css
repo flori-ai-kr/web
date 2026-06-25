@@ -353,6 +353,15 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
   background: rgba(168, 84, 117, 0.55);
 }
 
+/* 스크롤바를 완전히 숨긴다(스크롤 기능은 유지). 가로 칩 행·탭 행 등에 사용. */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
