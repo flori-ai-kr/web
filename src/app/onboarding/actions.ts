@@ -14,6 +14,8 @@ const ALLOWED_REFERRAL_SOURCES = new Set<string>(REFERRAL_SOURCES)
 export interface RegistrationInput {
   /** 가게명 (필수) */
   name: string
+  /** 사장님 실명 (필수) */
+  ownerName: string
   /** 휴대폰 번호 (필수, 숫자만) */
   phoneNumber: string
   /** 닉네임 (필수) */
@@ -24,14 +26,14 @@ export interface RegistrationInput {
   regionSido: string
   /** 시군구 (선택) */
   regionSigungu?: string
-  /** 사장님 나이대 (선택, 단일) */
-  ownerAgeRange?: string
+  /** 사장님 나이대 (필수) */
+  ownerAgeRange: string
   /** 사장님 스타일/콘텐츠 관심사 (선택, 다중) */
   interests?: string[]
   /** 가게 주력 분야 (선택, 다중) */
   specialties?: string[]
-  /** flori를 알게 된 경로 (선택, 다중) */
-  referralSources?: string[]
+  /** flori를 알게 된 경로 (필수, 다중) */
+  referralSources: string[]
 }
 
 interface TokenResponse {
@@ -95,34 +97,35 @@ export async function completeRegistration(
   }
 
   const name = input.name?.trim()
+  const ownerName = input.ownerName?.trim()
   const phoneNumber = input.phoneNumber?.replace(/\D/g, '')
   const nickname = input.nickname?.trim()
   const email = input.email?.trim()
   const regionSido = input.regionSido?.trim()
 
-  if (!name || !nickname || !email || !regionSido || !phoneNumber || !/^01\d{8,9}$/.test(phoneNumber)) {
+  if (!ownerName || !name || !nickname || !email || !regionSido || !phoneNumber || !/^01\d{8,9}$/.test(phoneNumber)) {
     return { error: '필수 항목을 모두 입력해 주세요.', kind: 'unknown' }
   }
 
-  // 선택값은 비어 있으면 전송하지 않는다(건너뛰기 허용).
   const sigungu = input.regionSigungu?.trim()
   const referralSources = (input.referralSources ?? [])
     .filter((v): v is string => typeof v === 'string' && ALLOWED_REFERRAL_SOURCES.has(v))
     .slice(0, 10)
   const body = {
     registerToken,
+    ownerName,
     storeName: name,
     phoneNumber,
     nickname,
     email,
     regionSido,
     ...(sigungu ? { regionSigungu: sigungu } : {}),
-    ...(input.ownerAgeRange ? { ownerAgeRange: input.ownerAgeRange } : {}),
+    ownerAgeRange: input.ownerAgeRange,
     ...(input.interests && input.interests.length > 0 ? { interests: input.interests } : {}),
     ...(input.specialties && input.specialties.length > 0
       ? { specialties: input.specialties }
       : {}),
-    ...(referralSources.length > 0 ? { referralSources } : {}),
+    referralSources,
   }
 
   const base = process.env.API_URL ?? 'http://localhost:8080'
