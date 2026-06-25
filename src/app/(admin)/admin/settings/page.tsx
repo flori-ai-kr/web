@@ -8,6 +8,7 @@ import {toast} from 'sonner';
 import type {PushSubscriptionData} from '@/lib/actions/push';
 import {sendTestNotification, subscribeToPush, unsubscribeFromPush} from '@/lib/actions/push';
 import {BottomNavCustomizer} from './components/bottom-nav-customizer';
+import {BillingCard} from './components/billing-card';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -143,6 +144,9 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl font-semibold text-foreground tracking-tight">설정</h1>
       </div>
+
+      {/* 구독·결제 (최상단) */}
+      <BillingCard />
 
       {/* 푸시 알림 설정 */}
       <Card>
