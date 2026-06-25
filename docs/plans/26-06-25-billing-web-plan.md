@@ -24,10 +24,15 @@ api 브랜치 `session4-billing`(api 레포) `f80d62d..27e8f1b`, `./gradlew chec
 - 린트/테스트: `npm run lint`(eslint), `npm test`(vitest run), `npm run build`. **태스크마다 커밋 전 `npm run lint` + 관련 `npm test` 통과.** Server Action 로직은 Vitest 단위테스트(기존 `admin-prompts.test.ts` 패턴, apiFetch 모킹). 토스 카드창 플로우는 수동/E2E(부분 모킹).
 - Git: 변경 파일만 `git add`(`-A` 금지), `Co-Authored-By: Claude <noreply@anthropic.com>`.
 
+## ⚠️ 시안 v2 승인 반영 (2026-06-25 — 이게 우선)
+점주앱은 **데스크톱 웹 셸**(상단 Header + 좌측 Sidebar + max-w-7xl, 모바일은 BottomNav) 기준. 시안: `docs/_tmp/billing-mockup.html`. 핵심 변경 2가지:
+1. **구독 관리 UI는 독립 페이지가 아니라 설정 페이지(`/admin/settings`) 최상단 카드**(푸시 알림 카드 **위**). → `/admin/billing/page.tsx` 만들지 않음.
+2. **구독 시작 체크아웃은 페이월 게이트가 사용하는 컴포넌트(`BillingCheckout`)**로. success/fail은 **구독 게이트에 막히면 안 되므로**(토스 복귀 시점엔 아직 미구독) `(admin)` 레이아웃 **밖** 새 라우트그룹 `(billing)`에 배치.
+
 ## 마일스톤 / 태스크
 - T1 인프라(SDK·env·타입·Server Actions)
-- T2 점주앱 구독 시작 플로우(checkout→토스창→success/fail)
-- T3 점주앱 구독 관리 + 페이월 게이트 + 쿠폰 등록
+- T2 구독 시작 플로우(`BillingCheckout` 컴포넌트 + `(billing)` 라우트그룹 success/fail — 게이트에 안 막히게)
+- T3 설정 내 구독·결제 카드(최상단) + 페이월 게이트(SubscriptionGate) + IN_GRACE 배너
 - T4 콘솔 쿠폰(목록·발행·상세·폐기)
 - T5 콘솔 구독 현황 정합(기존 페이지 새 계약으로 수정)
 
@@ -58,14 +63,16 @@ api 브랜치 `session4-billing`(api 레포) `f80d62d..27e8f1b`, `./gradlew chec
 
 ---
 
-## Task 2: 점주앱 구독 시작 플로우 (checkout → 토스창 → success/fail)
+## Task 2: 구독 시작 플로우 (BillingCheckout 컴포넌트 + (billing) 라우트그룹 success/fail)
+
+> ⚠️ 시안 v2 반영: 독립 `/admin/billing/checkout` **게이트드 페이지를 만들지 않는다.** 체크아웃(플랜 선택+토스 호출)은 **클라 컴포넌트**(`BillingCheckout`)로 만들어 페이월 게이트(T3)가 임포트해 쓴다. success/fail은 **구독 게이트에 막히면 안 되므로**(토스 복귀 시점엔 아직 미구독) `(admin)` 레이아웃 **밖** 새 라우트그룹 `(billing)`에 둔다.
 
 **Files:**
-- Create: `src/app/(admin)/admin/billing/checkout/page.tsx` + `checkout-client.tsx`('use client')
-- Create: `src/app/(admin)/admin/billing/success/page.tsx`, `src/app/(admin)/admin/billing/fail/page.tsx`
+- Create: `src/app/(admin)/admin/billing/components/billing-checkout.tsx`('use client') — 플랜 선택 + 토스 호출(게이트가 임포트)
+- Create: `src/app/(billing)/layout.tsx`(requireAuth만 — 구독 게이트 없음), `src/app/(billing)/billing/success/page.tsx`, `src/app/(billing)/billing/fail/page.tsx`
 
 **Steps:**
-- [ ] `checkout-client.tsx`('use client'): 플랜 선택(월 14,900 / 연 154,800 토글) → [구독 시작] 클릭 시:
+- [ ] `billing-checkout.tsx`('use client'): 월/연 플랜 선택(**월 디폴트 ◉ 14,900원/월** / 연 ○ 154,800원/년 + `13% 절약·월 12,900원꼴` 뱃지) → [14일 무료로 시작하기] 클릭 시:
   ```ts
   import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
   const { customerKey } = await prepareBilling()
@@ -73,33 +80,41 @@ api 브랜치 `session4-billing`(api 레포) `f80d62d..27e8f1b`, `./gradlew chec
   const payment = tp.payment({ customerKey })
   await payment.requestBillingAuth({
     method: 'CARD',
-    successUrl: `${location.origin}/admin/billing/success?plan=${plan}`,
-    failUrl: `${location.origin}/admin/billing/fail`,
-    customerEmail, customerName, // /me 에서
+    successUrl: `${location.origin}/billing/success?plan=${plan}`,
+    failUrl: `${location.origin}/billing/fail`,
+    customerEmail, customerName, // (선택) 세션/`/me`에서. 없으면 생략 가능
   })
   ```
-- [ ] `success/page.tsx` (Server Component): `searchParams: Promise<{authKey?,customerKey?,plan?}>` → authKey+customerKey+plan 추출 → `subscribe(plan, authKey, customerKey)` 호출 → 성공 화면("14일 무료체험 시작! 다음 결제 {nextBillingAt}") + `/admin`로 이동 버튼. 파라미터 누락/실패 시 /fail로.
-- [ ] `fail/page.tsx`: 실패 사유(searchParams `code`,`message`) 안내 + 재시도 링크(/admin/billing/checkout).
+  props로 페이월 카피(EXPIRED vs 미구독)와 customerEmail/Name을 주입받게.
+- [ ] `(billing)/layout.tsx`: `requireAuth()`만(구독·페이월 게이트 없음 — 미구독자가 토스 복귀로 들어오는 통로). 최소 셸(브랜드마크) 정도.
+- [ ] `success/page.tsx`(Server Component): `searchParams: Promise<{authKey?,customerKey?,plan?}>` → 셋 다 있으면 `subscribe(plan, authKey, customerKey)` 호출 → 성공 화면("14일 무료체험 시작! 다음 결제 {nextBillingAt}") + `/admin`로 이동(`<Link>`). 파라미터 누락/`subscribe` 실패 시 `/billing/fail`로 redirect.
+- [ ] `fail/page.tsx`: 실패 사유(searchParams `code`,`message`) 안내 + [다시 시도] → `/admin`(게이트가 다시 페이월 노출).
 - [ ] 수동 검증(토스 테스트키+테스트카드 BIN+본인인증 000000) — E2E는 토스창 외부라 부분 모킹.
-- [ ] `npm run lint`+`build` → 커밋 `feat(web): 구독 시작 플로우(checkout·토스 카드창·success/fail)`.
+- [ ] `npm run lint`+관련 `npm test`+`build` → 커밋 `feat(web): 구독 시작 플로우(BillingCheckout·(billing) success/fail)`.
 
-> 주의: `requestBillingAuth`는 클라이언트에서만. `NEXT_PUBLIC_TOSS_CLIENT_KEY`는 클라 노출 OK. successUrl로 토스가 `authKey`,`customerKey`를 쿼리로 붙여 돌려줌.
+> 주의: `requestBillingAuth`는 클라이언트에서만. `NEXT_PUBLIC_TOSS_CLIENT_KEY`는 클라 노출 OK. successUrl로 토스가 `authKey`,`customerKey`를 쿼리로 붙여 돌려줌. **success는 미구독 상태에서 렌더돼야 하므로 절대 `(admin)` 게이트 안에 두지 말 것.**
 
 ---
 
-## Task 3: 점주앱 구독 관리 + 페이월 게이트 + 쿠폰 등록
+## Task 3: 설정 내 구독·결제 카드(최상단) + 페이월 게이트 + IN_GRACE 배너
+
+> ⚠️ 시안 v2 반영: 구독 **관리 UI는 독립 페이지가 아니라 설정 페이지(`/admin/settings`) 최상단 카드**(푸시 알림 카드 **위**). `/admin/billing/page.tsx`는 만들지 않는다.
 
 **Files:**
-- Create: `src/app/(admin)/admin/billing/page.tsx` + 클라 컴포넌트(관리 액션)
-- Create: `src/app/(admin)/admin/billing/components/subscription-gate.tsx`
-- Modify: `src/app/(admin)/admin/layout.tsx` (게이트 추가)
+- Modify: `src/app/(admin)/admin/settings/page.tsx` — 제목 "설정" 아래·푸시 알림 카드 **위**에 구독·결제 카드 추가
+- Create: `src/app/(admin)/admin/settings/components/billing-card.tsx`('use client') — 구독 상태 표시 + 관리 액션
+- Create: `src/app/(admin)/admin/billing/components/subscription-gate.tsx`('use client') — 페이월(T2 `BillingCheckout` 임포트)
+- Create: `src/app/(admin)/admin/components/subscription-grace-banner.tsx`(또는 layout 인라인) — IN_GRACE 상단 경고
+- Modify: `src/app/(admin)/admin/layout.tsx` (게이트 + 배너 분기 추가)
+- (의존) `getMyBilling()`·`cancelSubscription()`·`resumeSubscription()`·`changeCard()`·`redeemCoupon()`는 T1 `src/lib/actions/billing.ts`.
 
 **Steps:**
-- [ ] `/admin/billing/page.tsx`: `getMyBilling()` → 현재 플랜·상태·다음 결제일·카드(신한 ****1234)·최근 결제내역 표시 + 클라 컴포넌트로 [해지]/[재개]/[카드교체]/[쿠폰 등록] 액션(useTransition+toast). 쿠폰 입력 → `redeemCoupon(code)` → 결과 토스트.
-- [ ] `SubscriptionGate`: status가 `EXPIRED` 또는 구독 없음(NONE)일 때 페이월(플랜 안내 + /admin/billing/checkout CTA). `BusinessVerificationGate` 패턴(풀스크린) 참고.
-- [ ] `layout.tsx`: `Promise.all`에 `getMyBilling()` 추가 → 사업자인증 게이트 통과 **후** `subscription==null || status==='EXPIRED'`면 `<SubscriptionGate/>` 렌더(AppLayout 없이). `IN_GRACE`는 진입 허용 + 상단 경고 배너("결제 실패, 카드 확인"). `TRIALING/ACTIVE`는 정상.
+- [ ] `billing-card.tsx`('use client'): 마운트 시 `getMyBilling()`(Server Action) 호출(로딩 스켈레톤 — 기존 푸시 카드의 async 패턴 참고). 표시: 상태 뱃지(**TRIALING=체험중/info · ACTIVE=이용중/success · IN_GRACE=결제유예/warning**)·플랜·다음 결제일·카드(`신한 ····1234`) + [카드 교체]/[해지|재개(cancelAtPeriodEnd면 재개)] + 쿠폰 입력([등록]→`redeemCoupon(code)`→결과 toast) + 최근 결제내역(접이식 `<details>` 또는 리스트). 해지예약·IN_GRACE 변형 카피 포함. 액션은 `useTransition`+sonner toast, 성공 시 재패칭. (설정 페이지는 기존대로 `'use client'` 유지 — billing-card가 스스로 패칭하므로 서버 리팩터 불필요)
+- [ ] `settings/page.tsx`: `<BillingCard/>`를 제목 아래·푸시 알림 카드 위에 삽입.
+- [ ] `subscription-gate.tsx`('use client'): 미구독(NONE)/EXPIRED 페이월 — `BillingCheckout`(T2) 임포트해 플랜 선택+토스 호출 노출. 카피 EXPIRED("무료체험이 끝났어요")/NONE 분기. `BusinessVerificationGate`의 `GateShell`(브랜드마크 상단 + 로그아웃 하단, AppLayout 없는 풀스크린) 패턴 참고.
+- [ ] `layout.tsx`: `Promise.all`에 `getMyBilling()` 추가 → 사업자인증 게이트(APPROVED) 통과 **후** `subscription==null || status==='EXPIRED'`면 `<SubscriptionGate/>`만 렌더(AppLayout 없이). `IN_GRACE`면 AppLayout 진입 허용 + 상단 경고 배너(IN_GRACE banner: "결제에 실패했어요…" + [카드 교체]→`/admin/settings`). `TRIALING/ACTIVE`는 정상.
   - ⚠️ 출시 마이그레이션(설계 §8-4): 기존 활성 유저는 api에서 체험 부여 정책 적용 후 게이트 ON. 게이트로 전원 잠기지 않게 출시 전 확인.
-- [ ] `npm run lint`+`build` → 커밋 `feat(web): 구독 관리 페이지 + 페이월 게이트 + 쿠폰 등록`.
+- [ ] `npm run lint`+관련 `npm test`+`build` → 커밋 `feat(web): 설정 내 구독·결제 카드 + 페이월 게이트 + IN_GRACE 배너`.
 
 ---
 
