@@ -24,8 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { AGE_RANGES, INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
+import { INTERESTS, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
 import type { UserProfile } from '@/lib/actions/profile'
 import {
   checkNicknameAvailability,
@@ -84,7 +85,8 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
   const [email, setEmail] = useState(profile.email)
   const [regionSido, setRegionSido] = useState(profile.regionSido)
   const [regionSigungu, setRegionSigungu] = useState(profile.regionSigungu ?? '')
-  const [ownerAgeRange, setOwnerAgeRange] = useState<string | null>(profile.ownerAgeRange ?? null)
+  // 나이대는 온보딩에서만 수집 — 프로필에선 표시·수정하지 않고 기존 값만 보존해 전송한다.
+  const [ownerAgeRange] = useState<string | null>(profile.ownerAgeRange ?? null)
   const [interests, setInterests] = useState<string[]>(profile.interests ?? [])
   const [specialties, setSpecialties] = useState<string[]>(profile.specialties ?? [])
 
@@ -254,8 +256,8 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
 
   return (
     <div className="space-y-6 px-4 sm:px-6 py-1 sm:py-2 max-w-lg mx-auto">
-      {/* Header (sticky) — 저장 버튼을 상단에 고정해 하단까지 스크롤하지 않아도 저장 가능 */}
-      <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/90 backdrop-blur-sm border-b border-border flex items-center gap-3">
+      {/* Header (sticky) — 저장 버튼을 상단에 고정. top-0: 스크롤 컨테이너(pt-14) 기준 상단에 핀(갤러리와 동일 패턴) */}
+      <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-background/95 backdrop-blur-sm border-b border-border flex items-center gap-3">
         <Link
           href="/admin"
           className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted shrink-0"
@@ -317,15 +319,20 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
         </div>
 
         {/* Basic info */}
-        <fieldset className="space-y-4" disabled={isSaving}>
-          <legend className="text-sm font-medium text-foreground mb-3">기본 정보</legend>
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <fieldset className="space-y-4" disabled={isSaving}>
+              <legend className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true" />
+                기본 정보
+              </legend>
 
           <div className="space-y-2">
-            <Label>이름 <span className="text-xs text-muted-foreground">(수정 불가)</span></Label>
+            <Label>이름</Label>
             <Input value={profile.ownerName ?? ''} disabled readOnly />
           </div>
           <div className="space-y-2">
-            <Label>전화번호 <span className="text-xs text-muted-foreground">(수정 불가)</span></Label>
+            <Label>전화번호</Label>
             <Input value={profile.phoneNumber ?? ''} disabled readOnly />
           </div>
 
@@ -420,25 +427,18 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
               placeholder="예: 강남구"
             />
           </div>
-        </fieldset>
+            </fieldset>
+          </CardContent>
+        </Card>
 
         {/* Preferences */}
-        <fieldset className="space-y-5" disabled={isSaving}>
-          <legend className="text-sm font-medium text-foreground mb-3">선호 정보</legend>
-
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">나이대</p>
-            <div className="flex flex-wrap gap-2">
-              {AGE_RANGES.map((age) => (
-                <Chip
-                  key={age}
-                  label={age}
-                  pressed={ownerAgeRange === age}
-                  onToggle={() => setOwnerAgeRange((prev) => (prev === age ? null : age))}
-                />
-              ))}
-            </div>
-          </div>
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <fieldset className="space-y-5" disabled={isSaving}>
+              <legend className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true" />
+                선호 정보
+              </legend>
 
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">관심사</p>
@@ -467,7 +467,9 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
               ))}
             </div>
           </div>
-        </fieldset>
+            </fieldset>
+          </CardContent>
+        </Card>
 
       </form>
 
