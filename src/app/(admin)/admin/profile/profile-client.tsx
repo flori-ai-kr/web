@@ -321,6 +321,15 @@ export function ProfileClient({ profile }: { profile: UserProfile }) {
           <legend className="text-sm font-medium text-foreground mb-3">기본 정보</legend>
 
           <div className="space-y-2">
+            <Label>이름 <span className="text-xs text-muted-foreground">(수정 불가)</span></Label>
+            <Input value={profile.ownerName ?? ''} disabled readOnly />
+          </div>
+          <div className="space-y-2">
+            <Label>전화번호 <span className="text-xs text-muted-foreground">(수정 불가)</span></Label>
+            <Input value={profile.phoneNumber ?? ''} disabled readOnly />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="profile-name">가게명</Label>
             <Input
               id="profile-name"

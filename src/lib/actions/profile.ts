@@ -18,6 +18,8 @@ export interface UserProfile {
   ownerAgeRange?: string | null
   interests: string[]
   specialties: string[]
+  ownerName?: string | null
+  phoneNumber?: string | null
 }
 
 export interface UpdateProfileInput {
