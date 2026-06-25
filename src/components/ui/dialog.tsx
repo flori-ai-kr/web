@@ -46,6 +46,13 @@ function DialogOverlay({
   )
 }
 
+/**
+ * 기본 className에 `h-fit`(내용맞춤 높이)이 포함된다(세로 중앙정렬용).
+ * ⚠️ 스크롤되는 긴 본문을 넣을 때 `overflow-hidden flex flex-col` + 자식 `flex-1 min-h-0`
+ * 조합을 쓰지 말 것. h-fit엔 분배할 높이가 없어 flex-1 본문이 0으로 붕괴하고
+ * overflow-hidden이 내용을 잘라낸다(빈 모달). 본문에 직접 `max-h-[..] overflow-y-auto`를 줄 것.
+ * 상세: docs/conventions/26-06-25-dialog-scrollable-body.md
+ */
 function DialogContent({
   className,
   children,

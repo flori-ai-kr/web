@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { StatusBadge } from '@/components/console/status-badge';
 import { listAuditLogs } from '@/lib/actions/admin-audit-logs';
+import { jobLabel } from '@/lib/job-meta';
 import type { AuditLog } from '@/types/admin';
 
 const PAGE_SIZE = 50;
@@ -45,9 +46,24 @@ const ACTION_LABELS: Record<string, string> = {
   ANNOUNCEMENT_DELETE: '공지 삭제',
   INQUIRY_ANSWER: '문의 답변',
   INQUIRY_STATUS: '문의 상태변경',
+  JOB_TRIGGER: '작업 실행',
 };
 
 const ACTION_OPTIONS = Object.keys(ACTION_LABELS);
+
+// targetType(영문) → 한글 라벨. 미매핑은 원문 유지.
+const TARGET_TYPE_LABELS: Record<string, string> = {
+  job: '작업',
+  user: '유저',
+  verification: '인증',
+  post: '글',
+  comment: '댓글',
+  report: '신고',
+  broadcast: '브로드캐스트',
+  announcement: '공지',
+  inquiry: '문의',
+  setting: '설정',
+};
 
 const ALL_VALUE = '__all__';
 
@@ -55,6 +71,15 @@ type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted';
 
 function actionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action;
+}
+
+/** 대상 표시: "작업 #일일 픽업 요약", "문의 #1" 등. job은 작업명을 한글로 변환. */
+function targetDisplay(targetType: string | null, targetId: string | null): string {
+  if (!targetType) return '-';
+  const typeLabel = TARGET_TYPE_LABELS[targetType] ?? targetType;
+  if (!targetId) return typeLabel;
+  const idLabel = targetType === 'job' ? jobLabel(targetId) : targetId;
+  return `${typeLabel} #${idLabel}`;
 }
 
 function actionTone(action: string): Tone {
@@ -167,9 +192,7 @@ export function AuditLogsClient({ initial }: { initial: AuditLog[] }) {
                     </StatusBadge>
                   </TableCell>
                   <TableCell className="tabular-nums">
-                    {log.targetType
-                      ? `${log.targetType}${log.targetId ? ` #${log.targetId}` : ''}`
-                      : '-'}
+                    {targetDisplay(log.targetType, log.targetId)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{log.summary ?? '-'}</TableCell>
                 </TableRow>

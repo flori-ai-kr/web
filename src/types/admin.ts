@@ -229,6 +229,10 @@ export type InquiryStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export interface SupportInquiry {
   id: number;
   userId: number;
+  /** 작성자 닉네임(users.nickname). 콘솔 전용 */
+  authorNickname: string | null;
+  /** 작성자 가게명(user_profiles.store_name). 온보딩 전이면 null */
+  authorStoreName: string | null;
   category: InquiryCategory;
   title: string;
   body: string;
@@ -253,4 +257,36 @@ export interface AuditLog {
   summary: string | null;
   metadata: Record<string, unknown>;
   createdAt: string | null;
+}
+
+// ─── 콘솔: 백그라운드 작업(cron) 실행 로그 ──────────────────────────────────
+
+export type JobRunStatus = 'success' | 'failed' | 'skipped';
+export type JobRunTrigger = 'schedule' | 'manual';
+
+/** 작업별 최신 상태(콘솔 카드). 한번도 안 돈 작업은 last* 가 null. */
+export interface JobRunSummary {
+  jobName: string;
+  lastStatus: JobRunStatus | null;
+  lastRunAt: string | null;
+  lastFinishedAt: string | null;
+  lastDurationMs: number | null;
+  lastProcessedCount: number;
+  lastErrorMessage: string | null;
+  lastSuccessAt: string | null;
+}
+
+/** 작업 실행 이력 1건(콘솔 테이블). */
+export interface JobRunLog {
+  id: number;
+  jobName: string;
+  status: JobRunStatus;
+  trigger: JobRunTrigger;
+  processedCount: number;
+  durationMs: number | null;
+  errorMessage: string | null;
+  actorUserId: number | null;
+  startedAt: string;
+  finishedAt: string | null;
+  createdAt: string;
 }
