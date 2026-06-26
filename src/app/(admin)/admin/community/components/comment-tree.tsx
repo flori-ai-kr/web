@@ -160,14 +160,10 @@ function CommentNode({
                   <DialogDescription>삭제한 댓글은 복구할 수 없어요.</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
                     취소
                   </Button>
-                  <Button
-                    className="bg-destructive text-white hover:bg-destructive/90"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                  >
+                  <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
                     {deleting ? '삭제 중…' : '삭제'}
                   </Button>
                 </DialogFooter>
