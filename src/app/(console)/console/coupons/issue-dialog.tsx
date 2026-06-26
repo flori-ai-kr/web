@@ -149,7 +149,7 @@ export function IssueDialog({
             {codeMode === 'manual' && (
               <Input
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="예: SUMMER2026"
                 className="font-mono uppercase"
               />
