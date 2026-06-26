@@ -336,13 +336,14 @@ export const deleteComment = withErrorLogging('deleteComment', _deleteComment);
 
 interface CommunityUploadTargetDto {
   uploadUrl: string;
-  publicUrl: string;
+  fileUrl: string;
+  originalName: string;
 }
 
 // BFF: POST /community/upload-targets
 async function _createCommunityUploadTargets(
   files: { name: string; type: string; size: number }[],
-): Promise<{ uploadUrl: string; publicUrl: string }[]> {
+): Promise<CommunityUploadTargetDto[]> {
   await requireAuth();
   return apiFetch<CommunityUploadTargetDto[]>('/community/upload-targets', {
     method: 'POST',

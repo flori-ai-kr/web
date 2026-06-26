@@ -76,7 +76,9 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      // StarterKit 에 link 가 번들되어 있으므로 끄고, 보안 설정(openOnClick:false·javascript: 차단)
+      // 이 적용된 커스텀 Link 로 교체한다. (중복 등록 시 경고 + 커스텀 설정 미적용)
+      StarterKit.configure({ link: false }),
       Image.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
       Link.configure({
         openOnClick: false,
@@ -115,7 +117,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
       );
 
       for (const t of targets) {
-        editor.chain().focus().setImage({ src: t.publicUrl }).run();
+        editor.chain().focus().setImage({ src: t.fileUrl, alt: t.originalName }).run();
       }
     } catch {
       toast.error('이미지 업로드에 실패했어요');

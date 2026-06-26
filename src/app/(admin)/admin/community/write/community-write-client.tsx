@@ -39,6 +39,14 @@ function extractImageUrls(json: unknown): string[] {
   return urls;
 }
 
+// Tiptap(ProseMirror) 의 node.attrs 는 null-prototype 객체(Object.create(null))다.
+// React Server Action(RSC Flight) 직렬화가 null-prototype 객체를 보존하지 못해
+// attrs 가 통째로 누락된다(heading level·image src 소실 → 저장 시 H1/H2/H3 구분·이미지 사라짐).
+// JSON 라운드트립으로 모든 객체를 표준 prototype 의 plain object 로 정규화한 뒤 액션에 전달한다.
+function toPlainJson(json: unknown): unknown {
+  return json == null ? json : JSON.parse(JSON.stringify(json));
+}
+
 interface WriteClientProps {
   post?: CommunityPost | null; // 있으면 수정 모드
   isAdmin?: boolean; // 운영자만 '공지' 카테고리 선택 가능 (서버가 최종 강제)
@@ -77,8 +85,9 @@ export function CommunityWriteClient({ post, isAdmin = false }: WriteClientProps
     }
     setPending(true);
     try {
-      const imageUrls = extractImageUrls(content);
-      const payload = { category, title, content, contentText, imageUrls };
+      const safeContent = toPlainJson(content);
+      const imageUrls = extractImageUrls(safeContent);
+      const payload = { category, title, content: safeContent, contentText, imageUrls };
       if (isEdit) {
         await updateCommunityPost(post.id, payload);
         toast.success('게시글을 수정했어요');
