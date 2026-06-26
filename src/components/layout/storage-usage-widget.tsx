@@ -47,6 +47,7 @@ export function StorageUsageWidget({
   if (!usage) return null;
 
   const warn = usage.status === 'WARN' || usage.status === 'FULL';
+  const canRequest = usage.percent >= 80; // 증설 요청은 80% 이상부터 노출
   const barTone =
     usage.status === 'FULL' ? '[&>div]:bg-danger' : usage.status === 'WARN' ? '[&>div]:bg-warning' : '';
   const accentText =
@@ -55,9 +56,13 @@ export function StorageUsageWidget({
     usage.status === 'FULL' ? 'bg-danger' : usage.status === 'WARN' ? 'bg-warning' : 'bg-brand';
 
   const submit = async () => {
+    if (!reason.trim()) {
+      toast.error('증설 요청 사유를 입력해 주세요');
+      return;
+    }
     setSubmitting(true);
     try {
-      await requestStorageIncrease(reason.trim() || undefined);
+      await requestStorageIncrease(reason.trim());
       toast.success('증설 요청을 접수했어요. 운영팀이 확인 후 처리합니다.');
       setReason('');
       setOpen(false);
@@ -154,38 +159,46 @@ export function StorageUsageWidget({
               <span className={cn('font-medium', accentText)}>{usage.percent}%</span>
             </div>
           </div>
-          {warn && (
-            <div
-              className={cn(
-                'rounded-md p-2.5 text-xs',
-                usage.status === 'FULL' ? 'bg-danger/10 text-danger' : 'bg-warning-soft text-warning',
-              )}
-            >
-              {usage.status === 'FULL'
-                ? '저장 용량이 가득 찼어요. 더 올리려면 증설이 필요해요.'
-                : '저장 용량이 거의 찼어요(90%+). 필요하면 증설을 요청해 주세요.'}
-            </div>
+          {canRequest ? (
+            <>
+              <div
+                className={cn(
+                  'rounded-md p-2.5 text-xs',
+                  usage.status === 'FULL' ? 'bg-danger/10 text-danger' : 'bg-warning-soft text-warning',
+                )}
+              >
+                {usage.status === 'FULL'
+                  ? '저장 용량이 가득 찼어요. 더 올리려면 증설이 필요해요.'
+                  : '저장 용량이 거의 찼어요. 필요하면 증설을 요청해 주세요.'}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="storage-reason" className="text-xs text-muted-foreground">
+                  증설 요청 사유 <span className="text-danger">*</span>
+                </Label>
+                <Textarea
+                  id="storage-reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="예: 사진이 많아 용량이 부족합니다"
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              저장 용량을 80% 이상 사용하면 증설을 요청할 수 있어요.
+            </p>
           )}
-          <div className="space-y-1.5">
-            <Label htmlFor="storage-reason" className="text-xs text-muted-foreground">
-              증설 요청 사유 (선택)
-            </Label>
-            <Textarea
-              id="storage-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              placeholder="예: 사진이 많아 용량이 부족합니다"
-            />
-          </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={closeDialog} disabled={submitting}>
               닫기
             </Button>
-            <Button onClick={submit} disabled={submitting}>
-              {submitting ? '요청 중...' : '증설 요청'}
-            </Button>
+            {canRequest && (
+              <Button onClick={submit} disabled={submitting || !reason.trim()}>
+                {submitting ? '요청 중...' : '증설 요청'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
