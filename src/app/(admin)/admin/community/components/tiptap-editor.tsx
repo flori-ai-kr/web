@@ -1,10 +1,11 @@
 'use client';
 
-import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import { useEditor, EditorContent, ReactNodeViewRenderer, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { EditableImage } from './editable-image';
 import { useRef, useState } from 'react';
 import {
   Type,
@@ -29,6 +30,13 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { createCommunityUploadTargets } from '@/lib/actions/community';
+
+// 에디터 전용: 이미지에 삭제 버튼 NodeView 부착. 저장 JSON/읽기 렌더러는 기본 Image 그대로.
+const EditorImage = Image.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(EditableImage);
+  },
+});
 
 interface TiptapEditorProps {
   content?: unknown;
@@ -79,7 +87,7 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
       // StarterKit 에 link 가 번들되어 있으므로 끄고, 보안 설정(openOnClick:false·javascript: 차단)
       // 이 적용된 커스텀 Link 로 교체한다. (중복 등록 시 경고 + 커스텀 설정 미적용)
       StarterKit.configure({ link: false }),
-      Image.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
+      EditorImage.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
       Link.configure({
         openOnClick: false,
         protocols: ['http', 'https', 'mailto'],
