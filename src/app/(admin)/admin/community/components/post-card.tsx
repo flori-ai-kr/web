@@ -13,9 +13,9 @@ export function PostCard({ post }: { post: CommunityPost }) {
   return (
     <Link
       href={`/admin/community/${post.id}`}
-      className="group flex items-stretch gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/50"
+      className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/50"
     >
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {post.is_pinned && <Pin className="h-3.5 w-3.5 text-brand shrink-0" aria-label="고정글" />}
           <CommunityCategoryBadge category={post.category} />
@@ -29,8 +29,8 @@ export function PostCard({ post }: { post: CommunityPost }) {
         )}
 
         {/* 메타: 닉네임만 말줄임, 나머지(배지·시간·통계)는 줄바꿈 없이 고정 */}
-        <div className="flex items-center gap-2 mt-auto pt-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/70 truncate min-w-0 max-w-[7rem]">
+        <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/70 truncate min-w-0 max-w-[8rem]">
             {post.author_nickname}
           </span>
           {post.author_is_admin && <AdminBadge className="shrink-0 whitespace-nowrap" />}
@@ -49,12 +49,12 @@ export function PostCard({ post }: { post: CommunityPost }) {
       </div>
 
       {thumbnail && (
-        <div className="relative shrink-0 w-24 sm:w-28 self-stretch min-h-24 rounded-lg overflow-hidden bg-muted">
+        <div className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted">
           <Image
             src={thumbnail}
             alt=""
             fill
-            sizes="112px"
+            sizes="80px"
             className="object-cover"
             unoptimized
           />
