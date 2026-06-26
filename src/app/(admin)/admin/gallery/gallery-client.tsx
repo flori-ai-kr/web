@@ -14,6 +14,7 @@ import {Image as ImageIcon, Loader2, Plus, RotateCcw, Settings, User, X} from 'l
 import {getPhotoCards, PhotoCardsResponse} from '@/lib/actions/photo-cards';
 import {getPhotoTags} from '@/lib/actions/photo-tags';
 import {PeriodHeader} from '@/components/layout/period-header';
+import {StorageUsageWidget} from '@/components/layout/storage-usage-widget';
 import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
 
@@ -292,6 +293,11 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
         onRangeApply={handleRangeApply}
         onRangeReset={() => setCustomRange(null)}
       />
+
+      {/* 저장 용량 — 모바일에서만 페이지 안에 노출(데스크톱은 사이드바 위젯) */}
+      <div className="lg:hidden rounded-xl border border-border bg-card px-1 py-1">
+        <StorageUsageWidget variant="sidebar" />
+      </div>
 
       {/* 요약 — 현재 기간·필터 기준 총 카드 수 + 총 사진 장수 */}
       <div className="flex items-baseline gap-3 flex-wrap">

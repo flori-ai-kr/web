@@ -7,6 +7,8 @@ export interface PhotoTag {
 export interface PhotoFile {
   url: string;
   originalName: string;
+  /** 바이트 크기 — 스토리지 쿼터 집계용. 업로드 시 클라가 채운다(구 데이터는 0). */
+  size: number;
 }
 
 export interface PhotoCard {
