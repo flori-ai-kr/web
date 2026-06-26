@@ -8,6 +8,14 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   cancelSubscription,
   getMyBilling,
   prepareBilling,
@@ -84,6 +92,7 @@ export function BillingCard() {
   const [couponCode, setCouponCode] = useState('');
   const [isPending, startTransition] = useTransition();
   const [isChangingCard, setIsChangingCard] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const fetchBilling = useCallback(async () => {
     try {
@@ -125,6 +134,7 @@ export function BillingCard() {
         await cancelSubscription();
         toast.success('구독 해지가 예약되었어요. 이용 기간이 끝나면 해지돼요.');
         await fetchBilling();
+        setCancelOpen(false);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '구독 해지에 실패했어요.');
       }
@@ -210,6 +220,8 @@ export function BillingCard() {
   const cardLabel = formatCard(subscription.card);
   const isGrace = subscription.status === 'IN_GRACE';
   const isTrialing = subscription.status === 'TRIALING';
+  // 무카드 체험: 카드(빌링키) 없이 시작한 체험. 자동결제 없음 → 종료 시 만료되고 결제 안내로 이어짐.
+  const isCardlessTrial = isTrialing && !subscription.card;
   const recentPayments = data?.recentPayments ?? [];
 
   return (
@@ -235,6 +247,10 @@ export function BillingCard() {
               </div>
             </div>
           </div>
+        ) : isCardlessTrial ? (
+          <div className="mt-3">
+            <span className="text-[24px] font-bold text-foreground tracking-tight">무료체험 중</span>
+          </div>
         ) : (
           <div className="mt-3 flex items-baseline gap-1.5">
             <span className="text-[24px] font-bold text-foreground tracking-tight">{planMeta.amount}</span>
@@ -245,7 +261,13 @@ export function BillingCard() {
         )}
 
         {/* 체험중 안내 */}
-        {isTrialing && (
+        {isCardlessTrial ? (
+          <p className="mt-2 text-[12.5px] text-muted-foreground break-keep">
+            지금은 결제 정보 없이 무료로 이용 중이에요.{' '}
+            <b className="text-foreground font-medium">{formatDate(subscription.nextBillingAt)}</b>에 체험이 끝나며,
+            계속 이용하려면 그때 결제 정보를 등록하면 돼요.
+          </p>
+        ) : isTrialing ? (
           <p className="mt-2 text-[12.5px] text-muted-foreground break-keep">
             {formatDate(subscription.nextBillingAt)}부터{' '}
             <b className="text-foreground font-medium">
@@ -253,7 +275,7 @@ export function BillingCard() {
             </b>{' '}
             자동결제가 시작돼요. 그 전에 해지하면 결제되지 않아요.
           </p>
-        )}
+        ) : null}
 
         {/* 해지 예약 안내 */}
         {subscription.cancelAtPeriodEnd && (
@@ -283,48 +305,78 @@ export function BillingCard() {
           )}
         </div>
 
-        {/* 액션 버튼 */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {subscription.cancelAtPeriodEnd ? (
-            <>
-              <Button size="sm" onClick={handleResume} disabled={isPending}>
-                {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                구독 계속하기
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
-                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                카드 교체
-              </Button>
-            </>
-          ) : isGrace ? (
-            <Button
-              size="sm"
-              onClick={handleChangeCard}
-              disabled={isChangingCard}
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
-            >
-              {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-              카드 교체
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
-                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                카드 교체
-              </Button>
+        {/* 액션 버튼 (무카드 체험은 관리할 카드/결제가 없어 액션 숨김 — 종료 시 결제 안내로 이어짐) */}
+        {!isCardlessTrial && (
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {subscription.cancelAtPeriodEnd ? (
+              <>
+                <Button size="sm" onClick={handleResume} disabled={isPending}>
+                  {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                  구독 계속하기
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
+                  {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                  카드 교체
+                </Button>
+              </>
+            ) : isGrace ? (
               <Button
-                variant="outline"
                 size="sm"
-                onClick={handleCancel}
-                disabled={isPending}
-                className="text-muted-foreground"
+                onClick={handleChangeCard}
+                disabled={isChangingCard}
+                className="bg-warning text-warning-foreground hover:bg-warning/90"
               >
+                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                카드 교체
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
+                {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                카드 교체
+              </Button>
+            )}
+          </div>
+
+          {/* 구독 해지: 파괴적 액션이라 작고 흐린 텍스트 + 확인 모달(오발 방지) */}
+          {!subscription.cancelAtPeriodEnd && !isGrace && (
+            <button
+              type="button"
+              onClick={() => setCancelOpen(true)}
+              disabled={isPending}
+              className="shrink-0 text-[12px] text-muted-foreground hover:text-destructive disabled:opacity-50"
+            >
+              구독 해지
+            </button>
+          )}
+        </div>
+        )}
+
+        {/* 구독 해지 확인 모달 */}
+        <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>구독을 해지할까요?</DialogTitle>
+              <DialogDescription className="break-keep">
+                {formatDate(subscription.currentPeriodEnd ?? subscription.nextBillingAt)}까지는 모든 기능을 그대로 사용할 수 있고, 그 이후 자동으로 해지돼요.
+                {isTrialing
+                  ? ' 지금 해지하면 결제는 되지 않아요.'
+                  : subscription.plan === 'YEARLY'
+                    ? ' 이미 결제하신 연간 구독의 중도 환불은 고객센터로 문의해주세요.'
+                    : ''}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-3">
+              <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={isPending}>
+                돌아가기
+              </Button>
+              <Button variant="destructive" onClick={handleCancel} disabled={isPending}>
                 {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 구독 해지
               </Button>
-            </>
-          )}
-        </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
 
       {/* 쿠폰 등록 */}
