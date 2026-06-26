@@ -24,6 +24,7 @@ import {
 import { StatusBadge } from '@/components/console/status-badge';
 import { disableCoupon } from '@/lib/actions/admin-coupons';
 import type { CouponDetailResponse, CouponEffectiveStatus } from '@/types/billing';
+import { couponSourceLabel } from '../coupon-labels';
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted';
 
@@ -122,7 +123,7 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
           </div>
           <div>
             <p className="text-muted-foreground">용도</p>
-            <p className="font-medium">{coupon.source}</p>
+            <p className="font-medium">{couponSourceLabel(coupon.source)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">생성일</p>

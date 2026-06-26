@@ -23,9 +23,11 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { issueCoupon } from '@/lib/actions/admin-coupons';
-
-const SOURCE_OPTIONS = ['PROMO', 'REFERRAL', 'EVENT', 'MANUAL'] as const;
-type CouponSource = (typeof SOURCE_OPTIONS)[number];
+import {
+  COUPON_SOURCES as SOURCE_OPTIONS,
+  COUPON_SOURCE_LABELS,
+  type CouponSource,
+} from './coupon-labels';
 
 export function IssueDialog({
   open,
@@ -175,7 +177,7 @@ export function IssueDialog({
               <SelectContent>
                 {SOURCE_OPTIONS.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {COUPON_SOURCE_LABELS[s]}
                   </SelectItem>
                 ))}
               </SelectContent>
