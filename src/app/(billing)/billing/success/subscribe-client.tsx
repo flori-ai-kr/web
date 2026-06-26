@@ -69,10 +69,10 @@ export function SubscribeClient({ authKey, customerKey, plan }: Props) {
         <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
       </div>
       <h1 className="text-[22px] font-bold text-foreground tracking-tight">
-        14일 무료체험이 시작됐어요 🌷
+        구독이 시작됐어요 🌷
       </h1>
       <p className="text-sm text-muted-foreground mt-1.5">
-        체험이 끝나면 자동으로 결제돼요.
+        다음 결제일까지 모든 기능을 자유롭게 사용해 보세요.
       </p>
 
       <div className="mt-6 w-full max-w-sm rounded-xl border border-border bg-card p-4 text-left space-y-2 text-[13px]">

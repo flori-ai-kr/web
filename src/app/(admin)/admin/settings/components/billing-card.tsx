@@ -109,7 +109,8 @@ export function BillingCard() {
     fetchBilling();
   }, [fetchBilling]);
 
-  // 카드 교체: 토스 빌링 재인증 → /billing/card 복귀에서 changeCard() 실행
+  // 카드 교체: 토스 SDK requestBillingAuth()가 외부 비동기 SDK 호출이라 useTransition 적용 불가.
+  // isChangingCard 별도 state로 로딩 상태를 관리한다.
   const handleChangeCard = async () => {
     setIsChangingCard(true);
     try {
@@ -133,12 +134,13 @@ export function BillingCard() {
       try {
         await cancelSubscription();
         toast.success('구독 해지가 예약되었어요. 이용 기간이 끝나면 해지돼요.');
-        await fetchBilling();
         setCancelOpen(false);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '구독 해지에 실패했어요.');
+        return;
       }
     });
+    fetchBilling();
   };
 
   const handleResume = () => {
@@ -146,11 +148,12 @@ export function BillingCard() {
       try {
         await resumeSubscription();
         toast.success('구독을 계속 이용하기로 했어요.');
-        await fetchBilling();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '구독 재개에 실패했어요.');
+        return;
       }
     });
+    fetchBilling();
   };
 
   const handleRedeem = () => {
@@ -172,11 +175,12 @@ export function BillingCard() {
           toast.success(`무료 ${res.grantedDays}일이 적용됐어요.`);
         }
         setCouponCode('');
-        await fetchBilling();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '쿠폰 등록에 실패했어요.');
+        return;
       }
     });
+    fetchBilling();
   };
 
   // ─── 로딩 스켈레톤 ─────────────────────────────────────────────────
