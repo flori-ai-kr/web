@@ -290,3 +290,18 @@ export interface JobRunLog {
   finishedAt: string | null;
   createdAt: string;
 }
+
+// ── 스토리지 쿼터 ──────────────────────────────────────────
+export type StorageRequestStatus = 'PENDING' | 'RESOLVED';
+
+export interface AdminStorageRequest {
+  id: number;
+  userId: number;
+  nickname: string | null;
+  storeName: string | null;
+  reason: string | null;
+  status: StorageRequestStatus;
+  usedBytes: number;
+  quotaBytes: number;
+  createdAt: string;
+}
