@@ -1,6 +1,6 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {CornerDownRight, Lock, Pencil, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
@@ -101,6 +101,17 @@ function CommentNode({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(comment.content);
   const [saving, setSaving] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+
+  // 수정 진입 시 포커스 + 커서를 본문 맨 끝으로 이동(브라우저별 autoFocus 커서 위치 편차 방지).
+  useEffect(() => {
+    if (!editing) return;
+    const el = editRef.current;
+    if (!el) return;
+    el.focus();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+  }, [editing]);
 
   const masked = comment.is_secret && !comment.can_view;
 
@@ -164,12 +175,12 @@ function CommentNode({
             {editing ? (
               <div className="space-y-2">
                 <Textarea
+                  ref={editRef}
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   rows={2}
                   className="text-sm"
                   aria-label="댓글 수정"
-                  autoFocus
                   disabled={saving}
                 />
                 <div className="flex items-center justify-end gap-1.5">
