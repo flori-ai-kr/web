@@ -4,6 +4,7 @@ import {getCustomers} from '@/lib/actions/customers';
 import {currentKstYearMonth, periodToRange} from '@/lib/period-range';
 import {idSchema} from '@/lib/validations';
 import {GalleryClient} from './gallery-client';
+import {GuideButton} from '@/components/guide/guide-button';
 
 export default async function GalleryPage({
   searchParams,
@@ -32,14 +33,17 @@ export default async function GalleryPage({
   const customerList = customers.map(c => ({ id: c.id, name: c.name, phone: c.phone }));
 
   return (
-    <GalleryClient
-      initialData={initialData}
-      tags={photoTags}
-      customers={customerList}
-      initialYear={year}
-      initialMonth={month}
-      initialSelectedCard={initialSelectedCard}
-      initialCustomerId={customerId}
-    />
+    <div className="relative">
+      <div className="absolute right-4 top-0 sm:right-6 z-10"><GuideButton slug="gallery" /></div>
+      <GalleryClient
+        initialData={initialData}
+        tags={photoTags}
+        customers={customerList}
+        initialYear={year}
+        initialMonth={month}
+        initialSelectedCard={initialSelectedCard}
+        initialCustomerId={customerId}
+      />
+    </div>
   );
 }

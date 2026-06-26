@@ -1,5 +1,6 @@
 import { resolveRange, type RangePreset } from './lib/range';
 import { StatisticsClient, type StatTab } from './statistics-client';
+import {GuideButton} from '@/components/guide/guide-button';
 import {
   getSalesStatistics,
   getExpensesStatistics,
@@ -77,13 +78,16 @@ export default async function StatisticsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <StatisticsClient
-      initialPreset={preset}
-      initialFrom={from}
-      initialTo={to}
-      initialTab={activeTab}
-      initialData={initialData}
-      initialError={initialError}
-    />
+    <div className="relative">
+      <div className="absolute right-4 top-0 sm:right-6 z-10"><GuideButton slug="statistics" /></div>
+      <StatisticsClient
+        initialPreset={preset}
+        initialFrom={from}
+        initialTo={to}
+        initialTab={activeTab}
+        initialData={initialData}
+        initialError={initialError}
+      />
+    </div>
   );
 }

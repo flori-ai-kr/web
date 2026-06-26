@@ -2,6 +2,7 @@ import type {SalesFilters} from '@/lib/actions/sales';
 import {getSaleById, getSales, getSalesSummary} from '@/lib/actions/sales';
 import {getPaymentMethods, getSaleCategories, getSaleChannels} from '@/lib/actions/sale-settings';
 import {SalesClient} from './sales-client';
+import {GuideButton} from '@/components/guide/guide-button';
 
 export default async function SalesPage({
   searchParams,
@@ -78,20 +79,25 @@ export default async function SalesPage({
   ]);
 
   return (
-    <SalesClient
-      initialSales={salesResult.sales}
-      initialHasMore={salesResult.hasMore}
-      initialSummary={summary}
-      monthParam={monthParam ?? null}
-      dateRange={dateRange ?? null}
-      currentYear={currentYear}
-      currentMonth={currentMonth}
-      currentDay={currentDay}
-      initialFilters={filters}
-      initialCategories={categories}
-      initialPayments={payments}
-      initialChannels={channels}
-      initialSelectedSale={initialSelectedSale}
-    />
+    <div className="relative">
+      <div className="absolute right-4 top-0 sm:right-6 z-10">
+        <GuideButton slug="sales" />
+      </div>
+      <SalesClient
+        initialSales={salesResult.sales}
+        initialHasMore={salesResult.hasMore}
+        initialSummary={summary}
+        monthParam={monthParam ?? null}
+        dateRange={dateRange ?? null}
+        currentYear={currentYear}
+        currentMonth={currentMonth}
+        currentDay={currentDay}
+        initialFilters={filters}
+        initialCategories={categories}
+        initialPayments={payments}
+        initialChannels={channels}
+        initialSelectedSale={initialSelectedSale}
+      />
+    </div>
   );
 }

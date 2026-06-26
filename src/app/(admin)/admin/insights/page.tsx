@@ -8,6 +8,7 @@ import type {AuctionCategory, AuctionSummary} from '@/types/auction';
 import type {ScrapMap} from '@/types/insights';
 import {InfoClient} from './info-client';
 import type {InfoTab} from './hooks/use-info-tabs';
+import {GuideButton} from '@/components/guide/guide-button';
 
 interface PageProps {
   searchParams: Promise<{tab?: string; category?: string; scraped?: string}>;
@@ -69,17 +70,20 @@ export default async function InsightsPage({searchParams}: PageProps) {
   const grantScraps = await safe<GrantScrap[]>(() => getGrantScraps(), []);
 
   return (
-    <InfoClient
-      initialTab={tab}
-      initialCategory={activeCategory}
-      initialScrapedOnly={scrapedOnly}
-      auctionCategories={auctionCategories}
-      auctionSummary={auctionSummary}
-      auctionDates={auctionDates}
-      auctionScraps={auctionScraps}
-      grants={grants}
-      grantScrapMap={grantScrapMap}
-      grantScraps={grantScraps}
-    />
+    <div className="relative">
+      <div className="absolute right-4 top-0 sm:right-6 z-10"><GuideButton slug="insights" /></div>
+      <InfoClient
+        initialTab={tab}
+        initialCategory={activeCategory}
+        initialScrapedOnly={scrapedOnly}
+        auctionCategories={auctionCategories}
+        auctionSummary={auctionSummary}
+        auctionDates={auctionDates}
+        auctionScraps={auctionScraps}
+        grants={grants}
+        grantScrapMap={grantScrapMap}
+        grantScraps={grantScraps}
+      />
+    </div>
   );
 }
