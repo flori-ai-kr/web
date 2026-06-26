@@ -635,7 +635,7 @@ erDiagram
 | `auth.ts` | login, logout |
 | `sales.ts` | createSale, updateSale, deleteSale, completeUnpaidSale, revertUnpaidSale, loadMoreSales (무한 스크롤), getSaleSuggestions (자동완성) |
 | `customers.ts` | getCustomers, getCustomerById, createCustomer, updateCustomer, assignCustomerGrade(수동 고정), revertCustomerGradeAuto(자동 되돌리기), deleteCustomer, findOrCreateCustomer, getCustomerSales |
-| `customer-grades.ts` | getCustomerGrades, createCustomerGradeConfig, updateCustomerGradeConfig, deleteCustomerGradeConfig — 테넌트별 커스텀 등급 CRUD (`GET/POST/PATCH/DELETE /customer-grades`) |
+| `customer-grades.ts` | getCustomerGrades, createCustomerGradeConfig, updateCustomerGradeConfig, deleteCustomerGradeConfig, previewGradeThresholdChange — 테넌트별 커스텀 등급 CRUD (`GET/POST/PATCH/DELETE /customer-grades`) + 임계값 변경 영향 미리보기 (`POST /customer-grades/{id}/preview`) |
 | `expenses.ts` | createExpense, updateExpense, deleteExpense, getExpenseSuggestions (자동완성), getExpenses(offset·limit·filters·dateRange → BFF `GET /expenses`), loadMoreExpenses(무한스크롤), getExpensesSummary(카테고리 슬라이스 → BFF `GET /expenses/summary`) |
 | `recurring-expenses.ts` | getRecurringExpenses, createRecurringExpense, updateRecurringExpense (mode: 'this'|'future'), deleteRecurringExpense (mode: 'this'|'future'|'all'), quickAddRecurringExpense |
 | `deposits.ts` | getDeposits, confirmMultipleDeposits, revertDeposit |
@@ -652,7 +652,7 @@ erDiagram
 | `auction.ts` | getAuctionCategories, getAuctionDates, getAuctionSummary, getAuctionPrices, getAuctionItemScraps (`/insights/auction/scraps`), toggleAuctionItemScrap (`/insights/auction/scraps/toggle`) |
 | `grants.ts` | getGrants, loadMoreGrants (keyword 서버 검색 지원) |
 | `scraps.ts` | toggleScrap, updateScrapMemo, getScrapMap, getGrantScraps, getScrapCounts — `target_type`은 `grant`만 |
-| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
+| `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, updateComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `PATCH /community/comments/{id}`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 | `admin-job-runs.ts` | getJobRunSummary (BFF `GET /admin/job-runs/summary` — 작업별 최신 상태 카드), listJobRuns(filters, page) (BFF `GET /admin/job-runs`), triggerJob(jobName) (BFF `POST /admin/job-runs/{jobName}/trigger` — 즉시 실행) |
 
