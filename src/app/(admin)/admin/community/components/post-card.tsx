@@ -13,11 +13,11 @@ export function PostCard({ post }: { post: CommunityPost }) {
   return (
     <Link
       href={`/admin/community/${post.id}`}
-      className="group flex rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/50 gap-3"
+      className="group flex items-stretch gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand/50"
     >
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          {post.is_pinned && <Pin className="h-3.5 w-3.5 text-brand" aria-label="고정글" />}
+          {post.is_pinned && <Pin className="h-3.5 w-3.5 text-brand shrink-0" aria-label="고정글" />}
           <CommunityCategoryBadge category={post.category} />
         </div>
 
@@ -28,15 +28,16 @@ export function PostCard({ post }: { post: CommunityPost }) {
           <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{post.content_text}</p>
         )}
 
-        <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/70">
+        {/* 메타: 닉네임만 말줄임, 나머지(배지·시간·통계)는 줄바꿈 없이 고정 */}
+        <div className="flex items-center gap-2 mt-auto pt-3 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/70 truncate min-w-0 max-w-[7rem]">
             {post.author_nickname}
           </span>
-          {post.author_is_admin && <AdminBadge />}
-          <span>
+          {post.author_is_admin && <AdminBadge className="shrink-0 whitespace-nowrap" />}
+          <span className="shrink-0 whitespace-nowrap">
             {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}
           </span>
-          <span className="ml-auto flex items-center gap-3">
+          <span className="ml-auto flex items-center gap-3 shrink-0">
             <span className="inline-flex items-center gap-1">
               <Heart className="h-3.5 w-3.5" /> {post.like_count}
             </span>
@@ -48,13 +49,13 @@ export function PostCard({ post }: { post: CommunityPost }) {
       </div>
 
       {thumbnail && (
-        <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-muted">
+        <div className="relative shrink-0 w-24 sm:w-28 self-stretch min-h-24 rounded-lg overflow-hidden bg-muted">
           <Image
             src={thumbnail}
             alt=""
-            width={80}
-            height={80}
-            className="w-full h-full object-cover"
+            fill
+            sizes="112px"
+            className="object-cover"
             unoptimized
           />
         </div>
