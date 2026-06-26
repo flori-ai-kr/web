@@ -49,7 +49,7 @@ export function AppLayout({ children, userEmail, userName, userImage, bottomNavI
   };
 
   return (
-    <div className="app-canvas h-dvh overflow-hidden bg-background">
+    <div className="app-canvas fixed inset-0 overflow-hidden bg-background">
       {/* 키보드 사용자용 본문 바로가기 — 포커스 시에만 노출 */}
       <a
         href="#main-content"
