@@ -46,14 +46,13 @@ export function StorageUsageWidget({
 
   if (!usage) return null;
 
-  const warn = usage.status === 'WARN' || usage.status === 'FULL';
-  const canRequest = usage.percent >= 80; // 증설 요청은 80% 이상부터 노출
-  const barTone =
-    usage.status === 'FULL' ? '[&>div]:bg-danger' : usage.status === 'WARN' ? '[&>div]:bg-warning' : '';
-  const accentText =
-    usage.status === 'FULL' ? 'text-danger' : usage.status === 'WARN' ? 'text-warning' : 'text-muted-foreground';
-  const fillColor =
-    usage.status === 'FULL' ? 'bg-danger' : usage.status === 'WARN' ? 'bg-warning' : 'bg-brand';
+  // 색·경고·증설요청 임계는 모두 80%(클라 기준). FULL(used>=quota)만 빨강, 평상시는 브랜드(로즈).
+  const isFull = usage.status === 'FULL';
+  const nearFull = usage.percent >= 80;
+  const canRequest = nearFull; // 증설 요청은 80% 이상부터 노출
+  const barTone = isFull ? '[&>div]:bg-danger' : nearFull ? '[&>div]:bg-warning' : '[&>div]:bg-brand';
+  const accentText = isFull ? 'text-danger' : nearFull ? 'text-warning' : 'text-muted-foreground';
+  const fillColor = isFull ? 'bg-danger' : nearFull ? 'bg-warning' : 'bg-brand';
 
   const submit = async () => {
     if (!reason.trim()) {
@@ -109,7 +108,7 @@ export function StorageUsageWidget({
             aria-label={`저장 용량 ${usage.percent}%`}
             className="flex w-full items-center justify-center py-1.5 text-muted-foreground hover:text-foreground"
           >
-            <HardDrive className={cn('h-4 w-4', warn && accentText)} />
+            <HardDrive className={cn('h-4 w-4', nearFull && accentText)} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8}>
@@ -132,9 +131,9 @@ export function StorageUsageWidget({
           </span>
         </div>
         <Progress value={Math.min(usage.percent, 100)} className={cn('h-1', barTone)} />
-        {warn && (
+        {nearFull && (
           <p className={cn('mt-1 text-[10px]', accentText)}>
-            {usage.status === 'FULL' ? '가득 참 · 증설 요청' : '거의 참(90%+)'}
+            {isFull ? '가득 참 · 증설 요청' : '거의 참 · 증설 요청 가능'}
           </p>
         )}
       </button>
