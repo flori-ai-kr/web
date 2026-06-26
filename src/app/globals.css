@@ -382,6 +382,11 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
 .tiptap-content p {
   margin: 0.5rem 0;
 }
+.tiptap-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
 .tiptap-content h2 {
   font-size: 1.25rem;
   font-weight: 700;

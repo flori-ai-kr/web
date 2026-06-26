@@ -23,7 +23,7 @@ export async function uploadPhotoFilesStandalone(files: File[]): Promise<PhotoFi
     ),
   );
 
-  return targets.map((t) => ({ url: t.publicUrl, originalName: t.originalName }));
+  return targets.map((t, i) => ({ url: t.publicUrl, originalName: t.originalName, size: files[i].size }));
 }
 
 /**
@@ -52,5 +52,5 @@ export async function uploadPhotoFiles(
     ),
   );
 
-  return targets.map((t) => ({ url: t.publicUrl, originalName: t.originalName }));
+  return targets.map((t, i) => ({ url: t.publicUrl, originalName: t.originalName, size: files[i].size }));
 }

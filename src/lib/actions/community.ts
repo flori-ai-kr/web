@@ -321,6 +321,22 @@ async function _createComment(postId: string, input: CommentInput): Promise<Comm
 
 export const createComment = withErrorLogging('createComment', _createComment);
 
+// BFF: PATCH /community/comments/{id} — 작성자 본인만(서버 강제), 본문만 수정
+async function _updateComment(id: string, content: string): Promise<CommunityComment> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  if (!content?.trim()) throw new AppError(ErrorCode.VALIDATION, '댓글 내용을 입력해주세요');
+
+  const dto = await apiFetch<CommentResponseDto>(`/community/comments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content: content.trim() }),
+  });
+  return toComment(dto);
+}
+
+export const updateComment = withErrorLogging('updateComment', _updateComment);
+
 // BFF: DELETE /community/comments/{id}
 async function _deleteComment(id: string): Promise<void> {
   await requireAuth();
@@ -331,3 +347,27 @@ async function _deleteComment(id: string): Promise<void> {
 }
 
 export const deleteComment = withErrorLogging('deleteComment', _deleteComment);
+
+// ─── 이미지 업로드 ──────────────────────────────────────────────
+
+interface CommunityUploadTargetDto {
+  uploadUrl: string;
+  fileUrl: string;
+  originalName: string;
+}
+
+// BFF: POST /community/upload-targets
+async function _createCommunityUploadTargets(
+  files: { name: string; type: string; size: number }[],
+): Promise<CommunityUploadTargetDto[]> {
+  await requireAuth();
+  return apiFetch<CommunityUploadTargetDto[]>('/community/upload-targets', {
+    method: 'POST',
+    body: JSON.stringify({ files }),
+  });
+}
+
+export const createCommunityUploadTargets = withErrorLogging(
+  'createCommunityUploadTargets',
+  _createCommunityUploadTargets,
+);

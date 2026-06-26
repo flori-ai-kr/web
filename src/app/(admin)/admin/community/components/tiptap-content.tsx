@@ -12,7 +12,8 @@ export function TiptapContent({ content }: { content: unknown }) {
     editable: false,
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      // StarterKit 번들 link 를 끄고 커스텀 Link 로 교체(중복 등록 경고 방지 + 보안 설정 적용).
+      StarterKit.configure({ link: false }),
       Image.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
       Link.configure({
         openOnClick: true,

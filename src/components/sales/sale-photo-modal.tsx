@@ -19,6 +19,7 @@ import {
 import {createPhotoTag, getPhotoTags} from '@/lib/actions/photo-tags';
 import {uploadPhotoFiles} from '@/lib/photo-upload';
 import {cn} from '@/lib/utils';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_PHOTOS = 10;
@@ -421,11 +422,23 @@ export function SalePhotoModal({
                           dragOverIndex === index && 'ring-2 ring-brand ring-offset-2'
                         )}
                       >
-                        <img
-                          src={item.type === 'existing' ? item.photo.url : item.preview}
-                          alt={`Photo ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
+                        {item.type === 'existing' ? (
+                          <ImageWithSkeleton
+                            src={item.photo.url}
+                            alt={`Photo ${index + 1}`}
+                            fill
+                            sizes="(max-width: 768px) 25vw, 160px"
+                            className="object-cover rounded-lg"
+                          />
+                        ) : (
+                          // 로컬 blob 프리뷰: 즉시 로드라 스켈레톤 불필요
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.preview}
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        )}
                         <div className="absolute top-1 left-1 bg-black/50 text-white rounded p-0.5">
                           <GripVertical className="w-3 h-3" />
                         </div>

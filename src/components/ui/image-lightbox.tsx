@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect} from 'react';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {ChevronLeft, ChevronRight, X} from 'lucide-react';
 import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 
@@ -46,7 +46,7 @@ export function ImageLightbox({
       >
         <DialogTitle className="sr-only">{`이미지 확대 보기 · ${caption}`}</DialogTitle>
         <div className="relative flex items-center justify-center min-h-[60vh] max-h-[90vh]">
-          <Image
+          <ImageWithSkeleton
             key={src}
             src={src}
             alt={`${caption} 이미지 ${index + 1}`}
@@ -54,6 +54,7 @@ export function ImageLightbox({
             height={1200}
             sizes="(min-width: 1200px) 1200px, 95vw"
             className="max-h-[90vh] w-auto h-auto object-contain"
+            wrapperClassName="flex items-center justify-center"
             priority
           />
 

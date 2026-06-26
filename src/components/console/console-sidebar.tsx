@@ -7,6 +7,7 @@ import {
   FileCheck,
   Users,
   CreditCard,
+  HardDrive,
   ShieldAlert,
   Megaphone,
   ScrollText,
@@ -45,6 +46,7 @@ const GROUPS: NavGroup[] = [
       { href: '/console/users', label: '유저 관리', icon: Users },
       { href: '/console/subscriptions', label: '구독 현황', icon: CreditCard },
       { href: '/console/coupons', label: '쿠폰', icon: Ticket },
+      { href: '/console/storage', label: '스토리지 증설', icon: HardDrive },
     ],
   },
   {

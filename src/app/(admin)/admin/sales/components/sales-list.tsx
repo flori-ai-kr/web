@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useMemo, useRef, useState} from 'react';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {Button} from '@/components/ui/button';
 import {Card} from '@/components/ui/card';
 import {CreditCard, FileText, ImagePlus, Loader2, Phone, Search, ShoppingBag, TrendingUp, User} from 'lucide-react';
@@ -141,7 +141,7 @@ export function SalesList({
                       aria-label="사진 확대 보기"
                     >
                       <div className="relative w-[84px] h-[84px] rounded-lg overflow-hidden bg-muted">
-                        <Image
+                        <ImageWithSkeleton
                           src={sale.photos![0]}
                           alt=""
                           fill

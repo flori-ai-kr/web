@@ -134,6 +134,7 @@ export const photoCardSchema = z.object({
   photos: z.array(z.object({
     url: z.string().url(),
     originalName: z.string().max(255),
+    size: z.number().int().nonnegative().default(0),
   })).max(10).optional(),
 });
 
@@ -200,7 +201,6 @@ export const customerGradeConfigCreateSchema = z.object({
 export const customerGradeConfigUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   threshold: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
-  sortOrder: z.number().int().min(0).optional(),
   clearThreshold: z.boolean().optional(),
 });
 

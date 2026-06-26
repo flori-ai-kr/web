@@ -6,7 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {ImageLightbox} from '@/components/ui/image-lightbox';
 import {CalendarDays, Check, ExternalLink, ImageIcon, PackageCheck, Pencil, Trash2} from 'lucide-react';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {format} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {formatCurrency, isUnsettledUnpaid} from '@/lib/utils';
@@ -130,7 +130,7 @@ export function SaleDetailDialog({
                       className="relative aspect-square rounded-lg overflow-hidden group"
                       aria-label={`사진 ${index + 1} 크게 보기`}
                     >
-                      <Image
+                      <ImageWithSkeleton
                         src={photo.url}
                         alt={`사진 ${index + 1}`}
                         fill
