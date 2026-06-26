@@ -311,8 +311,9 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
         )}
       </div>
 
-      {/* 필터 한 줄: 태그(좌) · 고객 검색/칩(채움, 모바일선 축소) · 초기화(우) */}
-      <div className="flex items-center gap-2">
+      {/* 필터 한 줄: 태그(좌) · 고객 검색/칩(채움, 모바일선 축소) · 초기화(우)
+          모바일에선 한 줄에 안 들어가면 flex-wrap 으로 초기화 버튼이 아래 줄로 내려간다(sales-filters 동일 패턴). */}
+      <div className="flex flex-wrap items-center gap-2">
         <TagFilter
           tags={tags}
           selectedTag={selectedTag}
@@ -322,7 +323,8 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
         {selectedCustomer ? (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-brand/10 text-brand rounded-lg text-sm font-medium border border-brand/20 min-w-0">
             <User className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{selectedCustomer.name}</span>
+            {/* min-w-0 없으면 flex 아이템 최소폭이 이름 전체폭이 되어 truncate 가 작동하지 않고 칩이 화면 밖으로 밀린다. */}
+            <span className="truncate min-w-0">{selectedCustomer.name}</span>
             {selectedCustomer.phone && (
               <span className="hidden sm:inline text-xs text-brand/70 tabular-nums shrink-0">{selectedCustomer.phone}</span>
             )}

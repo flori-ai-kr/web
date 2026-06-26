@@ -4,7 +4,7 @@ import {useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeft} from 'lucide-react';
-import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost,} from '@/types/database';
+import {COMMUNITY_ADMIN_ONLY_CATEGORIES, COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost,} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Label} from '@/components/ui/label';
@@ -24,13 +24,43 @@ const TiptapEditor = dynamic(
   },
 );
 
-interface WriteClientProps {
-  post?: CommunityPost | null; // 있으면 수정 모드
+function extractImageUrls(json: unknown): string[] {
+  const urls: string[] = [];
+  function walk(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const n = node as Record<string, unknown>;
+    if (n.type === 'image' && typeof (n.attrs as Record<string, unknown>)?.src === 'string') {
+      const src = (n.attrs as Record<string, unknown>).src as string;
+      if (!src.startsWith('blob:')) urls.push(src);
+    }
+    if (Array.isArray(n.content)) (n.content as unknown[]).forEach(walk);
+  }
+  walk(json);
+  return urls;
 }
 
-export function CommunityWriteClient({ post }: WriteClientProps) {
+// Tiptap(ProseMirror) 의 node.attrs 는 null-prototype 객체(Object.create(null))다.
+// React Server Action(RSC Flight) 직렬화가 null-prototype 객체를 보존하지 못해
+// attrs 가 통째로 누락된다(heading level·image src 소실 → 저장 시 H1/H2/H3 구분·이미지 사라짐).
+// JSON 라운드트립으로 모든 객체를 표준 prototype 의 plain object 로 정규화한 뒤 액션에 전달한다.
+function toPlainJson(json: unknown): unknown {
+  return json == null ? json : JSON.parse(JSON.stringify(json));
+}
+
+interface WriteClientProps {
+  post?: CommunityPost | null; // 있으면 수정 모드
+  isAdmin?: boolean; // 운영자만 '공지' 카테고리 선택 가능 (서버가 최종 강제)
+}
+
+export function CommunityWriteClient({ post, isAdmin = false }: WriteClientProps) {
   const router = useRouter();
   const isEdit = !!post;
+
+  // 비관리자에게는 관리자 전용 카테고리('공지')를 숨긴다. 서버도 NOTICE_ADMIN_ONLY 로 차단하지만,
+  // 폼을 다 작성하고 등록을 눌러야 403 을 받는 나쁜 경험을 막기 위해 옵션 단계에서 제거한다.
+  const categories = isAdmin
+    ? COMMUNITY_CATEGORIES
+    : COMMUNITY_CATEGORIES.filter((c) => !COMMUNITY_ADMIN_ONLY_CATEGORIES.includes(c.value));
 
   const [category, setCategory] = useState<CommunityCategory | ''>(post?.category ?? '');
   const [title, setTitle] = useState(post?.title ?? '');
@@ -55,7 +85,9 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
     }
     setPending(true);
     try {
-      const payload = { category, title, content, contentText, imageUrls: post?.image_urls ?? [] };
+      const safeContent = toPlainJson(content);
+      const imageUrls = extractImageUrls(safeContent);
+      const payload = { category, title, content: safeContent, contentText, imageUrls };
       if (isEdit) {
         await updateCommunityPost(post.id, payload);
         toast.success('게시글을 수정했어요');
@@ -104,7 +136,7 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
               <SelectValue placeholder="카테고리 선택" />
             </SelectTrigger>
             <SelectContent>
-              {COMMUNITY_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c.value} value={c.value}>
                   {c.label}
                 </SelectItem>

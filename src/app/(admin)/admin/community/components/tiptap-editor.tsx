@@ -1,11 +1,12 @@
 'use client';
 
-import { useEditor, EditorContent, type Editor } from '@tiptap/react';
+import { useEditor, EditorContent, ReactNodeViewRenderer, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useRef } from 'react';
+import { EditableImage } from './editable-image';
+import { useRef, useState } from 'react';
 import {
   Type,
   Heading1,
@@ -23,9 +24,22 @@ import {
   Link2,
   Undo2,
   Redo2,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { createCommunityUploadTargets } from '@/lib/actions/community';
+
+// 에디터 전용: 이미지에 삭제 버튼 NodeView 부착. 저장 JSON/읽기 렌더러는 기본 Image 그대로.
+const EditorImage = Image.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(EditableImage);
+  },
+});
+
+// 커뮤니티 이미지 첨부 상한 — 갤러리(5MB 하드 거부)와 동일 정책.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 interface TiptapEditorProps {
   content?: unknown;
@@ -68,12 +82,15 @@ function Divider() {
 
 export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
-      Image.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
+      // StarterKit 에 link 가 번들되어 있으므로 끄고, 보안 설정(openOnClick:false·javascript: 차단)
+      // 이 적용된 커스텀 Link 로 교체한다. (중복 등록 시 경고 + 커스텀 설정 미적용)
+      StarterKit.configure({ link: false }),
+      EditorImage.configure({ HTMLAttributes: { class: 'rounded-lg my-2 max-w-full' } }),
       Link.configure({
         openOnClick: false,
         protocols: ['http', 'https', 'mailto'],
@@ -88,15 +105,56 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
 
   if (!editor) return null;
 
-  // 이미지 삽입: 서버 미구현 단계에서는 로컬 blob URL로 미리보기.
-  // TODO(server): createCommunityUploadTargets(BFF POST /community/upload-targets)로 R2 업로드 후 publicUrl 삽입.
-  const onPickImage = (files: FileList | null) => {
-    if (!files) return;
-    for (const file of Array.from(files)) {
-      const url = URL.createObjectURL(file);
-      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+  const onPickImage = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const resetInput = () => {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    // 클라이언트 1차 방어: 이미지 타입 + 5MB 이하만(갤러리와 동일 정책). 부적합 파일은 제외.
+    const valid = Array.from(files).filter((f) => f.type.startsWith('image/') && f.size <= MAX_IMAGE_BYTES);
+    if (valid.length < files.length) {
+      toast.error('이미지 파일(5MB 이하)만 첨부할 수 있어요');
     }
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (valid.length === 0) {
+      resetInput();
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const targets = await createCommunityUploadTargets(
+        valid.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+      );
+
+      // 일부 업로드가 실패해도 성공한 이미지는 삽입(allSettled). 실패 개수만 알린다.
+      const results = await Promise.allSettled(
+        targets.map((t, i) =>
+          fetch(t.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': valid[i].type },
+            body: valid[i],
+          }).then((res) => {
+            if (!res.ok) throw new Error('업로드 실패');
+            return t;
+          }),
+        ),
+      );
+
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          editor.chain().focus().setImage({ src: r.value.fileUrl, alt: r.value.originalName }).run();
+        }
+      }
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        toast.error(`이미지 ${failed}장 업로드에 실패했어요`);
+      }
+    } catch {
+      toast.error('이미지 업로드에 실패했어요');
+    } finally {
+      setUploading(false);
+      resetInput();
+    }
   };
 
   const onAddLink = () => {
@@ -167,8 +225,8 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
         <Divider />
 
         {/* 미디어 */}
-        <ToolbarButton label="이미지 첨부" onClick={() => fileInputRef.current?.click()}>
-          <ImagePlus className="h-4 w-4" />
+        <ToolbarButton label="이미지 첨부" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
         </ToolbarButton>
         <ToolbarButton label="링크" active={editor.isActive('link')} onClick={onAddLink}>
           <Link2 className="h-4 w-4" />

@@ -85,7 +85,7 @@ export function CommunityClient({ initialPosts, initialHasMore, activeCategory }
       </div>
 
       {/* Category tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
         <CategoryTab href={tabHref(null)} active={activeCategory === null} label="전체" />
         {COMMUNITY_CATEGORIES.map((cat) => (
           <CategoryTab

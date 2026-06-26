@@ -1,16 +1,25 @@
 'use client';
 
-import {useMemo, useState} from 'react';
-import {CornerDownRight, Lock, Trash2} from 'lucide-react';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {CornerDownRight, Lock, Pencil, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
+import {Textarea} from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {toast} from 'sonner';
 import type {CommunityComment} from '@/types/database';
 import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 import {CommentForm} from './comment-form';
-import {deleteComment} from '@/lib/actions/community';
+import {deleteComment, updateComment} from '@/lib/actions/community';
 
 // 최대 5뎁스(루트 depth 0 ~ 4). depth < MAX_REPLY_DEPTH 일 때만 답글 허용.
 // 서버(CommunityService.MAX_COMMENT_DEPTH=5)와 동기화할 것.
@@ -23,9 +32,10 @@ interface CommentTreeProps {
   comments: CommunityComment[];
   onAdded: (comment: CommunityComment) => void;
   onDeleted: (id: string) => void;
+  onUpdated: (comment: CommunityComment) => void;
 }
 
-export function CommentTree({ postId, comments, onAdded, onDeleted }: CommentTreeProps) {
+export function CommentTree({ postId, comments, onAdded, onDeleted, onUpdated }: CommentTreeProps) {
   const { roots, childrenOf } = useMemo(() => {
     const childrenOf = new Map<string, CommunityComment[]>();
     const roots: CommunityComment[] = [];
@@ -60,6 +70,7 @@ export function CommentTree({ postId, comments, onAdded, onDeleted }: CommentTre
           depth={0}
           onAdded={onAdded}
           onDeleted={onDeleted}
+          onUpdated={onUpdated}
         />
       ))}
     </ul>
@@ -73,6 +84,7 @@ function CommentNode({
   depth,
   onAdded,
   onDeleted,
+  onUpdated,
 }: {
   postId: string;
   comment: CommunityComment;
@@ -80,18 +92,64 @@ function CommentNode({
   depth: number;
   onAdded: (comment: CommunityComment) => void;
   onDeleted: (id: string) => void;
+  onUpdated: (comment: CommunityComment) => void;
 }) {
   const replies = childrenOf.get(comment.id) ?? [];
   const [replying, setReplying] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(comment.content);
+  const [saving, setSaving] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
+
+  // 수정 진입 시 포커스 + 커서를 본문 맨 끝으로 이동(브라우저별 autoFocus 커서 위치 편차 방지).
+  useEffect(() => {
+    if (!editing) return;
+    const el = editRef.current;
+    if (!el) return;
+    el.focus();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+  }, [editing]);
 
   const masked = comment.is_secret && !comment.can_view;
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
       await deleteComment(comment.id);
       onDeleted(comment.id);
     } catch {
       toast.error('댓글 삭제에 실패했어요');
+      setDeleting(false);
+    }
+  };
+
+  const startEdit = () => {
+    setEditValue(comment.content);
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const next = editValue.trim();
+    if (!next) {
+      toast.error('댓글 내용을 입력해주세요');
+      return;
+    }
+    if (next === comment.content) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await updateComment(comment.id, next);
+      onUpdated(updated);
+      setEditing(false);
+    } catch {
+      toast.error('댓글 수정에 실패했어요');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -114,7 +172,43 @@ function CommentNode({
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ko })}
               </span>
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+            {editing ? (
+              <div className="space-y-2">
+                <Textarea
+                  ref={editRef}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  rows={2}
+                  className="text-sm"
+                  aria-label="댓글 수정"
+                  disabled={saving}
+                />
+                <div className="flex items-center justify-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 px-3 text-xs"
+                    onClick={handleSaveEdit}
+                    disabled={saving}
+                  >
+                    {saving ? '저장 중…' : '저장'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+            )}
+            {!editing && (
             <div className="flex items-center gap-1 mt-1.5">
               {depth < MAX_REPLY_DEPTH && (
                 <Button
@@ -132,13 +226,43 @@ function CommentNode({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={startEdit}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> 수정
+                </Button>
+              )}
+              {comment.is_mine && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={handleDelete}
+                  onClick={() => setDeleteOpen(true)}
                 >
                   <Trash2 className="h-3.5 w-3.5" /> 삭제
                 </Button>
               )}
             </div>
+            )}
+
+            {/* 삭제 확인 — 즉시삭제/confirm() 금지 컨벤션(게시글 삭제와 동일 Dialog 패턴) */}
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>댓글을 삭제할까요?</DialogTitle>
+                  <DialogDescription>삭제한 댓글은 복구할 수 없어요.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                    취소
+                  </Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                    {deleting ? '삭제 중…' : '삭제'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
@@ -170,6 +294,7 @@ function CommentNode({
               depth={depth + 1}
               onAdded={onAdded}
               onDeleted={onDeleted}
+              onUpdated={onUpdated}
             />
           ))}
         </ul>

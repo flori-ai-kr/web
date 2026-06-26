@@ -2,7 +2,6 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {useRouter} from 'next/navigation';
 import {ArrowLeft, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
@@ -67,6 +66,8 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
     setComments((prev) =>
       prev.map((c) => (c.id === id ? { ...c, is_deleted: true, content: '' } : c)),
     );
+  const updateCommentInTree = (updated: CommunityComment) =>
+    setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
 
   const handleDeletePost = async () => {
     setDeleting(true);
@@ -110,18 +111,12 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             </div>
           </header>
 
-          {/* Body */}
+          {/* Body — 이미지는 TiptapContent 본문에 인라인으로 렌더된다.
+              image_urls(본문 이미지에서 추출)는 목록 카드 썸네일 전용이며,
+              상세에서 별도 그리드로 다시 그리면 인라인 이미지와 중복돼 페이지가
+              과도하게 길어지므로(푸터 아래 빈 스크롤) 렌더하지 않는다. */}
           <article>
             <TiptapContent content={post.content} />
-            {post.image_urls.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-                {post.image_urls.map((url) => (
-                  <div key={url} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <ImageWithSkeleton src={url} alt="첨부 이미지" fill className="object-cover" sizes="33vw" />
-                  </div>
-                ))}
-              </div>
-            )}
           </article>
 
           {/* Actions */}
@@ -171,6 +166,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
               comments={comments}
               onAdded={addComment}
               onDeleted={markDeleted}
+              onUpdated={updateCommentInTree}
             />
           </section>
         </>
@@ -183,14 +179,10 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             <DialogDescription>삭제한 게시글은 복구할 수 없어요.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
               취소
             </Button>
-            <Button
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={handleDeletePost}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDeletePost} disabled={deleting}>
               {deleting ? '삭제 중…' : '삭제'}
             </Button>
           </DialogFooter>
