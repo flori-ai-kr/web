@@ -20,6 +20,8 @@ export function ImageWithSkeleton({
   onLoad,
   onError,
   alt,
+  width,
+  height,
   ...rest
 }: ImageWithSkeletonProps) {
   const [status, setStatus] = useState<Status>('loading');
@@ -59,7 +61,12 @@ export function ImageWithSkeleton({
     return fill ? (
       errorBox
     ) : (
-      <span className={cn('relative inline-block', wrapperClassName)}>{errorBox}</span>
+      <span
+        className={cn('relative inline-block', wrapperClassName)}
+        style={width != null && height != null ? { width, height } : undefined}
+      >
+        {errorBox}
+      </span>
     );
   }
 
@@ -73,6 +80,8 @@ export function ImageWithSkeleton({
         ref={imgRef}
         alt={alt}
         fill={fill}
+        width={width}
+        height={height}
         onLoad={(e) => {
           setStatus('loaded');
           onLoad?.(e);

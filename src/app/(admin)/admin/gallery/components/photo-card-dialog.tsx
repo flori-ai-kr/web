@@ -102,6 +102,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                 className="relative h-[58vh] w-full bg-muted rounded-lg overflow-hidden cursor-zoom-in"
               >
                 <ImageWithSkeleton
+                  key={card.photos[currentIndex].url}
                   src={card.photos[currentIndex].url}
                   alt={`${card.title} - ${currentIndex + 1}`}
                   fill
