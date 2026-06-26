@@ -67,7 +67,7 @@ export default async function GuideArticlePage({ params }: { params: Promise<{ s
 
         {/* 돌아가기 버튼 (from= 파라미터가 있을 때만) */}
         <div className="mb-4">
-          <Suspense>
+          <Suspense fallback={<div className="h-8 w-28" />}>
             <GuideBackButton />
           </Suspense>
         </div>

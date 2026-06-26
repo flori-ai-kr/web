@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { GuideBlock } from '@/lib/guide/types';
 import { headingId } from '@/lib/guide/toc';
 import { renderInline } from '@/lib/guide/inline-render';
@@ -30,6 +30,7 @@ const CALLOUT_STYLES = {
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
   return (
     <div className="border-b border-border last:border-0">
       <button
@@ -37,18 +38,52 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         onClick={() => setOpen(v => !v)}
         className="flex w-full items-start justify-between gap-4 py-4 text-left"
         aria-expanded={open}
+        aria-controls={panelId}
       >
         <span className="text-sm font-medium text-foreground">{q}</span>
         <ChevronDown
           className={`mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
         />
       </button>
       {open && (
-        <p className="pb-4 text-sm text-muted-foreground leading-relaxed">
+        <p id={panelId} className="pb-4 text-sm text-muted-foreground leading-relaxed">
           {renderInline(a)}
         </p>
       )}
     </div>
+  );
+}
+
+function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) {
+  const [error, setError] = useState(false);
+  const ext = block.kind === 'gif' ? 'gif' : 'webp';
+  const src = `/guide/${block.src}.${ext}`;
+
+  return (
+    <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-muted/30">
+      <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+        {error ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
+            스크린샷 준비 중
+          </div>
+        ) : (
+          <Image
+            src={src}
+            alt={block.alt}
+            fill
+            className="object-cover object-top"
+            sizes="(max-width: 768px) 100vw, 700px"
+            onError={() => setError(true)}
+          />
+        )}
+      </div>
+      {block.caption && (
+        <figcaption className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border">
+          {block.caption}
+        </figcaption>
+      )}
+    </figure>
   );
 }
 
@@ -92,7 +127,7 @@ export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; b
         <ul className="mb-4 space-y-2">
           {block.items.map((item, i) => (
             <li key={i} className="flex gap-2.5">
-              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />
               <span className="text-sm text-muted-foreground leading-relaxed">
                 {renderInline(item)}
               </span>
@@ -101,28 +136,8 @@ export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; b
         </ul>
       );
 
-    case 'shot': {
-      const ext = block.kind === 'gif' ? 'gif' : 'webp';
-      const src = `/guide/${block.src}.${ext}`;
-      return (
-        <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-muted/30">
-          <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-            <Image
-              src={src}
-              alt={block.alt}
-              fill
-              className="object-cover object-top"
-              sizes="(max-width: 768px) 100vw, 700px"
-            />
-          </div>
-          {block.caption && (
-            <figcaption className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border">
-              {block.caption}
-            </figcaption>
-          )}
-        </figure>
-      );
-    }
+    case 'shot':
+      return <ShotBlock block={block} />;
 
     case 'callout': {
       const style = CALLOUT_STYLES[block.variant];

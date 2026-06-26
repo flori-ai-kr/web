@@ -49,7 +49,7 @@ export default function GuidePage() {
                   <Link
                     key={article.slug}
                     href={`/admin/guide/${article.slug}`}
-                    className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition-all hover:border-brand/40 hover:shadow-sm"
+                    className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-brand/40 hover:shadow-sm"
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">

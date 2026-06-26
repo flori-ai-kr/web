@@ -14,6 +14,7 @@ import {
   Calendar,
   Image as ImageIcon,
   Settings,
+  Wallet,
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   calendar: Calendar,
   image: ImageIcon,
   settings: Settings,
+  wallet: Wallet,
 };
 
 export function getGuideIcon(key: string): LucideIcon {
