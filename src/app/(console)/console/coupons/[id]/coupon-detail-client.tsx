@@ -119,10 +119,6 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground">1인 한도</p>
-            <p className="font-medium tabular-nums">{coupon.perUserLimit}회</p>
-          </div>
-          <div>
             <p className="text-muted-foreground">등록 기간</p>
             <p className="font-medium tabular-nums">
               {formatDateRange(coupon.validFrom, coupon.validUntil)}

@@ -27,7 +27,6 @@ const mockCoupon: CouponResponse = {
   effectiveStatus: 'ACTIVE',
   redeemedCount: 0,
   maxRedemptions: null,
-  perUserLimit: 1,
   validFrom: null,
   validUntil: null,
   source: 'PROMO',
@@ -53,7 +52,7 @@ describe('listCoupons', () => {
 describe('issueCoupon', () => {
   it('POST /admin/coupons + revalidate /console/coupons', async () => {
     mockApiFetch.mockResolvedValue(mockCoupon);
-    const input = { days: 30, perUserLimit: 1, source: 'PROMO' };
+    const input = { days: 30, source: 'PROMO' };
     await issueCoupon(input);
     expect(mockApiFetch).toHaveBeenCalledWith(
       '/admin/coupons',
@@ -73,7 +72,6 @@ describe('issueCoupon', () => {
       validFrom: '2026-07-01T00:00:00Z',
       validUntil: '2026-07-31T23:59:59Z',
       maxRedemptions: 100,
-      perUserLimit: 1,
       source: 'PROMO',
       memo: '특별 프로모션',
     };

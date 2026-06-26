@@ -59,7 +59,6 @@ export interface CouponResponse {
   effectiveStatus: CouponEffectiveStatus;
   redeemedCount: number;
   maxRedemptions: number | null;
-  perUserLimit: number;
   validFrom: string | null;
   validUntil: string | null;
   source: string;
@@ -89,7 +88,6 @@ export interface CouponIssueInput {
   validFrom?: string | null;
   validUntil?: string | null;
   maxRedemptions?: number | null;
-  perUserLimit: number;
   source: string;
   memo?: string | null;
 }
@@ -100,7 +98,6 @@ export interface CouponUpdateInput {
   validFrom?: string | null;
   validUntil?: string | null;
   maxRedemptions?: number | null;
-  perUserLimit: number;
   memo?: string | null;
 }
 

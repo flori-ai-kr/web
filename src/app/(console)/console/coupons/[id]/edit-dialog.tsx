@@ -34,7 +34,6 @@ export function EditDialog({
   const [validFrom, setValidFrom] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [maxRedemptions, setMaxRedemptions] = useState('');
-  const [perUserLimit, setPerUserLimit] = useState('1');
   const [memo, setMemo] = useState('');
   const [pending, startTransition] = useTransition();
 
@@ -46,7 +45,6 @@ export function EditDialog({
     setValidFrom(coupon.validFrom ? coupon.validFrom.slice(0, 10) : '');
     setValidUntil(coupon.validUntil ? coupon.validUntil.slice(0, 10) : '');
     setMaxRedemptions(coupon.maxRedemptions != null ? String(coupon.maxRedemptions) : '');
-    setPerUserLimit(String(coupon.perUserLimit));
     setMemo(coupon.memo ?? '');
   }, [open, coupon]);
 
@@ -59,12 +57,6 @@ export function EditDialog({
       return;
     }
 
-    const perUserLimitNum = parseInt(perUserLimit, 10);
-    if (!perUserLimit || isNaN(perUserLimitNum) || perUserLimitNum < 1) {
-      toast.error('1인 한도를 1 이상으로 입력하세요');
-      return;
-    }
-
     startTransition(async () => {
       try {
         await updateCoupon(coupon.id, {
@@ -74,7 +66,6 @@ export function EditDialog({
           validFrom: validFrom ? `${validFrom}T00:00:00Z` : null,
           validUntil: validUntil ? `${validUntil}T23:59:59Z` : null,
           maxRedemptions: maxRedemptions ? parseInt(maxRedemptions, 10) : null,
-          perUserLimit: perUserLimitNum,
           memo: memo.trim() || null,
         });
         toast.success('쿠폰이 수정되었습니다');
@@ -165,18 +156,6 @@ export function EditDialog({
               value={maxRedemptions}
               onChange={(e) => setMaxRedemptions(e.target.value)}
               placeholder="비워두면 무제한"
-            />
-          </div>
-
-          {/* 1인 한도 */}
-          <div className="space-y-1.5">
-            <Label htmlFor="cp-edit-per-user">1인 한도 *</Label>
-            <Input
-              id="cp-edit-per-user"
-              type="number"
-              min={1}
-              value={perUserLimit}
-              onChange={(e) => setPerUserLimit(e.target.value)}
             />
           </div>
 
