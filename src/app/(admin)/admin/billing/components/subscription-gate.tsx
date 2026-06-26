@@ -5,7 +5,7 @@ import {signOut} from '@/lib/actions/auth';
 import {BillingCheckout} from './billing-checkout';
 
 /** flori 로고+워드마크 (헤더와 동일한 5장 꽃잎 SVG). 네비 없는 페이월 화면 상단용. */
-function BrandMark() {
+export function BrandMark() {
   return (
     <div className="flex items-center gap-2">
       <svg viewBox="0 0 100 100" width={28} height={28} aria-hidden="true" className="shrink-0">

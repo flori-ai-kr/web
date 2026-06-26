@@ -6,6 +6,7 @@ import {getMyBusinessVerification} from '@/lib/actions/business-verification';
 import {getMyBilling} from '@/lib/actions/billing';
 import {BusinessVerificationGate} from '@/app/(admin)/admin/community/components/business-verification-gate';
 import {SubscriptionGate} from '@/app/(admin)/admin/billing/components/subscription-gate';
+import {TrialStartGate} from '@/app/(admin)/admin/billing/components/trial-start-gate';
 import {SubscriptionGraceBanner} from '@/app/(admin)/admin/components/subscription-grace-banner';
 import {WelcomeGuideModal} from '@/components/onboarding/welcome-guide-modal';
 import type {MeResponse} from '@/types/billing';
@@ -38,13 +39,23 @@ export default async function DashboardLayout({
     return <BusinessVerificationGate initial={verification} />;
   }
 
-  // 구독 페이월 게이트: 사업자 인증(APPROVED) 통과 후 구독 상태로 분기.
+  // 구독 게이트: 사업자 인증(APPROVED) 통과 후 구독 상태로 분기.
   // - billing 조회 실패(billing == null)는 fail-open → 게이트 적용하지 않고 통과.
-  // - 구독 없음 또는 EXPIRED만 페이월(풀스크린, AppLayout 없음)로 잠근다.
+  // - 구독 없음: 체험 가능(trialEligible)하면 무카드 체험 진입 게이트(TrialStartGate),
+  //   체험 소진(trialEligible === false)이면 결제벽(SubscriptionGate). 토스 PG 미준비라 첫 진입은 무카드 체험.
+  //   방어: 구 api가 trialEligible를 안 줄 수 있음 → undefined면 우선 체험 게이트(=== false일 때만 결제벽).
+  // - EXPIRED: 체험 종료 후 결제벽(SubscriptionGate, 토스 카드).
   // - TRIALING·ACTIVE·IN_GRACE 는 모두 정상 진입(IN_GRACE는 상단 배너만 추가).
   const subscription = billing?.subscription ?? null;
-  if (billing !== null && (subscription === null || subscription.status === 'EXPIRED')) {
-    return <SubscriptionGate status={subscription === null ? 'NONE' : 'EXPIRED'} />;
+  if (billing !== null) {
+    if (subscription === null) {
+      return billing.trialEligible !== false
+        ? <TrialStartGate />
+        : <SubscriptionGate status="NONE" />;
+    }
+    if (subscription.status === 'EXPIRED') {
+      return <SubscriptionGate status="EXPIRED" />;
+    }
   }
 
   return (

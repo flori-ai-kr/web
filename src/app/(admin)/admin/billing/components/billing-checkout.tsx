@@ -9,7 +9,7 @@ import { prepareBilling } from '@/lib/actions/billing';
 import type { BillingPlan } from '@/types/billing';
 
 export interface BillingCheckoutProps {
-  /** 페이월 진입 맥락. 'expired'=무료체험 만료, 'none'=미구독 첫 진입 */
+  /** 결제벽 진입 맥락. 'expired'=무료체험 만료, 'none'=무료체험 소진(재구독). 둘 다 카드 등록·결제 단계. */
   variant?: 'expired' | 'none';
 }
 
@@ -20,12 +20,12 @@ export function BillingCheckout({ variant = 'none' }: BillingCheckoutProps) {
   const headingText =
     variant === 'expired'
       ? '무료체험이 끝났어요'
-      : '14일 무료로 시작하세요';
+      : '구독하고 계속하기';
 
   const subText =
     variant === 'expired'
-      ? '구독하면 주문·고객·인사이트·마케팅 기능을 계속 사용할 수 있어요.'
-      : '체험 기간엔 한 푼도 결제되지 않아요. 체험이 끝나면 자동으로 결제돼요.';
+      ? '구독하면 주문·고객·인사이트·마케팅 기능을 계속 사용할 수 있어요. 아래에서 카드를 등록하면 결제가 시작돼요.'
+      : '카드를 등록하고 구독하면 모든 기능을 계속 사용할 수 있어요.';
 
   const handleStart = () => {
     startTransition(async () => {
@@ -148,7 +148,7 @@ export function BillingCheckout({ variant = 'none' }: BillingCheckoutProps) {
             </div>
           </div>
           <p className="text-[11.5px] text-muted-foreground mt-1.5 pl-7">
-            월 12,900원꼴 · 월 13% 절약
+            월 12,900원
           </p>
         </label>
 
@@ -161,11 +161,11 @@ export function BillingCheckout({ variant = 'none' }: BillingCheckoutProps) {
           {isPending ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : null}
-          14일 무료로 시작하기
+          카드 등록하고 구독하기
         </Button>
 
         <p className="text-[11px] text-muted-foreground text-center">
-          [구독 시작] 클릭 → 토스 카드 등록창 → 등록 완료 시 자동으로 체험 시작 · 언제든 해지 가능
+          카드를 등록하면 결제가 시작돼요 · 언제든 해지할 수 있어요
         </p>
       </fieldset>
     </div>
