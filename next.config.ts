@@ -70,16 +70,19 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+              `script-src 'self' 'unsafe-inline' https://js.tosspayments.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
               `img-src 'self' data: blob:${storageHostname ? ` https://${storageHostname}` : ''} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
+              // 토스페이먼츠 빌링 인증창(/billing-demo)은 토스 도메인에서 iframe 으로 뜬다(frame-src).
+              `frame-src 'self' https://*.tosspayments.com`,
               // 브라우저 직접 업로드(presigned PUT) + 원본 다운로드(presigned GET)는 S3 버킷 호스트로
               // 향한다(<bucket>.s3.<region>.amazonaws.com). 공개 읽기는 CloudFront(img-src)라 별개다.
-              `connect-src 'self' https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}`,
+              // 토스 SDK 는 *.tosspayments.com 으로 결제/인증 API 를 호출한다(connect-src).
+              `connect-src 'self' https://*.tosspayments.com https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://*.tosspayments.com",
               "worker-src 'self'",
             ].join('; '),
           },
