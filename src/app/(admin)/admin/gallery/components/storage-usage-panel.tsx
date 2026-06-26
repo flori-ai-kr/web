@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import { getStorageUsage } from '@/lib/actions/storage';
 import { formatBytes } from '@/lib/format-bytes';
 import type { StorageUsage } from '@/types/storage';
@@ -24,35 +23,33 @@ export function StorageUsagePanel() {
   const warn = usage.status === 'WARN' || usage.status === 'FULL';
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">저장 용량</span>
-        <span className="text-muted-foreground tabular-nums">
-          {formatBytes(usage.usedBytes)} / {formatBytes(usage.quotaBytes)} ({usage.percent}%)
+    <div className="space-y-1">
+      {/* 슬림 인라인: 라벨·수치 한 줄 + 얇은 바. 평상시 눈에 안 띄게, 경고일 때만 강조. */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>저장 용량</span>
+        <Progress
+          value={Math.min(usage.percent, 100)}
+          className={`h-1 flex-1 ${
+            usage.status === 'FULL'
+              ? '[&>div]:bg-danger'
+              : warn
+              ? '[&>div]:bg-warning'
+              : ''
+          }`}
+        />
+        <span className="tabular-nums shrink-0">
+          {formatBytes(usage.usedBytes)} / {formatBytes(usage.quotaBytes)} · {usage.percent}%
         </span>
-      </div>
-      <Progress
-        value={Math.min(usage.percent, 100)}
-        className={
-          usage.status === 'FULL'
-            ? '[&>div]:bg-danger'
-            : warn
-            ? '[&>div]:bg-warning'
-            : ''
-        }
-      />
-      {warn && (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning-soft p-2">
-          <p className="text-xs text-warning">
-            {usage.status === 'FULL'
-              ? '저장 용량이 가득 찼어요. 증설을 요청해 주세요.'
-              : '저장 용량이 거의 찼어요(90%+).'}
-          </p>
-          <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+        {warn && (
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="shrink-0 font-medium text-warning underline-offset-2 hover:underline"
+          >
             증설 요청
-          </Button>
-        </div>
-      )}
+          </button>
+        )}
+      </div>
       <StorageIncreaseDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
