@@ -2,7 +2,7 @@
 
 import {useTransition} from 'react';
 import {useRouter} from 'next/navigation';
-import {Check, Loader2, LogOut} from 'lucide-react';
+import {Loader2, LogOut} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {signOut} from '@/lib/actions/auth';
@@ -10,9 +10,10 @@ import {startTrial} from '@/lib/actions/billing';
 import {BrandMark} from './subscription-gate';
 
 const TRIAL_PERKS = [
-  '주문·고객·매출·예약을 한곳에서 관리',
-  '시세·지원사업 인사이트와 마케팅 도구',
-  '14일 내내 모든 기능 그대로',
+  {emoji: '📒', text: '주문·고객·매출·예약을 한 곳에서 관리'},
+  {emoji: '✍️', text: 'AI가 블로그 글·홍보 문구까지 대신 써줘요'},
+  {emoji: '🌸', text: '꽃 시세·지원사업 정보로 한발 앞서기'},
+  {emoji: '🎁', text: '14일 내내 모든 기능 그대로, 카드 없이'},
 ];
 
 /**
@@ -47,26 +48,26 @@ export function TrialStartGate() {
 
       <main className="flex w-full max-w-md flex-1 flex-col justify-center">
         <div className="flex flex-col items-center px-4 py-6 w-full">
-          <h3 className="text-[24px] font-bold text-foreground tracking-tight text-center">
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-3 py-1 text-[12.5px] font-semibold text-brand">
+            🌷 반가워요, 사장님!
+          </span>
+          <h3 className="text-[24px] font-bold text-foreground tracking-tight text-center mt-3">
             14일 무료체험을 시작해요
           </h3>
           <p className="text-sm text-muted-foreground mt-2 break-keep max-w-sm text-center">
-            카드 없이 바로 시작할 수 있어요. 14일 후에 결제 안내를 드릴게요.
+            카드 없이 지금 바로 시작 — 14일 동안 플로리의 모든 기능을 마음껏 써보세요.
           </p>
 
           <ul className="mt-6 w-full max-w-[440px] space-y-2.5">
             {TRIAL_PERKS.map((perk) => (
               <li
-                key={perk}
-                className="flex items-start gap-2.5 rounded-xl border border-border bg-card p-3.5"
+                key={perk.text}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5"
               >
-                <span
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/10"
-                  aria-hidden="true"
-                >
-                  <Check className="h-3.5 w-3.5 text-brand" />
+                <span className="shrink-0 text-[17px] leading-none" aria-hidden="true">
+                  {perk.emoji}
                 </span>
-                <span className="text-[14px] text-foreground break-keep">{perk}</span>
+                <span className="text-[14px] text-foreground break-keep">{perk.text}</span>
               </li>
             ))}
           </ul>
