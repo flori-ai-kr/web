@@ -10,6 +10,7 @@ const arbitraryPhotoFile = (): fc.Arbitrary<PhotoFile> => {
   return fc.record({
     url: fc.webUrl(),
     originalName: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.trim().length > 0),
+    size: fc.integer({ min: 0, max: 5 * 1024 * 1024 }),
   })
 }
 

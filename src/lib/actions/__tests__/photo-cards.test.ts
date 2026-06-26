@@ -33,7 +33,7 @@ beforeEach(() => {
 
 const kCard = {
   id: 'pc1', title: '봄 부케', description: '메모', tags: ['봄'],
-  photos: [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }],
+  photos: [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }],
   saleId: null, createdAt: '2026-01-01', updatedAt: '2026-01-01',
 }
 
@@ -72,7 +72,7 @@ describe('createPhotoCard', () => {
     const fd = new FormData()
     fd.set('title', '봄 부케')
     fd.set('tags', JSON.stringify(['봄']))
-    fd.set('photos', JSON.stringify([{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }]))
+    fd.set('photos', JSON.stringify([{ url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }]))
     for (const [k, v] of Object.entries(over)) fd.set(k, v)
     return fd
   }
@@ -162,7 +162,7 @@ describe('deletePhoto / reorderPhotos', () => {
 
   it('reorderPhotos: PATCH', async () => {
     mockApiFetch.mockResolvedValue(kCard)
-    await reorderPhotos('1', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }])
+    await reorderPhotos('1', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }])
     expect(mockApiFetch).toHaveBeenCalledWith('/photo-cards/1/photos/reorder', expect.objectContaining({ method: 'PATCH' }))
   })
 
@@ -173,7 +173,7 @@ describe('deletePhoto / reorderPhotos', () => {
 })
 
 describe('downloadPhoto', () => {
-  const photo = { url: 'https://cdn/a.jpg', originalName: 'a.jpg' }
+  const photo = { url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }
 
   it('downloadUrl이 있으면 url/filename 반환', async () => {
     mockApiFetch.mockResolvedValue({ downloadUrl: 'https://signed/a' })
@@ -241,7 +241,7 @@ describe('createOrUpdatePhotoCardForSale', () => {
     mockApiFetch
       .mockResolvedValueOnce(kCard) // getPhotoCardBySaleId
       .mockResolvedValueOnce(kCard) // PATCH
-    await createOrUpdatePhotoCardForSale('9', '제목', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }])
+    await createOrUpdatePhotoCardForSale('9', '제목', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }])
     expect(mockApiFetch.mock.calls[1][0]).toBe('/photo-cards/pc1')
     expect(mockApiFetch.mock.calls[1][1]).toMatchObject({ method: 'PATCH' })
   })
@@ -250,7 +250,7 @@ describe('createOrUpdatePhotoCardForSale', () => {
     mockApiFetch
       .mockResolvedValueOnce(undefined) // getPhotoCardBySaleId → null
       .mockResolvedValueOnce(kCard) // POST
-    await createOrUpdatePhotoCardForSale('9', '제목', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg' }])
+    await createOrUpdatePhotoCardForSale('9', '제목', [{ url: 'https://cdn/a.jpg', originalName: 'a.jpg', size: 1024 }])
     expect(mockApiFetch.mock.calls[1][0]).toBe('/photo-cards')
     expect(body(1)).toMatchObject({ title: '제목', saleId: '9', customerId: null })
   })
