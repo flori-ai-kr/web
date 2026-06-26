@@ -87,8 +87,10 @@ export function IssueDialog({
           code: codeMode === 'manual' ? code.trim() : undefined,
           days: daysNum,
           source,
-          validFrom: validFrom || null,
-          validUntil: validUntil || null,
+          // DatePicker는 yyyy-MM-dd 를 주지만 api(CouponIssueRequest)는 Instant 기대 → ISO 변환.
+          // 시작일=그날 0시(UTC), 종료일=그날 끝(23:59:59Z)까지 유효(선택한 날 내내 사용 가능).
+          validFrom: validFrom ? `${validFrom}T00:00:00Z` : null,
+          validUntil: validUntil ? `${validUntil}T23:59:59Z` : null,
           maxRedemptions: maxRedemptions ? parseInt(maxRedemptions, 10) : null,
           perUserLimit: perUserLimitNum,
           memo: memo.trim() || null,
