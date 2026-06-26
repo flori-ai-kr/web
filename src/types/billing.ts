@@ -69,6 +69,10 @@ export interface CouponResponse {
 
 export interface RedemptionRow {
   userId: number;
+  /** 사용자 닉네임(있으면 표시, 없으면 null). */
+  nickname?: string | null;
+  /** 가게명(있으면 표시, 없으면 null). */
+  storeName?: string | null;
   grantedDays: number;
   redeemedAt: string;
 }
@@ -87,6 +91,16 @@ export interface CouponIssueInput {
   maxRedemptions?: number | null;
   perUserLimit: number;
   source: string;
+  memo?: string | null;
+}
+
+/** PATCH /admin/coupons/{id} 요청 바디. code·source는 수정 불가(요청에 포함하지 않음). */
+export interface CouponUpdateInput {
+  days: number;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  maxRedemptions?: number | null;
+  perUserLimit: number;
   memo?: string | null;
 }
 

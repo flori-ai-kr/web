@@ -8,6 +8,7 @@ import type {
   CouponDetailResponse,
   CouponIssueInput,
   CouponResponse,
+  CouponUpdateInput,
 } from '@/types/billing';
 
 // ─── 콘솔 쿠폰 Server Actions ────────────────────────────────────────
@@ -33,6 +34,22 @@ async function _issueCoupon(input: CouponIssueInput): Promise<CouponResponse> {
   return res;
 }
 export const issueCoupon = withErrorLogging('issueCoupon', _issueCoupon);
+
+// BFF: PATCH /admin/coupons/{id} (code·source는 수정 불가 — 바디에 포함하지 않음)
+async function _updateCoupon(
+  id: number,
+  input: CouponUpdateInput,
+): Promise<CouponResponse> {
+  await requireAdmin();
+  const res = await apiFetch<CouponResponse>(`/admin/coupons/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  revalidatePath(COUPONS_PATH);
+  revalidatePath(`${COUPONS_PATH}/${id}`);
+  return res;
+}
+export const updateCoupon = withErrorLogging('updateCoupon', _updateCoupon);
 
 // BFF: GET /admin/coupons/{id}
 async function _couponDetail(id: number): Promise<CouponDetailResponse> {

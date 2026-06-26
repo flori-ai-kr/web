@@ -24,7 +24,8 @@ import {
 import { StatusBadge } from '@/components/console/status-badge';
 import { disableCoupon } from '@/lib/actions/admin-coupons';
 import type { CouponDetailResponse, CouponEffectiveStatus } from '@/types/billing';
-import { couponSourceLabel } from '../coupon-labels';
+import { couponSourceLabel, couponStatusLabel } from '../coupon-labels';
+import { EditDialog } from './edit-dialog';
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted';
 
@@ -45,6 +46,7 @@ function formatDateRange(validFrom: string | null, validUntil: string | null): s
 export function CouponDetailClient({ detail }: { detail: CouponDetailResponse }) {
   const { coupon, redemptions } = detail;
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -85,18 +87,23 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
             <p className="font-mono text-2xl font-bold tracking-widest">{coupon.code}</p>
             <div className="flex items-center gap-2">
               <StatusBadge tone={STATUS_TONE[coupon.effectiveStatus]}>
-                {coupon.effectiveStatus}
+                {couponStatusLabel(coupon.effectiveStatus)}
               </StatusBadge>
             </div>
           </div>
           {!isDisabled && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setConfirmOpen(true)}
-            >
-              쿠폰 폐기
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                수정
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setConfirmOpen(true)}
+              >
+                쿠폰 폐기
+              </Button>
+            </div>
           )}
         </div>
 
@@ -147,7 +154,8 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>userId</TableHead>
+                <TableHead>가게명</TableHead>
+                <TableHead>닉네임</TableHead>
                 <TableHead className="text-right">부여 일수</TableHead>
                 <TableHead>사용일</TableHead>
               </TableRow>
@@ -155,14 +163,20 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
             <TableBody>
               {redemptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                     사용 내역이 없습니다
                   </TableCell>
                 </TableRow>
               ) : (
                 redemptions.map((r, i) => (
                   <TableRow key={`${r.userId}-${i}`}>
-                    <TableCell className="tabular-nums">{r.userId}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">{r.storeName ?? '—'}</span>
+                      <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">
+                        #{r.userId}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">{r.nickname ?? '—'}</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
                       +{r.grantedDays}일
                     </TableCell>
@@ -197,6 +211,14 @@ export function CouponDetailClient({ detail }: { detail: CouponDetailResponse })
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 수정 Dialog */}
+      <EditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        coupon={coupon}
+        onUpdated={() => router.refresh()}
+      />
     </div>
   );
 }

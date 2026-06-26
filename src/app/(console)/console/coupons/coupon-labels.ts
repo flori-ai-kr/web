@@ -18,3 +18,20 @@ export const COUPON_SOURCE_LABELS: Record<CouponSource, string> = {
 export function couponSourceLabel(source: string): string {
   return (COUPON_SOURCE_LABELS as Record<string, string>)[source] ?? source;
 }
+
+/**
+ * 쿠폰 유효 상태(effectiveStatus) 라벨 SSOT.
+ * CouponEffectiveStatus(ACTIVE/DISABLED/EXPIRED/EXHAUSTED) 영문 enum → 화면 한글.
+ * 목록 StatusBadge·상세 배지에서 공유. 배지 색/톤은 호출부(STATUS_TONE)가 유지.
+ */
+export const COUPON_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: '사용 가능',
+  DISABLED: '중지됨',
+  EXPIRED: '기간 만료',
+  EXHAUSTED: '소진',
+};
+
+/** 매핑 없으면 원문 노출(계약 회귀 안전). */
+export function couponStatusLabel(status: string): string {
+  return COUPON_STATUS_LABELS[status] ?? status;
+}

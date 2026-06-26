@@ -16,7 +16,7 @@ import { StatusBadge } from '@/components/console/status-badge';
 import { listCoupons } from '@/lib/actions/admin-coupons';
 import type { CouponResponse, CouponEffectiveStatus } from '@/types/billing';
 import { IssueDialog } from './issue-dialog';
-import { couponSourceLabel } from './coupon-labels';
+import { couponSourceLabel, couponStatusLabel } from './coupon-labels';
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted';
 
@@ -87,7 +87,7 @@ export function CouponsClient({ initial }: { initial: CouponResponse[] }) {
                   <TableCell className="text-right tabular-nums">{c.days}일</TableCell>
                   <TableCell>
                     <StatusBadge tone={STATUS_TONE[c.effectiveStatus]}>
-                      {c.effectiveStatus}
+                      {couponStatusLabel(c.effectiveStatus)}
                     </StatusBadge>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
