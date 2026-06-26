@@ -5,7 +5,6 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { apiFetch } from '@/lib/api/client';
 import { AppError, ErrorCode, withErrorLogging } from '@/lib/errors';
 import type { AdminStorageRequest, StorageRequestStatus } from '@/types/admin';
-import type { StorageUsage } from '@/types/storage';
 
 async function _listStorageRequests(
   status?: StorageRequestStatus,
@@ -17,18 +16,37 @@ async function _listStorageRequests(
 }
 export const listStorageRequests = withErrorLogging('listStorageRequests', _listStorageRequests);
 
-/** 유저 quota를 절대 바이트값으로 상향. 서버가 해당 유저 PENDING 요청을 자동 RESOLVED 처리한다. */
-async function _updateUserQuota(userId: number, quotaBytes: number): Promise<StorageUsage> {
+async function _approveRequest(
+  requestId: number,
+  quotaBytes: number,
+): Promise<AdminStorageRequest> {
   await requireAdmin();
-  if (!Number.isInteger(userId) || userId <= 0)
-    throw new AppError(ErrorCode.VALIDATION, '유효하지 않은 사용자입니다');
+  if (!Number.isInteger(requestId) || requestId <= 0)
+    throw new AppError(ErrorCode.VALIDATION, '유효하지 않은 요청입니다');
   if (!Number.isFinite(quotaBytes) || quotaBytes <= 0)
     throw new AppError(ErrorCode.VALIDATION, '유효하지 않은 용량입니다');
-  const res = await apiFetch<StorageUsage>(`/admin/storage/users/${userId}/quota`, {
-    method: 'PATCH',
-    body: JSON.stringify({ quotaBytes }),
-  });
+  const res = await apiFetch<AdminStorageRequest>(
+    `/admin/storage/requests/${requestId}/approve`,
+    { method: 'POST', body: JSON.stringify({ quotaBytes }) },
+  );
   revalidatePath('/console/storage');
   return res;
 }
-export const updateUserQuota = withErrorLogging('updateUserQuota', _updateUserQuota);
+export const approveRequest = withErrorLogging('approveRequest', _approveRequest);
+
+async function _rejectRequest(
+  requestId: number,
+  reason: string,
+): Promise<AdminStorageRequest> {
+  await requireAdmin();
+  if (!Number.isInteger(requestId) || requestId <= 0)
+    throw new AppError(ErrorCode.VALIDATION, '유효하지 않은 요청입니다');
+  if (!reason.trim()) throw new AppError(ErrorCode.VALIDATION, '거절 사유를 입력해 주세요');
+  const res = await apiFetch<AdminStorageRequest>(
+    `/admin/storage/requests/${requestId}/reject`,
+    { method: 'POST', body: JSON.stringify({ reason: reason.trim() }) },
+  );
+  revalidatePath('/console/storage');
+  return res;
+}
+export const rejectRequest = withErrorLogging('rejectRequest', _rejectRequest);

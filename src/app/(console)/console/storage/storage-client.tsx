@@ -21,7 +21,8 @@ type Filter = StorageRequestStatus | 'all';
 const TABS: { value: Filter; label: string }[] = [
   { value: 'all', label: '전체' },
   { value: 'PENDING', label: '대기' },
-  { value: 'RESOLVED', label: '처리됨' },
+  { value: 'APPROVED', label: '승인' },
+  { value: 'REJECTED', label: '거절' },
 ];
 
 export function StorageClient({ initial }: { initial: AdminStorageRequest[] }) {

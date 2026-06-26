@@ -7,10 +7,13 @@ export interface StorageUsage {
   status: 'OK' | 'WARN' | 'FULL';
 }
 
+export type StorageRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface StorageRequestSummary {
   id: number;
-  status: 'PENDING' | 'RESOLVED';
+  status: StorageRequestStatus;
   reason: string | null;
   resolvedBytes: number | null;
+  rejectReason: string | null;
   createdAt: string;
 }

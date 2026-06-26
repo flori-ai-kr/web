@@ -12,6 +12,12 @@ async function _getStorageUsage(): Promise<StorageUsage> {
 }
 export const getStorageUsage = withErrorLogging('getStorageUsage', _getStorageUsage);
 
+async function _getLatestRequest(): Promise<StorageRequestSummary | null> {
+  await requireAuth();
+  return apiFetch<StorageRequestSummary | null>('/storage/increase-request/latest');
+}
+export const getLatestRequest = withErrorLogging('getLatestRequest', _getLatestRequest);
+
 async function _requestStorageIncrease(reason?: string): Promise<StorageRequestSummary> {
   await requireAuth();
   const res = await apiFetch<StorageRequestSummary>('/storage/increase-request', {

@@ -16,15 +16,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { getStorageUsage, requestStorageIncrease } from '@/lib/actions/storage';
+import { getStorageUsage, getLatestRequest, requestStorageIncrease } from '@/lib/actions/storage';
 import { formatBytes } from '@/lib/format-bytes';
-import type { StorageUsage } from '@/types/storage';
+import type { StorageUsage, StorageRequestSummary } from '@/types/storage';
 import { cn } from '@/lib/utils';
 
-/**
- * 점주 저장 용량 상시 표시 위젯(사이드바 푸터 / 모바일 헤더 칩 공용) + 클릭 시 증설요청 모달.
- * 평상시 muted, 90%+면 amber, 100%면 red 강조. 사용량 못 불러오면 렌더 안 함(레이아웃 영향 0).
- */
 export function StorageUsageWidget({
   variant,
   isCollapsed = false,
@@ -33,12 +29,14 @@ export function StorageUsageWidget({
   isCollapsed?: boolean;
 }) {
   const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [latestReq, setLatestReq] = useState<StorageRequestSummary | null>(null);
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const refresh = useCallback(() => {
     getStorageUsage().then(setUsage).catch(() => {});
+    getLatestRequest().then(setLatestReq).catch(() => {});
   }, []);
   useEffect(() => {
     refresh();
@@ -46,10 +44,10 @@ export function StorageUsageWidget({
 
   if (!usage) return null;
 
-  // 색·경고·증설요청 임계는 모두 80%(클라 기준). FULL(used>=quota)만 빨강, 평상시는 브랜드(로즈).
   const isFull = usage.status === 'FULL';
   const nearFull = usage.percent >= 80;
-  const canRequest = nearFull; // 증설 요청은 80% 이상부터 노출
+  const canRequest = nearFull && latestReq?.status !== 'PENDING';
+  const hasPending = latestReq?.status === 'PENDING';
   const barTone = isFull ? '[&>div]:bg-danger' : nearFull ? '[&>div]:bg-warning' : '[&>div]:bg-brand';
   const accentText = isFull ? 'text-danger' : nearFull ? 'text-warning' : 'text-muted-foreground';
   const fillColor = isFull ? 'bg-danger' : nearFull ? 'bg-warning' : 'bg-brand';
@@ -78,9 +76,26 @@ export function StorageUsageWidget({
     setReason('');
   };
 
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return '처리 중';
+      case 'APPROVED': return '승인됨';
+      case 'REJECTED': return '거절됨';
+      default: return status;
+    }
+  };
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'text-warning';
+      case 'APPROVED': return 'text-success';
+      case 'REJECTED': return 'text-danger';
+      default: return 'text-muted-foreground';
+    }
+  };
+
   let trigger: React.ReactNode;
   if (variant === 'chip') {
-    // 모바일 헤더 칩: 미니바 + %
     trigger = (
       <button
         type="button"
@@ -98,7 +113,6 @@ export function StorageUsageWidget({
       </button>
     );
   } else if (isCollapsed) {
-    // 접힌 사이드바: 아이콘 + 툴팁
     trigger = (
       <Tooltip>
         <TooltipTrigger asChild>
@@ -117,7 +131,6 @@ export function StorageUsageWidget({
       </Tooltip>
     );
   } else {
-    // 펼친 사이드바: 풀 위젯
     trigger = (
       <button
         type="button"
@@ -133,7 +146,7 @@ export function StorageUsageWidget({
         <Progress value={Math.min(usage.percent, 100)} className={cn('h-1', barTone)} />
         {nearFull && (
           <p className={cn('mt-1 text-[10px]', accentText)}>
-            {isFull ? '가득 참 · 증설 요청' : '거의 참 · 증설 요청 가능'}
+            {isFull ? '가득 참 · 증설 요청' : hasPending ? '증설 요청 처리 중' : '거의 참 · 증설 요청 가능'}
           </p>
         )}
       </button>
@@ -158,7 +171,33 @@ export function StorageUsageWidget({
               <span className={cn('font-medium', accentText)}>{usage.percent}%</span>
             </div>
           </div>
-          {canRequest ? (
+
+          {/* 최근 요청 상태 표시 */}
+          {latestReq && (
+            <div className="rounded-md border p-2.5 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">최근 요청</span>
+                <span className={cn('font-medium', statusColor(latestReq.status))}>
+                  {statusLabel(latestReq.status)}
+                </span>
+              </div>
+              {latestReq.status === 'APPROVED' && latestReq.resolvedBytes && (
+                <p className="text-muted-foreground">
+                  → {formatBytes(latestReq.resolvedBytes)}로 증설됨
+                </p>
+              )}
+              {latestReq.status === 'REJECTED' && latestReq.rejectReason && (
+                <p className="text-danger/80">사유: {latestReq.rejectReason}</p>
+              )}
+              <p className="text-muted-foreground/70">{latestReq.createdAt.slice(0, 10)}</p>
+            </div>
+          )}
+
+          {hasPending ? (
+            <div className="rounded-md bg-warning-soft p-2.5 text-xs text-warning">
+              이미 증설 요청이 접수되어 처리 중이에요. 완료 시 알림을 보내드릴게요.
+            </div>
+          ) : canRequest ? (
             <>
               <div
                 className={cn(
@@ -184,7 +223,7 @@ export function StorageUsageWidget({
                 />
               </div>
             </>
-          ) : (
+          ) : nearFull ? null : (
             <p className="text-xs text-muted-foreground">
               저장 용량을 80% 이상 사용하면 증설을 요청할 수 있어요.
             </p>
