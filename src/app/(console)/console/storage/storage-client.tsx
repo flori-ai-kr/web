@@ -31,6 +31,7 @@ export function StorageClient({ initial }: { initial: AdminStorageRequest[] }) {
   const [pending, startTransition] = useTransition();
 
   const load = (next: Filter) => {
+    setSelected(null);
     setStatus(next);
     startTransition(async () =>
       setRows(await listStorageRequests(next === 'all' ? undefined : next)),

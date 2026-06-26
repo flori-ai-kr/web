@@ -40,7 +40,7 @@ export function StorageIncreaseDialog({ open, onClose, onDone }: StorageIncrease
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setReason(''); onClose(); } }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>저장 용량 증설 요청</DialogTitle>
