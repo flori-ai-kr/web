@@ -16,7 +16,6 @@ import {getPhotoTags} from '@/lib/actions/photo-tags';
 import {PeriodHeader} from '@/components/layout/period-header';
 import {type CustomRange, periodToRange} from '@/lib/period-range';
 import {toast} from 'sonner';
-import {StorageUsagePanel} from '@/app/(admin)/admin/gallery/components/storage-usage-panel';
 
 interface CustomerOption {
   id: string;
@@ -293,8 +292,6 @@ export function GalleryClient({ initialData, tags: initialTags, customers, initi
         onRangeApply={handleRangeApply}
         onRangeReset={() => setCustomRange(null)}
       />
-
-      <StorageUsagePanel />
 
       {/* 요약 — 현재 기간·필터 기준 총 카드 수 + 총 사진 장수 */}
       <div className="flex items-baseline gap-3 flex-wrap">

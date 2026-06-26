@@ -18,6 +18,7 @@ import {useTheme} from 'next-themes';
 import {signOut} from '@/lib/actions/auth';
 import {getTriggeredReminders} from '@/lib/actions/reservations';
 import {checkIsAdmin} from '@/lib/admin-guard';
+import {StorageUsageWidget} from './storage-usage-widget';
 import type {Reservation} from '@/types/database';
 
 interface HeaderProps {
@@ -115,6 +116,11 @@ export function Header({ userEmail, userName, userImage }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-0.5 shrink-0">
+          {/* 저장 용량 칩 (모바일 전용 — 데스크톱은 사이드바 위젯) */}
+          <div className="lg:hidden mr-0.5">
+            <StorageUsageWidget variant="chip" />
+          </div>
+
           {/* Notification bell */}
           <Popover open={notifOpen} onOpenChange={handleNotifOpenChange}>
             <PopoverTrigger asChild>
