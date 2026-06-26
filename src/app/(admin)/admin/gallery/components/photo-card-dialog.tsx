@@ -7,7 +7,7 @@ import {Button} from '@/components/ui/button';
 import {ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Loader2, Trash2, User} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {toast} from 'sonner';
 import {deletePhotoCard, downloadAllPhotos} from '@/lib/actions/photo-cards';
 import {ImageLightbox} from '@/components/ui/image-lightbox';
@@ -101,7 +101,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                 aria-label="사진 확대 보기"
                 className="relative h-[58vh] w-full bg-muted rounded-lg overflow-hidden cursor-zoom-in"
               >
-                <Image
+                <ImageWithSkeleton
+                  key={card.photos[currentIndex].url}
                   src={card.photos[currentIndex].url}
                   alt={`${card.title} - ${currentIndex + 1}`}
                   fill
@@ -144,7 +145,7 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
                     index === currentIndex ? 'border-brand' : 'border-transparent'
                   }`}
                 >
-                  <Image
+                  <ImageWithSkeleton
                     src={photo.url}
                     alt={`사진 ${index + 1}`}
                     fill

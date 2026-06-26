@@ -2,7 +2,7 @@
 
 import { PhotoCard as PhotoCardType } from '@/types/database';
 import { FileText, Image as ImageIcon, Images, User } from 'lucide-react';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 
 interface PhotoCardProps {
   card: PhotoCardType;
@@ -28,7 +28,7 @@ export function PhotoCard({ card, onClick }: PhotoCardProps) {
     >
       {/* 표지 */}
       {cover ? (
-        <Image
+        <ImageWithSkeleton
           src={cover.url}
           alt={card.title}
           fill

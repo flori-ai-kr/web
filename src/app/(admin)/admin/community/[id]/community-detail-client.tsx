@@ -2,7 +2,7 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {useRouter} from 'next/navigation';
 import {ArrowLeft, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
@@ -117,7 +117,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
                 {post.image_urls.map((url) => (
                   <div key={url} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <Image src={url} alt="첨부 이미지" fill className="object-cover" sizes="33vw" />
+                    <ImageWithSkeleton src={url} alt="첨부 이미지" fill className="object-cover" sizes="33vw" />
                   </div>
                 ))}
               </div>
