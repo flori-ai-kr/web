@@ -134,6 +134,7 @@ export const photoCardSchema = z.object({
   photos: z.array(z.object({
     url: z.string().url(),
     originalName: z.string().max(255),
+    size: z.number().int().nonnegative().default(0),
   })).max(10).optional(),
 });
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Tooltip, TooltipContent, TooltipTrigger,} from '@/components/ui/tooltip';
+import {StorageUsageWidget} from './storage-usage-widget';
 
 interface NavItem {
   href: string;
@@ -203,6 +204,10 @@ export function Sidebar({ isCollapsed, onToggleCollapse, userEmail, userName, us
 
           {/* Bottom section */}
           <div className={cn('border-t border-sidebar-border py-3', isCollapsed ? 'px-2' : 'px-3')}>
+            {/* 저장 용량 위젯 (상시 노출) */}
+            <StorageUsageWidget variant="sidebar" isCollapsed={isCollapsed} />
+            <div className="my-2 border-t border-sidebar-border" />
+
             {/* User avatar + email */}
             {isCollapsed ? (
               <Tooltip>

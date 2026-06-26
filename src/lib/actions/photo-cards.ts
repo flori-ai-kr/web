@@ -14,6 +14,7 @@ const MAX_PHOTOS_PER_CARD = 10;
 interface PhotoFileDto {
   url: string;
   originalName: string;
+  size?: number;
 }
 
 interface PhotoCardDto {
@@ -56,7 +57,7 @@ function toPhotoCard(dto: PhotoCardDto): PhotoCard {
     title: dto.title,
     memo: dto.memo,
     tags: dto.tags || [],
-    photos: dto.photos || [],
+    photos: (dto.photos ?? []).map((p) => ({ url: p.url, originalName: p.originalName, size: p.size ?? 0 })),
     sale_id: dto.saleId,
     customer_id: dto.customerId != null ? String(dto.customerId) : null,
     customer_name: dto.customerName ?? null,
@@ -342,7 +343,7 @@ async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void
   await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos/reorder`, {
     method: 'PATCH',
     body: JSON.stringify({
-      photos: photos.map((p) => ({ url: p.url, originalName: p.originalName })),
+      photos: photos.map((p) => ({ url: p.url, originalName: p.originalName, size: p.size })),
     }),
   });
 }
@@ -388,7 +389,7 @@ async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: 
   }
 
   const results = await Promise.all(
-    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName })),
+    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName, size: photo.size ?? 0 })),
   );
   const downloadUrls = results.filter((r): r is { url: string; filename: string } => r !== null);
 

@@ -9,6 +9,7 @@ export const PUSH_TYPE_META: Record<string, { label: string; desc: string }> = {
   auction_scrap_update: { label: '경매 스크랩 시세', desc: '스크랩한 품목 시세 업데이트' },
   grant_new: { label: '지원사업 신규', desc: '새로운 지원사업 추가' },
   grant_deadline: { label: '지원사업 마감', desc: '스크랩한 지원사업 마감 임박' },
+  storage_resolved: { label: '저장 용량 증설', desc: '증설 요청 승인·거절 결과 (항상 발송)' },
 };
 
 export function pushTypeLabel(type: string): string {

@@ -39,6 +39,7 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'grant_new', label: '지원사업 신규' },
   { value: 'grant_deadline', label: '지원사업 마감' },
   { value: 'inquiry_answered', label: '문의 답변' },
+  { value: 'storage_resolved', label: '저장 용량 증설' },
   { value: 'test', label: '테스트' },
   { value: 'business_verification', label: '사업자 인증' },
 ];
@@ -88,6 +89,7 @@ const TYPE_META: Record<string, { tone: 'info' | 'success' | 'warning' | 'muted'
   grant_new: { tone: 'info', label: '지원사업 신규' },
   grant_deadline: { tone: 'warning', label: '지원사업 마감' },
   inquiry_answered: { tone: 'info', label: '문의 답변' },
+  storage_resolved: { tone: 'success', label: '저장 용량 증설' },
   test: { tone: 'muted', label: '테스트' },
   business_verification: { tone: 'info', label: '사업자 인증' },
 };
