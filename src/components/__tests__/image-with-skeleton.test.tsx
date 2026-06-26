@@ -28,4 +28,14 @@ describe('ImageWithSkeleton', () => {
     expect(container.querySelector('[data-slot="image-error"]')).toBeTruthy();
     expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
   });
+
+  it('fill 모드에서는 래퍼 span 없이 img가 직접 렌더된다', () => {
+    const { container } = render(
+      <div style={{ position: 'relative', width: 100, height: 100 }}>
+        <ImageWithSkeleton src="/test.jpg" alt="fill 이미지" fill />
+      </div>,
+    );
+    expect(container.querySelector('span.relative.inline-block')).toBeNull();
+    expect(screen.getByRole('img')).toBeTruthy();
+  });
 });
