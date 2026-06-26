@@ -66,6 +66,8 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
     setComments((prev) =>
       prev.map((c) => (c.id === id ? { ...c, is_deleted: true, content: '' } : c)),
     );
+  const updateCommentInTree = (updated: CommunityComment) =>
+    setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
 
   const handleDeletePost = async () => {
     setDeleting(true);
@@ -164,6 +166,7 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
               comments={comments}
               onAdded={addComment}
               onDeleted={markDeleted}
+              onUpdated={updateCommentInTree}
             />
           </section>
         </>

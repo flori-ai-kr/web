@@ -1,11 +1,12 @@
 'use client';
 
 import {useMemo, useState} from 'react';
-import {CornerDownRight, Lock, Trash2} from 'lucide-react';
+import {CornerDownRight, Lock, Pencil, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
+import {Textarea} from '@/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
@@ -18,7 +19,7 @@ import {toast} from 'sonner';
 import type {CommunityComment} from '@/types/database';
 import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 import {CommentForm} from './comment-form';
-import {deleteComment} from '@/lib/actions/community';
+import {deleteComment, updateComment} from '@/lib/actions/community';
 
 // 최대 5뎁스(루트 depth 0 ~ 4). depth < MAX_REPLY_DEPTH 일 때만 답글 허용.
 // 서버(CommunityService.MAX_COMMENT_DEPTH=5)와 동기화할 것.
@@ -31,9 +32,10 @@ interface CommentTreeProps {
   comments: CommunityComment[];
   onAdded: (comment: CommunityComment) => void;
   onDeleted: (id: string) => void;
+  onUpdated: (comment: CommunityComment) => void;
 }
 
-export function CommentTree({ postId, comments, onAdded, onDeleted }: CommentTreeProps) {
+export function CommentTree({ postId, comments, onAdded, onDeleted, onUpdated }: CommentTreeProps) {
   const { roots, childrenOf } = useMemo(() => {
     const childrenOf = new Map<string, CommunityComment[]>();
     const roots: CommunityComment[] = [];
@@ -68,6 +70,7 @@ export function CommentTree({ postId, comments, onAdded, onDeleted }: CommentTre
           depth={0}
           onAdded={onAdded}
           onDeleted={onDeleted}
+          onUpdated={onUpdated}
         />
       ))}
     </ul>
@@ -81,6 +84,7 @@ function CommentNode({
   depth,
   onAdded,
   onDeleted,
+  onUpdated,
 }: {
   postId: string;
   comment: CommunityComment;
@@ -88,11 +92,15 @@ function CommentNode({
   depth: number;
   onAdded: (comment: CommunityComment) => void;
   onDeleted: (id: string) => void;
+  onUpdated: (comment: CommunityComment) => void;
 }) {
   const replies = childrenOf.get(comment.id) ?? [];
   const [replying, setReplying] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(comment.content);
+  const [saving, setSaving] = useState(false);
 
   const masked = comment.is_secret && !comment.can_view;
 
@@ -104,6 +112,33 @@ function CommentNode({
     } catch {
       toast.error('댓글 삭제에 실패했어요');
       setDeleting(false);
+    }
+  };
+
+  const startEdit = () => {
+    setEditValue(comment.content);
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const next = editValue.trim();
+    if (!next) {
+      toast.error('댓글 내용을 입력해주세요');
+      return;
+    }
+    if (next === comment.content) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await updateComment(comment.id, next);
+      onUpdated(updated);
+      setEditing(false);
+    } catch {
+      toast.error('댓글 수정에 실패했어요');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -126,7 +161,43 @@ function CommentNode({
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ko })}
               </span>
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+            {editing ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  rows={2}
+                  className="text-sm"
+                  aria-label="댓글 수정"
+                  autoFocus
+                  disabled={saving}
+                />
+                <div className="flex items-center justify-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 px-3 text-xs"
+                    onClick={handleSaveEdit}
+                    disabled={saving}
+                  >
+                    {saving ? '저장 중…' : '저장'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+            )}
+            {!editing && (
             <div className="flex items-center gap-1 mt-1.5">
               {depth < MAX_REPLY_DEPTH && (
                 <Button
@@ -144,6 +215,17 @@ function CommentNode({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={startEdit}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> 수정
+                </Button>
+              )}
+              {comment.is_mine && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
@@ -151,6 +233,7 @@ function CommentNode({
                 </Button>
               )}
             </div>
+            )}
 
             {/* 삭제 확인 — 즉시삭제/confirm() 금지 컨벤션(게시글 삭제와 동일 Dialog 패턴) */}
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -200,6 +283,7 @@ function CommentNode({
               depth={depth + 1}
               onAdded={onAdded}
               onDeleted={onDeleted}
+              onUpdated={onUpdated}
             />
           ))}
         </ul>
