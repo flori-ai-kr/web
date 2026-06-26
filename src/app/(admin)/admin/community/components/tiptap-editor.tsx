@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   Type,
   Heading1,
@@ -23,9 +23,12 @@ import {
   Link2,
   Undo2,
   Redo2,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { createCommunityUploadTargets } from '@/lib/actions/community';
 
 interface TiptapEditorProps {
   content?: unknown;
@@ -68,6 +71,7 @@ function Divider() {
 
 export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -88,15 +92,37 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
 
   if (!editor) return null;
 
-  // 이미지 삽입: 서버 미구현 단계에서는 로컬 blob URL로 미리보기.
-  // TODO(server): createCommunityUploadTargets(BFF POST /community/upload-targets)로 R2 업로드 후 publicUrl 삽입.
-  const onPickImage = (files: FileList | null) => {
-    if (!files) return;
-    for (const file of Array.from(files)) {
-      const url = URL.createObjectURL(file);
-      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+  const onPickImage = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fileArr = Array.from(files);
+
+    setUploading(true);
+    try {
+      const targets = await createCommunityUploadTargets(
+        fileArr.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+      );
+
+      await Promise.all(
+        targets.map((t, i) =>
+          fetch(t.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': fileArr[i].type || 'image/jpeg' },
+            body: fileArr[i],
+          }).then((res) => {
+            if (!res.ok) throw new Error('업로드 실패');
+          }),
+        ),
+      );
+
+      for (const t of targets) {
+        editor.chain().focus().setImage({ src: t.publicUrl }).run();
+      }
+    } catch {
+      toast.error('이미지 업로드에 실패했어요');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const onAddLink = () => {
@@ -167,8 +193,8 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
         <Divider />
 
         {/* 미디어 */}
-        <ToolbarButton label="이미지 첨부" onClick={() => fileInputRef.current?.click()}>
-          <ImagePlus className="h-4 w-4" />
+        <ToolbarButton label="이미지 첨부" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
         </ToolbarButton>
         <ToolbarButton label="링크" active={editor.isActive('link')} onClick={onAddLink}>
           <Link2 className="h-4 w-4" />

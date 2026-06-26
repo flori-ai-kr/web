@@ -24,6 +24,21 @@ const TiptapEditor = dynamic(
   },
 );
 
+function extractImageUrls(json: unknown): string[] {
+  const urls: string[] = [];
+  function walk(node: unknown) {
+    if (!node || typeof node !== 'object') return;
+    const n = node as Record<string, unknown>;
+    if (n.type === 'image' && typeof (n.attrs as Record<string, unknown>)?.src === 'string') {
+      const src = (n.attrs as Record<string, unknown>).src as string;
+      if (!src.startsWith('blob:')) urls.push(src);
+    }
+    if (Array.isArray(n.content)) (n.content as unknown[]).forEach(walk);
+  }
+  walk(json);
+  return urls;
+}
+
 interface WriteClientProps {
   post?: CommunityPost | null; // 있으면 수정 모드
   isAdmin?: boolean; // 운영자만 '공지' 카테고리 선택 가능 (서버가 최종 강제)
@@ -62,7 +77,8 @@ export function CommunityWriteClient({ post, isAdmin = false }: WriteClientProps
     }
     setPending(true);
     try {
-      const payload = { category, title, content, contentText, imageUrls: post?.image_urls ?? [] };
+      const imageUrls = extractImageUrls(content);
+      const payload = { category, title, content, contentText, imageUrls };
       if (isEdit) {
         await updateCommunityPost(post.id, payload);
         toast.success('게시글을 수정했어요');

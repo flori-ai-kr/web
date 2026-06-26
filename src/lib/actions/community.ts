@@ -331,3 +331,26 @@ async function _deleteComment(id: string): Promise<void> {
 }
 
 export const deleteComment = withErrorLogging('deleteComment', _deleteComment);
+
+// ─── 이미지 업로드 ──────────────────────────────────────────────
+
+interface CommunityUploadTargetDto {
+  uploadUrl: string;
+  publicUrl: string;
+}
+
+// BFF: POST /community/upload-targets
+async function _createCommunityUploadTargets(
+  files: { name: string; type: string; size: number }[],
+): Promise<{ uploadUrl: string; publicUrl: string }[]> {
+  await requireAuth();
+  return apiFetch<CommunityUploadTargetDto[]>('/community/upload-targets', {
+    method: 'POST',
+    body: JSON.stringify({ files }),
+  });
+}
+
+export const createCommunityUploadTargets = withErrorLogging(
+  'createCommunityUploadTargets',
+  _createCommunityUploadTargets,
+);
