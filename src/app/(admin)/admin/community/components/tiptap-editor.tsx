@@ -38,6 +38,9 @@ const EditorImage = Image.extend({
   },
 });
 
+// 커뮤니티 이미지 첨부 상한 — 갤러리(5MB 하드 거부)와 동일 정책.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 interface TiptapEditorProps {
   content?: unknown;
   onChange: (json: unknown, text: string) => void;
@@ -104,34 +107,53 @@ export function TiptapEditor({ content, onChange, placeholder }: TiptapEditorPro
 
   const onPickImage = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const fileArr = Array.from(files);
+    const resetInput = () => {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    // 클라이언트 1차 방어: 이미지 타입 + 5MB 이하만(갤러리와 동일 정책). 부적합 파일은 제외.
+    const valid = Array.from(files).filter((f) => f.type.startsWith('image/') && f.size <= MAX_IMAGE_BYTES);
+    if (valid.length < files.length) {
+      toast.error('이미지 파일(5MB 이하)만 첨부할 수 있어요');
+    }
+    if (valid.length === 0) {
+      resetInput();
+      return;
+    }
 
     setUploading(true);
     try {
       const targets = await createCommunityUploadTargets(
-        fileArr.map((f) => ({ name: f.name, type: f.type, size: f.size })),
+        valid.map((f) => ({ name: f.name, type: f.type, size: f.size })),
       );
 
-      await Promise.all(
+      // 일부 업로드가 실패해도 성공한 이미지는 삽입(allSettled). 실패 개수만 알린다.
+      const results = await Promise.allSettled(
         targets.map((t, i) =>
           fetch(t.uploadUrl, {
             method: 'PUT',
-            headers: { 'Content-Type': fileArr[i].type || 'image/jpeg' },
-            body: fileArr[i],
+            headers: { 'Content-Type': valid[i].type },
+            body: valid[i],
           }).then((res) => {
             if (!res.ok) throw new Error('업로드 실패');
+            return t;
           }),
         ),
       );
 
-      for (const t of targets) {
-        editor.chain().focus().setImage({ src: t.fileUrl, alt: t.originalName }).run();
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          editor.chain().focus().setImage({ src: r.value.fileUrl, alt: r.value.originalName }).run();
+        }
+      }
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        toast.error(`이미지 ${failed}장 업로드에 실패했어요`);
       }
     } catch {
       toast.error('이미지 업로드에 실패했어요');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      resetInput();
     }
   };
 
