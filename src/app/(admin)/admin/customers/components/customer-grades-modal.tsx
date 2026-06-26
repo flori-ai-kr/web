@@ -20,8 +20,12 @@ import {
   createCustomerGradeConfig,
   updateCustomerGradeConfig,
   deleteCustomerGradeConfig,
+  previewGradeThresholdChange,
+  type GradeRecomputePreview,
 } from '@/lib/actions/customer-grades';
 import type {CustomerGradeConfig} from '@/types/database';
+
+type PendingEdit = { id: string; name: string; threshold?: number; clearThreshold?: boolean };
 
 /**
  * 등급 표시 순서: 구매횟수 임계값 있는 등급을 오름차순(0, 5, 10 …)으로 먼저,
@@ -62,6 +66,11 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
   // 삭제 확인 대상
   const [deletingGrade, setDeletingGrade] = useState<CustomerGradeConfig | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 임계값 변경 미리보기 확인 (변경 대상 고객이 있을 때만)
+  const [pendingEdit, setPendingEdit] = useState<PendingEdit | null>(null);
+  const [preview, setPreview] = useState<GradeRecomputePreview | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
 
   const loadGrades = useCallback(async () => {
     setIsLoading(true);
@@ -119,6 +128,18 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
     setEditThreshold(String(grade.threshold ?? 0));
   };
 
+  const applyEdit = async (payload: PendingEdit) => {
+    if (payload.clearThreshold) {
+      await updateCustomerGradeConfig(payload.id, {name: payload.name, clearThreshold: true});
+    } else {
+      await updateCustomerGradeConfig(payload.id, {name: payload.name, threshold: payload.threshold});
+    }
+    setEditingId(null);
+    await loadGrades();
+    notifyChanged();
+    toast.success('등급이 수정되었습니다');
+  };
+
   const handleSaveEdit = async () => {
     if (!editingId) return;
     const name = editName.trim();
@@ -127,24 +148,57 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
       return;
     }
 
+    const current = grades.find((g) => g.id === editingId);
+    const newThreshold = editUseThreshold ? Math.max(0, parseInt(editThreshold, 10) || 0) : null;
+    const payload: PendingEdit = editUseThreshold
+      ? {id: editingId, name, threshold: newThreshold ?? 0}
+      : {id: editingId, name, clearThreshold: true};
+    // 임계값이 실제로 바뀔 때만 미리보기(수동전용 전환 포함). 이름만 바뀌면 바로 적용.
+    const thresholdChanged = (current?.threshold ?? null) !== newThreshold;
+
     setIsSaving(true);
     try {
-      if (editUseThreshold) {
-        const threshold = Math.max(0, parseInt(editThreshold, 10) || 0);
-        await updateCustomerGradeConfig(editingId, {name, threshold});
-      } else {
-        // 수동 전용으로 전환 → threshold 제거
-        await updateCustomerGradeConfig(editingId, {name, clearThreshold: true});
+      if (!thresholdChanged) {
+        await applyEdit(payload);
+        return;
       }
-      setEditingId(null);
-      await loadGrades();
-      notifyChanged();
-      toast.success('등급이 수정되었습니다');
+      const pv = await previewGradeThresholdChange(
+        editingId,
+        editUseThreshold ? {threshold: newThreshold ?? 0} : {clearThreshold: true},
+      );
+      if (pv.total === 0) {
+        // 등급이 바뀌는 고객이 없으면 모달 없이 바로 적용
+        await applyEdit(payload);
+        return;
+      }
+      // 변경 대상 고객 있음 → 영향 미리보기 모달
+      setPendingEdit(payload);
+      setPreview(pv);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '등급 수정에 실패했습니다');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleConfirmApply = async () => {
+    if (!pendingEdit) return;
+    setIsApplying(true);
+    try {
+      await applyEdit(pendingEdit);
+      setPendingEdit(null);
+      setPreview(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '등급 적용에 실패했습니다');
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const closePreview = () => {
+    if (isApplying) return;
+    setPendingEdit(null);
+    setPreview(null);
   };
 
   const handleDelete = async () => {
@@ -355,6 +409,40 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isDeleting ? '삭제 중...' : '삭제'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 임계값 변경 영향 미리보기 — 변경 대상 고객이 있을 때만 표시 */}
+      <Dialog open={!!pendingEdit} onOpenChange={(o) => !o && closePreview()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>등급 변경 영향</DialogTitle>
+            <DialogDescription>
+              이 임계값으로 바꾸면 <b className="text-foreground">{preview?.total}명</b>의 고객 등급이 자동으로 바뀝니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[45vh] overflow-y-auto space-y-1.5 pr-1">
+            {preview?.changes.map((c, i) => (
+              <div
+                key={`${c.customer_name}-${i}`}
+                className="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
+              >
+                <span className="font-medium text-foreground truncate min-w-0">{c.customer_name}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                  {c.from_grade ?? '미지정'} → <b className="text-brand">{c.to_grade}</b>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={closePreview} disabled={isApplying}>
+              취소
+            </Button>
+            <Button onClick={handleConfirmApply} disabled={isApplying}>
+              {isApplying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isApplying ? '적용 중…' : '적용'}
             </Button>
           </div>
         </DialogContent>
