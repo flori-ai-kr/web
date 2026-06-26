@@ -19,7 +19,10 @@ export default async function BillingFailPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { code, message } = await searchParams;
+  const { message } = await searchParams;
+  // 토스 원본 메시지 끝의 영문 괄호(예: " (Invalid card number)")는 사용자에게 노이즈 → 제거.
+  // 기술 코드(code)는 화면에 노출하지 않는다(로그처럼 보임).
+  const reason = message?.replace(/\s*\([A-Za-z0-9 ,._'-]+\)\s*$/, '').trim();
 
   return (
     <div className="flex flex-col items-center text-center px-4 py-8">
@@ -33,16 +36,9 @@ export default async function BillingFailPage({
         카드 정보를 확인한 뒤 다시 시도해주세요.
       </p>
 
-      {(code ?? message) && (
-        <div className="mt-5 w-full max-w-sm rounded-xl border border-danger-soft bg-danger-soft/60 p-4 text-left">
-          {message && (
-            <p className="text-sm font-semibold text-danger">{message}</p>
-          )}
-          {code && (
-            <p className="text-[11px] text-muted-foreground font-mono mt-1">
-              code: {code}
-            </p>
-          )}
+      {reason && (
+        <div className="mt-5 w-full max-w-sm rounded-xl border border-danger-soft bg-danger-soft/60 p-4">
+          <p className="text-sm text-danger">{reason}</p>
         </div>
       )}
 
