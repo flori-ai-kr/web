@@ -30,6 +30,7 @@ export function StorageDetailDialog({
   onDone: () => void;
 }) {
   const [gb, setGb] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (request) {
@@ -45,12 +46,19 @@ export function StorageDetailDialog({
       toast.error('새 한도(GB)를 입력하세요');
       return;
     }
+    if (gbToBytes(n) < request.usedBytes) {
+      toast.error('새 한도가 현재 사용량보다 작습니다');
+      return;
+    }
+    setSubmitting(true);
     try {
       await updateUserQuota(request.userId, gbToBytes(n));
       toast.success('용량을 상향했어요. 대기 요청이 처리됨으로 바뀝니다.');
       onDone();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '처리 실패');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -100,11 +108,11 @@ export function StorageDetailDialog({
         )}
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={pending}>
+          <Button variant="outline" onClick={onClose} disabled={pending || submitting}>
             닫기
           </Button>
           {request.status === 'PENDING' && (
-            <Button onClick={apply} disabled={pending}>
+            <Button onClick={apply} disabled={pending || submitting}>
               용량 상향
             </Button>
           )}
