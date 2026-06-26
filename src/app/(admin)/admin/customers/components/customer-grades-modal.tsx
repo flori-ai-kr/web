@@ -378,7 +378,7 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
           <DialogHeader>
             <DialogTitle>등급 삭제</DialogTitle>
             <DialogDescription>
-              &lsquo;{deletingGrade?.name}&rsquo; 등급을 삭제할까요? 이 등급의 고객은 다른 등급으로 재계산돼요.
+              &lsquo;{deletingGrade?.name}&rsquo; 등급을 삭제할까요? 이 등급의 고객은 &lsquo;미지정&rsquo;이 되며, 다음 구매 시 자동 등급으로 재산정돼요.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">

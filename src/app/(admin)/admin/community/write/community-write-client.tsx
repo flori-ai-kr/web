@@ -4,7 +4,7 @@ import {useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {ArrowLeft} from 'lucide-react';
-import {COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost,} from '@/types/database';
+import {COMMUNITY_ADMIN_ONLY_CATEGORIES, COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityPost,} from '@/types/database';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Label} from '@/components/ui/label';
@@ -26,11 +26,18 @@ const TiptapEditor = dynamic(
 
 interface WriteClientProps {
   post?: CommunityPost | null; // 있으면 수정 모드
+  isAdmin?: boolean; // 운영자만 '공지' 카테고리 선택 가능 (서버가 최종 강제)
 }
 
-export function CommunityWriteClient({ post }: WriteClientProps) {
+export function CommunityWriteClient({ post, isAdmin = false }: WriteClientProps) {
   const router = useRouter();
   const isEdit = !!post;
+
+  // 비관리자에게는 관리자 전용 카테고리('공지')를 숨긴다. 서버도 NOTICE_ADMIN_ONLY 로 차단하지만,
+  // 폼을 다 작성하고 등록을 눌러야 403 을 받는 나쁜 경험을 막기 위해 옵션 단계에서 제거한다.
+  const categories = isAdmin
+    ? COMMUNITY_CATEGORIES
+    : COMMUNITY_CATEGORIES.filter((c) => !COMMUNITY_ADMIN_ONLY_CATEGORIES.includes(c.value));
 
   const [category, setCategory] = useState<CommunityCategory | ''>(post?.category ?? '');
   const [title, setTitle] = useState(post?.title ?? '');
@@ -104,7 +111,7 @@ export function CommunityWriteClient({ post }: WriteClientProps) {
               <SelectValue placeholder="카테고리 선택" />
             </SelectTrigger>
             <SelectContent>
-              {COMMUNITY_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <SelectItem key={c.value} value={c.value}>
                   {c.label}
                 </SelectItem>

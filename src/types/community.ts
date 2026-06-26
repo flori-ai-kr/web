@@ -48,6 +48,10 @@ export const COMMUNITY_CATEGORIES = [
   { value: 'etc', label: '기타', color: '#64748b' },
 ] as const;
 
+// 관리자만 작성 가능한 카테고리 (api `CommunityCategories.ADMIN_ONLY` 와 동기화).
+// 글쓰기 폼에서 비관리자에게는 이 카테고리 옵션을 숨긴다(서버가 NOTICE_ADMIN_ONLY 로 최종 차단).
+export const COMMUNITY_ADMIN_ONLY_CATEGORIES: readonly CommunityCategory[] = ['notice'];
+
 export const COMMUNITY_CATEGORY_LABELS: Record<CommunityCategory, string> = {
   notice: '공지',
   daily: '자유',

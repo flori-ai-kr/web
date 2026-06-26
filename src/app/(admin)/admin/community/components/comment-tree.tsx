@@ -6,6 +6,14 @@ import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {toast} from 'sonner';
 import type {CommunityComment} from '@/types/database';
 import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
@@ -83,15 +91,19 @@ function CommentNode({
 }) {
   const replies = childrenOf.get(comment.id) ?? [];
   const [replying, setReplying] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const masked = comment.is_secret && !comment.can_view;
 
   const handleDelete = async () => {
+    setDeleting(true);
     try {
       await deleteComment(comment.id);
       onDeleted(comment.id);
     } catch {
       toast.error('댓글 삭제에 실패했어요');
+      setDeleting(false);
     }
   };
 
@@ -133,12 +145,34 @@ function CommentNode({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={handleDelete}
+                  onClick={() => setDeleteOpen(true)}
                 >
                   <Trash2 className="h-3.5 w-3.5" /> 삭제
                 </Button>
               )}
             </div>
+
+            {/* 삭제 확인 — 즉시삭제/confirm() 금지 컨벤션(게시글 삭제와 동일 Dialog 패턴) */}
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>댓글을 삭제할까요?</DialogTitle>
+                  <DialogDescription>삭제한 댓글은 복구할 수 없어요.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                    취소
+                  </Button>
+                  <Button
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? '삭제 중…' : '삭제'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
