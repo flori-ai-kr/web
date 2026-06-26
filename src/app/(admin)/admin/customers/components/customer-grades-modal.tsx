@@ -13,7 +13,7 @@ import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Checkbox} from '@/components/ui/checkbox';
 import {Badge} from '@/components/ui/badge';
-import {ChevronUp, ChevronDown, Pencil, Trash2, Check, X, Loader2, Plus} from 'lucide-react';
+import {Pencil, Trash2, Check, X, Loader2, Plus} from 'lucide-react';
 import {toast} from 'sonner';
 import {
   getCustomerGrades,
@@ -22,6 +22,18 @@ import {
   deleteCustomerGradeConfig,
 } from '@/lib/actions/customer-grades';
 import type {CustomerGradeConfig} from '@/types/database';
+
+/**
+ * 등급 표시 순서: 구매횟수 임계값 있는 등급을 오름차순(0, 5, 10 …)으로 먼저,
+ * 임계값 없는(수동 전용) 등급은 그 뒤에 이름 가나다순으로 붙인다.
+ */
+function sortGradesForDisplay(list: CustomerGradeConfig[]): CustomerGradeConfig[] {
+  return [...list].sort((a, b) => {
+    if (a.threshold !== null && b.threshold !== null) return a.threshold - b.threshold;
+    if (a.threshold === null && b.threshold === null) return a.name.localeCompare(b.name, 'ko');
+    return a.threshold === null ? 1 : -1; // 수동 전용(null)은 뒤로
+  });
+}
 
 interface CustomerGradesModalProps {
   open: boolean;
@@ -47,9 +59,6 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
   const [editThreshold, setEditThreshold] = useState('0');
   const [isSaving, setIsSaving] = useState(false);
 
-  // 정렬 이동 중인 id
-  const [reorderingId, setReorderingId] = useState<string | null>(null);
-
   // 삭제 확인 대상
   const [deletingGrade, setDeletingGrade] = useState<CustomerGradeConfig | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -58,7 +67,7 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
     setIsLoading(true);
     try {
       const data = await getCustomerGrades();
-      setGrades([...data].sort((a, b) => a.sort_order - b.sort_order));
+      setGrades(sortGradesForDisplay(data));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '등급을 불러오지 못했습니다');
     } finally {
@@ -138,27 +147,6 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
     }
   };
 
-  const handleMove = async (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= grades.length) return;
-
-    const current = grades[index];
-    const neighbor = grades[target];
-
-    setReorderingId(current.id);
-    try {
-      // 두 항목의 sort_order 를 맞바꾼다
-      await updateCustomerGradeConfig(current.id, {sortOrder: neighbor.sort_order});
-      await updateCustomerGradeConfig(neighbor.id, {sortOrder: current.sort_order});
-      await loadGrades();
-      notifyChanged();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '순서 변경에 실패했습니다');
-    } finally {
-      setReorderingId(null);
-    }
-  };
-
   const handleDelete = async () => {
     if (!deletingGrade) return;
     setIsDeleting(true);
@@ -182,7 +170,8 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>등급 관리</DialogTitle>
-            <DialogDescription>
+            {/* 시각적 안내문은 아래 핑크 안내 박스로 대체. 스크린리더용 설명만 sr-only 로 유지(a11y). */}
+            <DialogDescription className="sr-only">
               구매횟수 임계값으로 자동 승급되는 테넌트별 커스텀 등급을 관리해요.
             </DialogDescription>
           </DialogHeader>
@@ -204,7 +193,7 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
               ) : grades.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">등록된 등급이 없습니다</p>
               ) : (
-                grades.map((grade, index) => (
+                grades.map((grade) => (
                   <div
                     key={grade.id}
                     className="flex items-center gap-2 rounded-xl px-3 py-2.5 bg-muted"
@@ -269,28 +258,6 @@ export function CustomerGradesModal({open, onOpenChange, onChanged}: CustomerGra
                       </div>
                     ) : (
                       <>
-                        <div className="flex flex-col">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => handleMove(index, -1)}
-                            disabled={index === 0 || reorderingId !== null}
-                            aria-label="위로 이동"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => handleMove(index, 1)}
-                            disabled={index === grades.length - 1 || reorderingId !== null}
-                            aria-label="아래로 이동"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </div>
                         <span className="font-semibold flex-1 truncate">{grade.name}</span>
                         {grade.threshold === null ? (
                           <Badge variant="outline" className="text-[11px] font-normal">수동 전용</Badge>

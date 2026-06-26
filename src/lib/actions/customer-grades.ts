@@ -62,7 +62,7 @@ export const createCustomerGradeConfig = withErrorLogging('createCustomerGradeCo
 
 async function _updateCustomerGradeConfig(
   id: string,
-  input: { name?: string; threshold?: number | null; sortOrder?: number; clearThreshold?: boolean },
+  input: { name?: string; threshold?: number | null; clearThreshold?: boolean },
 ) {
   await requireAuth();
 
@@ -78,7 +78,6 @@ async function _updateCustomerGradeConfig(
   const body: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) body.name = parsed.data.name;
   if (parsed.data.threshold !== undefined) body.threshold = parsed.data.threshold;
-  if (parsed.data.sortOrder !== undefined) body.sortOrder = parsed.data.sortOrder;
   if (parsed.data.clearThreshold !== undefined) body.clearThreshold = parsed.data.clearThreshold;
 
   const updated = await apiFetch<KotlinCustomerGrade>(`/customer-grades/${idParsed.data}`, {
