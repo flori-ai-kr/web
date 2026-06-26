@@ -2,7 +2,7 @@
 
 import {useRouter} from 'next/navigation';
 import {useState} from 'react';
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent} from '@/components/ui/card';
 import {FileText, Lock, Pencil, Trash2} from 'lucide-react';
@@ -145,7 +145,7 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
                     className="aspect-square rounded-md overflow-hidden bg-muted relative cursor-zoom-in"
                     aria-label={`연결 사진 ${i + 1} 확대 보기`}
                   >
-                    <Image src={thumb.url} alt="" fill sizes="48px" className="object-cover" />
+                    <ImageWithSkeleton src={thumb.url} alt="" fill sizes="48px" className="object-cover" />
                     {isLast && overflow > 0 && (
                       <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
                         +{overflow}

@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ImageWithSkeleton } from '@/components/ui/image-with-skeleton';
 import {useRouter} from 'next/navigation';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Button} from '@/components/ui/button';
@@ -167,7 +167,7 @@ export function CustomerDetailDialog({
                         className="relative aspect-square overflow-hidden rounded-xl border border-border bg-card cursor-zoom-in hover:opacity-80 hover:border-brand/50 transition-opacity"
                         aria-label={`연결 사진 ${i + 1} 확대 보기`}
                       >
-                        <Image
+                        <ImageWithSkeleton
                           src={thumb.url}
                           alt=""
                           fill
