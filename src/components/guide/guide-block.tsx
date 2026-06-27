@@ -21,10 +21,10 @@ const CALLOUT_STYLES = {
     textClass: 'text-amber-700 dark:text-amber-400',
   },
   note: {
-    container: 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+    container: 'bg-brand-muted border-brand/25 dark:border-brand/30',
     icon: 'ℹ️',
-    titleClass: 'text-blue-800 dark:text-blue-300',
-    textClass: 'text-blue-700 dark:text-blue-400',
+    titleClass: 'text-brand',
+    textClass: 'text-foreground/80',
   },
 } as const;
 
@@ -57,12 +57,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) {
   const [error, setError] = useState(false);
-  const ext = block.kind === 'gif' ? 'gif' : 'webp';
+  // 캡처마다 비율이 달라(데스크탑·모바일·정사각) 잘리지 않도록 실제 이미지 비율에 박스를 맞춘다.
+  const [ratio, setRatio] = useState<number | null>(null);
+  const ext = block.kind === 'gif' ? 'gif' : block.kind === 'png' ? 'png' : 'webp';
   const src = `/guide/${block.src}.${ext}`;
 
   return (
     <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-muted/30">
-      <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+      <div className="relative w-full" style={{ aspectRatio: ratio ?? 16 / 9 }}>
         {error ? (
           <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
             스크린샷 준비 중
@@ -72,9 +74,15 @@ function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) 
             src={src}
             alt={block.alt}
             fill
-            className="object-cover object-top"
+            className="object-contain"
             sizes="(max-width: 768px) 100vw, 700px"
             onError={() => setError(true)}
+            onLoad={e => {
+              const img = e.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setRatio(img.naturalWidth / img.naturalHeight);
+              }
+            }}
           />
         )}
       </div>

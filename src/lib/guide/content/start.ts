@@ -10,17 +10,17 @@ export const START_ARTICLES: GuideArticle[] = [
     description: 'flori를 처음 여는 사장님을 위한 로그인·인증·첫 화면 안내예요.',
     icon: 'flower',
     tldr: [
-      '카카오·구글·네이버로 비밀번호 없이 로그인해요',
+      '카카오·네이버·구글로 비밀번호 없이 로그인해요',
       '사업자등록증으로 한 번만 인증하면 모든 기능이 열려요',
-      '아래 메뉴로 매출·지출·고객·예약을 오가요',
+      '메뉴에서 매출·지출·고객·예약 화면을 오가요',
     ],
     blocks: [
       { type: 'heading', text: '로그인하기' },
       {
         type: 'paragraph',
-        text: 'flori는 **카카오·구글·네이버** 소셜 로그인으로 시작해요. 따로 아이디·비밀번호를 만들지 않아도 됩니다. 쓰던 계정을 한 번 누르면 끝이에요.',
+        text: 'flori는 **카카오·네이버·구글** 소셜 로그인으로 시작해요. 따로 아이디·비밀번호를 만들지 않아도 됩니다. 쓰던 계정을 한 번 누르면 끝이에요.',
       },
-      { type: 'shot', src: 'getting-started/01-login', alt: '소셜 로그인 화면', caption: '카카오·구글·네이버 중 하나를 선택' },
+      { type: 'shot', src: 'getting-started/01-login', kind: 'png', alt: '소셜 로그인 화면', caption: '카카오·네이버·구글 중 하나를 선택' },
 
       { type: 'heading', text: '사업자 인증하기' },
       {
@@ -31,13 +31,13 @@ export const START_ARTICLES: GuideArticle[] = [
         type: 'callout',
         variant: 'note',
         title: '인증은 얼마나 걸리나요?',
-        text: '보통 영업일 기준 하루 안에 처리돼요. 승인 전까지는 인증 화면만 보이고, 승인되면 자동으로 홈으로 들어가요.',
+        text: '보통 영업일 기준 하루 안에 처리돼요. 승인 전까지는 인증 화면만 보이고, 승인되면 자동으로 홈으로 들어가요. 승인 여부는 **카카오톡 알림톡**으로 알려드려요.',
       },
 
       { type: 'heading', text: '첫 화면 둘러보기' },
       {
         type: 'paragraph',
-        text: '인증이 끝나면 **홈 화면**이 열려요. 오늘 매출과 예약을 한눈에 보고, 화면 아래의 **메뉴(하단 탭)**로 기능을 오갑니다.',
+        text: '인증이 끝나면 **홈 화면**이 열려요. 오늘 매출과 예약을 한눈에 보고, **메뉴**에서 매출·지출·고객·예약 같은 기능을 오가요. 메뉴는 컴퓨터에서는 화면 왼쪽, 휴대폰에서는 화면 아래에 있어요.',
       },
       {
         type: 'bullets',
@@ -48,7 +48,7 @@ export const START_ARTICLES: GuideArticle[] = [
           '**예약** — 주문·픽업 일정과 알림',
         ],
       },
-      { type: 'shot', src: 'getting-started/02-home', alt: '인증 후 첫 홈 화면', caption: '홈 화면과 하단 메뉴' },
+      { type: 'shot', src: 'getting-started/02-home', kind: 'png', alt: '인증 후 첫 홈 화면', caption: '홈 화면과 메뉴' },
 
       { type: 'heading', text: '다음 단계' },
       {

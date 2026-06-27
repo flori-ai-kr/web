@@ -12,7 +12,7 @@ export type GuideBlock =
   | { type: 'paragraph'; text: string }
   | { type: 'steps'; items: string[] } // 번호 단계
   | { type: 'bullets'; items: string[] } // 점 목록
-  | { type: 'shot'; src: string; alt: string; caption?: string; kind?: 'image' | 'gif' }
+  | { type: 'shot'; src: string; alt: string; caption?: string; kind?: 'image' | 'gif' | 'png' }
   | { type: 'callout'; variant: 'tip' | 'warn' | 'note'; title?: string; text: string }
   | { type: 'faq'; items: GuideFaqItem[] };
 
