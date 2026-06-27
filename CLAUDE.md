@@ -30,7 +30,7 @@
 | DnD | @dnd-kit/core · @dnd-kit/sortable · @dnd-kit/utilities (BottomNav + 라벨 설정 순서 변경) |
 | Test | Vitest, fast-check, Testing Library + Playwright e2e (mock BFF — `e2e/`) |
 | Deploy | AWS 자체 호스팅 (Vercel 아님) — Docker standalone(ARM64) → ECR `flori-dev/web` → EC2(`flori-dev-app`) docker-compose, ALB `admin.flori.ai.kr`. CI: GitHub Actions `deploy-web-dev.yml`. 랜딩 apex `flori.ai.kr` 은 별도 nginx(`flori-dev/homepage`) |
-| Analytics | Google Analytics 4 + Microsoft Clarity — `components/analytics.tsx`, **프로덕션 빌드에서만** 로드. ID는 `NEXT_PUBLIC_*` build-arg(baked) |
+| Analytics | Google Analytics 4 + Microsoft Clarity + **PostHog**(제품 분석·autocapture) — `components/analytics.tsx`, **프로덕션 빌드에서만** 로드. ID는 `NEXT_PUBLIC_*` build-arg(baked). **prod environment만 적용**(dev vars 비움). PostHog CSP 도메인은 `next.config.ts`가 KEY 설정 시 자동 추가 |
 | Error Logging | Discord 웹훅(`lib/logger.ts`, 알림) + **pino 구조화 stdout 로그**(`lib/log.ts`, api와 같은 JSON 모양 — 부팅·서버에러·인증이벤트. `docker logs`/CloudWatch 수집) |
 
 ---
