@@ -27,10 +27,10 @@ const GRADE_KR: Record<string, string> = {
  * 블랙  → red danger
  */
 const GRADE_PILL_CLS: Record<string, string> = {
-  vip: 'bg-[#f3e7ef] text-[#A85475] dark:bg-[#3d1a27] dark:text-[#e8a8be]',
-  regular: 'bg-[#e7ecf1] text-[#5A626D] dark:bg-[#2a2f36] dark:text-[#9aa5b1]',
-  new: 'bg-[#e7f0ea] text-[#2e7d32] dark:bg-[#1a2e1b] dark:text-[#81c784]',
-  blacklist: 'bg-[#fde8ec] text-[#c0395a] dark:bg-[#311016] dark:text-[#f48fb1]',
+  vip: 'bg-brand-muted text-brand',
+  regular: 'bg-muted text-muted-foreground',
+  new: 'bg-success-soft text-success',
+  blacklist: 'bg-danger-soft text-danger',
 };
 
 function gradeKr(grade: string): string {
