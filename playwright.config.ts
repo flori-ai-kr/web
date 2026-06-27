@@ -14,6 +14,7 @@ const webEnv = {
   TZ: 'Asia/Seoul',
   API_URL: `http://127.0.0.1:${MOCK_BFF_PORT}`,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: 'e2e-dummy-vapid-public-key',
+  NEXT_PUBLIC_TOSS_CLIENT_KEY: 'test_ck_e2e_placeholder',
   // CI build job과 동일한 placeholder 패턴 사용 (실키 아님 — 검증 길이 32자만 충족)
   INTERNAL_API_KEY: 'ci-placeholder-internal-api-key-32-chars-minimum',
   STORAGE_PUBLIC_URL: 'https://cdn.example.com',

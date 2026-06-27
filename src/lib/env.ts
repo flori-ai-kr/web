@@ -13,6 +13,9 @@ const serverEnvSchema = z.object({
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
+  // ─── 필수: 토스 결제 클라이언트 키 (공개 — 브라우저 SDK 초기화) ──
+  NEXT_PUBLIC_TOSS_CLIENT_KEY: z.string().min(1, '빈 값일 수 없습니다'),
+
   // ─── 필수: 서버 기능 ──────────────────────────────────────
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
