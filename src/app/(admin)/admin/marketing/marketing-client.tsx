@@ -91,33 +91,13 @@ export function MarketingClient() {
 
   return (
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
-      {/* 생성 중 전체 화면 블로킹 오버레이 — 비동기 미지원이라 다른 동작(이동·취소·클릭)을 막고 대기 안내.
-          포털로 body에 그려 사이드바·헤더까지 덮는다(클릭 차단). 스트리밍 미지원 → 진척바는 인디터미닛. */}
+      {/* 생성 중 블로킹 스크림 — 폼·사이드바 등 다른 동작(이동·취소·클릭)을 막는다(포털로 body 전체 덮음).
+          안내 문구는 모달 카드 대신 결과 영역 스켈레톤에 표시하고, 결과 영역은 z로 띄워 스크림 위에서 또렷하게 보인다.
+          블러/딤은 약하게. */}
       {generating &&
         typeof document !== 'undefined' &&
         createPortal(
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/55 px-4 backdrop-blur-md"
-            role="alertdialog"
-            aria-busy="true"
-            aria-live="assertive"
-            aria-label="AI 블로그 초안 작성 중"
-          >
-            <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card px-8 py-7 text-center shadow-xl">
-              <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
-              <div className="space-y-1.5">
-                <p className="text-base font-semibold text-foreground">AI가 블로그 초안을 작성하고 있어요</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  보통 30초~1분 정도 걸려요.
-                  <br />
-                  이 화면을 닫거나 다른 곳으로 이동하지 말고 잠시만 기다려 주세요.
-                </p>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                <div className="h-full w-2/5 rounded-full bg-brand animate-[flori-indeterminate_1.3s_ease-in-out_infinite]" />
-              </div>
-            </div>
-          </div>,
+          <div className="fixed inset-0 z-[60] bg-background/30 backdrop-blur-[2px]" aria-hidden="true" />,
           document.body,
         )}
       {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
@@ -274,8 +254,8 @@ export function MarketingClient() {
           </div>
         </form>
 
-        {/* 결과 미리보기 */}
-        <div ref={resultRef} className="min-w-0">
+        {/* 결과 미리보기 — 생성 중엔 스크림 위로 띄워 스켈레톤·안내가 또렷하게 보이게 한다 */}
+        <div ref={resultRef} className={`min-w-0${generating ? ' relative z-[61]' : ''}`}>
           {generating ? (
             <GeneratingSkeleton />
           ) : draft ? (
@@ -306,9 +286,18 @@ export function MarketingClient() {
 function GeneratingSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-brand">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>초안 작성 중…</span>
+      {/* 생성 중 안내 — 모달 대신 결과 영역에 표시. 비동기 미지원이라 이동·취소 말고 대기 안내 + 인디터미닛 바 */}
+      <div className="rounded-2xl border border-brand/25 bg-brand-muted/40 px-4 py-3.5 text-center">
+        <p className="flex items-center justify-center gap-2 text-sm font-semibold text-brand">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          AI가 블로그 초안을 작성하고 있어요
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          보통 30초~1분 정도 걸려요. 이 화면을 닫거나 다른 곳으로 이동하지 말고 잠시만 기다려 주세요.
+        </p>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-2/5 rounded-full bg-brand animate-[flori-indeterminate_1.3s_ease-in-out_infinite]" />
+        </div>
       </div>
       <div className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
         <Skeleton className="h-7 w-3/4" />
