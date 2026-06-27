@@ -92,12 +92,12 @@ export function MarketingClient() {
   return (
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
       {/* 생성 중 블로킹 스크림 — 폼·사이드바 등 다른 동작(이동·취소·클릭)을 막는다(포털로 body 전체 덮음).
-          안내 문구는 모달 카드 대신 결과 영역 스켈레톤에 표시하고, 결과 영역은 z로 띄워 스크림 위에서 또렷하게 보인다.
-          블러/딤은 약하게. */}
+          .app-canvas가 fixed(스태킹 컨텍스트)라 결과 영역을 이 위로 올릴 수 없으므로 블러는 쓰지 않고
+          (블러 시 결과 안내까지 뭉개짐) 가벼운 딤만 준다. 안내 문구는 결과 영역 스켈레톤에 표시. */}
       {generating &&
         typeof document !== 'undefined' &&
         createPortal(
-          <div className="fixed inset-0 z-[60] bg-background/30 backdrop-blur-[2px]" aria-hidden="true" />,
+          <div className="fixed inset-0 z-[60] bg-background/30" aria-hidden="true" />,
           document.body,
         )}
       {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
@@ -254,8 +254,8 @@ export function MarketingClient() {
           </div>
         </form>
 
-        {/* 결과 미리보기 — 생성 중엔 스크림 위로 띄워 스켈레톤·안내가 또렷하게 보이게 한다 */}
-        <div ref={resultRef} className={`min-w-0${generating ? ' relative z-[61]' : ''}`}>
+        {/* 결과 미리보기 */}
+        <div ref={resultRef} className="min-w-0">
           {generating ? (
             <GeneratingSkeleton />
           ) : draft ? (
