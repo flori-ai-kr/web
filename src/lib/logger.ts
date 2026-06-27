@@ -1,5 +1,7 @@
 'use server';
 
+import { sanitizeErrorStack } from './log-format';
+
 // ─── 타입 ────────────────────────────────────────────────────
 interface ErrorContext {
   action?: string;
@@ -30,17 +32,7 @@ function isDuplicate(key: string): boolean {
 }
 
 // ─── 스택 트레이스 새니타이징 ─────────────────────────────────
-function sanitizeStack(stack: string): string {
-  return stack
-    .replace(/\/Users\/[^/]+/g, '/home/user')
-    .replace(/[A-Za-z0-9_-]+@[A-Za-z0-9.-]+/g, '[EMAIL]')
-    .replace(/token[:=]\s*['"]?[^\s'"]+/gi, 'token=[REDACTED]')
-    .replace(/password[:=]\s*['"]?[^\s'"]+/gi, 'password=[REDACTED]')
-    .replace(/key[:=]\s*['"]?[^\s'"]{20,}/gi, 'key=[REDACTED]')
-    .split('\n')
-    .slice(0, 20)
-    .join('\n');
-}
+// sanitizeErrorStack 은 log-format.ts 로 이동(Discord·pino stdout 공유). 여기선 재노출만.
 
 // ─── 문자열 잘라내기 ─────────────────────────────────────────
 function truncate(str: string, max: number): string {
@@ -67,6 +59,7 @@ export async function reportError(
 
   // 구조화 stdout 로그 (Discord 알림과 별개 — docker logs/CloudWatch 수집용).
   // nodejs 가드 + 동적 import 로 Edge·클라 안전. 항상 emit(아래 dev early-return 전).
+  // [보안] raw err 객체 대신 sanitize 된 message/stack 문자열만 넘긴다(토큰/이메일/경로 마스킹).
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     try {
       const { log } = await import('./log');
@@ -75,7 +68,11 @@ export async function reportError(
           event: 'app_error',
           action: context.action,
           url: context.url,
-          err: error instanceof Error ? error : new Error(safeMessage),
+          errMessage: safeMessage,
+          errStack:
+            error instanceof Error && error.stack
+              ? sanitizeErrorStack(error.stack)
+              : undefined,
         },
         `❌ ${context.action || '오류'}`,
       );
@@ -125,7 +122,7 @@ export async function reportError(
         ? [
             {
               name: '스택 트레이스',
-              value: `\`\`\`\n${truncate(sanitizeStack(err.stack), 1000)}\n\`\`\``,
+              value: `\`\`\`\n${truncate(sanitizeErrorStack(err.stack), 1000)}\n\`\`\``,
               inline: false,
             },
           ]
