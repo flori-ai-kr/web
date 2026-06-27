@@ -57,6 +57,8 @@ export function PhotoCardDialog({ card, onClose, onEdit, onDelete }: PhotoCardDi
 
   const downloadBlob = async (url: string, filename: string) => {
     const response = await fetch(url);
+    // 실패 응답(예: S3 presign 오류 XML)을 그대로 .png로 저장하면 깨진 파일이 된다 → 검사 후 중단.
+    if (!response.ok) throw new Error(`download failed: ${response.status}`);
     const blob = await response.blob();
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
