@@ -7,6 +7,7 @@ import {
   setAuthTokens,
 } from '@/lib/api/auth-cookies'
 import { REFERRAL_SOURCES } from '@/lib/onboarding-options'
+import { log } from '@/lib/log'
 
 // 참여경로 허용값 화이트리스트 — Server Action은 우회 호출이 가능하므로 임의/대형 입력을 웹에서 차단(방어 심층).
 const ALLOWED_REFERRAL_SOURCES = new Set<string>(REFERRAL_SOURCES)
@@ -180,5 +181,6 @@ export async function completeRegistration(
   await setAuthTokens(tokens.accessToken, tokens.refreshToken, tokens.expiresIn)
   await clearRegisterToken()
 
+  log.info({ event: 'auth.onboarding_complete' }, '🎉 온보딩 완료')
   redirect('/admin')
 }
