@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Menu, Moon, RefreshCw, Sun } from 'lucide-react';
+import { Moon, RefreshCw, Sun } from 'lucide-react';
 
 function getInitial(email: string): string {
   return (email[0] || '?').toUpperCase();
@@ -13,12 +13,10 @@ export function ConsoleTopbar({
   title,
   subtitle,
   userEmail,
-  onMenu,
 }: {
   title: string;
   subtitle: string;
   userEmail: string;
-  onMenu: () => void;
 }) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
@@ -34,15 +32,6 @@ export function ConsoleTopbar({
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-border bg-background/85 px-5 backdrop-blur lg:px-6">
       <div className="flex items-center gap-3">
-        {/* 모바일: 햄버거(Sheet 열기) */}
-        <button
-          type="button"
-          onClick={onMenu}
-          aria-label="메뉴 열기"
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted md:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
         <div>
           <h1 className="text-lg font-semibold leading-tight text-foreground">{title}</h1>
           <p className="text-xs text-muted-foreground">{subtitle}</p>

@@ -94,8 +94,9 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          # 빌드 타임 validateEnv() 통과용 placeholder (Supabase/R2 스택 폐기됨 — 제거).
+          # 빌드 타임 validateEnv() 통과용 placeholder
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-placeholder
+          NEXT_PUBLIC_TOSS_CLIENT_KEY: test_ck_ci_placeholder
           INTERNAL_API_KEY: ci-placeholder-internal-api-key-32-chars-minimum
 
   e2e:

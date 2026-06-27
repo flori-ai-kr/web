@@ -15,6 +15,7 @@ import {
   Inbox,
   History,
   Sparkles,
+  Ticket,
   Clock,
   // [AI 기능 비활성화] Activity,
   ArrowLeft,
@@ -25,18 +26,19 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
 }
-interface NavGroup {
+export interface NavGroup {
   title?: string;
   items: NavItem[];
 }
 
 // 실제 존재하는 콘솔 라우트만 그룹핑(죽은 링크 금지).
-const GROUPS: NavGroup[] = [
+// 사이드바(데스크톱)와 하단바 더보기(모바일)가 공유하는 단일 소스.
+export const CONSOLE_NAV_GROUPS: NavGroup[] = [
   { items: [{ href: '/console', label: '개요', icon: LayoutDashboard }] },
   {
     title: '운영',
@@ -44,6 +46,7 @@ const GROUPS: NavGroup[] = [
       { href: '/console/verifications', label: '사업자 인증', icon: FileCheck },
       { href: '/console/users', label: '유저 관리', icon: Users },
       { href: '/console/subscriptions', label: '구독 현황', icon: CreditCard },
+      { href: '/console/coupons', label: '쿠폰', icon: Ticket },
       { href: '/console/storage', label: '스토리지 증설', icon: HardDrive },
     ],
   },
@@ -79,7 +82,7 @@ const GROUPS: NavGroup[] = [
   // [AI 기능 비활성화] AI 헬스 네비 — 출시 시 제거
 ];
 
-function isActive(pathname: string, href: string): boolean {
+export function isActive(pathname: string, href: string): boolean {
   return href === '/console' ? pathname === href : pathname.startsWith(href);
 }
 
@@ -178,8 +181,8 @@ export function SidebarContent({
         )}
       </div>
 
-      <nav aria-label="콘솔 내비게이션" className="flex flex-1 flex-col gap-1">
-        {GROUPS.map((group, gi) => (
+      <nav aria-label="콘솔 내비게이션" className="flex flex-1 flex-col gap-1 overflow-y-auto">
+        {CONSOLE_NAV_GROUPS.map((group, gi) => (
           <div key={group.title ?? `g${gi}`}>
             {/* 그룹 타이틀: 펼침 시 텍스트, 접힘 시 구분선으로 대체 */}
             {!isCollapsed && group.title && (
@@ -261,7 +264,7 @@ export function ConsoleSidebar({
     <aside
       suppressHydrationWarning
       className={cn(
-        'hidden shrink-0 border-r border-border bg-card md:block',
+        'hidden shrink-0 border-r border-border bg-card lg:block',
         mounted ? 'transition-[width] duration-200 ease-in-out' : 'transition-none',
         isCollapsed ? 'w-16 px-2 py-4' : 'w-60 p-4'
       )}

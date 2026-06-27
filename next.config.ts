@@ -8,6 +8,13 @@ const env = validateEnv();
 // 하려면 호스트명이 필요하다. 미설정 시 스토리지 호스트는 허용 목록에서 빠진다.
 const storageHostname = env.STORAGE_PUBLIC_URL ? new URL(env.STORAGE_PUBLIC_URL).hostname : null;
 
+// PostHog(제품 분석) CSP 허용 도메인. KEY 설정 시에만 CSP 표면에 추가(미설정 시 최소화).
+// 스크립트는 <host>-assets.i.posthog.com(array.js), 이벤트 전송은 <host>.i.posthog.com(/batch).
+const posthogApiHost =
+  (env.NEXT_PUBLIC_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com';
+const posthogAssetsHost = posthogApiHost.replace('.i.posthog.com', '-assets.i.posthog.com');
+const posthogEnabled = !!env.NEXT_PUBLIC_POSTHOG_KEY;
+
 const nextConfig: NextConfig = {
   // Docker 배포용 독립 실행 번들(.next/standalone) — server.js + 최소 node_modules만 포함.
   output: 'standalone',
@@ -52,6 +59,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // radix-ui 메타패키지는 Next 16 기본 optimizePackageImports 목록에 없어(개별 @radix-ui/react-*는
+    // 기본 포함) 명시 추가 — 미사용 export 제거로 클라이언트 번들·콜드스타트 컴파일 축소.
+    optimizePackageImports: ['radix-ui'],
   },
   async headers() {
     return [
@@ -70,7 +80,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' 'unsafe-inline' https://js.tosspayments.com${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+              `script-src 'self' 'unsafe-inline' https://js.tosspayments.com${posthogEnabled ? ` ${posthogAssetsHost}` : ''}${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
               `img-src 'self' data: blob:${storageHostname ? ` https://${storageHostname}` : ''} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
@@ -79,7 +89,7 @@ const nextConfig: NextConfig = {
               // 브라우저 직접 업로드(presigned PUT) + 원본 다운로드(presigned GET)는 S3 버킷 호스트로
               // 향한다(<bucket>.s3.<region>.amazonaws.com). 공개 읽기는 CloudFront(img-src)라 별개다.
               // 토스 SDK 는 *.tosspayments.com 으로 결제/인증 API 를 호출한다(connect-src).
-              `connect-src 'self' https://*.tosspayments.com https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}`,
+              `connect-src 'self' https://*.tosspayments.com https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}${posthogEnabled ? ` ${posthogApiHost}` : ''}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self' https://*.tosspayments.com",

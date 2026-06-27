@@ -33,14 +33,15 @@ export function formatPriceDeltaTight(rate: number | null): string {
 
 export const TONE_TEXT: Record<PriceDeltaTone, string> = {
   up: 'text-danger',
-  down: 'text-[#2f6df0]',
+  down: 'text-info',
   flat: 'text-muted-foreground',
 };
 
-/** 대표가 배지(점 배경) 톤 — 상승 연빨강 / 하락 연파랑 / 변동없음 회색. */
+/** 대표가 배지(점 배경) 톤 — 상승 연빨강 / 하락 연파랑 / 변동없음 회색.
+   시맨틱 토큰(--danger/--info + *-soft) 사용 → 라이트는 동일, 다크 자동 대응. */
 export const TONE_BADGE: Record<PriceDeltaTone, string> = {
-  up: 'bg-[#fde7e3] text-[#c2503f]',
-  down: 'bg-[#e6effd] text-[#2f6df0]',
+  up: 'bg-danger-soft text-danger',
+  down: 'bg-info-soft text-info',
   flat: 'bg-muted text-muted-foreground',
 };
 

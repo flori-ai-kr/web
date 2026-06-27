@@ -46,17 +46,22 @@ describe('VerificationBadge', () => {
 
 describe('SubscriptionBadge', () => {
   it.each([
-    ['active', '활성'],
-    ['in_grace', '결제유예'],
-    ['expired', '만료'],
-    ['none', '없음'],
+    ['TRIALING', '체험중'],
+    ['ACTIVE', '이용중'],
+    ['IN_GRACE', '결제유예'],
+    ['EXPIRED', '만료'],
   ])('%s → %s', (status, label) => {
     render(<SubscriptionBadge status={status} />)
     expect(screen.getByText(label)).toBeInTheDocument()
   })
 
-  it('null은 없음', () => {
+  it('null/unknown은 없음', () => {
     render(<SubscriptionBadge status={null} />)
+    expect(screen.getByText('없음')).toBeInTheDocument()
+  })
+
+  it('레거시 소문자 상태는 없음(fallback)', () => {
+    render(<SubscriptionBadge status="active" />)
     expect(screen.getByText('없음')).toBeInTheDocument()
   })
 })

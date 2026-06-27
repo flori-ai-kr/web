@@ -132,12 +132,15 @@ function RetentionPanel({ rows }: { rows: RetentionCohortRow[] }) {
                         </td>
                       );
                     }
-                    const strong = v >= 0.45;
+                    // 셀 배경(retentionBg)은 테마 무관 로즈 스케일 → 텍스트도 테마 무관.
+                    // 진한 로즈(상위)만 흰 글자, 옅은 핑크는 다크 플럼 글자(다크모드 inherit=밝은색 → 가독성 깨짐 방지).
+                    const strong = v >= 0.6;
                     return (
                       <td key={i}>
                         <span
                           className="inline-block w-full rounded px-1.5 py-1 tabular-nums"
-                          style={{ backgroundColor: retentionBg(v), color: strong ? '#fff' : 'inherit' }}
+                          // v=0 셀은 배경이 transparent(카드색 비침) → 고정 다크글자는 다크모드에서 안 보임 → inherit(테마 foreground) 유지
+                          style={{ backgroundColor: retentionBg(v), color: v === 0 ? 'inherit' : strong ? '#fff' : '#4a2435' }}
                         >
                           {Math.round(v * 100)}%
                         </span>

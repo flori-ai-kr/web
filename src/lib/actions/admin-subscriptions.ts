@@ -3,7 +3,7 @@
 import { requireAdmin } from '@/lib/admin-guard';
 import { apiFetch } from '@/lib/api/client';
 import { withErrorLogging } from '@/lib/errors';
-import type { AdminSubscriptionRow } from '@/types/admin';
+import type { AdminSubscriptionRow } from '@/types/billing';
 
 // BFF: GET /admin/subscriptions?status=
 async function _listSubscriptions(status?: string): Promise<AdminSubscriptionRow[]> {

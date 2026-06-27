@@ -13,6 +13,9 @@ const serverEnvSchema = z.object({
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
+  // ─── 필수: 토스 결제 클라이언트 키 (공개 — 브라우저 SDK 초기화) ──
+  NEXT_PUBLIC_TOSS_CLIENT_KEY: z.string().min(1, '빈 값일 수 없습니다'),
+
   // ─── 필수: 서버 기능 ──────────────────────────────────────
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
@@ -40,6 +43,8 @@ const serverEnvSchema = z.object({
   // 웹 애널리틱스(공개 ID). 미설정 시 해당 도구 미로드. 프로덕션 빌드에서만 실제 동작.
   NEXT_PUBLIC_GA_MEASUREMENT_ID: emptyToUndefined(z.string().min(1).optional()), // Google Analytics 4 (G-XXXXXXXXXX)
   NEXT_PUBLIC_CLARITY_PROJECT_ID: emptyToUndefined(z.string().min(1).optional()), // Microsoft Clarity 프로젝트 ID
+  NEXT_PUBLIC_POSTHOG_KEY: emptyToUndefined(z.string().min(1).optional()), // PostHog 공개 project API key (phc_…)
+  NEXT_PUBLIC_POSTHOG_HOST: emptyToUndefined(z.string().url().optional()), // PostHog 클라 API 호스트. 미설정 시 us.i.posthog.com 폴백 — EU 사용 시 명시 필요.
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

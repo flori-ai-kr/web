@@ -2,9 +2,9 @@
 
 import { useState, useEffect, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { ConsoleSidebar, SidebarContent } from './console-sidebar';
+import { ConsoleSidebar } from './console-sidebar';
 import { ConsoleTopbar } from './console-topbar';
+import { ConsoleBottomNav } from './console-bottom-nav';
 
 // 경로 → 토픽바 제목/부제 매핑.
 const META: Record<string, { title: string; subtitle: string }> = {
@@ -39,7 +39,6 @@ const SIDEBAR_COLLAPSED_KEY = 'flori_console_sidebar_collapsed';
 
 export function ConsoleShell({ userEmail, children }: { userEmail: string; children: ReactNode }) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { title, subtitle } = metaFor(pathname);
@@ -61,31 +60,23 @@ export function ConsoleShell({ userEmail, children }: { userEmail: string; child
   };
 
   return (
-    <div className="flex min-h-screen bg-muted">
-      {/* 데스크톱: 항상 렌더(접힘 시 w-16 레일). 모바일은 hidden md:block로 Sheet 사용 */}
+    <div className="flex min-h-screen bg-background">
+      {/* 데스크톱(lg+): 좌측 사이드바(접힘 시 w-16 레일). 모바일은 하단바(ConsoleBottomNav)로 일원화. */}
       <ConsoleSidebar
         isCollapsed={collapsed}
         onToggleCollapse={handleToggleCollapse}
         mounted={mounted}
       />
 
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-64 bg-card p-4">
-          <SheetTitle className="sr-only">콘솔 내비게이션</SheetTitle>
-          {/* 모바일 Sheet는 항상 풀(접힘 개념 없음) */}
-          <SidebarContent onNavigate={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
-
       <div className="flex min-w-0 flex-1 flex-col">
-        <ConsoleTopbar
-          title={title}
-          subtitle={subtitle}
-          userEmail={userEmail}
-          onMenu={() => setMobileOpen(true)}
-        />
-        <main className="flex-1 p-5 lg:p-6">{children}</main>
+        <ConsoleTopbar title={title} subtitle={subtitle} userEmail={userEmail} />
+        {/* 모바일은 하단바 높이(h-16)+safe-area만큼 아래 여백 확보(콘텐츠 가림 방지). */}
+        <main className="flex-1 p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6">
+          {children}
+        </main>
       </div>
+
+      <ConsoleBottomNav />
     </div>
   );
 }

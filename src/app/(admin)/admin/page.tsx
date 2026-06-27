@@ -4,57 +4,24 @@ import {getLatestCommunityPosts, type LatestCommunityPost} from '@/lib/actions/c
 import {getCurrentMonthKST} from '@/lib/utils';
 import {requireAuth} from '@/lib/auth-guard';
 import {getDashboardGreeting} from '@/lib/greeting';
+import {safe} from '@/lib/server-safe';
 
 export default async function DashboardPage() {
-  // 오늘 데이터는 서버에서 미리 채워 첫 페인트에 바로 보이게 한다(빈 스켈레톤 → 즉시 표시, LCP 개선).
-  // 서버 조회 실패 시 undefined로 두면 클라이언트가 기존 방식으로 다시 시도한다.
-  let initialToday: DashboardTodayData | undefined;
-  let initialMonth: DashboardMonthData | undefined;
-  let initialCommunityPosts: LatestCommunityPost[] = [];
-
   const currentMonth = getCurrentMonthKST();
 
   // 인사말은 닉네임(없으면 이름) 기준 + KST 시간대로 서버에서 계산해 하이드레이션 불일치를 피한다.
+  // requireAuth()는 cache()로 디듀프되므로, 아래 액션들이 내부에서 다시 호출해도 /me는 1회.
   const user = await requireAuth();
   const greeting = getDashboardGreeting(user.nickname?.trim() || user.name);
 
-  try {
-    initialToday = await getDashboardTodayData();
-  } catch (e) {
-    // redirect()/notFound() 등 Next 내부 제어 에러는 삼키지 말고 전파(인증 리다이렉트 보존).
-    if (
-      e &&
-      typeof e === 'object' &&
-      'digest' in e &&
-      typeof (e as { digest: unknown }).digest === 'string' &&
-      (e as { digest: string }).digest.startsWith('NEXT_')
-    ) {
-      throw e;
-    }
-    initialToday = undefined;
-  }
-
-  try {
-    initialMonth = await getDashboardMonthData(currentMonth);
-  } catch (e) {
-    if (
-      e &&
-      typeof e === 'object' &&
-      'digest' in e &&
-      typeof (e as { digest: unknown }).digest === 'string' &&
-      (e as { digest: string }).digest.startsWith('NEXT_')
-    ) {
-      throw e;
-    }
-    initialMonth = undefined;
-  }
-
-  try {
-    initialCommunityPosts = await getLatestCommunityPosts(8);
-  } catch {
+  // 서로 독립적인 3개 조회를 병렬화(기존 3연속 await 워터폴 제거). 각 결과는 개별 폴백 유지.
+  // 오늘 데이터는 서버에서 미리 채워 첫 페인트에 바로 보이게 한다(LCP). 실패 시 undefined → 클라가 재시도.
+  const [initialToday, initialMonth, initialCommunityPosts] = await Promise.all([
+    safe<DashboardTodayData | undefined>(() => getDashboardTodayData(), undefined),
+    safe<DashboardMonthData | undefined>(() => getDashboardMonthData(currentMonth), undefined),
     // 커뮤니티 게이트(미인증/미배포) 실패 시 대시보드 크래시 방지 — 빈 배열로 폴백
-    initialCommunityPosts = [];
-  }
+    safe<LatestCommunityPost[]>(() => getLatestCommunityPosts(8), []),
+  ]);
 
   return (
     <DashboardClient
