@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { getSectionsWithArticles } from '@/lib/guide/articles';
-import { getGuideIcon } from '@/lib/guide/icon-map';
+import { GuideSearch } from '@/components/guide/guide-search';
 
 export const metadata: Metadata = { title: '사용 가이드' };
 
@@ -35,40 +35,8 @@ export default function GuidePage() {
         </div>
       </div>
 
-      {/* 섹션별 아티클 카드 */}
-      <div className="space-y-8">
-        {sections.map(section => (
-          <section key={section.id}>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              {section.title}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {section.articles.map(article => {
-                const Icon = getGuideIcon(article.icon);
-                return (
-                  <Link
-                    key={article.slug}
-                    href={`/admin/guide/${article.slug}`}
-                    className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-brand/40 hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-                        <Icon className="size-4" />
-                      </span>
-                      <span className="text-sm font-medium text-foreground group-hover:text-brand transition-colors line-clamp-1">
-                        {article.title}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                      {article.description}
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
+      {/* 검색 + 섹션별 아티클 카드 */}
+      <GuideSearch sections={sections} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ export const START_ARTICLES: GuideArticle[] = [
     order: 1,
     title: 'flori 시작하기',
     description: 'flori를 처음 여는 사장님을 위한 로그인·인증·첫 화면 안내예요.',
-    icon: 'sparkles',
+    icon: 'flower',
     tldr: [
       '카카오·구글·네이버로 비밀번호 없이 로그인해요',
       '사업자등록증으로 한 번만 인증하면 모든 기능이 열려요',

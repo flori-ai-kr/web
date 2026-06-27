@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { getAllSlugs, getArticleBySlug, getAllMetas, getSectionsWithArticles } from '@/lib/guide/articles';
@@ -11,7 +10,6 @@ import { GuideToc } from '@/components/guide/guide-toc';
 import { GuideNav } from '@/components/guide/guide-nav';
 import { GuideNavSheet } from '@/components/guide/guide-nav-sheet';
 import { GuidePrevNext } from '@/components/guide/guide-prev-next';
-import { GuideBackButton } from '@/components/guide/guide-back-button';
 
 export async function generateStaticParams() {
   return getAllSlugs().map(slug => ({ slug }));
@@ -63,13 +61,6 @@ export default async function GuideArticlePage({ params }: { params: Promise<{ s
           </Link>
           <span className="text-muted-foreground/50">/</span>
           <span className="text-sm text-foreground font-medium truncate">{article.title}</span>
-        </div>
-
-        {/* 돌아가기 버튼 (from= 파라미터가 있을 때만) */}
-        <div className="mb-4">
-          <Suspense fallback={<div className="h-8 w-28" />}>
-            <GuideBackButton />
-          </Suspense>
         </div>
 
         {/* 아티클 헤더 */}

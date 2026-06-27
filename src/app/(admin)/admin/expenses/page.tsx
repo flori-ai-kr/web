@@ -2,7 +2,6 @@ import {getExpenseById, getExpenses, getExpensesSummary} from '@/lib/actions/exp
 import type {ExpenseFilters} from '@/lib/actions/expenses';
 import {getExpenseCategories, getExpensePaymentMethods} from '@/lib/actions/expense-settings';
 import {ExpensesClient} from './expenses-client';
-import {GuideButton} from '@/components/guide/guide-button';
 
 function isValidDate(s?: string): boolean {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -73,22 +72,19 @@ export default async function ExpensesPage({
   ]);
 
   return (
-    <div className="relative">
-      <div className="absolute right-4 top-0 sm:right-6 z-10"><GuideButton slug="expenses" /></div>
-      <ExpensesClient
-        initialExpenses={expensesResult.expenses}
-        initialHasMore={expensesResult.hasMore}
-        initialSummary={summary}
-        monthParam={monthParam ?? null}
-        dateRange={dateRange ?? null}
-        currentYear={currentYear}
-        currentMonth={currentMonth}
-        currentDay={currentDay}
-        initialCategories={categories}
-        initialPayments={payments}
-        initialFilters={filters}
-        initialSelectedExpense={initialSelectedExpense}
-      />
-    </div>
+    <ExpensesClient
+      initialExpenses={expensesResult.expenses}
+      initialHasMore={expensesResult.hasMore}
+      initialSummary={summary}
+      monthParam={monthParam ?? null}
+      dateRange={dateRange ?? null}
+      currentYear={currentYear}
+      currentMonth={currentMonth}
+      currentDay={currentDay}
+      initialCategories={categories}
+      initialPayments={payments}
+      initialFilters={filters}
+      initialSelectedExpense={initialSelectedExpense}
+    />
   );
 }

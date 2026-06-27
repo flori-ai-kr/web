@@ -15,6 +15,8 @@ import {
   Image as ImageIcon,
   Settings,
   Wallet,
+  Rocket,
+  Flower2,
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react';
@@ -36,6 +38,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   image: ImageIcon,
   settings: Settings,
   wallet: Wallet,
+  rocket: Rocket,
+  flower: Flower2,
 };
 
 export function getGuideIcon(key: string): LucideIcon {
