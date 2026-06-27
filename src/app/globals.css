@@ -328,6 +328,16 @@
   }
 }
 
+/* 인디터미닛 진행 바 — 좌→우로 흐르는 막대(진척률 아님, '진행 중' 표시용. 예: AI 초안 생성 오버레이) */
+@keyframes flori-indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
 /* Display 폰트 헬퍼 (flori 워드마크 로고) — public(--font-display)·admin(--font-cormorant) 공통 */
 /* 'liga' 비활성 + font-variant-ligatures:none → "fl" 합자(f·l 붙음) 방지 */
 .font-display {

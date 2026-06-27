@@ -1,6 +1,7 @@
 'use client';
 
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Info, Loader2, Sparkles, Wand2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
@@ -77,8 +78,48 @@ export function MarketingClient() {
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
   }
 
+  // 생성 중 새로고침/탭 닫기로 진행 중인 작업을 잃지 않도록 경고(브라우저 기본 확인창).
+  useEffect(() => {
+    if (!generating) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [generating]);
+
   return (
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
+      {/* 생성 중 전체 화면 블로킹 오버레이 — 비동기 미지원이라 다른 동작(이동·취소·클릭)을 막고 대기 안내.
+          포털로 body에 그려 사이드바·헤더까지 덮는다(클릭 차단). 스트리밍 미지원 → 진척바는 인디터미닛. */}
+      {generating &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/55 px-4 backdrop-blur-md"
+            role="alertdialog"
+            aria-busy="true"
+            aria-live="assertive"
+            aria-label="AI 블로그 초안 작성 중"
+          >
+            <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card px-8 py-7 text-center shadow-xl">
+              <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden="true" />
+              <div className="space-y-1.5">
+                <p className="text-base font-semibold text-foreground">AI가 블로그 초안을 작성하고 있어요</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  보통 30초~1분 정도 걸려요.
+                  <br />
+                  이 화면을 닫거나 다른 곳으로 이동하지 말고 잠시만 기다려 주세요.
+                </p>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                <div className="h-full w-2/5 rounded-full bg-brand animate-[flori-indeterminate_1.3s_ease-in-out_infinite]" />
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
       {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="space-y-1.5">
