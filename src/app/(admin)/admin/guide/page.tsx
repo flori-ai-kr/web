@@ -24,7 +24,7 @@ export default function GuidePage() {
             <BookOpen className="size-6 text-brand" />
           </span>
           <div>
-            <p className="font-semibold text-foreground">처음 쓰시나요?</p>
+            <p className="font-semibold text-foreground">처음이신가요?</p>
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
               <Link href="/admin/guide/getting-started" className="font-medium text-brand underline underline-offset-2">
                 flori 시작하기
