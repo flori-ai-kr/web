@@ -770,9 +770,10 @@ export const createSale = withErrorLogging('createSale', async (data) => {
 
 - **폰트**: Pretendard (시스템 폰트 폴백)
 - **컬러**: CSS 변수 기반 (`:root` + `.dark`)
-  - 브랜드: Dusty Rose `#A85475` (다크 `#DB8FA9`) — Jardin v2 Rose
-  - 서브: Cool Slate `#8A929E` (다크 `#8B95A2`) — cool 팔레트 리스킨 (구 Warm Taupe `#A09080` 폐기)
-  - 배경: Cool Canvas `#EEF1F5` / Dark `#101317`. 카드: 순백 `#FFFFFF` / 다크 `#1E242C` (elevation 구분)
+  - 브랜드: Dusty Rose `#A85475` (다크 `#E2A6BF`) — Jardin v2 Rose
+  - 서브: Cool Slate `#8A929E` (다크 `#A398AF`) — cool 팔레트 리스킨 (구 Warm Taupe `#A09080` 폐기)
+  - 배경: Soft Rose Tint `#FCF7F9` / Dark `#191520`(Warm Plum). 카드: 순백 `#FFFFFF` / 다크 `#272031` (elevation 구분)
+  - 다크 테마(2026-06-27 Warm Plum 재설계): 순흑 회피·elevation 사다리(밝기 단조증가)·그림자 대신 보더 가시화·본문 톤다운(번짐 완화)·사이드바 캔버스 분리. 전부 WCAG AA↑
 - **배지 패턴**: `backgroundColor: ${color}40`, `color: color`
 - **라운딩**: `--radius: 0.75rem`
 - **접근성**: icon button `aria-label`, 클릭 가능 Card `role="button"` + 키보드 핸들러, 의미 있는 이미지 alt, `inputMode`, `autoComplete`, `prefers-reduced-motion`

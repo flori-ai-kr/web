@@ -61,7 +61,7 @@ export function ConsoleShell({ userEmail, children }: { userEmail: string; child
   };
 
   return (
-    <div className="flex min-h-screen bg-muted">
+    <div className="flex min-h-screen bg-background">
       {/* 데스크톱: 항상 렌더(접힘 시 w-16 레일). 모바일은 hidden md:block로 Sheet 사용 */}
       <ConsoleSidebar
         isCollapsed={collapsed}
