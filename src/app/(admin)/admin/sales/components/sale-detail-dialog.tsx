@@ -127,21 +127,24 @@ export function SaleDetailDialog({
                       key={photo.url}
                       type="button"
                       onClick={() => setLightboxIndex(index)}
-                      className="relative aspect-square rounded-lg overflow-hidden group"
+                      className="group block rounded-lg overflow-hidden"
                       aria-label={`사진 ${index + 1} 크게 보기`}
                     >
-                      <ImageWithSkeleton
-                        src={photo.url}
-                        alt={`사진 ${index + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 33vw, 128px"
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                      {index === 5 && photos.photos.length > 6 && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <span className="text-white font-medium">+{photos.photos.length - 6}</span>
-                        </div>
-                      )}
+                      {/* iOS WebKit은 <button>에 aspect-ratio를 적용하지 않아 셀이 0높이로 붕괴(겹침). aspect 박스를 내부 span으로 분리. */}
+                      <span className="relative block aspect-square">
+                        <ImageWithSkeleton
+                          src={photo.url}
+                          alt={`사진 ${index + 1}`}
+                          fill
+                          sizes="(max-width: 768px) 33vw, 128px"
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                        {index === 5 && photos.photos.length > 6 && (
+                          <span className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <span className="text-white font-medium">+{photos.photos.length - 6}</span>
+                          </span>
+                        )}
+                      </span>
                     </button>
                   ))}
                 </div>

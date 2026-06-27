@@ -268,7 +268,7 @@ export function ReservationFormDialog({
                     </div>
                     {pickup.reminder_date && (
                       <p className="text-[10px] text-muted-foreground">
-                        {pickup.reminder_date} {pickup.reminder_time || '08:00'}에 알림
+                        {pickup.reminder_date} {pickup.reminder_time || '07:00'}에 알림
                       </p>
                     )}
                   </div>
