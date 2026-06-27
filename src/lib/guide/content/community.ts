@@ -1,11 +1,11 @@
 import type { GuideArticle } from '../types';
 
-// 섹션: 커뮤니티 (커뮤니티·고객지원)
+// 커뮤니티(→정보·소통) + 고객지원(→고객센터) 아티클. 섹션은 각 article.sectionId 참조.
 export const COMMUNITY_ARTICLES: GuideArticle[] = [
   {
     slug: 'community',
-    sectionId: 'community',
-    order: 1,
+    sectionId: 'info',
+    order: 2,
     title: '꽃집 사장님 커뮤니티',
     description: '다른 꽃집 사장님들과 노하우를 나누고 궁금한 점을 물어보세요.',
     icon: 'users',
@@ -64,8 +64,8 @@ export const COMMUNITY_ARTICLES: GuideArticle[] = [
   },
   {
     slug: 'support',
-    sectionId: 'community',
-    order: 2,
+    sectionId: 'support',
+    order: 1,
     title: '고객지원 — 문의하기',
     description: 'flori 사용 중 불편한 점이나 궁금한 점을 직접 문의하세요.',
     icon: 'life-buoy',

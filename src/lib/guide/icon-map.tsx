@@ -17,6 +17,8 @@ import {
   Wallet,
   Rocket,
   Flower2,
+  Smartphone,
+  PanelBottom,
   HelpCircle,
   type LucideIcon,
 } from 'lucide-react';
@@ -40,6 +42,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   wallet: Wallet,
   rocket: Rocket,
   flower: Flower2,
+  smartphone: Smartphone,
+  'panel-bottom': PanelBottom,
 };
 
 export function getGuideIcon(key: string): LucideIcon {

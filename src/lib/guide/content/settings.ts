@@ -64,7 +64,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
   {
     slug: 'notifications',
     sectionId: 'settings',
-    order: 2,
+    order: 3,
     title: '알림 설정',
     description: '예약 확인·매출 알림·커뮤니티 댓글 등 받고 싶은 알림을 골라 설정해요.',
     icon: 'bell',
@@ -80,6 +80,12 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
         text: '하단 메뉴 **더보기** → **알림 설정**을 누르세요. 알림 종류별 토글로 원하는 것만 켤 수 있어요.',
       },
       { type: 'shot', src: 'notifications/01-settings', alt: '알림 설정 목록', caption: '종류별 토글과 세부 설정' },
+
+      { type: 'heading', text: '휴대폰에서 알림 받기' },
+      {
+        type: 'paragraph',
+        text: '휴대폰으로 푸시 알림을 받으려면 flori를 **홈 화면에 추가**해 두는 게 좋아요. 추가하는 방법은 [모바일에서 앱으로 사용하기](/admin/guide/mobile-app)에서 안내하고 있어요.',
+      },
 
       { type: 'heading', text: '알림 종류' },
       {
@@ -120,7 +126,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
   {
     slug: 'subscription',
     sectionId: 'settings',
-    order: 3,
+    order: 2,
     title: '구독 플랜 관리',
     description: '현재 플랜을 확인하고 업그레이드하거나 결제 내역을 조회해요.',
     icon: 'credit-card',
@@ -155,6 +161,17 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       },
       { type: 'shot', src: 'subscription/02-upgrade', alt: '플랜 선택 화면', caption: '월간·연간 요금 비교' },
 
+      { type: 'heading', text: '쿠폰 등록' },
+      {
+        type: 'paragraph',
+        text: '할인 쿠폰이 있다면 **결제 화면에서 쿠폰 코드를 입력**하세요. 코드를 넣고 **적용**을 누르면 할인된 금액으로 결제돼요. 쿠폰은 결제 직전에 입력하는 게 가장 확실해요.',
+      },
+      {
+        type: 'callout',
+        variant: 'note',
+        text: '쿠폰마다 사용 기한과 적용되는 플랜이 정해져 있어요. 적용이 안 되면 기한이 지났거나 다른 플랜 전용 쿠폰일 수 있어요.',
+      },
+
       { type: 'heading', text: '결제 내역 조회' },
       {
         type: 'paragraph',
@@ -185,6 +202,42 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
             a: '결제 후 7일 이내에 유료 기능을 사용하지 않았다면 전액 환불이 가능해요. 고객지원으로 문의해 주세요.',
           },
         ],
+      },
+    ],
+  },
+  {
+    slug: 'bottom-nav',
+    sectionId: 'settings',
+    order: 4,
+    title: '하단 네비게이션 설정',
+    description: '휴대폰 화면 아래 탭 메뉴에 자주 쓰는 기능을 골라 배치해요.',
+    icon: 'panel-bottom',
+    tldr: [
+      '휴대폰 하단 탭에 보일 메뉴를 직접 고를 수 있어요',
+      '4개에서 6개까지 고르고 순서를 바꿀 수 있어요',
+      '컴퓨터에서는 왼쪽 사이드바로 보여요',
+    ],
+    blocks: [
+      { type: 'heading', text: '하단 메뉴란?' },
+      {
+        type: 'paragraph',
+        text: '휴대폰에서는 화면 **아래쪽 탭 메뉴**로 기능을 빠르게 오가요. 자주 쓰는 메뉴를 여기에 모아두면 한 손으로도 편하게 쓸 수 있어요. (컴퓨터에서는 왼쪽 사이드바로 보여요.)',
+      },
+
+      { type: 'heading', text: '바꾸는 방법' },
+      {
+        type: 'steps',
+        items: [
+          '하단 메뉴 **더보기** → **설정**으로 들어가요.',
+          '**하단 메뉴 설정**에서 하단 탭에 **보일 메뉴를 골라요**.',
+          '항목을 **끌어서(드래그)** 원하는 순서로 바꿔요.',
+          '**저장**하면 휴대폰 하단 탭에 바로 반영돼요.',
+        ],
+      },
+      {
+        type: 'callout',
+        variant: 'note',
+        text: '하단 탭에는 **4개에서 6개까지** 넣을 수 있어요. 가장 자주 쓰는 메뉴 위주로 골라 보세요.',
       },
     ],
   },

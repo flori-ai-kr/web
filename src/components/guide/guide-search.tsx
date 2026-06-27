@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { createElement, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Search, X } from 'lucide-react';
 import { getGuideIcon } from '@/lib/guide/icon-map';
@@ -105,7 +105,6 @@ function ArticleCard({
   article: { slug: string; title: string; description: string; icon: string };
   badge?: string;
 }) {
-  const Icon = getGuideIcon(article.icon);
   return (
     <Link
       href={`/admin/guide/${article.slug}`}
@@ -113,7 +112,7 @@ function ArticleCard({
     >
       <div className="flex items-center gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-          <Icon className="size-4" aria-hidden="true" />
+          {createElement(getGuideIcon(article.icon), { className: 'size-4', 'aria-hidden': true })}
         </span>
         <span className="text-sm font-medium text-foreground transition-colors group-hover:text-brand line-clamp-1">
           {article.title}

@@ -1,11 +1,11 @@
 import type { GuideArticle } from '../types';
 
-// 섹션: 매장 운영 (매출·지출·예약·고객·사진첩) — 가장 자주 쓰는 핵심 글.
+// 매장 운영(예약·매출·지출) + 고객 기록(고객·사진첩) 아티클. 섹션은 각 article.sectionId 참조.
 export const OPERATE_ARTICLES: GuideArticle[] = [
   {
     slug: 'sales',
     sectionId: 'operate',
-    order: 1,
+    order: 2,
     title: '매출 관리',
     description: '하루 장사를 끝내고 매출을 1분 만에 기록하고, 한 달 매출을 한눈에 봐요.',
     icon: 'receipt',
@@ -94,7 +94,7 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
   {
     slug: 'expenses',
     sectionId: 'operate',
-    order: 2,
+    order: 3,
     title: '지출 관리',
     description: '꽃 사입·운영비를 기록하고, 매달 나가는 고정비는 자동으로 챙겨요.',
     icon: 'wallet',
@@ -160,7 +160,7 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
   {
     slug: 'calendar',
     sectionId: 'operate',
-    order: 3,
+    order: 1,
     title: '예약 캘린더',
     description: '주문·예약을 등록하면 픽업 전에 알림으로 챙겨드려요.',
     icon: 'calendar',
@@ -218,8 +218,8 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
   },
   {
     slug: 'customers',
-    sectionId: 'operate',
-    order: 4,
+    sectionId: 'customer',
+    order: 1,
     title: '고객 관리 · 등급',
     description: '단골 손님을 전화번호로 식별하고, 등급으로 관리해요.',
     icon: 'users',
@@ -269,8 +269,8 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
   },
   {
     slug: 'gallery',
-    sectionId: 'operate',
-    order: 5,
+    sectionId: 'customer',
+    order: 2,
     title: '사진첩',
     description: '완성한 꽃 작품을 모아 포트폴리오처럼 관리해요.',
     icon: 'image',

@@ -250,9 +250,10 @@ export function LoginForm({ available }: { available: SocialProviders }) {
             <br />
             이제 가볍게 시작하세요.
           </h2>
-          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-white/85">
-            매출·지출·고객·예약부터 AI 마케팅까지. 사장님은 꽃에만 집중하고, 번거로운 운영은 flori가
-            대신 챙길게요.
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/85">
+            매출·지출·고객·예약부터 AI 마케팅까지.
+            <br />
+            사장님은 꽃에만 집중하세요, 번거로운 운영은 flori가 대신 챙길게요.
           </p>
         </div>
 

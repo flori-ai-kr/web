@@ -95,6 +95,37 @@ function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) 
   );
 }
 
+function TabsBlock({ block }: { block: Extract<GuideBlock, { type: 'tabs' }> }) {
+  const [active, setActive] = useState(0);
+  const current = block.tabs[active] ?? block.tabs[0];
+  return (
+    <div className="mb-6">
+      <div role="tablist" className="mb-4 flex gap-1 rounded-xl border border-border bg-muted/40 p-1">
+        {block.tabs.map((tab, i) => (
+          <button
+            key={tab.label}
+            type="button"
+            role="tab"
+            aria-selected={active === i}
+            onClick={() => setActive(i)}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              active === i ? 'bg-card text-brand shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div>
+        {current.blocks.map((b, i) => (
+          // 탭 내부 블록은 TOC/앵커 대상이 아니므로 큰 오프셋으로 상위 heading id와 충돌 방지.
+          <GuideBlockRenderer key={i} block={b} blockIndex={1000 + i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; blockIndex: number }) {
   switch (block.type) {
     case 'heading':
@@ -146,6 +177,9 @@ export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; b
 
     case 'shot':
       return <ShotBlock block={block} />;
+
+    case 'tabs':
+      return <TabsBlock block={block} />;
 
     case 'callout': {
       const style = CALLOUT_STYLES[block.variant];

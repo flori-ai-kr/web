@@ -4,7 +4,9 @@ import type { GuideSectionMeta } from './types';
 export const GUIDE_SECTIONS: GuideSectionMeta[] = [
   { id: 'start', title: '시작하기', order: 1 },
   { id: 'operate', title: '매장 운영', order: 2 },
-  { id: 'grow', title: '성장 · 인사이트', order: 3 },
-  { id: 'community', title: '커뮤니티 · 지원', order: 4 },
-  { id: 'settings', title: '설정', order: 5 },
+  { id: 'customer', title: '고객 기록', order: 3 },
+  { id: 'marketing', title: '마케팅', order: 4 },
+  { id: 'info', title: '정보 · 소통', order: 5 },
+  { id: 'settings', title: '설정', order: 6 },
+  { id: 'support', title: '고객센터', order: 7 },
 ];

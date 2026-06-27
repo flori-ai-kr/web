@@ -1,11 +1,11 @@
 import type { GuideArticle } from '../types';
 
-// 섹션: 성장하기 (통계·인사이트·마케팅)
+// 통계(→매장 운영)·인사이트(→정보·소통)·마케팅 아티클. 섹션은 각 article.sectionId 참조.
 export const GROW_ARTICLES: GuideArticle[] = [
   {
     slug: 'statistics',
-    sectionId: 'grow',
-    order: 1,
+    sectionId: 'operate',
+    order: 4,
     title: '통계로 내 가게 파악하기',
     description: '요일별·카테고리별 매출 흐름을 한눈에 보고 잘 팔리는 상품을 찾아요.',
     icon: 'bar-chart-2',
@@ -65,10 +65,10 @@ export const GROW_ARTICLES: GuideArticle[] = [
   },
   {
     slug: 'insights',
-    sectionId: 'grow',
-    order: 2,
-    title: '정보 피드 — 트렌드와 지원사업',
-    description: '꽃 트렌드·경매 소식·소상공인 지원사업을 한 화면에서 확인해요.',
+    sectionId: 'info',
+    order: 1,
+    title: '인사이트 — 경매 시세·지원사업',
+    description: '국내 꽃 경매 시세와 소상공인 지원사업을 한 화면에서 확인해요.',
     icon: 'newspaper',
     tldr: [
       '국내 꽃 경매 낙찰가를 매일 업데이트해요',
@@ -120,8 +120,8 @@ export const GROW_ARTICLES: GuideArticle[] = [
   },
   {
     slug: 'marketing',
-    sectionId: 'grow',
-    order: 3,
+    sectionId: 'marketing',
+    order: 1,
     title: 'AI 마케팅 문구 만들기',
     description: 'AI가 내 가게 스타일에 맞는 SNS 홍보 문구를 자동으로 만들어줘요.',
     icon: 'sparkles',
