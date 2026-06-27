@@ -335,13 +335,13 @@ function PhotoPickerDialog({open, onOpenChange, selected, remaining, onConfirm}:
                           </span>
                         )}
                         {card.photos.length > 1 && (
-                          <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                             <Images className="h-3 w-3" aria-hidden />
                             {card.photos.length}
                           </span>
                         )}
                         {pickedInCard > 0 && (
-                          <span className="absolute left-1.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+                          <span className="absolute left-2 top-2 z-10 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-bold leading-none text-white shadow-sm ring-2 ring-white/70">
                             {pickedInCard}
                           </span>
                         )}
