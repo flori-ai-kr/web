@@ -183,10 +183,10 @@ export function useReservationForm({
       // 날짜 변경 시 리마인더 날짜 동기화
       if (field === 'date' && value) {
         updated.reminder_date = value;
-        // 시간이 있으면 2시간 전 계산
+        // 시간이 있으면 3시간 전 계산
         if (updated.time) {
           const [h, m] = updated.time.split(':').map(Number);
-          const beforeH = h - 2;
+          const beforeH = h - 3;
           if (beforeH >= 0) {
             updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           } else {
@@ -199,11 +199,11 @@ export function useReservationForm({
         }
       }
 
-      // 시간 변경 시 리마인더 시간 2시간 전으로 동기화
+      // 시간 변경 시 리마인더 시간 3시간 전으로 동기화
       if (field === 'time' && value && updated.date) {
         updated.reminder_date = updated.date;
         const [h, m] = value.split(':').map(Number);
-        const beforeH = h - 2;
+        const beforeH = h - 3;
         if (beforeH >= 0) {
           updated.reminder_time = `${String(beforeH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         } else {
@@ -294,7 +294,7 @@ export function useReservationForm({
 
     function pickupReminderAt(p: PickupItem): string | null {
       if (!p.reminder_date) return null;
-      const time = cleanTime(p.reminder_time) || '08:00';
+      const time = cleanTime(p.reminder_time) || '07:00';
       return `${p.reminder_date}T${time}:00+09:00`;
     }
 

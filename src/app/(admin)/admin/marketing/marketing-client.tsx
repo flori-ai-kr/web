@@ -1,6 +1,7 @@
 'use client';
 
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Info, Loader2, Sparkles, Wand2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
@@ -77,8 +78,28 @@ export function MarketingClient() {
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
   }
 
+  // 생성 중 새로고침/탭 닫기로 진행 중인 작업을 잃지 않도록 경고(브라우저 기본 확인창).
+  useEffect(() => {
+    if (!generating) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [generating]);
+
   return (
     <div className="space-y-8 px-4 py-1 sm:px-6 sm:py-2">
+      {/* 생성 중 블로킹 스크림 — 폼·사이드바 등 다른 동작(이동·취소·클릭)을 막는다(포털로 body 전체 덮음).
+          .app-canvas가 fixed(스태킹 컨텍스트)라 결과 영역을 이 위로 올릴 수 없으므로 블러는 쓰지 않고
+          (블러 시 결과 안내까지 뭉개짐) 가벼운 딤만 준다. 안내 문구는 결과 영역 스켈레톤에 표시. */}
+      {generating &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[60] bg-background/30" aria-hidden="true" />,
+          document.body,
+        )}
       {/* 헤더 — 모바일: 세로 스택(버튼 아래로) / 데스크톱: 제목 좌·버튼 우 */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="space-y-1.5">
@@ -265,9 +286,18 @@ export function MarketingClient() {
 function GeneratingSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-brand">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>초안 작성 중…</span>
+      {/* 생성 중 안내 — 모달 대신 결과 영역에 표시. 비동기 미지원이라 이동·취소 말고 대기 안내 + 인디터미닛 바 */}
+      <div className="rounded-2xl border border-brand/25 bg-brand-muted/40 px-4 py-3.5 text-center">
+        <p className="flex items-center justify-center gap-2 text-sm font-semibold text-brand">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          AI가 블로그 초안을 작성하고 있어요
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          보통 30초~1분 정도 걸려요. 이 화면을 닫거나 다른 곳으로 이동하지 말고 잠시만 기다려 주세요.
+        </p>
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-2/5 rounded-full bg-brand animate-[flori-indeterminate_1.3s_ease-in-out_infinite]" />
+        </div>
       </div>
       <div className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
         <Skeleton className="h-7 w-3/4" />

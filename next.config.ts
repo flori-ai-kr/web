@@ -59,6 +59,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // radix-ui 메타패키지는 Next 16 기본 optimizePackageImports 목록에 없어(개별 @radix-ui/react-*는
+    // 기본 포함) 명시 추가 — 미사용 export 제거로 클라이언트 번들·콜드스타트 컴파일 축소.
+    optimizePackageImports: ['radix-ui'],
   },
   async headers() {
     return [

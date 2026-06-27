@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { apiFetch } from '@/lib/api/client';
 import { getAccessToken, getRefreshToken } from '@/lib/api/auth-cookies';
@@ -23,7 +24,9 @@ export interface AuthUser {
  * - 인증 불가(UNAUTHORIZED)면 /login으로 redirect
  * 온보딩 게이트는 적용하지 않는다.
  */
-async function fetchAuthUser(): Promise<AuthUser> {
+// React cache()로 렌더 단위 디듀프 — 레이아웃·페이지·각 데이터 액션이 모두 requireAuth를
+// 호출해 한 렌더에 /me가 4~8회 불리던 것을 1회로 합친다(같은 패턴: client.ts refreshTokens).
+const fetchAuthUser = cache(async (): Promise<AuthUser> => {
   const access = await getAccessToken();
   // access가 없어도 refresh 쿠키가 있으면 apiFetch가 401→refresh로 살려낸다.
   // 둘 다 없을 때만 진짜 미인증으로 보고 즉시 로그인으로 보낸다.
@@ -45,7 +48,7 @@ async function fetchAuthUser(): Promise<AuthUser> {
     }
     throw error;
   }
-}
+});
 
 // @MX:ANCHOR: [AUTO] 모든 /admin/* 페이지가 통과하는 인증 + 온보딩 게이트 단일 진입점
 // @MX:REASON: 다수의 admin Server Component가 이 함수를 호출(fan_in 多). 온보딩 게이트의

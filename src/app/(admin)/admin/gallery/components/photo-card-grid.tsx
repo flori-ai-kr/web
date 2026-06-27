@@ -54,7 +54,7 @@ export function PhotoCardGrid({ cards, onCardClick }: PhotoCardGridProps) {
       {groups.map((group) => (
         <section key={group.label}>
           {showHeaders && (
-            <div className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 backdrop-blur-sm">
+            <div className="sticky top-0 z-10 -mx-1 mb-2 bg-background px-1 py-1.5">
               <h2 className="text-[13px] font-semibold text-foreground">
                 {group.label}
                 <span className="ml-1.5 font-normal text-muted-foreground">· {group.photoCount}장</span>

@@ -18,11 +18,14 @@ export function PhotoCard({ card, onClick }: PhotoCardProps) {
   const cover = card.photos[0];
 
   return (
+    // [content-visibility:auto] iOS standalone PWA(WKWebView)의 좁은 메모리·메인스레드에서
+    // 오프스크린 타일의 레이아웃/페인트/이미지 디코드를 건너뛰어, 사진이 많을 때 필터·검색
+    // 입력이 먹통이 되던 이벤트루프 포화를 완화. contain-intrinsic-size로 스크롤 점프 방지.
     <div
       role="button"
       tabIndex={0}
       aria-label={`${card.title} 사진 카드 보기`}
-      className="group relative aspect-square overflow-hidden rounded-xl bg-muted cursor-pointer ring-1 ring-black/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      className="group relative aspect-square overflow-hidden rounded-xl bg-muted cursor-pointer ring-1 ring-black/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand [content-visibility:auto] [contain-intrinsic-size:auto_180px]"
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
@@ -43,7 +46,7 @@ export function PhotoCard({ card, onClick }: PhotoCardProps) {
 
       {/* 우상단: 여러 장 표지 배지 */}
       {photoCount > 1 && (
-        <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+        <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white">
           <Images className="w-3 h-3" aria-hidden />
           {photoCount}
         </span>
@@ -52,7 +55,7 @@ export function PhotoCard({ card, onClick }: PhotoCardProps) {
       {/* 좌상단: 메모 픽토그램(메모 있을 때만) */}
       {card.memo && (
         <span
-          className="absolute top-2 left-2 grid place-items-center w-6 h-6 rounded-full bg-black/45 text-white backdrop-blur-sm"
+          className="absolute top-2 left-2 grid place-items-center w-6 h-6 rounded-full bg-black/65 text-white"
           title="메모 있음"
           aria-label="메모 있음"
         >

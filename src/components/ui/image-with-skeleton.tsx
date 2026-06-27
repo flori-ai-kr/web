@@ -76,6 +76,8 @@ export function ImageWithSkeleton({
         <Skeleton className="absolute inset-0 h-full w-full rounded-[inherit]" />
       )}
       <Image
+        // 비동기 디코드를 명시 — 디코드가 메인스레드를 막지 않게(특히 PWA WKWebView). 호출부가 덮어쓸 수 있도록 rest 앞.
+        decoding="async"
         {...rest}
         ref={imgRef}
         alt={alt}

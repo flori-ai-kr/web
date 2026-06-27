@@ -142,15 +142,18 @@ export function CustomerCard({ customer, onSelect, onEdit, onDelete }: CustomerC
                     key={`${thumb.card_id}-${i}`}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                    className="aspect-square rounded-md overflow-hidden bg-muted relative cursor-zoom-in"
+                    className="block rounded-md overflow-hidden bg-muted cursor-zoom-in"
                     aria-label={`연결 사진 ${i + 1} 확대 보기`}
                   >
-                    <ImageWithSkeleton src={thumb.url} alt="" fill sizes="48px" className="object-cover" />
-                    {isLast && overflow > 0 && (
-                      <div className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
-                        +{overflow}
-                      </div>
-                    )}
+                    {/* iOS WebKit은 <button>에 aspect-ratio를 적용하지 않아 셀이 0높이로 붕괴(겹침). aspect 박스를 내부 span으로 분리. */}
+                    <span className="relative block aspect-square">
+                      <ImageWithSkeleton src={thumb.url} alt="" fill sizes="48px" className="object-cover" />
+                      {isLast && overflow > 0 && (
+                        <span className="absolute inset-0 grid place-items-center bg-foreground/60 text-[10px] font-semibold text-white">
+                          +{overflow}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 );
               })}
