@@ -12,6 +12,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Next의 server-only 가드는 vitest(노드)에선 resolve 불가 → noop 스텁으로 대체.
+      'server-only': path.resolve(__dirname, './src/test/server-only-stub.ts'),
     },
   },
 })

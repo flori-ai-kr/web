@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 import { OAUTH_STATE_COOKIE } from '@/lib/api/cookie-names'
 import { setAuthTokens, setRegisterToken } from '@/lib/api/auth-cookies'
+import { log } from '@/lib/log'
 import { isOAuthProvider, resolvePublicOrigin } from '../../oauth-providers'
 
 interface OAuthResult {
@@ -78,6 +79,7 @@ export async function GET(
         result.token.refreshToken,
         result.token.expiresIn,
       )
+      log.info({ event: 'auth.login', provider }, '🔑 로그인 성공')
       return NextResponse.redirect(new URL('/admin', origin))
     }
 

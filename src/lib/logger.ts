@@ -65,6 +65,25 @@ export async function reportError(
     }
   })();
 
+  // 구조화 stdout 로그 (Discord 알림과 별개 — docker logs/CloudWatch 수집용).
+  // nodejs 가드 + 동적 import 로 Edge·클라 안전. 항상 emit(아래 dev early-return 전).
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    try {
+      const { log } = await import('./log');
+      log.error(
+        {
+          event: 'app_error',
+          action: context.action,
+          url: context.url,
+          err: error instanceof Error ? error : new Error(safeMessage),
+        },
+        `❌ ${context.action || '오류'}`,
+      );
+    } catch {
+      // 구조화 로깅 실패는 무시 — Discord 보고가 주 경로
+    }
+  }
+
   // 개발 환경이거나 웹훅 미설정 시 콘솔만
   if (process.env.NODE_ENV === 'development' || !webhookUrl) {
     console.error('[Error]', context.action || '', safeMessage);

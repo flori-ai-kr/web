@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { withErrorLogging } from '@/lib/errors'
 import { clearAuthTokens, getRefreshToken } from '@/lib/api/auth-cookies'
+import { log } from '@/lib/log'
 
 async function _signOut() {
   const refresh = await getRefreshToken()
@@ -23,6 +24,7 @@ async function _signOut() {
   }
 
   await clearAuthTokens()
+  log.info({ event: 'auth.logout' }, '👋 로그아웃')
   redirect('/login')
 }
 
