@@ -7,23 +7,25 @@ import type { GuideBlock } from '@/lib/guide/types';
 import { headingId } from '@/lib/guide/toc';
 import { renderInline } from '@/lib/guide/inline-render';
 
+// 시맨틱 상태 토큰(--success/warning/info + -soft)을 쓴다. CSS 변수라 .dark 에서 자동으로 뒤집히고
+// (OS prefers-color-scheme 가 아닌) 앱 테마를 따른다 — 라이트/다크 모두 WCAG AA.
 const CALLOUT_STYLES = {
   tip: {
-    container: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800',
+    container: 'bg-success-soft border-success/25',
     icon: '💡',
-    titleClass: 'text-emerald-800 dark:text-emerald-300',
-    textClass: 'text-emerald-700 dark:text-emerald-400',
+    titleClass: 'text-success',
+    textClass: 'text-foreground/80',
   },
   warn: {
-    container: 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+    container: 'bg-warning-soft border-warning/30',
     icon: '⚠️',
-    titleClass: 'text-amber-800 dark:text-amber-300',
-    textClass: 'text-amber-700 dark:text-amber-400',
+    titleClass: 'text-warning',
+    textClass: 'text-foreground/80',
   },
   note: {
-    container: 'bg-brand-muted border-brand/25 dark:border-brand/30',
+    container: 'bg-info-soft border-info/25',
     icon: 'ℹ️',
-    titleClass: 'text-brand',
+    titleClass: 'text-info',
     textClass: 'text-foreground/80',
   },
 } as const;
