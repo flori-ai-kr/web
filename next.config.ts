@@ -15,6 +15,14 @@ const posthogApiHost =
 const posthogAssetsHost = posthogApiHost.replace('.i.posthog.com', '-assets.i.posthog.com');
 const posthogEnabled = !!env.NEXT_PUBLIC_POSTHOG_KEY;
 
+// Google Analytics 4(gtag.js) CSP 허용 도메인. 측정 ID 설정 시에만 추가(미설정 시 최소화).
+// 로더 스크립트는 www.googletagmanager.com(script-src), 이벤트 전송은 *.google-analytics.com
+// (리전 엔드포인트 region1… 포함)·*.analytics.google.com(connect-src). 일부 픽셀 폴백은 img-src.
+const gaEnabled = !!env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+// Microsoft Clarity CSP 허용 도메인. 프로젝트 ID 설정 시에만 추가.
+// 로더(tag/{id})·수집(collect) 모두 *.clarity.ms 로 향한다(script-src·connect-src).
+const clarityEnabled = !!env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+
 const nextConfig: NextConfig = {
   // Docker 배포용 독립 실행 번들(.next/standalone) — server.js + 최소 node_modules만 포함.
   output: 'standalone',
@@ -80,16 +88,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' 'unsafe-inline' https://js.tosspayments.com${posthogEnabled ? ` ${posthogAssetsHost}` : ''}${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+              `script-src 'self' 'unsafe-inline' https://js.tosspayments.com${posthogEnabled ? ` ${posthogAssetsHost}` : ''}${gaEnabled ? ' https://www.googletagmanager.com' : ''}${clarityEnabled ? ' https://www.clarity.ms' : ''}${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
-              `img-src 'self' data: blob:${storageHostname ? ` https://${storageHostname}` : ''} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com`,
+              `img-src 'self' data: blob:${storageHostname ? ` https://${storageHostname}` : ''} https://*.cdninstagram.com https://*.fbcdn.net https://images.unsplash.com${gaEnabled ? ' https://www.googletagmanager.com https://*.google-analytics.com' : ''}${clarityEnabled ? ' https://*.clarity.ms' : ''}`,
               `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:`,
               // 토스페이먼츠 빌링 인증창(/billing-demo)은 토스 도메인에서 iframe 으로 뜬다(frame-src).
               `frame-src 'self' https://*.tosspayments.com`,
               // 브라우저 직접 업로드(presigned PUT) + 원본 다운로드(presigned GET)는 S3 버킷 호스트로
               // 향한다(<bucket>.s3.<region>.amazonaws.com). 공개 읽기는 CloudFront(img-src)라 별개다.
               // 토스 SDK 는 *.tosspayments.com 으로 결제/인증 API 를 호출한다(connect-src).
-              `connect-src 'self' https://*.tosspayments.com https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}${posthogEnabled ? ` ${posthogApiHost}` : ''}`,
+              `connect-src 'self' https://*.tosspayments.com https://*.s3.ap-northeast-2.amazonaws.com${storageHostname ? ` https://${storageHostname}` : ''}${posthogEnabled ? ` ${posthogApiHost} ${posthogAssetsHost}` : ''}${gaEnabled ? ' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com' : ''}${clarityEnabled ? ' https://*.clarity.ms' : ''}`,
               `frame-ancestors 'none'`,
               "base-uri 'self'",
               "form-action 'self' https://*.tosspayments.com",
