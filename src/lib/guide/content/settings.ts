@@ -107,7 +107,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '휴대폰에서 알림 받기' },
       {
         type: 'paragraph',
-        text: '휴대폰으로 푸시 알림을 받으려면 flori를 **홈 화면에 추가해 주셔야 해요.** 추가하는 방법은 [모바일에서 앱으로 사용하기](/admin/guide/mobile-app)에서 안내하고 있어요.',
+        text: '휴대폰으로 푸시 알림을 받으려면 flori를 **홈 화면에 추가해 주셔야 해요.** 추가하는 방법은 [모바일에서 앱으로 사용하기](/admin/guide/mobile-app)에서 안내드리고 있어요.',
       },
       {
         type: 'callout',
