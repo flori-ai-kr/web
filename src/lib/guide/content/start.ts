@@ -66,11 +66,6 @@ export const START_ARTICLES: GuideArticle[] = [
         ],
       },
 
-      { type: 'heading', text: '다음 단계' },
-      {
-        type: 'paragraph',
-        text: '가장 자주 쓰는 [매출 기록하기](/admin/guide/sales)부터 익혀보세요. 하루 1분이면 충분해요.',
-      },
     ],
   },
   {
