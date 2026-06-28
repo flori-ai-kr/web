@@ -194,7 +194,7 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '미리 알림 받기' },
       {
         type: 'paragraph',
-        text: '예약에 **리마인더**를 설정하면 픽업 시간 전(기본 **2시간 전**)에 푸시 알림이 와요. 또 매일 **오전 8시**에 그날 픽업 요약도 보내드려요.',
+        text: '예약에 **리마인더**를 설정하면 픽업 시간 전(기본 **3시간 전**)에 푸시 알림이 와요. 또 매일 **오전 8시**에 그날 픽업 요약도 보내드려요.',
       },
       {
         type: 'callout',

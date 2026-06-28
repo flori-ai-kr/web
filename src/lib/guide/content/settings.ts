@@ -68,17 +68,23 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
     description: '예약 리마인더·픽업 요약·커뮤니티 댓글 등 받고 싶은 알림을 골라 설정해요.',
     icon: 'bell',
     tldr: [
-      '알림 종류별로 켜고 끌 수 있어요',
+      '처음에는 알림이 꺼져 있어요 — 먼저 켜(활성화) 주세요',
       '예약 리마인더·일일 픽업 요약 등 필요한 알림만 받아요',
-      '휴대폰에서 받으려면 홈 화면에 추가하는 게 좋아요',
+      '휴대폰에서 받으려면 홈 화면에 추가해 주셔야 해요',
     ],
     blocks: [
       { type: 'heading', text: '알림 설정 화면' },
       {
         type: 'paragraph',
-        text: '**설정**의 **알림** 항목에서 종류별 토글로 원하는 알림만 켤 수 있어요.',
+        text: '**설정**의 **푸시 알림**에서 알림을 켜고, 종류별 토글로 원하는 알림만 받을 수 있어요.',
       },
-      { type: 'shot', src: 'notifications/01-settings', alt: '알림 설정 목록', caption: '종류별 켜고 끄기' },
+      {
+        type: 'callout',
+        variant: 'warn',
+        title: '먼저 알림을 켜 주세요',
+        text: '처음에는 푸시 알림이 **꺼져 있어요.** 화면 위쪽 **푸시 알림**에서 **[켜기]**를 눌러 **활성화**해 주셔야 알림이 와요.',
+      },
+      { type: 'shot', src: 'notifications/01-settings', kind: 'png', alt: '알림 설정 화면', caption: '위쪽에서 알림을 켜고, 종류별로 토글' },
 
       { type: 'heading', text: '알림 종류' },
       {
@@ -101,7 +107,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '휴대폰에서 알림 받기' },
       {
         type: 'paragraph',
-        text: '휴대폰으로 푸시 알림을 받으려면 flori를 **홈 화면에 추가**해 두는 게 좋아요. 추가하는 방법은 [모바일에서 앱으로 사용하기](/admin/guide/mobile-app)에서 안내하고 있어요.',
+        text: '휴대폰으로 푸시 알림을 받으려면 flori를 **홈 화면에 추가해 주셔야 해요.** 추가하는 방법은 [모바일에서 앱으로 사용하기](/admin/guide/mobile-app)에서 안내하고 있어요.',
       },
       {
         type: 'callout',
@@ -115,7 +121,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
         items: [
           {
             q: '예약 리마인더는 언제 와요?',
-            a: '예약을 등록할 때 정한 리마인더 시간(기본 픽업 2시간 전)에 푸시로 와요.',
+            a: '예약을 등록할 때 정한 리마인더 시간(기본 픽업 3시간 전)에 푸시로 와요.',
           },
         ],
       },
