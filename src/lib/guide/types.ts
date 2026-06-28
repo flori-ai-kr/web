@@ -12,6 +12,13 @@ export interface GuideTab {
   blocks: GuideBlock[];
 }
 
+/** phone-steps 블록의 한 단계: 폰 목업 스크린샷 + 번호 캡션. */
+export interface PhoneStep {
+  src: string;
+  kind?: 'image' | 'gif' | 'png';
+  caption: string;
+}
+
 /** 본문을 구성하는 블록. paragraph/steps/bullets/callout/faq 텍스트는 인라인 **굵게**·[링크](href) 지원. */
 export type GuideBlock =
   | { type: 'heading'; text: string } // h2 → 우측 TOC 자동 등록
@@ -21,7 +28,8 @@ export type GuideBlock =
   | { type: 'shot'; src: string; alt: string; caption?: string; kind?: 'image' | 'gif' | 'png' }
   | { type: 'callout'; variant: 'tip' | 'warn' | 'note'; title?: string; text: string }
   | { type: 'faq'; items: GuideFaqItem[] }
-  | { type: 'tabs'; tabs: GuideTab[] };
+  | { type: 'tabs'; tabs: GuideTab[] }
+  | { type: 'phone-steps'; items: PhoneStep[] };
 
 export interface GuideArticle {
   /** URL slug. /admin/guide/<slug> */

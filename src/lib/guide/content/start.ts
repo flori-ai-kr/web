@@ -98,22 +98,12 @@ export const START_ARTICLES: GuideArticle[] = [
             label: '안드로이드',
             blocks: [
               {
-                type: 'steps',
+                type: 'phone-steps',
                 items: [
-                  '**크롬**(또는 삼성 인터넷)으로 flori에 접속해요.',
-                  '오른쪽 위 **⋮ (점 세 개)** 메뉴를 눌러요.',
-                  '**[홈 화면에 추가]**를 누르고, 뜨는 화면에서 **[설치]**를 선택해요.',
-                  '**[설치]**를 한 번 더 누르면 홈 화면에 flori 앱이 생겨요.',
+                  { src: 'mobile-app/android-01', kind: 'png', caption: '**크롬**(또는 삼성 인터넷)으로 flori를 열어요.' },
+                  { src: 'mobile-app/android-02', kind: 'png', caption: '오른쪽 위 **⋮** → **[홈 화면에 추가]** → **[설치]**를 선택해요.' },
+                  { src: 'mobile-app/android-03', kind: 'png', caption: '**[설치]**를 누르면 홈 화면에 flori 앱이 생겨요.' },
                 ],
-              },
-              { type: 'shot', src: 'mobile-app/android-01', kind: 'png', alt: '크롬 앱 열기', caption: '① 크롬 앱을 열어요' },
-              { type: 'shot', src: 'mobile-app/android-02', kind: 'png', alt: '홈 화면에 추가 → 설치 선택', caption: '② 메뉴 → 홈 화면에 추가 → [설치]' },
-              { type: 'shot', src: 'mobile-app/android-03', kind: 'png', alt: '앱 설치 확인', caption: '③ [설치]를 누르면 끝이에요' },
-              {
-                type: 'callout',
-                variant: 'note',
-                title: "'설치'와 '바로가기'의 차이",
-                text: '**설치**는 flori를 진짜 앱처럼 설치해요 — 홈 화면 아이콘으로 바로 열리고, 주소창 없이 전체화면으로 쓰며, 알림도 안정적이에요. **바로가기 만들기**는 눌러도 크롬에서 열리는 단순 바로가기예요. **[설치]**를 권장해요.',
               },
               {
                 type: 'callout',
@@ -126,16 +116,17 @@ export const START_ARTICLES: GuideArticle[] = [
             label: '아이폰 (iOS)',
             blocks: [
               {
-                type: 'steps',
+                type: 'paragraph',
+                text: '**사파리**로 flori에 접속한 뒤 따라 해보세요. (여기서는 사파리 기준이에요.)',
+              },
+              {
+                type: 'phone-steps',
                 items: [
-                  '**사파리**로 flori에 접속해요. (여기서는 사파리 기준으로 안내하지만, 크롬에서도 비슷하게 할 수 있어요)',
-                  '화면 아래쪽 가운데의 **공유 버튼**(네모에 위 화살표 모양)을 눌러요.',
-                  '목록을 내려 **[홈 화면에 추가]**를 눌러요.',
-                  '오른쪽 위 **[추가]**를 누르면 끝이에요.',
+                  { src: 'mobile-app/ios-01', kind: 'png', caption: '화면 아래쪽 **⋯**(점 세 개)를 누르고 **[공유]**를 눌러요.' },
+                  { src: 'mobile-app/ios-02', kind: 'png', caption: '공유 시트를 내려 **[홈 화면에 추가]**를 눌러요.' },
+                  { src: 'mobile-app/ios-03', kind: 'png', caption: '오른쪽 위 **[추가]**를 누르면 끝이에요.' },
                 ],
               },
-              { type: 'shot', src: 'mobile-app/ios-01', kind: 'png', alt: '사파리 공유 시트의 홈 화면에 추가', caption: '사파리 공유 → 홈 화면에 추가' },
-              { type: 'shot', src: 'mobile-app/ios-02', kind: 'png', alt: '홈 화면에 추가 확인 화면', caption: '우상단 [추가]를 누르면 끝이에요' },
             ],
           },
         ],

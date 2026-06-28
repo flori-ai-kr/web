@@ -103,6 +103,62 @@ function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) 
   );
 }
 
+/** 휴대폰 목업 프레임 안에 세로 스크린샷을 표시. */
+function PhoneShot({ src, alt }: { src: string; alt: string }) {
+  const [ratio, setRatio] = useState<number | null>(null);
+  const [error, setError] = useState(false);
+  return (
+    <div className="mx-auto w-full max-w-[210px] rounded-[1.9rem] bg-[#1b1b1f] p-[5px] shadow-sm">
+      <div
+        className="relative overflow-hidden rounded-[1.55rem] bg-muted"
+        style={{ aspectRatio: ratio ?? 9 / 19.5 }}
+      >
+        {error ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
+            준비 중
+          </div>
+        ) : (
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            className="object-cover"
+            sizes="210px"
+            onError={() => setError(true)}
+            onLoad={e => {
+              const img = e.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setRatio(img.naturalWidth / img.naturalHeight);
+              }
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PhoneStepsBlock({ block }: { block: Extract<GuideBlock, { type: 'phone-steps' }> }) {
+  return (
+    <ol className="mb-6 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+      {block.items.map((item, i) => {
+        const ext = item.kind === 'gif' ? 'gif' : item.kind === 'png' ? 'png' : 'webp';
+        return (
+          <li key={i} className="flex flex-col gap-3">
+            <PhoneShot src={`/guide/${item.src}.${ext}`} alt={item.caption} />
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-brand-foreground">
+                {i + 1}
+              </span>
+              <span className="text-sm leading-relaxed text-muted-foreground">{renderInline(item.caption)}</span>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function TabsBlock({ block }: { block: Extract<GuideBlock, { type: 'tabs' }> }) {
   const [active, setActive] = useState(0);
   const current = block.tabs[active] ?? block.tabs[0];
@@ -188,6 +244,9 @@ export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; b
 
     case 'tabs':
       return <TabsBlock block={block} />;
+
+    case 'phone-steps':
+      return <PhoneStepsBlock block={block} />;
 
     case 'callout': {
       const style = CALLOUT_STYLES[block.variant];
