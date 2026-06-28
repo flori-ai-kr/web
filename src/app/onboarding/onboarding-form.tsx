@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { AGE_RANGES, INTERESTS, REFERRAL_SOURCES, SIDO, SPECIALTIES } from '@/lib/onboarding-options'
 import { PRIVACY_POLICY_URL } from '@/lib/constants'
 import { checkNickname, completeRegistration } from './actions'
+import { ConsentAgreements, type ConsentValue } from './consent-agreements'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** 온보딩 입력 임시저장 키(sessionStorage). 정책 페이지 이동·새로고침·뒤로가기 시 입력값 보존. */
@@ -31,11 +32,12 @@ function formatPhone(value: string): string {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`
 }
 
-function StepIndicator({ step }: { step: 1 | 2 }) {
+function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
-    <div className="flex items-center justify-center gap-2" aria-label={`2단계 중 ${step}단계`}>
-      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 1 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
-      <span className={cn('h-1.5 w-8 rounded-full transition-colors', step >= 2 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
+    <div className="flex items-center justify-center gap-2" aria-label={`3단계 중 ${step}단계`}>
+      <span className={cn('h-1.5 w-7 rounded-full transition-colors', step >= 1 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
+      <span className={cn('h-1.5 w-7 rounded-full transition-colors', step >= 2 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
+      <span className={cn('h-1.5 w-7 rounded-full transition-colors', step >= 3 ? 'bg-brand' : 'bg-border')} aria-hidden="true" />
     </div>
   )
 }
@@ -78,7 +80,7 @@ export function OnboardingForm({
   defaultOwnerName: string
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
 
   // Step 1 (필수)
   const [ownerName, setOwnerName] = useState(defaultOwnerName)
@@ -94,6 +96,10 @@ export function OnboardingForm({
   const [interests, setInterests] = useState<string[]>([])
   const [specialties, setSpecialties] = useState<string[]>([])
   const [referralSources, setReferralSources] = useState<string[]>([])
+
+  // Step 3 (동의) — 필수 2(이용약관·개인정보) + 선택 1(마케팅)
+  const [consent, setConsent] = useState<ConsentValue>({ terms: false, privacy: false, marketing: false })
+  const requiredConsent = consent.terms && consent.privacy
 
   const [error, setError] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -188,6 +194,12 @@ export function OnboardingForm({
     setStep(2)
   }
 
+  const goToStep3 = () => {
+    if (!step2Valid) return
+    setError(null)
+    setStep(3)
+  }
+
   // 닉네임 중복확인. 200=사용가능 / 409=중복. 'available'이어야 step1Valid 성립(다음/완료 가능).
   const handleNicknameCheck = async () => {
     const value = nickname.trim()
@@ -221,6 +233,12 @@ export function OnboardingForm({
       return
     }
 
+    if (!requiredConsent) {
+      setStep(3)
+      setError('필수 약관에 동의해 주세요.')
+      return
+    }
+
     setError(null)
     setEmailError(null)
     setNicknameError(null)
@@ -238,6 +256,9 @@ export function OnboardingForm({
       interests,
       specialties,
       referralSources,
+      termsAgreed: consent.terms,
+      privacyAgreed: consent.privacy,
+      marketingAgreed: consent.marketing,
     })
 
     // 성공 시 액션이 redirect 하므로 여기로 돌아오지 않는다. 임시저장 정리(베스트에포트).
@@ -297,7 +318,7 @@ export function OnboardingForm({
 
         <StepIndicator step={step} />
 
-        {step === 1 ? (
+        {step === 1 && (
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -464,11 +485,13 @@ export function OnboardingForm({
               다음
             </Button>
           </form>
-        ) : (
+        )}
+
+        {step === 2 && (
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              void handleComplete()
+              goToStep3()
             }}
             className="space-y-6"
           >
@@ -556,7 +579,51 @@ export function OnboardingForm({
                 <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
                 이전
               </Button>
-              <Button type="submit" className="h-10 flex-1" disabled={isLoading || !step2Valid}>
+              <Button type="submit" className="h-10 flex-1" disabled={!step2Valid}>
+                다음
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {step === 3 && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleComplete()
+            }}
+            className="space-y-6"
+          >
+            <div className="text-center">
+              <h2 className="text-base font-semibold text-foreground">약관에 동의해주세요</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                서비스 이용을 위해 아래 약관 확인이 필요해요.
+              </p>
+            </div>
+
+            <ConsentAgreements value={consent} onChange={setConsent} disabled={isLoading} />
+
+            {error && (
+              <p className="text-sm text-destructive text-center" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 flex-1"
+                disabled={isLoading}
+                onClick={() => {
+                  setError(null)
+                  setStep(2)
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" aria-hidden="true" />
+                이전
+              </Button>
+              <Button type="submit" className="h-10 flex-1" disabled={isLoading || !requiredConsent}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />}
                 {isLoading ? '저장하는 중...' : '시작하기'}
               </Button>

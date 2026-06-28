@@ -1,11 +1,15 @@
 import type { PaymentMethod, ReservationChannel, ExpenseCategory } from '@/types/database';
 
-// ─── 외부 사이트 링크 ──────────────────────────────────────────
-// 정책 문서(개인정보·약관)는 별도 홈페이지(flori.ai.kr)가 canonical 로 보유한다.
-// admin 은 중복 보유하지 않고 절대경로로 링크만 한다(개정 시 어긋남 방지).
+// ─── 정책 문서 링크 (admin 내부 페이지) ────────────────────────
+// 가입 동의·푸터의 "보기"가 홈페이지(flori.ai.kr)로 튕기지 않고 admin 안에서 바로 열리도록
+// 내부 라우트(/policy/*)로 보유한다. 내용은 홈페이지 정책과 동일하게 동기화한다(legal SSOT).
 export const HOMEPAGE_URL = 'https://flori.ai.kr';
-export const PRIVACY_POLICY_URL = `${HOMEPAGE_URL}/policy/privacy`;
-export const TERMS_URL = `${HOMEPAGE_URL}/policy/terms`;
+export const PRIVACY_POLICY_URL = '/policy/privacy';
+export const TERMS_URL = '/policy/terms';
+export const MARKETING_CONSENT_URL = '/policy/marketing';
+
+// 동의 약관/처리방침 버전(시행일). api DEFAULT_POLICY_VERSION 과 일치시킨다.
+export const POLICY_VERSION = '2026-06-19';
 
 // ─── 결제방식 라벨 ─────────────────────────────────────────────
 export const PAYMENT_LABELS: Record<string, string> = {

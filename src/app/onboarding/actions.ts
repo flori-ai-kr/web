@@ -7,6 +7,7 @@ import {
   setAuthTokens,
 } from '@/lib/api/auth-cookies'
 import { REFERRAL_SOURCES } from '@/lib/onboarding-options'
+import { POLICY_VERSION } from '@/lib/constants'
 import { log } from '@/lib/log'
 
 // 참여경로 허용값 화이트리스트 — Server Action은 우회 호출이 가능하므로 임의/대형 입력을 웹에서 차단(방어 심층).
@@ -35,6 +36,12 @@ export interface RegistrationInput {
   specialties?: string[]
   /** flori를 알게 된 경로 (필수, 다중) */
   referralSources: string[]
+  /** 이용약관 동의 (필수) */
+  termsAgreed: boolean
+  /** 개인정보 수집·이용 동의 (필수) */
+  privacyAgreed: boolean
+  /** 마케팅·혜택 정보 수신 동의 (선택) */
+  marketingAgreed: boolean
 }
 
 interface TokenResponse {
@@ -108,6 +115,11 @@ export async function completeRegistration(
     return { error: '필수 항목을 모두 입력해 주세요.', kind: 'unknown' }
   }
 
+  // 필수 동의 방어(Server Action 우회 호출 차단). 정상 플로우는 온보딩 폼 게이트에서 이미 강제됨.
+  if (input.termsAgreed !== true || input.privacyAgreed !== true) {
+    return { error: '필수 약관에 동의해 주세요.', kind: 'unknown' }
+  }
+
   const sigungu = input.regionSigungu?.trim()
   const referralSources = (input.referralSources ?? [])
     .filter((v): v is string => typeof v === 'string' && ALLOWED_REFERRAL_SOURCES.has(v))
@@ -127,6 +139,10 @@ export async function completeRegistration(
       ? { specialties: input.specialties }
       : {}),
     referralSources,
+    termsAgreed: input.termsAgreed,
+    privacyAgreed: input.privacyAgreed,
+    marketingAgreed: input.marketingAgreed,
+    policyVersion: POLICY_VERSION,
   }
 
   const base = process.env.API_URL ?? 'http://localhost:8080'
