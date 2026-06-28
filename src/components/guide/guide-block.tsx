@@ -63,9 +63,15 @@ function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) 
   const [ratio, setRatio] = useState<number | null>(null);
   const ext = block.kind === 'gif' ? 'gif' : block.kind === 'png' ? 'png' : 'webp';
   const src = `/guide/${block.src}.${ext}`;
+  // 세로(폰) 스크린샷은 본문 폭을 꽉 채우면 과도하게 커지므로 폰 크기로 좁혀 가운데 정렬.
+  const isPortrait = ratio !== null && ratio < 0.9;
 
   return (
-    <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-muted/30">
+    <figure
+      className={`mb-6 overflow-hidden rounded-xl border border-border bg-muted/30 ${
+        isPortrait ? 'mx-auto w-full max-w-[300px]' : ''
+      }`}
+    >
       <div className="relative w-full" style={{ aspectRatio: ratio ?? 16 / 9 }}>
         {error ? (
           <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">

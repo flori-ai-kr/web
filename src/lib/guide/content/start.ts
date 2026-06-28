@@ -102,12 +102,19 @@ export const START_ARTICLES: GuideArticle[] = [
                 items: [
                   '**크롬**(또는 삼성 인터넷)으로 flori에 접속해요.',
                   '오른쪽 위 **⋮ (점 세 개)** 메뉴를 눌러요.',
-                  '**[앱 설치]** 또는 **[홈 화면에 추가]**를 눌러요.',
-                  '**추가**를 누르면 홈 화면에 flori 아이콘이 생겨요.',
+                  '**[홈 화면에 추가]**를 누르고, 뜨는 화면에서 **[설치]**를 선택해요.',
+                  '**[설치]**를 한 번 더 누르면 홈 화면에 flori 앱이 생겨요.',
                 ],
               },
-              { type: 'shot', src: 'mobile-app/android-01', kind: 'png', alt: '안드로이드 크롬 메뉴에서 앱 설치', caption: '크롬 ⋮ 메뉴 → 앱 설치' },
-              { type: 'shot', src: 'mobile-app/android-02', kind: 'png', alt: '홈 화면에 추가 확인', caption: '추가를 누르면 끝이에요' },
+              { type: 'shot', src: 'mobile-app/android-01', kind: 'png', alt: '크롬 앱 열기', caption: '① 크롬 앱을 열어요' },
+              { type: 'shot', src: 'mobile-app/android-02', kind: 'png', alt: '홈 화면에 추가 → 설치 선택', caption: '② 메뉴 → 홈 화면에 추가 → [설치]' },
+              { type: 'shot', src: 'mobile-app/android-03', kind: 'png', alt: '앱 설치 확인', caption: '③ [설치]를 누르면 끝이에요' },
+              {
+                type: 'callout',
+                variant: 'note',
+                title: "'설치'와 '바로가기'의 차이",
+                text: '**설치**는 flori를 진짜 앱처럼 설치해요 — 홈 화면 아이콘으로 바로 열리고, 주소창 없이 전체화면으로 쓰며, 알림도 안정적이에요. **바로가기 만들기**는 눌러도 크롬에서 열리는 단순 바로가기예요. **[설치]**를 권장해요.',
+              },
               {
                 type: 'callout',
                 variant: 'note',
