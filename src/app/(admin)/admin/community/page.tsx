@@ -15,7 +15,7 @@ export default async function CommunityPage({
     | CommunityCategory
     | undefined;
 
-  const posts = await getCommunityPosts({ category });
+  const { posts, hasMore } = await getCommunityPosts({ category });
 
-  return <CommunityClient initialPosts={posts} activeCategory={category ?? null} />;
+  return <CommunityClient initialPosts={posts} initialHasMore={hasMore} activeCategory={category ?? null} />;
 }

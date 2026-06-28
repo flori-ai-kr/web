@@ -132,12 +132,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw await toAppError(res);
   }
 
-  // 204 No Content 등 본문이 없는 응답 처리
+  // 본문이 없는 응답 처리 — 204뿐 아니라 200+빈 본문(BFF가 void 엔드포인트에서 빈 바디 반환)도 안전 처리.
+  // (빈 바디에 res.json() 하면 "Unexpected end of JSON input"로 터짐)
   if (res.status === 204) {
     return undefined as T;
   }
-
-  return (await res.json()) as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 // ─── 내부(서버↔서버) API 클라이언트 ───────────────────────────
@@ -159,5 +161,7 @@ export async function apiFetchInternal<T>(path: string, init: RequestInit = {}):
 
   if (!res.ok) throw await toAppError(res);
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }

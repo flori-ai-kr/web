@@ -14,6 +14,7 @@ const MAX_PHOTOS_PER_CARD = 10;
 interface PhotoFileDto {
   url: string;
   originalName: string;
+  size?: number;
 }
 
 interface PhotoCardDto {
@@ -56,7 +57,7 @@ function toPhotoCard(dto: PhotoCardDto): PhotoCard {
     title: dto.title,
     memo: dto.memo,
     tags: dto.tags || [],
-    photos: dto.photos || [],
+    photos: (dto.photos ?? []).map((p) => ({ url: p.url, originalName: p.originalName, size: p.size ?? 0 })),
     sale_id: dto.saleId,
     customer_id: dto.customerId != null ? String(dto.customerId) : null,
     customer_name: dto.customerName ?? null,
@@ -342,7 +343,7 @@ async function _reorderPhotos(cardId: string, photos: PhotoFile[]): Promise<void
   await apiFetch<PhotoCardDto>(`/photo-cards/${cardId}/photos/reorder`, {
     method: 'PATCH',
     body: JSON.stringify({
-      photos: photos.map((p) => ({ url: p.url, originalName: p.originalName })),
+      photos: photos.map((p) => ({ url: p.url, originalName: p.originalName, size: p.size })),
     }),
   });
 }
@@ -388,7 +389,7 @@ async function _downloadAllPhotos(cardId: string): Promise<{ urls: Array<{ url: 
   }
 
   const results = await Promise.all(
-    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName })),
+    photos.map((photo) => downloadPhoto(cardId, { url: photo.url, originalName: photo.originalName, size: photo.size ?? 0 })),
   );
   const downloadUrls = results.filter((r): r is { url: string; filename: string } => r !== null);
 
@@ -437,7 +438,8 @@ async function _createOrUpdatePhotoCardForSale(
   title: string,
   photos: PhotoFile[],
   memo?: string | null,
-  tags?: string[]
+  tags?: string[],
+  customerId?: string | null
 ): Promise<PhotoCard> {
   await requireAuth();
 
@@ -447,6 +449,8 @@ async function _createOrUpdatePhotoCardForSale(
   const existingCard = await getPhotoCardBySaleId(saleId);
 
   if (existingCard) {
+    // 수정 시에는 고객 신호를 보내지 않는다 — 서버가 customer_id가 비어 있을 때만 매출 고객을 백필하므로,
+    // 사진첩에서 수동 연결한 고객이 덮어써지지 않는다.
     const dto = await apiFetch<PhotoCardDto>(`/photo-cards/${existingCard.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -467,6 +471,8 @@ async function _createOrUpdatePhotoCardForSale(
       tags: tags || [],
       photos: photoPayload,
       saleId,
+      // 매출의 고객을 사진 카드에 함께 연결. 서버도 saleId로부터 상속하지만, 명시 전달로 이중 보장(방어 심화).
+      customerId: customerId ? Number(customerId) : null,
     }),
   });
   return toPhotoCard(dto);

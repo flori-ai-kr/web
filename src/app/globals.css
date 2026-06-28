@@ -99,8 +99,8 @@
        --neutral-500 == --muted-foreground (#717B88)
        --neutral-900 == --foreground      (#1C2024 ink) */
   --neutral-50:  #F4F6F9;
-  --neutral-100: #E8ECF1;
-  --neutral-200: #DDE2E9;
+  --neutral-100: #F4ECF0;
+  --neutral-200: #F0E6EC;
   --neutral-300: #C7CDD6;
   --neutral-400: #A4ADB9;
   --neutral-500: #717B88;
@@ -163,8 +163,8 @@
      --chart-1      : #A85475  (rose peak)
      --chart-2..5   : ink opacity ladder (monochrome)
   */
-  /* Cool 캔버스 (slate 오프화이트 — 흰 카드가 떠오르는 elevation) */
-  --background: #EEF1F5;
+  /* Soft Rose Tint 캔버스 (브랜드 로즈를 옅게 깐 따뜻한 화이트 — 흰 카드 elevation) */
+  --background: #FCF7F9;
   --foreground: #1C2024;
   /* 카드: 순백 */
   --card: #FFFFFF;
@@ -174,16 +174,16 @@
   /* 프라이머리: cool near-black */
   --primary: #1C2024;
   --primary-foreground: #F6F8FA;
-  --secondary: #E8ECF1;
+  --secondary: #F4ECF0;
   --secondary-foreground: #1C2024;
   /* 뮤트: cool slate 회색 */
-  --muted: #E8ECF1;
+  --muted: #F4ECF0;
   --muted-foreground: #717B88;
-  --accent: #E8ECF1;
+  --accent: #F4ECF0;
   --accent-foreground: #1C2024;
   --destructive: #E5484D;
-  --border: #DDE2E9;
-  --input: #DDE2E9;
+  --border: #F0E6EC;
+  --input: #F0E6EC;
   --ring: #A85475;
   /* 브랜드: Dusty Deep Rose — contrast: white-on-brand ~5.01:1 (유지) */
   --brand: #A85475;
@@ -191,7 +191,7 @@
   --brand-muted: #F7E9EF;
   /* 서브: cool slate 중립 (cool 베이스 위 조용한 보조) */
   --sage: #8A929E;
-  --sage-muted: #E8ECF1;
+  --sage-muted: #F4ECF0;
   /* 차트: 로즈 피크 + cool 잉크 불투명도 사다리 */
   --chart-1: #A85475;
   --chart-2: rgba(28, 32, 36, 0.55);
@@ -203,9 +203,9 @@
   --sidebar-foreground: #5C636E;
   --sidebar-primary: #1C2024;
   --sidebar-primary-foreground: #F6F8FA;
-  --sidebar-accent: #E8ECF1;
+  --sidebar-accent: #F4ECF0;
   --sidebar-accent-foreground: #1C2024;
-  --sidebar-border: #DDE2E9;
+  --sidebar-border: #F0E6EC;
   --sidebar-ring: #A85475;
   /* AI 기능 그라데이션 (런처/브리핑/OCR 공통 — 하드코딩 #E89BB6,#D2789A 대체) */
   --ai-grad-from: #E89BB6;
@@ -213,23 +213,33 @@
 }
 
 .dark {
-  --background: #101317;
-  --foreground: #E7EBF0;
-  --card: #1E242C;
-  --card-foreground: #E7EBF0;
-  --popover: #1E242C;
-  --popover-foreground: #E7EBF0;
-  --primary: #E7EBF0;
-  --primary-foreground: #101317;
-  --secondary: #252C35;
-  --secondary-foreground: #E7EBF0;
-  --muted: #252C35;
-  --muted-foreground: #8B95A2;
-  --accent: #252C35;
-  --accent-foreground: #E7EBF0;
+  /* ── Warm Plum Dark — 2026-06-27 재설계 (session2-darkmode) ──────────────
+     라이트의 따뜻한 로즈 캔버스를 다크에 이식(플럼 틴트) + Material식
+     '위로 갈수록 밝게' elevation 사다리 + 본문 톤다운(순백 번짐 완화).
+     명도 L*: bg 7.7 < card 13.7 < secondary 17.1 < popover 19.1 < border 27.8.
+     배경을 순흑(구 L*5.8)에서 들어올려 '덜 까맣게', 카드 밝기는 유지해 부상감↑.
+     본문 대비 14:1(과대비 완화), 보조 6.5:1 — 전부 WCAG AA↑.
+     다크는 그림자가 안 보이므로 '밝기 단차 + 가시적 보더'가 분리의 주 단서. */
+  --background: #191520;   /* 캔버스 — 순흑 회피·플럼 온기 (L*7.7) */
+  --foreground: #E7E1EA;   /* 본문 — 순백 대신 오프화이트 (L*90.2, halation 완화) */
+  /* 카드 = '종이' 표면, 캔버스 위로 부상 (bg→card ΔL*6.1) */
+  --card: #272031;
+  --card-foreground: #E7E1EA;
+  /* 팝오버/메뉴 = 최상위 부유 표면(가장 밝은 종이) */
+  --popover: #332B3E;
+  --popover-foreground: #E7E1EA;
+  /* 프라이머리: near-white (다크 반전) */
+  --primary: #E7E1EA;
+  --primary-foreground: #191520;
+  /* secondary/muted/accent = 카드 내부 인셋·호버 (카드보다 살짝 밝게) */
+  --secondary: #2E2738;
+  --secondary-foreground: #E7E1EA;
+  --muted: #2E2738;
+  --muted-foreground: #ADA3B8;   /* 보조 텍스트 — 밝기↑ (카드 위 6.5:1) */
+  --accent: #2E2738;
+  --accent-foreground: #E7E1EA;
   --destructive: #E5484D;
-  /* Tier 2 status — dark overrides: brighter base for AA on dark
-     surfaces (#1C1819), soft = low-alpha tint of the base. */
+  /* Tier 2 status — dark overrides (유지). soft = base의 low-alpha 틴트. */
   --success: #5FB088;
   --success-foreground: #0F2418;
   --success-soft: rgba(95, 176, 136, 0.16);
@@ -242,33 +252,35 @@
   --danger: #F0686C;
   --danger-foreground: #2A0A0B;
   --danger-soft: rgba(240, 104, 108, 0.16);
-  --border: #2C333D;
-  --input: #2C333D;
-  --ring: #DB8FA9;
-  /* 다크 브랜드: 라이트 더스티 로즈 (어두운 배경 위 — white-on-brand 불필요, 버튼 bg-brand 대비 확인:
-     #DB8FA9 on #1C1819: bg가 어두움→ 텍스트는 dark bg 위 light rose, 버튼은 rose bg 위 dark text 권장.
-     dark 모드 bg-brand 버튼은 dark text(--foreground) 사용 권장. brand-foreground = dark ink) */
-  --brand: #DB8FA9;
-  --brand-foreground: #101317;
-  --brand-muted: #3A2430;
-  /* 다크 서브: cool slate 뉴트럴 */
-  --sage: #8B95A2;
-  --sage-muted: #252C35;
-  /* 다크 차트 */
-  --chart-1: #DB8FA9;
-  --chart-2: rgba(231, 235, 240, 0.50);
-  --chart-3: rgba(231, 235, 240, 0.35);
-  --chart-4: rgba(231, 235, 240, 0.20);
-  --chart-5: rgba(231, 235, 240, 0.10);
-  --sidebar: #15181D;
-  --sidebar-foreground: #7E8794;
-  --sidebar-primary: #E7EBF0;
-  --sidebar-primary-foreground: #101317;
-  --sidebar-accent: #252C35;
-  --sidebar-accent-foreground: #E7EBF0;
-  --sidebar-border: #2C333D;
-  --sidebar-ring: #DB8FA9;
-  /* 다크 AI 그라데이션 — 어두운 배경 위 과도한 채도 방지 */
+  /* 보더: 그림자가 안 보이는 다크에서 표면 분리의 주 단서 → 가시화
+     (카드 대비 ΔL*≈14). 입력 필드도 동일. */
+  --border: #473E52;
+  --input: #473E52;
+  --ring: #E2A6BF;
+  /* 다크 브랜드: 라이트 로즈를 한 단계 더 밝게(M3 dark tone~80).
+     bg-brand 버튼은 dark ink 텍스트(brand-foreground) 사용 — 카드 위 7.8:1. */
+  --brand: #E2A6BF;
+  --brand-foreground: #1B121A;
+  --brand-muted: #3D2433;
+  /* 다크 서브: warm plum 뉴트럴 (쿨 슬레이트 → 온기) */
+  --sage: #A398AF;
+  --sage-muted: #2E2738;
+  /* 다크 차트 — peak는 브랜드, 2~5는 오프화이트 불투명도 사다리 */
+  --chart-1: #E2A6BF;
+  --chart-2: rgba(231, 225, 234, 0.50);
+  --chart-3: rgba(231, 225, 234, 0.35);
+  --chart-4: rgba(231, 225, 234, 0.20);
+  --chart-5: rgba(231, 225, 234, 0.10);
+  /* 사이드바/헤더 = 카드와 같은 '종이'(캔버스에서 분리) — 라이트 패리티 복원 (bg→sidebar ΔL*6.1) */
+  --sidebar: #272031;
+  --sidebar-foreground: #A398AF;
+  --sidebar-primary: #E7E1EA;
+  --sidebar-primary-foreground: #191520;
+  --sidebar-accent: #2E2738;
+  --sidebar-accent-foreground: #E7E1EA;
+  --sidebar-border: #352D40;
+  --sidebar-ring: #E2A6BF;
+  /* 다크 AI 그라데이션 — 어두운 배경 위 과도한 채도 방지 (유지) */
   --ai-grad-from: #C77A98;
   --ai-grad-to: #A85475;
 }
@@ -282,8 +294,8 @@
   color: var(--badge);
 }
 .dark .domain-badge {
-  background-color: color-mix(in srgb, var(--badge) 22%, var(--card));
-  color: color-mix(in srgb, var(--badge) 68%, white);
+  background-color: color-mix(in srgb, var(--badge) 26%, var(--card));
+  color: color-mix(in srgb, var(--badge) 70%, white);
 }
 
 @layer base {
@@ -313,6 +325,16 @@
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* 인디터미닛 진행 바 — 좌→우로 흐르는 막대(진척률 아님, '진행 중' 표시용. 예: AI 초안 생성 오버레이) */
+@keyframes flori-indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
   }
 }
 
@@ -353,6 +375,15 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
   background: rgba(168, 84, 117, 0.55);
 }
 
+/* 스크롤바를 완전히 숨긴다(스크롤 기능은 유지). 가로 칩 행·탭 행 등에 사용. */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -372,6 +403,11 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
 }
 .tiptap-content p {
   margin: 0.5rem 0;
+}
+.tiptap-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
 }
 .tiptap-content h2 {
   font-size: 1.25rem;
@@ -438,4 +474,14 @@ html.scrolling *::-webkit-scrollbar-thumb:hover {
   color: var(--muted-foreground);
   pointer-events: none;
   height: 0;
+}
+
+/* ── 전역 배경 도트 — 모든 어드민 페이지 풀블리드. 카드는 불투명이라 가독성 영향 없음 ── */
+.app-canvas {
+  background-image: radial-gradient(rgba(168, 84, 117, 0.09) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+/* 다크: 라이트 로즈를 옅게(0.07) — 어두운 캔버스에서도 도트 텍스처 유지(라이트 패리티) */
+.dark .app-canvas {
+  background-image: radial-gradient(rgba(226, 166, 191, 0.07) 1.2px, transparent 1.2px);
 }

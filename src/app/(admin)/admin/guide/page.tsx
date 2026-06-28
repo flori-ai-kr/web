@@ -11,7 +11,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import {PageHeader} from '@/components/layout/PageHeader';
+import {PageHeader} from '@/components/layout/page-header';
 import {GUIDE_FAQS, GUIDE_SECTIONS} from '@/lib/guide-content';
 
 export const metadata: Metadata = {title: '이용 가이드'};

@@ -6,6 +6,7 @@ import type {Expense} from '@/types/database';
 import {expenseSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
+import {mapKotlinExpense, type KotlinExpense} from '@/lib/api/mappers/expenses';
 
 const EXPENSES_PAGE_SIZE = 100;
 
@@ -19,52 +20,6 @@ export interface ExpenseCategorySlice {
   category_id: string | null;
   category_label: string;
   amount: number;
-}
-
-// Kotlin /expenses 응답의 단일 지출 (camelCase). 서버 계약(ExpenseResponse)과 1:1.
-interface KotlinExpense {
-  id: string;
-  date: string;
-  itemName: string;
-  categoryId: number | string | null;
-  categoryLabel: string | null;
-  unitPrice: number;
-  quantity: number;
-  totalAmount: number;
-  paymentMethodId: number | string | null;
-  paymentMethodLabel: string | null;
-  cardCompany: string | null;
-  vendor: string | null;
-  memo: string | null;
-  recurringId: string | null;
-  isRecurringModified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// camelCase(Kotlin) → snake_case(웹 Expense 타입) 매핑.
-// 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
-function mapKotlinExpense(e: KotlinExpense): Expense {
-  return {
-    id: e.id,
-    user_id: '',
-    date: e.date,
-    item_name: e.itemName,
-    category_id: e.categoryId != null ? String(e.categoryId) : null,
-    category_label: e.categoryLabel,
-    unit_price: e.unitPrice,
-    quantity: e.quantity,
-    total_amount: e.totalAmount,
-    payment_method_id: e.paymentMethodId != null ? String(e.paymentMethodId) : null,
-    payment_method_label: e.paymentMethodLabel,
-    card_company: e.cardCompany ?? undefined,
-    vendor: e.vendor ?? undefined,
-    memo: e.memo ?? undefined,
-    recurring_id: e.recurringId,
-    is_recurring_modified: e.isRecurringModified,
-    created_at: e.createdAt,
-    updated_at: e.updatedAt,
-  };
 }
 
 interface KotlinExpensePage {
@@ -104,8 +59,13 @@ async function _getExpenses(
 export const getExpenses = withErrorLogging('getExpenses', _getExpenses);
 
 // 인증은 위임된 _getExpenses 내부 requireAuth()로 보장된다(중복 /me 방지). 분리 리팩터 시 여기 가드 추가 필요.
-async function _loadMoreExpenses(month: string | null, offset: number, filters?: ExpenseFilters) {
-  return _getExpenses(month ?? undefined, offset, EXPENSES_PAGE_SIZE, filters);
+async function _loadMoreExpenses(
+  month: string | null,
+  offset: number,
+  filters?: ExpenseFilters,
+  dateRange?: { startDate: string; endDate: string },
+) {
+  return _getExpenses(month ?? undefined, offset, EXPENSES_PAGE_SIZE, filters, dateRange);
 }
 
 export const loadMoreExpenses = withErrorLogging('loadMoreExpenses', _loadMoreExpenses);

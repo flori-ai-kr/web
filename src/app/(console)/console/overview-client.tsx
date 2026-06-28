@@ -2,9 +2,18 @@
 
 import Link from 'next/link';
 import { Users, Receipt, CreditCard, FileCheck, TriangleAlert } from 'lucide-react';
-import { StatCard } from '@/components/console/StatCard';
-import { TrendChart } from '@/components/console/TrendChart';
-import type { AdminOverview, AiHealthResponse, StatRange, TimeseriesPoint } from '@/types/admin';
+import { StatCard } from '@/components/console/stat-card';
+import { TrendChart } from '@/components/console/trend-chart';
+import type {
+  AdminOverview,
+  AiHealthResponse,
+  ChurnReasonSlice,
+  FunnelStage,
+  RetentionCohortRow,
+  StatRange,
+  TimeseriesPoint,
+} from '@/types/admin';
+import { DashboardInsights } from './dashboard-insights';
 
 // 집계 금액은 만원 단위 표시(프로젝트 표준).
 const won = (n: number) => `${Math.round(n / 10000).toLocaleString()}만원`;
@@ -14,16 +23,21 @@ const RANGES: StatRange[] = ['7d', '30d', '90d', 'all'];
 
 export function OverviewClient({
   overview,
-  health,
   signups,
   sales,
   range,
+  funnel,
+  churn,
+  retention,
 }: {
   overview: AdminOverview;
   health: AiHealthResponse;
   signups: TimeseriesPoint[];
   sales: TimeseriesPoint[];
   range: StatRange;
+  funnel: FunnelStage[];
+  churn: ChurnReasonSlice[];
+  retention: RetentionCohortRow[];
 }) {
   const cmp = overview.comparison;
   return (
@@ -74,13 +88,15 @@ export function OverviewClient({
           hint={`30일 기준 ${overview.sales.last30dCount}건 · 누적 ${won(overview.sales.totalAmount)}`}
           icon={Receipt}
         />
-        <StatCard
-          label="구독 활성"
-          value={overview.subscriptions.active}
-          hint={`유예 ${overview.subscriptions.inGrace} · 만료 ${overview.subscriptions.expired}`}
-          icon={CreditCard}
-          href="/console/subscriptions"
-        />
+        {overview.subscriptions ? (
+          <StatCard
+            label="구독 활성"
+            value={overview.subscriptions.active}
+            hint={`유예 ${overview.subscriptions.inGrace} · 만료 ${overview.subscriptions.expired}`}
+            icon={CreditCard}
+            href="/console/subscriptions"
+          />
+        ) : null}
         <StatCard
           label="인증 대기"
           value={overview.verifications.pending}
@@ -103,6 +119,9 @@ export function OverviewClient({
           <TrendChart type="bar" data={sales} />
         </div>
       </section>
+
+      {/* 활성화 퍼널 · 탈퇴 사유 · 리텐션 코호트 */}
+      <DashboardInsights funnel={funnel} churn={churn} retention={retention} />
 
       {/* [AI 기능 비활성화] AI 헬스 섹션 — 출시 시 제거
       <section className="rounded-xl border border-border bg-card p-4">

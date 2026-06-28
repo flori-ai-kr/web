@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition, type FormEvent, type MouseEvent } from 'react';
+import { useState, useTransition, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -21,7 +22,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/StatusBadge';
+import { StatusBadge, SubscriptionBadge, VerificationBadge } from '@/components/console/status-badge';
 import { listAdminUsers, setUserActive } from '@/lib/actions/admin-users';
 import type { AdminUserPage, AdminUserRow } from '@/types/admin';
 
@@ -40,10 +41,7 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
     fetchPage(query, 0);
   };
 
-  const openToggle = (e: MouseEvent, u: AdminUserRow) => {
-    e.stopPropagation();
-    setTarget(u);
-  };
+  const openToggle = (u: AdminUserRow) => setTarget(u);
 
   const confirmToggle = () => {
     if (!target) return;
@@ -89,14 +87,13 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
               <TableHead>가게</TableHead>
               <TableHead>구독</TableHead>
               <TableHead>인증</TableHead>
-              <TableHead>활성</TableHead>
-              <TableHead />
+              <TableHead className="sticky right-0 bg-card text-center">활성</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   데이터 없음
                 </TableCell>
               </TableRow>
@@ -106,7 +103,7 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
                   key={u.id}
                   role="button"
                   tabIndex={0}
-                  className="cursor-pointer"
+                  className="group cursor-pointer"
                   onClick={() => router.push(`/console/users/${u.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -128,20 +125,21 @@ export function UsersClient({ initial }: { initial: AdminUserPage }) {
                   <TableCell>{u.storeName ?? '-'}</TableCell>
                   <TableCell><SubscriptionBadge status={u.subscriptionStatus} /></TableCell>
                   <TableCell><VerificationBadge status={u.verificationStatus} /></TableCell>
-                  <TableCell>
-                    <StatusBadge tone={u.isActive ? 'success' : 'muted'}>
-                      {u.isActive ? '활성' : '비활성'}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={u.isAdmin}
-                      onClick={(e) => openToggle(e, u)}
-                    >
-                      {u.isActive ? '비활성화' : '활성화'}
-                    </Button>
+                  <TableCell
+                    className="sticky right-0 border-l border-border bg-card group-hover:bg-muted/50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Switch
+                        checked={u.isActive}
+                        disabled={u.isAdmin || pending}
+                        aria-label={u.isActive ? '비활성화' : '활성화'}
+                        onCheckedChange={() => openToggle(u)}
+                      />
+                      <span className="w-8 text-xs text-muted-foreground">
+                        {u.isActive ? '활성' : '비활성'}
+                      </span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

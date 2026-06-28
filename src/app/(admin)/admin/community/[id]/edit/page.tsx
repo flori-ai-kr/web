@@ -16,5 +16,5 @@ export default async function CommunityEditPage({
   // 본인 글만 수정 가능
   if (!post.is_mine) redirect(`/admin/community/${id}`);
 
-  return <CommunityWriteClient post={post} />;
+  return <CommunityWriteClient post={post} isAdmin={post.viewer_is_admin} />;
 }

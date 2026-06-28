@@ -13,12 +13,22 @@ const serverEnvSchema = z.object({
   // ─── 필수: Push 알림 (VAPID) ──────────────────────────────
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1, '빈 값일 수 없습니다'),
 
+  // ─── 필수: 토스 결제 클라이언트 키 (공개 — 브라우저 SDK 초기화) ──
+  NEXT_PUBLIC_TOSS_CLIENT_KEY: z.string().min(1, '빈 값일 수 없습니다'),
+
   // ─── 필수: 서버 기능 ──────────────────────────────────────
   INTERNAL_API_KEY: z.string().min(32, 'INTERNAL_API_KEY는 32자 이상이어야 합니다'),
 
   // ─── 필수: 백엔드 API (BFF 서버↔서버) ────────────────────────
   // NEXT_PUBLIC_ 접두사 없음 — 서버 전용. 브라우저에 노출 금지.
   API_URL: z.string().url('유효한 API URL이어야 합니다').default('http://localhost:8080'),
+
+  // ─── 선택: 공개 베이스 URL (소셜 OAuth redirect_uri) ──────────
+  // 프록시(ALB/nginx) 뒤에서 standalone 컨테이너가 받는 Host 헤더는 0.0.0.0:3000 이라
+  // request.nextUrl.origin 으로 redirect_uri 를 만들면 https://0.0.0.0:3000/... 이 된다.
+  // 공개 도메인을 명시적으로 고정해 OAuth authorize/token 교환의 redirect_uri 를 안정화한다.
+  // 미설정 시 request origin 으로 폴백(로컬 개발). 예: https://dev-admin.flori.ai.kr
+  APP_BASE_URL: emptyToUndefined(z.string().url().optional()),
 
   // ─── 선택: 기능별 ─────────────────────────────────────────
   // 사진 스토리지 공개 URL. 업로드·삭제·presigned 발급은 BFF가 소유하지만,
@@ -33,6 +43,8 @@ const serverEnvSchema = z.object({
   // 웹 애널리틱스(공개 ID). 미설정 시 해당 도구 미로드. 프로덕션 빌드에서만 실제 동작.
   NEXT_PUBLIC_GA_MEASUREMENT_ID: emptyToUndefined(z.string().min(1).optional()), // Google Analytics 4 (G-XXXXXXXXXX)
   NEXT_PUBLIC_CLARITY_PROJECT_ID: emptyToUndefined(z.string().min(1).optional()), // Microsoft Clarity 프로젝트 ID
+  NEXT_PUBLIC_POSTHOG_KEY: emptyToUndefined(z.string().min(1).optional()), // PostHog 공개 project API key (phc_…)
+  NEXT_PUBLIC_POSTHOG_HOST: emptyToUndefined(z.string().url().optional()), // PostHog 클라 API 호스트. 미설정 시 us.i.posthog.com 폴백 — EU 사용 시 명시 필요.
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

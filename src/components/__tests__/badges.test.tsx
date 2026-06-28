@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CommunityCategoryBadge } from '../community/category-badge'
-import { CategoryBadge } from '../insights/category-badge'
-import { StatusBadge, VerificationBadge, SubscriptionBadge } from '../console/StatusBadge'
+import { StatusBadge, VerificationBadge, SubscriptionBadge } from '../console/status-badge'
 
 describe('CommunityCategoryBadge', () => {
   it('카테고리 라벨을 렌더한다', () => {
@@ -18,18 +17,6 @@ describe('CommunityCategoryBadge', () => {
 
   it('알 수 없는 카테고리는 렌더하지 않는다', () => {
     const { container } = render(<CommunityCategoryBadge category={'unknown' as never} />)
-    expect(container).toBeEmptyDOMElement()
-  })
-})
-
-describe('CategoryBadge (insights)', () => {
-  it('트렌드 카테고리 라벨을 렌더한다', () => {
-    render(<CategoryBadge category="flower" />)
-    expect(screen.getByText('꽃 트렌드')).toBeInTheDocument()
-  })
-
-  it('알 수 없는 카테고리는 null', () => {
-    const { container } = render(<CategoryBadge category={'nope' as never} />)
     expect(container).toBeEmptyDOMElement()
   })
 })
@@ -59,17 +46,22 @@ describe('VerificationBadge', () => {
 
 describe('SubscriptionBadge', () => {
   it.each([
-    ['active', '활성'],
-    ['in_grace', '결제유예'],
-    ['expired', '만료'],
-    ['none', '없음'],
+    ['TRIALING', '체험중'],
+    ['ACTIVE', '이용중'],
+    ['IN_GRACE', '결제유예'],
+    ['EXPIRED', '만료'],
   ])('%s → %s', (status, label) => {
     render(<SubscriptionBadge status={status} />)
     expect(screen.getByText(label)).toBeInTheDocument()
   })
 
-  it('null은 없음', () => {
+  it('null/unknown은 없음', () => {
     render(<SubscriptionBadge status={null} />)
+    expect(screen.getByText('없음')).toBeInTheDocument()
+  })
+
+  it('레거시 소문자 상태는 없음(fallback)', () => {
+    render(<SubscriptionBadge status="active" />)
     expect(screen.getByText('없음')).toBeInTheDocument()
   })
 })

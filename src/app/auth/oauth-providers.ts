@@ -34,3 +34,14 @@ export type OAuthProvider = keyof typeof OAUTH_PROVIDERS
 export function isOAuthProvider(value: string): value is OAuthProvider {
   return value in OAUTH_PROVIDERS
 }
+
+/**
+ * OAuth redirect_uri·로그인 후 리다이렉트의 베이스 origin 을 해석한다.
+ * 프록시(ALB/nginx) 뒤 standalone 컨테이너는 Host 헤더가 0.0.0.0:3000 이라
+ * request origin 으로 만들면 redirect_uri 가 깨진다. APP_BASE_URL 이 있으면 그 값을,
+ * 없으면(로컬 개발) request origin 으로 폴백한다. 후행 슬래시는 제거.
+ */
+export function resolvePublicOrigin(requestOrigin: string): string {
+  const base = process.env.APP_BASE_URL ?? requestOrigin
+  return base.replace(/\/+$/, '')
+}

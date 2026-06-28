@@ -21,13 +21,12 @@ interface PostResponseDto {
   content: unknown; // Tiptap JSON
   contentText: string;
   imageUrls: string[];
-  isSecret: boolean;
   isPinned: boolean;
   likeCount: number;
   commentCount: number;
   liked: boolean;
   isMine: boolean;
-  canView: boolean;
+  viewerIsAdmin: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,13 +67,12 @@ function toPost(dto: PostResponseDto): CommunityPost {
     content: dto.content,
     content_text: dto.contentText,
     image_urls: dto.imageUrls ?? [],
-    is_secret: dto.isSecret,
     is_pinned: dto.isPinned,
     like_count: dto.likeCount,
     liked: dto.liked,
     comment_count: dto.commentCount,
     is_mine: dto.isMine,
-    can_view: dto.canView,
+    viewer_is_admin: dto.viewerIsAdmin,
     created_at: dto.createdAt,
     updated_at: dto.updatedAt,
   };
@@ -98,26 +96,49 @@ function toComment(dto: CommentResponseDto): CommunityComment {
 
 // ─── 조회 ───────────────────────────────────────────────────────
 
+// 무한스크롤 페이지 크기. 카드 그리드라 매출/지출(100)보다 작게.
+const COMMUNITY_PAGE_SIZE = 20;
+
 export interface CommunityFilters {
   category?: CommunityCategory;
   search?: string;
 }
 
-// BFF: GET /community/posts?category&search&offset&limit
-async function _getCommunityPosts(filters?: CommunityFilters): Promise<CommunityPost[]> {
+export interface CommunityPostsPage {
+  posts: CommunityPost[];
+  hasMore: boolean;
+}
+
+// BFF: GET /community/posts?category&search&offset&limit (offset 페이지네이션 + 서버사이드 검색)
+async function _getCommunityPosts(
+  filters?: CommunityFilters,
+  offset = 0,
+  limit = COMMUNITY_PAGE_SIZE,
+): Promise<CommunityPostsPage> {
   await requireAuth();
 
   const params = new URLSearchParams();
   if (filters?.category) params.append('category', filters.category);
   if (filters?.search) params.append('search', filters.search);
-  params.append('limit', '100');
-  const qs = params.toString();
+  params.set('offset', String(offset));
+  params.set('limit', String(limit));
 
-  const page = await apiFetch<PostsPageDto>(`/community/posts${qs ? `?${qs}` : ''}`);
-  return (page.posts || []).map(toPost);
+  const page = await apiFetch<PostsPageDto>(`/community/posts?${params.toString()}`);
+  return { posts: (page.posts || []).map(toPost), hasMore: page.hasMore };
 }
 
 export const getCommunityPosts = withErrorLogging('getCommunityPosts', _getCommunityPosts);
+
+// 무한스크롤 추가 로드(+서버사이드 검색). use-infinite-list의 loadPage에서 호출한다.
+async function _loadMoreCommunityPosts(
+  category: CommunityCategory | null,
+  offset: number,
+  search?: string,
+): Promise<CommunityPostsPage> {
+  return _getCommunityPosts({ category: category ?? undefined, search }, offset, COMMUNITY_PAGE_SIZE);
+}
+
+export const loadMoreCommunityPosts = withErrorLogging('loadMoreCommunityPosts', _loadMoreCommunityPosts);
 
 // BFF: GET /community/posts/{id}
 async function _getCommunityPost(id: string): Promise<CommunityPost | null> {
@@ -157,15 +178,12 @@ export interface LatestCommunityPost {
   createdAt: string;
 }
 
-// BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 비밀글은 제외하고 상위 limit개만 반환.
+// BFF: GET /community/posts?limit=N (목록 엔드포인트 재사용). 상위 limit개만 반환.
 async function _getLatestCommunityPosts(limit = 8): Promise<LatestCommunityPost[]> {
   await requireAuth();
 
-  // 비밀글이 상위에 끼면 결과가 limit개 미만으로 줄어드므로, 넉넉히 받아온 뒤 필터링하고 자른다.
-  const fetchSize = Math.min(limit * 3, 100);
-  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${fetchSize}`);
+  const page = await apiFetch<PostsPageDto>(`/community/posts?limit=${limit}`);
   return (page.posts || [])
-    .filter((p) => !p.isSecret)
     .slice(0, limit)
     .map((p) => ({
       id: String(p.id),
@@ -187,7 +205,6 @@ export interface CommunityPostInput {
   title: string;
   content: unknown; // Tiptap JSON
   contentText: string;
-  isSecret: boolean;
   imageUrls?: string[];
 }
 
@@ -197,7 +214,6 @@ function postBody(input: CommunityPostInput) {
     title: input.title.trim(),
     contentJson: input.content,
     contentText: input.contentText,
-    isSecret: input.isSecret,
     imageUrls: input.imageUrls ?? [],
   };
 }
@@ -261,6 +277,23 @@ async function _togglePostLike(id: string): Promise<{ liked: boolean; likeCount:
 
 export const togglePostLike = withErrorLogging('togglePostLike', _togglePostLike);
 
+// BFF: POST /community/posts/{id}/pin — 관리자만(서버 강제). 게시글 고정/해제.
+async function _setCommunityPostPinned(id: string, pinned: boolean): Promise<CommunityPost> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+
+  const dto = await apiFetch<PostResponseDto>(`/community/posts/${id}/pin`, {
+    method: 'POST',
+    body: JSON.stringify({ pinned }),
+  });
+  revalidatePath('/admin/community');
+  revalidatePath(`/admin/community/${id}`);
+  return toPost(dto);
+}
+
+export const setCommunityPostPinned = withErrorLogging('setCommunityPostPinned', _setCommunityPostPinned);
+
 export interface CommentInput {
   content: string;
   parentId?: string | null;
@@ -288,6 +321,22 @@ async function _createComment(postId: string, input: CommentInput): Promise<Comm
 
 export const createComment = withErrorLogging('createComment', _createComment);
 
+// BFF: PATCH /community/comments/{id} — 작성자 본인만(서버 강제), 본문만 수정
+async function _updateComment(id: string, content: string): Promise<CommunityComment> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, 'ID 형식이 올바르지 않습니다');
+  if (!content?.trim()) throw new AppError(ErrorCode.VALIDATION, '댓글 내용을 입력해주세요');
+
+  const dto = await apiFetch<CommentResponseDto>(`/community/comments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content: content.trim() }),
+  });
+  return toComment(dto);
+}
+
+export const updateComment = withErrorLogging('updateComment', _updateComment);
+
 // BFF: DELETE /community/comments/{id}
 async function _deleteComment(id: string): Promise<void> {
   await requireAuth();
@@ -298,3 +347,27 @@ async function _deleteComment(id: string): Promise<void> {
 }
 
 export const deleteComment = withErrorLogging('deleteComment', _deleteComment);
+
+// ─── 이미지 업로드 ──────────────────────────────────────────────
+
+interface CommunityUploadTargetDto {
+  uploadUrl: string;
+  fileUrl: string;
+  originalName: string;
+}
+
+// BFF: POST /community/upload-targets
+async function _createCommunityUploadTargets(
+  files: { name: string; type: string; size: number }[],
+): Promise<CommunityUploadTargetDto[]> {
+  await requireAuth();
+  return apiFetch<CommunityUploadTargetDto[]>('/community/upload-targets', {
+    method: 'POST',
+    body: JSON.stringify({ files }),
+  });
+}
+
+export const createCommunityUploadTargets = withErrorLogging(
+  'createCommunityUploadTargets',
+  _createCommunityUploadTargets,
+);

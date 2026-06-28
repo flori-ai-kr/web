@@ -79,3 +79,7 @@ docs/_tmp/
 ### Design ###
 # 디자인 리서치 raw 데이터 (스크래핑 원본, 9MB+)
 docs/design/research/
+
+### Playwright ###
+playwright-report/
+test-results/

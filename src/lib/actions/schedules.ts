@@ -5,33 +5,7 @@ import type {Schedule} from '@/types/database';
 import {scheduleBaseSchema, scheduleSchema, idSchema} from '@/lib/validations';
 import {AppError, ErrorCode, withErrorLogging} from '@/lib/errors';
 import {apiFetch} from '@/lib/api/client';
-
-interface KotlinSchedule {
-  id: string;
-  title: string;
-  startDate: string;
-  endDate: string;
-  color: string;
-  memo: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// camelCase(Kotlin) → snake_case(웹 Schedule 타입) 매핑.
-// 멀티테넌시는 서버 JWT(TenantContext)가 처리하므로 user_id는 비운다(뷰에서 미사용).
-function mapKotlinSchedule(e: KotlinSchedule): Schedule {
-  return {
-    id: e.id,
-    user_id: '',
-    title: e.title,
-    start_date: e.startDate,
-    end_date: e.endDate,
-    color: e.color,
-    memo: e.memo,
-    created_at: e.createdAt,
-    updated_at: e.updatedAt,
-  };
-}
+import {mapKotlinSchedule, type KotlinSchedule} from '@/lib/api/mappers/reservations';
 
 async function _getSchedules(month: string): Promise<Schedule[]> {
   await requireAuth();

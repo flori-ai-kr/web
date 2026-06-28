@@ -6,24 +6,20 @@ import {withErrorLogging} from '@/lib/errors';
 import {scrapMemoSchema, scrapToggleSchema} from '@/lib/validations';
 import {apiFetch} from '@/lib/api/client';
 import type {
+    GrantScrap,
     InsightScrap,
-    PostScrap,
     ScrapMap,
     ScrapTargetType,
     ScrapInfo,
-    TrendScrap,
 } from '@/types/database';
 import {
     type KotlinScrap,
-    type KotlinTrendArticle,
-    type KotlinInstagramPost,
     mapScrap,
-    mapTrendArticle,
-    mapPost,
 } from '@/lib/api/insights-mappers';
+import {type KotlinGrantProgram, mapGrantProgram} from '@/lib/api/mappers/grants';
 
 // ─── Kotlin DTO 미러 (camelCase) ──────────────────────────
-// 공통 DTO/매퍼(KotlinScrap/TrendArticle/Account/Post)는 lib/api/insights-mappers.ts 에서 import.
+// 공통 DTO/매퍼(KotlinScrap/GrantProgram)는 mappers 에서 import.
 // 아래는 scraps 전용 합성 DTO만 정의한다.
 
 interface KotlinScrapInfo {
@@ -31,14 +27,9 @@ interface KotlinScrapInfo {
   memo: string | null;
 }
 
-interface KotlinTrendScrap {
+interface KotlinGrantScrap {
   scrap: KotlinScrap;
-  article: KotlinTrendArticle;
-}
-
-interface KotlinPostScrap {
-  scrap: KotlinScrap;
-  post: KotlinInstagramPost;
+  program: KotlinGrantProgram;
 }
 
 async function _toggleScrap(input: unknown): Promise<{ scraped: boolean }> {
@@ -99,47 +90,29 @@ async function _getScrapMap(targetType: ScrapTargetType): Promise<ScrapMap> {
 
 export const getScrapMap = withErrorLogging('getScrapMap', _getScrapMap);
 
-async function _getTrendScraps(limit = 100): Promise<TrendScrap[]> {
+async function _getGrantScraps(limit = 100): Promise<GrantScrap[]> {
   await requireAuth();
 
   const params = new URLSearchParams();
   params.set('limit', String(limit));
 
-  const data = await apiFetch<KotlinTrendScrap[]>(
-    `/insights/scraps/trends?${params.toString()}`,
+  const data = await apiFetch<KotlinGrantScrap[]>(
+    `/insights/scraps/grants?${params.toString()}`,
   );
 
   return (data ?? []).map((row) => ({
     scrap: mapScrap(row.scrap),
-    article: mapTrendArticle(row.article),
+    program: mapGrantProgram(row.program),
   }));
 }
 
-export const getTrendScraps = withErrorLogging('getTrendScraps', _getTrendScraps);
+export const getGrantScraps = withErrorLogging('getGrantScraps', _getGrantScraps);
 
-async function _getPostScraps(limit = 100): Promise<PostScrap[]> {
+async function _getScrapCounts(): Promise<{ grant: number }> {
   await requireAuth();
 
-  const params = new URLSearchParams();
-  params.set('limit', String(limit));
-
-  const data = await apiFetch<KotlinPostScrap[]>(
-    `/insights/scraps/posts?${params.toString()}`,
-  );
-
-  return (data ?? []).map((row) => ({
-    scrap: mapScrap(row.scrap),
-    post: mapPost(row.post),
-  }));
-}
-
-export const getPostScraps = withErrorLogging('getPostScraps', _getPostScraps);
-
-async function _getScrapCounts(): Promise<{ trend: number; post: number }> {
-  await requireAuth();
-
-  const data = await apiFetch<{ trend: number; post: number }>('/insights/scraps/counts');
-  return { trend: data.trend ?? 0, post: data.post ?? 0 };
+  const data = await apiFetch<{ grant: number }>('/insights/scraps/counts');
+  return { grant: data.grant ?? 0 };
 }
 
 export const getScrapCounts = withErrorLogging('getScrapCounts', _getScrapCounts);

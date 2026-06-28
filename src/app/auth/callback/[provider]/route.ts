@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 import { OAUTH_STATE_COOKIE } from '@/lib/api/cookie-names'
 import { setAuthTokens, setRegisterToken } from '@/lib/api/auth-cookies'
-import { isOAuthProvider } from '../../oauth-providers'
+import { log } from '@/lib/log'
+import { isOAuthProvider, resolvePublicOrigin } from '../../oauth-providers'
 
 interface OAuthResult {
   registered: boolean
@@ -28,12 +29,15 @@ export async function GET(
 ) {
   const { provider } = await params
 
+  // 내부·외부 리다이렉트의 베이스 origin. 프록시 뒤 0.0.0.0:3000 Host 문제를 피하려
+  // APP_BASE_URL(있으면)로 고정한다. request.url 대신 이 origin 으로 URL 을 만든다.
+  const origin = resolvePublicOrigin(request.nextUrl.origin)
+
   // 화이트리스트 검증 — 맵에 없는 provider는 일반 실패로 처리.
   if (!isOAuthProvider(provider)) {
-    return NextResponse.redirect(new URL('/login?error=invalid', request.url))
+    return NextResponse.redirect(new URL('/login?error=invalid', origin))
   }
 
-  const origin = request.nextUrl.origin
   const code = request.nextUrl.searchParams.get('code')
   const state = request.nextUrl.searchParams.get('state')
 
@@ -43,7 +47,7 @@ export async function GET(
   store.delete(OAUTH_STATE_COOKIE)
 
   const failed = NextResponse.redirect(
-    new URL(`/login?error=${provider}_failed`, request.url),
+    new URL(`/login?error=${provider}_failed`, origin),
   )
 
   if (!code || !state || !savedState || state !== savedState) {
@@ -75,17 +79,18 @@ export async function GET(
         result.token.refreshToken,
         result.token.expiresIn,
       )
-      return NextResponse.redirect(new URL('/admin', request.url))
+      log.info({ event: 'auth.login', provider }, '🔑 로그인 성공')
+      return NextResponse.redirect(new URL('/admin', origin))
     }
 
     if (!result.registered && result.registerToken) {
       await setRegisterToken(result.registerToken)
-      const onboardingUrl = new URL('/onboarding', request.url)
+      const onboardingUrl = new URL('/onboarding', origin)
       if (result.socialEmail) {
         onboardingUrl.searchParams.set('email', result.socialEmail)
       }
       if (result.socialNickname) {
-        onboardingUrl.searchParams.set('nickname', result.socialNickname)
+        onboardingUrl.searchParams.set('name', result.socialNickname)
       }
       return NextResponse.redirect(onboardingUrl)
     }

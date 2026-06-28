@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TagFilter } from '../gallery/TagFilter'
-import { PhotoCardGrid } from '../gallery/PhotoCardGrid'
+import { TagFilter } from '@/app/(admin)/admin/gallery/components/tag-filter'
+import { PhotoCardGrid } from '@/app/(admin)/admin/gallery/components/photo-card-grid'
 import type { PhotoTag, PhotoCard } from '@/types/database'
 
 const tags: PhotoTag[] = [
@@ -10,24 +10,34 @@ const tags: PhotoTag[] = [
 ]
 
 describe('TagFilter', () => {
-  it('전체 + 각 태그를 #해시태그로 렌더한다', () => {
+  it('셀렉트 트리거에 라벨(태그)과 현재 값(전체)을 렌더한다', () => {
     render(<TagFilter tags={tags} selectedTag={null} onSelectTag={() => {}} />)
+    expect(screen.getByText('태그')).toBeInTheDocument()
     expect(screen.getByText('전체')).toBeInTheDocument()
+  })
+
+  it('드롭다운을 열면 각 태그를 #해시태그로 보여준다', () => {
+    render(<TagFilter tags={tags} selectedTag={null} onSelectTag={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: '태그' }))
     expect(screen.getByText('#봄')).toBeInTheDocument()
     expect(screen.getByText('#여름')).toBeInTheDocument()
   })
 
-  it('태그 클릭 시 이름으로 콜백한다', () => {
+  it('태그 선택 시 이름으로 콜백한다', () => {
     const onSelect = vi.fn()
     render(<TagFilter tags={tags} selectedTag={null} onSelectTag={onSelect} />)
+    fireEvent.click(screen.getByRole('button', { name: '태그' }))
     fireEvent.click(screen.getByText('#봄'))
     expect(onSelect).toHaveBeenCalledWith('봄')
   })
 
-  it('전체 클릭 시 null로 콜백한다', () => {
+  it('전체 선택 시 null로 콜백한다', () => {
     const onSelect = vi.fn()
     render(<TagFilter tags={tags} selectedTag="봄" onSelectTag={onSelect} />)
-    fireEvent.click(screen.getByText('전체'))
+    fireEvent.click(screen.getByRole('button', { name: '태그' }))
+    // 트리거는 '#봄'을 보여주므로 드롭다운 옵션의 '전체'를 클릭
+    const allOptions = screen.getAllByText('전체')
+    fireEvent.click(allOptions[allOptions.length - 1])
     expect(onSelect).toHaveBeenCalledWith(null)
   })
 })

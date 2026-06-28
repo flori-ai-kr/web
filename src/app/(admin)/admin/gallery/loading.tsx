@@ -1,4 +1,4 @@
-import { ListPageSkeleton } from '@/components/layout/ListPageSkeleton';
+import { ListPageSkeleton } from '@/components/layout/list-page-skeleton';
 
 export default function Loading() {
   return <ListPageSkeleton variant="grid" />;

@@ -77,6 +77,7 @@ export default async function ExpensesPage({
       initialHasMore={expensesResult.hasMore}
       initialSummary={summary}
       monthParam={monthParam ?? null}
+      dateRange={dateRange ?? null}
       currentYear={currentYear}
       currentMonth={currentMonth}
       currentDay={currentDay}

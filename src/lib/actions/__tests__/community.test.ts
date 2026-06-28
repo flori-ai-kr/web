@@ -10,6 +10,7 @@ import { apiFetch } from '@/lib/api/client'
 import { AppError, ErrorCode } from '@/lib/errors'
 import {
   getCommunityPosts,
+  loadMoreCommunityPosts,
   getLatestCommunityPosts,
   getCommunityPost,
   getComments,
@@ -34,8 +35,8 @@ beforeEach(() => {
 const kPost = {
   id: 42, authorNickname: '플로리스트', category: 'daily', title: '제목',
   content: { type: 'doc' }, contentText: '본문', imageUrls: ['https://img/1'],
-  isSecret: false, isPinned: true, likeCount: 3, commentCount: 1, liked: false,
-  isMine: true, canView: true, createdAt: '2026-01-01', updatedAt: '2026-01-01',
+  isPinned: true, likeCount: 3, commentCount: 1, liked: false,
+  isMine: true, createdAt: '2026-01-01', updatedAt: '2026-01-01',
 }
 const kComment = {
   id: 7, postId: 42, parentId: null, authorNickname: '댓글러', content: '댓글',
@@ -44,49 +45,72 @@ const kComment = {
 
 const postInput = {
   category: 'daily' as const, title: '제목', content: { type: 'doc' },
-  contentText: '본문', isSecret: false, imageUrls: ['https://img/1'],
+  contentText: '본문', imageUrls: ['https://img/1'],
 }
 
 describe('getCommunityPosts', () => {
-  it('필터를 쿼리로 전달하고 id를 string으로 매핑', async () => {
+  it('필터·페이지를 쿼리로 전달하고 page 객체로 매핑', async () => {
     mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: false })
     const res = await getCommunityPosts({ category: 'daily', search: '꽃' })
     const url = mockApiFetch.mock.calls[0][0] as string
     expect(url).toContain('category=daily')
     expect(url).toContain('search=')
-    expect(url).toContain('limit=100')
-    expect(res[0].id).toBe('42')
-    expect(res[0].image_urls).toEqual(['https://img/1'])
+    expect(url).toContain('offset=0')
+    expect(url).toContain('limit=20')
+    expect(res.posts[0].id).toBe('42')
+    expect(res.posts[0].image_urls).toEqual(['https://img/1'])
+    expect(res.hasMore).toBe(false)
   })
 
-  it('필터 없으면 limit만', async () => {
+  it('필터 없으면 offset·limit만', async () => {
     mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
     await getCommunityPosts()
-    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=100')
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?offset=0&limit=20')
+  })
+})
+
+describe('loadMoreCommunityPosts', () => {
+  it('offset·카테고리·검색을 쿼리로 전달', async () => {
+    mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: true })
+    const res = await loadMoreCommunityPosts('daily', 100, '꽃')
+    const url = mockApiFetch.mock.calls[0][0] as string
+    expect(url).toContain('category=daily')
+    expect(url).toContain('search=')
+    expect(url).toContain('offset=100')
+    expect(url).toContain('limit=20')
+    expect(res.posts[0].id).toBe('42')
+    expect(res.hasMore).toBe(true)
+  })
+
+  it('카테고리 null이면 category 미포함', async () => {
+    mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
+    await loadMoreCommunityPosts(null, 0)
+    const url = mockApiFetch.mock.calls[0][0] as string
+    expect(url).not.toContain('category=')
+    expect(url).toContain('offset=0')
   })
 })
 
 describe('getLatestCommunityPosts', () => {
-  it('limit을 쿼리로 전달하고 최소 형태로 매핑 (비밀글 필터 대비 ×3 오버페치)', async () => {
+  it('limit을 쿼리로 전달하고 최소 형태로 매핑', async () => {
     mockApiFetch.mockResolvedValue({ posts: [kPost], hasMore: false })
     const res = await getLatestCommunityPosts(3)
-    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=9')
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=3')
     expect(res).toEqual([{ id: '42', title: '제목', category: 'daily', createdAt: '2026-01-01' }])
   })
 
-  it('비밀글은 제외하고 limit으로 자른다', async () => {
-    const secret = { ...kPost, id: 99, isSecret: true }
+  it('limit으로 자른다', async () => {
     const a = { ...kPost, id: 1 }
     const b = { ...kPost, id: 2 }
-    mockApiFetch.mockResolvedValue({ posts: [secret, a, b], hasMore: false })
+    mockApiFetch.mockResolvedValue({ posts: [a, b], hasMore: false })
     const res = await getLatestCommunityPosts(1)
     expect(res.map((p) => p.id)).toEqual(['1'])
   })
 
-  it('기본 limit은 8 (비밀글 필터 대비 ×3 오버페치 → 24)', async () => {
+  it('기본 limit은 8', async () => {
     mockApiFetch.mockResolvedValue({ posts: [], hasMore: false })
     await getLatestCommunityPosts()
-    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=24')
+    expect(mockApiFetch).toHaveBeenCalledWith('/community/posts?limit=8')
   })
 })
 

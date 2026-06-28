@@ -2,18 +2,17 @@
 
 import {useState} from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {useRouter} from 'next/navigation';
-import {ArrowLeft, Lock, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
+import {ArrowLeft, MessageSquare, Pencil, Pin, Trash2} from 'lucide-react';
 import {formatDistanceToNow} from 'date-fns';
 import {ko} from '@/lib/date-locale';
 import type {CommunityComment, CommunityPost} from '@/types/database';
 import {CommunityCategoryBadge} from '@/components/community/category-badge';
-import {AdminBadge} from '@/components/community/admin-badge';
+import {AdminBadge} from '@/app/(admin)/admin/community/components/admin-badge';
 import dynamic from 'next/dynamic';
-import {LikeButton} from '@/components/community/like-button';
-import {CommentForm} from '@/components/community/comment-form';
-import {CommentTree} from '@/components/community/comment-tree';
+import {LikeButton} from '@/app/(admin)/admin/community/components/like-button';
+import {CommentForm} from '@/app/(admin)/admin/community/components/comment-form';
+import {CommentTree} from '@/app/(admin)/admin/community/components/comment-tree';
 import {Button} from '@/components/ui/button';
 import {
     Dialog,
@@ -24,11 +23,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {toast} from 'sonner';
-import {deleteCommunityPost} from '@/lib/actions/community';
+import {deleteCommunityPost, setCommunityPostPinned} from '@/lib/actions/community';
 
 // Tiptap 렌더러도 ProseMirror 의존 → 상세 진입 시점에 지연 로드.
 const TiptapContent = dynamic(
-  () => import('@/components/community/tiptap-content').then((m) => m.TiptapContent),
+  () => import('@/app/(admin)/admin/community/components/tiptap-content').then((m) => m.TiptapContent),
   {
     ssr: false,
     loading: () => <div className="min-h-[120px] rounded-md bg-muted/30 animate-pulse" />,
@@ -45,12 +44,30 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
   const [comments, setComments] = useState<CommunityComment[]>(initialComments);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isPinned, setIsPinned] = useState(post.is_pinned);
+  const [pinning, setPinning] = useState(false);
+
+  const handleTogglePin = async () => {
+    const next = !isPinned;
+    setPinning(true);
+    try {
+      await setCommunityPostPinned(post.id, next);
+      setIsPinned(next);
+      toast.success(next ? '게시글을 고정했어요' : '고정을 해제했어요');
+    } catch {
+      toast.error('고정 상태를 변경하지 못했어요');
+    } finally {
+      setPinning(false);
+    }
+  };
 
   const addComment = (c: CommunityComment) => setComments((prev) => [...prev, c]);
   const markDeleted = (id: string) =>
     setComments((prev) =>
       prev.map((c) => (c.id === id ? { ...c, is_deleted: true, content: '' } : c)),
     );
+  const updateCommentInTree = (updated: CommunityComment) =>
+    setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
 
   const handleDeletePost = async () => {
     setDeleting(true);
@@ -76,30 +93,17 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
         <ArrowLeft className="w-4 h-4" /> 목록
       </Link>
 
-      {/* 비밀글 비권한자 */}
-      {!post.can_view ? (
-        <div className="flex flex-col items-center justify-center text-center py-16 rounded-xl border border-dashed border-border bg-card/50">
-          <Lock className="w-8 h-8 text-muted-foreground mb-3" />
-          <h2 className="font-medium text-foreground mb-1">비밀글입니다</h2>
-          <p className="text-sm text-muted-foreground">작성자와 관리자만 볼 수 있어요.</p>
-        </div>
-      ) : (
-        <>
+      <>
           {/* Header */}
           <header className="space-y-3 border-b border-border pb-5">
             <div className="flex items-center gap-2 flex-wrap">
-              {post.is_pinned && <Pin className="h-4 w-4 text-brand" aria-label="고정글" />}
+              {isPinned && <Pin className="h-4 w-4 text-brand" aria-label="고정글" />}
               <CommunityCategoryBadge category={post.category} />
-              {post.is_secret && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="h-3.5 w-3.5" /> 비밀글
-                </span>
-              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-semibold text-foreground">{post.title}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium text-foreground/80">{post.author_nickname}</span>
-              {post.can_view && post.author_is_admin && <AdminBadge />}
+              {post.author_is_admin && <AdminBadge />}
               <span>·</span>
               <span>
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}
@@ -107,25 +111,32 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             </div>
           </header>
 
-          {/* Body */}
+          {/* Body — 이미지는 TiptapContent 본문에 인라인으로 렌더된다.
+              image_urls(본문 이미지에서 추출)는 목록 카드 썸네일 전용이며,
+              상세에서 별도 그리드로 다시 그리면 인라인 이미지와 중복돼 페이지가
+              과도하게 길어지므로(푸터 아래 빈 스크롤) 렌더하지 않는다. */}
           <article>
             <TiptapContent content={post.content} />
-            {post.image_urls.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-                {post.image_urls.map((url) => (
-                  <div key={url} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <Image src={url} alt="첨부 이미지" fill className="object-cover" sizes="33vw" />
-                  </div>
-                ))}
-              </div>
-            )}
           </article>
 
           {/* Actions */}
           <div className="flex items-center justify-between">
             <LikeButton postId={post.id} initialLiked={post.liked} initialCount={post.like_count} />
+            <div className="flex items-center gap-1.5">
+              {post.viewer_is_admin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTogglePin}
+                  disabled={pinning}
+                  className={isPinned ? 'text-brand' : undefined}
+                  aria-pressed={isPinned}
+                >
+                  <Pin className="w-3.5 h-3.5" /> {isPinned ? '고정 해제' : '고정'}
+                </Button>
+              )}
             {post.is_mine && (
-              <div className="flex items-center gap-1.5">
+              <>
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/admin/community/${post.id}/edit`}>
                     <Pencil className="w-3.5 h-3.5" /> 수정
@@ -139,8 +150,9 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
                 >
                   <Trash2 className="w-3.5 h-3.5" /> 삭제
                 </Button>
-              </div>
+              </>
             )}
+            </div>
           </div>
 
           {/* Comments */}
@@ -154,10 +166,10 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
               comments={comments}
               onAdded={addComment}
               onDeleted={markDeleted}
+              onUpdated={updateCommentInTree}
             />
           </section>
         </>
-      )}
 
       {/* Delete confirm */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -167,14 +179,10 @@ export function CommunityDetailClient({ post, initialComments }: DetailProps) {
             <DialogDescription>삭제한 게시글은 복구할 수 없어요.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
               취소
             </Button>
-            <Button
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={handleDeletePost}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDeletePost} disabled={deleting}>
               {deleting ? '삭제 중…' : '삭제'}
             </Button>
           </DialogFooter>

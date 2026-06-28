@@ -134,6 +134,7 @@ export const photoCardSchema = z.object({
   photos: z.array(z.object({
     url: z.string().url(),
     originalName: z.string().max(255),
+    size: z.number().int().nonnegative().default(0),
   })).max(10).optional(),
 });
 
@@ -200,66 +201,10 @@ export const customerGradeConfigCreateSchema = z.object({
 export const customerGradeConfigUpdateSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   threshold: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
-  sortOrder: z.number().int().min(0).optional(),
   clearThreshold: z.boolean().optional(),
 });
 
 // ─── 인사이트 섹션 ──────────────────────────────────────────
-
-// javascript:/data: URI 차단 — DB에 저장되어 <a href>로 렌더링되므로 XSS 방지.
-const httpUrlSchema = z
-  .string()
-  .url()
-  .max(1000)
-  .refine((u) => /^https?:\/\//i.test(u), {
-    message: 'http 또는 https URL만 허용됩니다',
-  });
-
-// 트렌드 기사 (루틴이 POST로 저장)
-export const trendArticleInputSchema = z.object({
-  category: z.enum(['flower', 'inspiration', 'business', 'industry']),
-  title: z.string().min(1).max(300),
-  summary: z.string().min(1).max(2000),
-  key_points: z.array(z.string().max(500)).max(20).optional().default([]),
-  source_url: httpUrlSchema,
-  source_name: z.string().max(100).nullable().optional(),
-  published_at: z.string().datetime({ offset: true }).nullable().optional(),
-});
-
-export const trendArticlesBulkSchema = z.object({
-  articles: z.array(trendArticleInputSchema).min(1).max(20),
-});
-
-// Instagram 포스트 (루틴이 POST로 저장)
-export const instagramPostInputSchema = z.object({
-  username: z.string().min(1).max(60),
-  shortcode: z.string().min(1).max(60),
-  permalink: httpUrlSchema,
-  image_urls: z.array(httpUrlSchema).min(1).max(20),
-  caption: z.string().max(5000).nullable().optional(),
-  like_count: z.number().int().nonnegative().default(0),
-  posted_at: z.string().datetime({ offset: true }),
-});
-
-export const instagramPostsBulkSchema = z.object({
-  posts: z.array(instagramPostInputSchema).min(1).max(500),
-});
-
-// Instagram 계정 관리 (유저용)
-export const instagramAccountCreateSchema = z.object({
-  username: z
-    .string()
-    .min(1, '유저네임을 입력해주세요')
-    .max(60)
-    .regex(/^[a-zA-Z0-9._]+$/, 'Instagram 유저네임 형식만 허용됩니다'),
-  display_name: z.string().max(100).nullable().optional(),
-  region: z.enum(['domestic', 'international']),
-  sort_order: z.number().int().min(0).max(10_000).optional(),
-  active: z.boolean().optional(),
-  memo: z.string().max(500).nullable().optional(),
-});
-
-export const instagramAccountUpdateSchema = instagramAccountCreateSchema.partial();
 
 // 하단바 커스터마이즈
 // types/database.ts 의 NavItemKey 와 동기화할 것
@@ -272,6 +217,7 @@ export const navItemKeySchema = z.enum([
   'customers',
   'gallery',
   'community',
+  'insights',
 ]);
 
 export const bottomNavItemsSchema = z
@@ -283,7 +229,7 @@ export const bottomNavItemsSchema = z
   });
 
 // 스크랩/메모
-export const scrapTargetTypeSchema = z.enum(['trend', 'post']);
+export const scrapTargetTypeSchema = z.enum(['grant']);
 
 export const scrapToggleSchema = z.object({
   target_type: scrapTargetTypeSchema,

@@ -94,6 +94,38 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          # 빌드 타임 validateEnv() 통과용 placeholder (Supabase/R2 스택 폐기됨 — 제거).
+          # 빌드 타임 validateEnv() 통과용 placeholder
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ci-placeholder
+          NEXT_PUBLIC_TOSS_CLIENT_KEY: test_ck_ci_placeholder
           INTERNAL_API_KEY: ci-placeholder-internal-api-key-32-chars-minimum
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # next 빌드/실행 env는 playwright.config.ts webServer가 주입한다 (mock BFF + 더미 키)
+      - name: Run e2e tests
+        run: npm run e2e
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

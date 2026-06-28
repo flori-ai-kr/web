@@ -62,7 +62,7 @@ export const createCustomerGradeConfig = withErrorLogging('createCustomerGradeCo
 
 async function _updateCustomerGradeConfig(
   id: string,
-  input: { name?: string; threshold?: number | null; sortOrder?: number; clearThreshold?: boolean },
+  input: { name?: string; threshold?: number | null; clearThreshold?: boolean },
 ) {
   await requireAuth();
 
@@ -78,7 +78,6 @@ async function _updateCustomerGradeConfig(
   const body: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) body.name = parsed.data.name;
   if (parsed.data.threshold !== undefined) body.threshold = parsed.data.threshold;
-  if (parsed.data.sortOrder !== undefined) body.sortOrder = parsed.data.sortOrder;
   if (parsed.data.clearThreshold !== undefined) body.clearThreshold = parsed.data.clearThreshold;
 
   const updated = await apiFetch<KotlinCustomerGrade>(`/customer-grades/${idParsed.data}`, {
@@ -91,6 +90,51 @@ async function _updateCustomerGradeConfig(
 }
 
 export const updateCustomerGradeConfig = withErrorLogging('updateCustomerGradeConfig', _updateCustomerGradeConfig);
+
+// 임계값 변경 미리보기 — 저장 없이, 이 변경으로 등급이 바뀔 고객 목록을 받는다.
+export interface GradeChangePreviewItem {
+  customer_name: string;
+  from_grade: string | null;
+  to_grade: string;
+}
+export interface GradeRecomputePreview {
+  total: number;
+  changes: GradeChangePreviewItem[];
+}
+interface KotlinGradePreview {
+  total: number;
+  changes: { customerName: string; fromGrade: string | null; toGrade: string }[];
+}
+
+async function _previewGradeThresholdChange(
+  id: string,
+  input: { threshold?: number | null; clearThreshold?: boolean },
+): Promise<GradeRecomputePreview> {
+  await requireAuth();
+  const idParsed = idSchema.safeParse(id);
+  if (!idParsed.success) throw new AppError(ErrorCode.VALIDATION, '올바르지 않은 ID입니다');
+
+  const res = await apiFetch<KotlinGradePreview>(`/customer-grades/${idParsed.data}/preview`, {
+    method: 'POST',
+    body: JSON.stringify({
+      threshold: input.clearThreshold ? null : input.threshold ?? null,
+      clearThreshold: input.clearThreshold ?? false,
+    }),
+  });
+  return {
+    total: res.total,
+    changes: res.changes.map((c) => ({
+      customer_name: c.customerName,
+      from_grade: c.fromGrade,
+      to_grade: c.toGrade,
+    })),
+  };
+}
+
+export const previewGradeThresholdChange = withErrorLogging(
+  'previewGradeThresholdChange',
+  _previewGradeThresholdChange,
+);
 
 async function _deleteCustomerGradeConfig(id: string) {
   await requireAuth();
