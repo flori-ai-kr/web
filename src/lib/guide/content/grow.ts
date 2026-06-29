@@ -95,41 +95,45 @@ export const GROW_ARTICLES: GuideArticle[] = [
     slug: 'insights',
     sectionId: 'info',
     order: 1,
-    title: '인사이트 — 경매 시세·지원사업',
+    title: '인사이트 - 경매 시세·지원사업',
     description: '국내 꽃 경매 시세와 소상공인 지원사업을 한 화면에서 확인해요.',
     icon: 'newspaper',
     tldr: [
-      '국내 꽃 경매 낙찰가를 매일 업데이트해요',
-      '소상공인 대상 지원사업·공모를 모아서 알려줘요',
-      '탭을 눌러 경매 소식과 지원사업을 오갈 수 있어요',
+      '국내 꽃 경매 시세를 매일 업데이트해요',
+      '소상공인 지원사업·공모를 모아서 알려줘요',
+      '경매 시세·지원사업 탭으로 나눠 봐요',
     ],
     blocks: [
-      { type: 'heading', text: '정보 피드란?' },
+      { type: 'heading', text: '인사이트란?' },
       {
         type: 'paragraph',
-        text: '**정보** 탭에서는 꽃집 운영에 도움이 되는 두 가지 정보를 매일 자동으로 업데이트해요. 직접 찾아다닐 필요 없이 flori에서 바로 확인할 수 있어요.',
-      },
-      { type: 'shot', src: 'insights/01-feed', alt: '정보 피드 메인', caption: '경매·지원사업 2개 탭' },
-
-      { type: 'heading', text: '경매 탭 — 오늘 낙찰가' },
-      {
-        type: 'paragraph',
-        text: '경매 탭에서는 **국내 꽃 경매 시장**의 오늘 낙찰 단가를 품목별로 보여줘요. 매입 가격을 정할 때 참고할 수 있어요.',
-      },
-      { type: 'shot', src: 'insights/02-auction', alt: '꽃 경매 낙찰가 목록', caption: '품목·단가·전일 대비 변동' },
-
-      { type: 'heading', text: '지원사업 탭 — 소상공인 공모' },
-      {
-        type: 'paragraph',
-        text: '지원사업 탭은 **K-Startup(창업지원포털)**과 **기업마당** 두 곳에서 소상공인 관련 지원사업만 골라서 보여줘요. 신청 기한이 있으니 마감 날짜를 꼭 확인하세요.',
+        text: '**인사이트**에서는 꽃집 운영에 도움이 되는 **경매 시세**와 **지원사업** 정보를 매일 자동으로 업데이트해요. 직접 찾아다닐 필요 없이 flori에서 바로 확인할 수 있어요. 위쪽 **탭**으로 둘을 오가며 봐요.',
       },
       {
-        type: 'callout',
-        variant: 'tip',
-        title: '지원사업 신청 팁',
-        text: '카드를 누르면 상세 페이지로 이동해요. 마감 7일 전부터 알림을 드릴 예정이에요.',
+        type: 'tabs',
+        tabs: [
+          {
+            label: '경매 시세',
+            blocks: [
+              {
+                type: 'paragraph',
+                text: '**국내 꽃 경매 시장**의 오늘 낙찰 단가를 품목별로 보여줘요. **오늘 강세·약세** 품목과 **전일 대비 변동(▲▼)**도 한눈에 보여서 매입 가격을 정할 때 참고할 수 있어요. 자주 보는 품목은 **스크랩**해 두세요.',
+              },
+              { type: 'shot', src: 'insights/01-auction', kind: 'png', alt: '꽃 경매 시세 화면', caption: '품목·단가·전일 대비 변동' },
+            ],
+          },
+          {
+            label: '지원사업',
+            blocks: [
+              {
+                type: 'paragraph',
+                text: '**K-Startup(창업지원포털)**과 **기업마당**에서 소상공인 관련 **지원사업·공모**만 모아 보여줘요. 카드를 누르면 원문으로 이동하니 **마감 날짜**를 꼭 확인하세요. 관심 사업을 **스크랩**해 두면 마감이 다가올 때 알림을 받아요.',
+              },
+              { type: 'shot', src: 'insights/02-grants', kind: 'png', alt: '지원사업 목록 화면', caption: '신청 기한·지원 기관·원문 링크' },
+            ],
+          },
+        ],
       },
-      { type: 'shot', src: 'insights/03-grants', alt: '지원사업 카드 목록', caption: '신청 기한·지원 기관·링크' },
 
       {
         type: 'faq',
@@ -172,7 +176,7 @@ export const GROW_ARTICLES: GuideArticle[] = [
       },
       {
         type: 'paragraph',
-        text: '글 샘플은 **1~3개**까지 넣을 수 있어요. **3개를 다양하게** 넣을수록 가장 좋아요 — 기존 블로그에 쓴 글을 그대로 **복사해서 붙여넣기**만 하면 돼요.',
+        text: '글 샘플은 **1~3개**까지 넣을 수 있어요. **3개를 다양하게** 넣을수록 가장 좋아요.',
       },
       { type: 'shot', src: 'marketing/02-tone', kind: 'png', alt: '블로그 말투 설정 화면', caption: '내 블로그 글을 붙여넣어 말투 학습' },
 

@@ -66,7 +66,7 @@ export const COMMUNITY_ARTICLES: GuideArticle[] = [
     slug: 'support',
     sectionId: 'support',
     order: 1,
-    title: '고객지원 — 문의하기',
+    title: '고객지원 - 문의하기',
     description: 'flori 사용 중 불편한 점이나 궁금한 점을 직접 문의하세요.',
     icon: 'life-buoy',
     tldr: [
