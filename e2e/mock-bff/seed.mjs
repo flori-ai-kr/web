@@ -138,15 +138,20 @@ export function createSeed() {
     createdAt: iso(today), updatedAt: iso(today),
   });
 
+  // 두 예약은 서로 다른 날짜에 둬야 각 셀이 '예약 1건'으로 보인다(smoke 검증).
+  // 월말(today≥lastDay-1)엔 d()의 클램프로 today+1·today+2가 같은 날로 뭉쳐 '예약 2건'이 되므로,
+  // r1<r2가 항상 유지되도록 각각 lastDay-1·lastDay 이내로 별도 클램프한다.
+  const resvDay1 = Math.min(today + 1, lastDay - 1);
+  const resvDay2 = Math.min(today + 2, lastDay);
   const reservations = [
     mkReservation({
-      id: '1', date: d(today + 1), time: '14:00', customerName: '김민지', customerPhone: '010-1234-5678',
+      id: '1', date: d(resvDay1), time: '14:00', customerName: '김민지', customerPhone: '010-1234-5678',
       title: '결혼기념일 꽃다발', amount: 60000, status: 'confirmed',
       saleId: '1', saleDate: d(2), productCategory: '꽃다발', customerId: '1', purchaseCount: 6,
       saleIsUnpaid: false, salePaymentMethod: '카드', saleReservationChannel: '카카오톡',
     }),
     mkReservation({
-      id: '2', date: d(today + 2), time: '11:00', customerName: '박하은', customerPhone: '010-3456-7890',
+      id: '2', date: d(resvDay2), time: '11:00', customerName: '박하은', customerPhone: '010-3456-7890',
       title: '개업 화분 픽업', amount: 90000, memo: '리본 문구: 번창하세요',
     }),
   ];
