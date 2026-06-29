@@ -207,7 +207,7 @@ export function GuideBlockRenderer({ block, blockIndex }: { block: GuideBlock; b
       return (
         <h2
           id={headingId(blockIndex)}
-          className="scroll-mt-6 text-lg font-semibold text-foreground mt-10 first:mt-0 mb-3"
+          className="scroll-mt-24 text-lg font-semibold text-foreground mt-10 first:mt-0 mb-3"
         >
           {block.text}
         </h2>

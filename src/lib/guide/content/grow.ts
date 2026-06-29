@@ -8,7 +8,7 @@ export const GROW_ARTICLES: GuideArticle[] = [
     order: 4,
     title: '통계로 내 가게 파악하기',
     description: '매출·지출·예약·고객을 그래프로 모아 우리 가게 흐름을 한눈에 파악해요.',
-    icon: 'bar-chart-2',
+    icon: 'bar-chart-3',
     tldr: [
       '매출·지출·예약·고객을 탭으로 나눠 봐요',
       '그래프·히트맵·랭킹으로 가게 흐름을 한눈에',
@@ -168,7 +168,7 @@ export const GROW_ARTICLES: GuideArticle[] = [
     order: 1,
     title: 'AI 네이버 블로그 글쓰기',
     description: 'AI가 키워드·사진으로 네이버 블로그에 올릴 글 초안을 만들어줘요.',
-    icon: 'sparkles',
+    icon: 'pen-line',
     tldr: [
       '키워드와 사진을 넣으면 AI가 네이버 블로그 글 초안을 만들어요',
       '내 블로그 글을 등록해 두면 내 말투로 써줘요',
