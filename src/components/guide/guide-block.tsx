@@ -63,36 +63,47 @@ function ShotBlock({ block }: { block: Extract<GuideBlock, { type: 'shot' }> }) 
   const [ratio, setRatio] = useState<number | null>(null);
   const ext = block.kind === 'gif' ? 'gif' : block.kind === 'png' ? 'png' : 'webp';
   const src = `/guide/${block.src}.${ext}`;
-  // 세로(폰) 스크린샷은 본문 폭을 꽉 채우면 과도하게 커지므로 폰 크기로 좁혀 가운데 정렬.
+  // 세로(폰) 스크린샷은 휴대폰 목업 프레임으로, 가로/정사각은 일반 카드로 표시.
   const isPortrait = ratio !== null && ratio < 0.9;
 
-  return (
-    <figure
-      className={`mb-6 overflow-hidden rounded-xl border border-border bg-muted/30 ${
-        isPortrait ? 'mx-auto w-full max-w-[300px]' : ''
-      }`}
-    >
-      <div className="relative w-full" style={{ aspectRatio: ratio ?? 16 / 9 }}>
-        {error ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
-            스크린샷 준비 중
+  const img = error ? (
+    <div className="absolute inset-0 flex items-center justify-center bg-muted text-xs text-muted-foreground">
+      스크린샷 준비 중
+    </div>
+  ) : (
+    <Image
+      src={src}
+      alt={block.alt}
+      fill
+      className="object-contain"
+      sizes="(max-width: 768px) 100vw, 700px"
+      onError={() => setError(true)}
+      onLoad={e => {
+        const i = e.currentTarget;
+        if (i.naturalWidth > 0 && i.naturalHeight > 0) setRatio(i.naturalWidth / i.naturalHeight);
+      }}
+    />
+  );
+
+  if (isPortrait) {
+    return (
+      <figure className="mb-6">
+        <div className="mx-auto w-full max-w-[230px] rounded-[1.9rem] bg-[#1b1b1f] p-[5px] shadow-sm">
+          <div className="relative overflow-hidden rounded-[1.55rem] bg-muted" style={{ aspectRatio: ratio }}>
+            {img}
           </div>
-        ) : (
-          <Image
-            src={src}
-            alt={block.alt}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, 700px"
-            onError={() => setError(true)}
-            onLoad={e => {
-              const img = e.currentTarget;
-              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-                setRatio(img.naturalWidth / img.naturalHeight);
-              }
-            }}
-          />
+        </div>
+        {block.caption && (
+          <figcaption className="mt-2.5 text-center text-xs text-muted-foreground">{block.caption}</figcaption>
         )}
+      </figure>
+    );
+  }
+
+  return (
+    <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-muted/30">
+      <div className="relative w-full" style={{ aspectRatio: ratio ?? 16 / 9 }}>
+        {img}
       </div>
       {block.caption && (
         <figcaption className="px-4 py-2 text-xs text-muted-foreground text-center border-t border-border">
