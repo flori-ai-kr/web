@@ -338,13 +338,20 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       '사진 한 장은 5MB 이내',
     ],
     blocks: [
+      { type: 'heading', text: '사진첩 화면 열어보기' },
+      {
+        type: 'paragraph',
+        text: '**사진첩** 메뉴를 누르면 완성한 작품이 카드로 모여 보여요. 각 카드에는 사진·날짜·제목·태그·고객이 함께 표시돼요. 위쪽 **태그**·**고객명/연락처** 필터로 원하는 작품만 추려 볼 수 있어요.',
+      },
+      { type: 'shot', src: 'gallery/01-list', kind: 'png', alt: '사진첩 목록 화면', caption: '작품 카드 모아보기' },
+
       { type: 'heading', text: '작품 사진 올리기' },
       {
         type: 'steps',
         items: [
-          '사진첩에서 **+ 버튼**을 눌러요.',
+          '**우측 하단 + 버튼**을 눌러 **새 카드 추가**를 눌러요.',
           '사진을 골라요. 한 카드(작품)에 **최대 10장**까지 올릴 수 있어요.',
-          '제목·태그를 적고 **저장**해요.',
+          '제목·태그·메모를 적고 **저장**해요.',
         ],
       },
       {
@@ -353,13 +360,21 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
         title: '사진 용량',
         text: '사진 한 장은 **5MB 이내**여야 해요. 너무 큰 사진은 올라가지 않으니, 휴대폰 기본 카메라로 찍은 정도면 보통 괜찮아요.',
       },
-      { type: 'shot', src: 'gallery/01-upload', alt: '사진 업로드 화면', caption: '한 카드에 여러 장 업로드' },
+      { type: 'shot', src: 'gallery/03-card', kind: 'png', alt: '카드 상세 — 여러 장', caption: '한 카드에 여러 장, 좌우로 넘겨봐요' },
 
-      { type: 'heading', text: '태그와 고객 연결' },
+      { type: 'heading', text: '태그·메모로 기록하고 고객과 연결' },
       {
         type: 'paragraph',
-        text: '작품에 **태그**를 달아 분류하고(예: 부케·화환·개업), [고객](/admin/guide/customers)과 연결하면 어떤 손님의 작품인지 함께 기록돼요.',
+        text: '**태그**를 자유롭게 달아 작품을 구분해 보세요(예: 부케·화환·개업). **메모**에는 사용한 꽃·손님 요청·색감처럼 작품에 대한 내용을 자유롭게 기록해 두세요. [고객](/admin/guide/customers)과 연결하면 어떤 손님의 작품인지도 함께 남아요.',
       },
+
+      { type: 'heading', text: '태그 관리' },
+      {
+        type: 'paragraph',
+        text: '자주 쓰는 **태그**는 **태그 관리**(우측 하단 + 버튼 → 태그 관리)에서 미리 만들어 두고, 이름을 바꾸거나 지울 수 있어요.',
+      },
+      { type: 'shot', src: 'gallery/02-tags', kind: 'png', alt: '태그 관리 화면', caption: '태그 추가·수정·삭제' },
+
       {
         type: 'faq',
         items: [
