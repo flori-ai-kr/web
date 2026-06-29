@@ -7,7 +7,7 @@ export const GROW_ARTICLES: GuideArticle[] = [
     sectionId: 'operate',
     order: 4,
     title: '통계로 내 가게 파악하기',
-    description: '요일별·카테고리별 매출 흐름을 한눈에 보고 잘 팔리는 상품을 찾아요.',
+    description: '매출·지출·예약·고객을 그래프로 모아 우리 가게 흐름을 한눈에 파악해요.',
     icon: 'bar-chart-2',
     tldr: [
       '이번 달 매출·지출·순이익을 그래프로 확인해요',
@@ -18,7 +18,7 @@ export const GROW_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '통계 화면 열기' },
       {
         type: 'paragraph',
-        text: '하단 메뉴에서 **통계** 아이콘을 누르면 이번 달 요약이 바로 보여요. 화면 위쪽 날짜 버튼으로 **이번 달·지난 달·특정 월**을 선택할 수 있어요.',
+        text: '**통계** 메뉴를 누르면 이번 달 요약이 바로 보여요. 위쪽 날짜 버튼으로 **이번 달·지난 달·특정 월**을 선택할 수 있어요.',
       },
       { type: 'shot', src: 'statistics/01-overview', alt: '통계 화면 전체', caption: '이번 달 매출·지출·순이익 요약' },
 

@@ -115,7 +115,14 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       '기간·카테고리 필터로 어디에 얼마 썼는지 한눈에',
     ],
     blocks: [
-      { type: 'heading', text: '지출 기록하기' },
+      { type: 'heading', text: '지출 화면 열어보기' },
+      {
+        type: 'paragraph',
+        text: '**지출** 메뉴를 누르면 지출 화면이 열려요. 위쪽에는 합계, 그 아래에는 지출 목록이 보여요.',
+      },
+      { type: 'shot', src: 'expenses/01-list', kind: 'png', alt: '지출 목록 화면', caption: '합계와 지출 목록' },
+
+      { type: 'heading', text: '지출 1건 기록하기' },
       {
         type: 'steps',
         items: [
@@ -161,7 +168,7 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '내보내기' },
       {
         type: 'paragraph',
-        text: '필터로 걸러 둔 **그대로** 파일로 내보낼 수 있어요. **우측 하단 + 버튼 → 내보내기**에서 **CSV · Excel · PDF** 중 형식을 고르면 바로 다운로드돼요. 세무 신고나 정산 자료로 제출할 때 편해요.',
+        text: '필터로 걸러 둔 **그대로** 파일로 내보낼 수 있어요. **우측 하단 + 버튼 → 내보내기**에서 **CSV · Excel · PDF** 중 형식을 고르면 바로 다운로드돼요. 세무 신고나 거래처 제출 자료로 바로 쓰기 좋아요.',
       },
 
       {
