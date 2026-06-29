@@ -10,7 +10,7 @@ import {Textarea} from '@/components/ui/textarea';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
-import {generateBlogDraft} from '@/lib/actions/marketing';
+import {generateBlogDraft, updateBlogContent} from '@/lib/actions/marketing';
 import {AppError} from '@/lib/errors';
 import type {BlogContentDetail, BlogDraft, GenerateBlogInput} from '@/types/marketing';
 import {PhotoPicker} from './components/photo-picker';
@@ -35,6 +35,8 @@ export function MarketingClient() {
 
   const [generating, setGenerating] = useState(false);
   const [draft, setDraft] = useState<BlogDraft | null>(null);
+  // 현재 화면에 띄운 초안의 저장 식별자(생성/목록열기 시 세팅). 편집 저장(PUT) 대상.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
   // 블로그 말투 설정(모달)
@@ -45,11 +47,13 @@ export function MarketingClient() {
   async function run(input: GenerateBlogInput) {
     setGenerating(true);
     setDraft(null);
+    setActiveId(null);
     // 모바일 세로 스택에서 결과로 스크롤
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
     try {
       const res = await generateBlogDraft(input);
       setDraft(res.draft);
+      setActiveId(res.contentId);
       setHistoryKey((k) => k + 1);
     } catch (err) {
       toast.error(err instanceof AppError ? err.message : '초안 생성에 실패했어요. 잠시 후 다시 시도해 주세요.');
@@ -75,7 +79,17 @@ export function MarketingClient() {
 
   function openHistory(detail: BlogContentDetail) {
     setDraft(detail.draft);
+    setActiveId(detail.id);
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
+  }
+
+  // 편집 저장 — 서버에 PUT 후 갱신된 초안으로 동기화하고 목록을 새로고침(제목 반영).
+  // 실패는 throw해서 BlogDraftView가 편집 상태를 유지하며 에러 토스트를 띄운다.
+  async function handleSaveDraft(next: BlogDraft) {
+    if (!activeId) return;
+    const detail = await updateBlogContent(activeId, next);
+    setDraft(detail.draft);
+    setHistoryKey((k) => k + 1);
   }
 
   // 생성 중 새로고침/탭 닫기로 진행 중인 작업을 잃지 않도록 경고(브라우저 기본 확인창).
@@ -259,7 +273,7 @@ export function MarketingClient() {
           {generating ? (
             <GeneratingSkeleton />
           ) : draft ? (
-            <BlogDraftView draft={draft} onChange={setDraft} />
+            <BlogDraftView draft={draft} onSave={activeId ? handleSaveDraft : undefined} />
           ) : (
             <EmptyResult />
           )}

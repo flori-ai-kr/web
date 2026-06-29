@@ -1,16 +1,17 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {Check, Copy, FileText, Pencil} from 'lucide-react';
+import {Check, Copy, FileText, Loader2, Pencil} from 'lucide-react';
 import {toast} from 'sonner';
 import {Button} from '@/components/ui/button';
 import {Textarea} from '@/components/ui/textarea';
+import {AppError} from '@/lib/errors';
 import type {BlogDraft} from '@/types/marketing';
 
 interface BlogDraftViewProps {
   draft: BlogDraft;
-  /** 인라인 편집 결과를 부모에 반영(목록 캐시·재복사 일관성). */
-  onChange?: (draft: BlogDraft) => void;
+  /** 편집 결과를 서버에 저장(영속). 성공 시 부모가 draft 상태를 갱신한다. 없으면 편집 버튼을 숨긴다. */
+  onSave?: (draft: BlogDraft) => Promise<void>;
 }
 
 /** draft → 네이버에 붙여넣기 좋은 평문(제목·본문·FAQ·해시태그). */
@@ -65,9 +66,10 @@ function CopyButton({text, label, full}: {text: string; label: string; full?: bo
   );
 }
 
-export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
+export function BlogDraftView({draft, onSave}: BlogDraftViewProps) {
   const [editing, setEditing] = useState(false);
-  // 편집 중 임시 상태 — 저장 시에만 부모로 commit.
+  const [saving, setSaving] = useState(false);
+  // 편집 중 임시 상태 — 저장 시에만 서버로 commit.
   const [local, setLocal] = useState<BlogDraft>(draft);
   // draft prop이 바뀌면(재생성·목록에서 열기) 편집 임시상태를 새 draft로 리셋한다.
   // effect 대신 렌더 중 비교(React 권장 "조정 중 state 변경") — 추가 리렌더 없음.
@@ -80,10 +82,21 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
 
   const view = editing ? local : draft;
 
-  function commit() {
-    onChange?.(local);
-    setEditing(false);
-    toast.success('수정 내용을 반영했어요.');
+  async function commit() {
+    if (!onSave) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(local);
+      setEditing(false);
+      toast.success('수정 내용을 저장했어요.');
+    } catch (err) {
+      toast.error(err instanceof AppError ? err.message : '저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function cancel() {
@@ -95,15 +108,15 @@ export function BlogDraftView({draft, onChange}: BlogDraftViewProps) {
     <article className="rounded-2xl border border-border bg-card p-5 sm:p-7">
       {/* 액션 (편집/복사) — 우측 상단. 결과 카드 상단을 작성 폼과 정렬 */}
       <div className="mb-4 flex flex-wrap items-center justify-end gap-1.5">
-        {onChange &&
+        {onSave &&
           (editing ? (
             <>
-              <Button type="button" variant="ghost" size="sm" onClick={cancel}>
+              <Button type="button" variant="ghost" size="sm" onClick={cancel} disabled={saving}>
                 취소
               </Button>
-              <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit}>
-                <Check className="h-4 w-4" />
-                수정 완료
+              <Button type="button" variant="brand" size="sm" className="gap-1.5" onClick={commit} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                {saving ? '저장 중…' : '수정 완료'}
               </Button>
             </>
           ) : (
