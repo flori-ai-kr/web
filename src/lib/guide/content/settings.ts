@@ -120,7 +120,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
     tldr: [
       '카드 없이 14일 무료체험으로 시작해요',
       '월간 14,900원 · 연간 154,800원 플랜이 있어요',
-      '쿠폰을 등록하면 무료 기간이 늘어나요',
+      '쿠폰을 등록하면 다음 결제일이 무료 일수만큼 미뤄져요',
     ],
     blocks: [
       { type: 'heading', text: '구독·결제 화면' },
@@ -128,12 +128,12 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
         type: 'paragraph',
         text: '**설정** 맨 위 **구독·결제** 카드에서 현재 상태(체험중·이용중 등)와 금액, 다음 결제일, 등록된 카드를 한눈에 볼 수 있어요.',
       },
-      { type: 'shot', src: 'subscription/01-plan', alt: '구독·결제 카드', caption: '상태·금액·다음 결제일·카드' },
+      { type: 'shot', src: 'subscription/01-plan', kind: 'png', alt: '구독·결제 카드', caption: '상태·금액·다음 결제일·카드' },
 
       { type: 'heading', text: '무료체험' },
       {
         type: 'paragraph',
-        text: '처음에는 **카드 없이 14일 무료체험**으로 시작해요. 체험이 끝나는 날 결제 정보를 등록하면 그대로 이어서 쓸 수 있고, 그 전에 해지하면 결제되지 않아요.',
+        text: '처음에는 **카드 없이 14일 무료체험**으로 시작해요. 체험이 끝나는 날 결제 정보를 등록하면 그대로 이어서 쓸 수 있어요.',
       },
 
       { type: 'heading', text: '플랜과 결제' },
@@ -141,7 +141,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
         type: 'bullets',
         items: [
           '**월간 플랜** — 14,900원 / 월',
-          '**연간 플랜** — 154,800원 / 년 (월간보다 저렴)',
+          '**연간 플랜** — 154,800원 / 년 (월간으로 1년 내는 것보다 **약 13% 저렴**)',
           '카드 등록·교체는 **토스 결제창**에서 안전하게 진행돼요',
         ],
       },
@@ -154,13 +154,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '쿠폰 등록' },
       {
         type: 'paragraph',
-        text: '쿠폰 코드가 있다면 구독·결제 카드 아래 **쿠폰 등록**란에 코드를 넣고 **등록**을 누르세요. 쿠폰은 **무료 일수**를 주는 거라, 등록하면 **다음 결제일이 그만큼 미뤄져요.** (할인이 아니에요.)',
-      },
-
-      { type: 'heading', text: '결제 내역' },
-      {
-        type: 'paragraph',
-        text: '구독·결제 카드의 **최근 결제 내역**을 펼치면 날짜·금액·상태(완료·실패·취소)를 볼 수 있어요.',
+        text: '쿠폰 코드가 있다면 구독·결제 카드 아래 **쿠폰 등록**란에 코드를 넣고 **등록**을 누르세요. 쿠폰을 등록하면 **다음 결제일이 무료 일수만큼 미뤄져요.**',
       },
 
       { type: 'heading', text: '구독 해지 · 재개' },
@@ -206,7 +200,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '하단 메뉴란?' },
       {
         type: 'paragraph',
-        text: '휴대폰에서는 화면 **아래쪽 탭 메뉴**로 기능을 빠르게 오가요. 자주 쓰는 메뉴를 여기에 모아두면 한 손으로도 편하게 쓸 수 있어요. (컴퓨터에서는 왼쪽 사이드바로 보여요.)',
+        text: '휴대폰에서는 화면 **아래쪽 탭 메뉴**로 기능을 빠르게 오가요. 자주 쓰는 메뉴를 여기에 모아두면 한 손으로도 편하게 쓸 수 있어요.',
       },
 
       { type: 'heading', text: '바꾸는 방법' },
@@ -219,6 +213,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
           '**저장**하면 휴대폰 하단 탭에 바로 반영돼요.',
         ],
       },
+      { type: 'shot', src: 'bottom-nav/01-slots', kind: 'png', alt: '하단 네비게이션 설정 화면', caption: '하단바 슬롯을 끌어 순서 변경 · 사용 가능한 메뉴에서 추가' },
       {
         type: 'callout',
         variant: 'note',
