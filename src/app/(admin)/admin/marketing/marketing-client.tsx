@@ -11,7 +11,7 @@ import {Skeleton} from '@/components/ui/skeleton';
 import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {generateBlogDraft, updateBlogContent} from '@/lib/actions/marketing';
-import {AppError} from '@/lib/errors';
+import {AppError, ErrorCode} from '@/lib/errors';
 import type {BlogContentDetail, BlogDraft, GenerateBlogInput} from '@/types/marketing';
 import {PhotoPicker} from './components/photo-picker';
 import {BlogDraftView} from './components/blog-draft-view';
@@ -37,6 +37,8 @@ export function MarketingClient() {
   const [draft, setDraft] = useState<BlogDraft | null>(null);
   // 현재 화면에 띄운 초안의 저장 식별자(생성/목록열기 시 세팅). 편집 저장(PUT) 대상.
   const [activeId, setActiveId] = useState<string | null>(null);
+  // 편집 저장 진행 중 — 진행 중에는 다른 초안 열기/재생성을 막아 비동기 setDraft 레이스(저장 응답이 늦게 와 화면 덮어쓰기)를 차단한다.
+  const [isSaving, setIsSaving] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
 
   // 블로그 말투 설정(모달)
@@ -64,6 +66,7 @@ export function MarketingClient() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSaving) return; // 저장 중에는 재생성 금지(레이스 방지)
     const trimmed = keyword.trim();
     if (!trimmed) {
       toast.error('검색 키워드를 입력해 주세요.');
@@ -78,6 +81,7 @@ export function MarketingClient() {
   }
 
   function openHistory(detail: BlogContentDetail) {
+    if (isSaving) return; // 저장 중에는 전환 금지(레이스 방지)
     setDraft(detail.draft);
     setActiveId(detail.id);
     requestAnimationFrame(() => resultRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'}));
@@ -86,10 +90,17 @@ export function MarketingClient() {
   // 편집 저장 — 서버에 PUT 후 갱신된 초안으로 동기화하고 목록을 새로고침(제목 반영).
   // 실패는 throw해서 BlogDraftView가 편집 상태를 유지하며 에러 토스트를 띄운다.
   async function handleSaveDraft(next: BlogDraft) {
-    if (!activeId) return;
-    const detail = await updateBlogContent(activeId, next);
-    setDraft(detail.draft);
-    setHistoryKey((k) => k + 1);
+    if (!activeId) {
+      throw new AppError(ErrorCode.VALIDATION, '저장할 초안을 찾을 수 없어요.');
+    }
+    setIsSaving(true);
+    try {
+      const detail = await updateBlogContent(activeId, next);
+      setDraft(detail.draft);
+      setHistoryKey((k) => k + 1);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // 생성 중 새로고침/탭 닫기로 진행 중인 작업을 잃지 않도록 경고(브라우저 기본 확인창).
@@ -259,7 +270,7 @@ export function MarketingClient() {
                 type="submit"
                 variant="brand"
                 className="w-full gap-1.5"
-                disabled={generating || keyword.trim().length === 0}
+                disabled={generating || isSaving || keyword.trim().length === 0}
               >
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                 {generating ? '초안 작성 중…' : '초안 생성'}
