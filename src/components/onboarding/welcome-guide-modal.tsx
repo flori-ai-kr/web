@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Sparkles } from 'lucide-react';
+import { BookOpen, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -38,30 +37,40 @@ export function WelcomeGuideModal() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && dismiss()}>
-      <DialogContent className="sm:max-w-md">
+    // 바깥 클릭·ESC·X로는 닫히지 않게 막고, 아래 두 선택지로만 닫는다.
+    <Dialog open={open}>
+      <DialogContent
+        showCloseButton={false}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        className="gap-5 p-8 sm:max-w-xl"
+      >
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-brand-muted">
-            <Sparkles className="h-6 w-6 text-brand" aria-hidden="true" />
+          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-brand-muted">
+            <PartyPopper className="h-8 w-8 text-brand" aria-hidden="true" />
           </div>
-          <DialogTitle className="text-center">flori에 오신 걸 환영해요</DialogTitle>
+          <DialogTitle className="text-center text-2xl">flori에 오신 걸 환영해요!</DialogTitle>
           <DialogDescription className="text-center break-keep">
-            매출·지출·고객·예약·사진첩을 한곳에서 관리할 수 있어요.
-            <br />
             처음이시라면 이용 가이드부터 둘러보세요.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button asChild className="w-full" onClick={dismiss}>
+
+        <div className="mt-2 flex flex-col items-center gap-3">
+          <Button asChild size="lg" className="h-12 w-full text-base font-semibold shadow-sm" onClick={dismiss}>
             <Link href="/admin/guide">
               <BookOpen className="h-4 w-4" aria-hidden="true" />
               이용 가이드 보기
             </Link>
           </Button>
-          <Button variant="ghost" className="w-full" onClick={dismiss}>
-            바로 시작하기
-          </Button>
-        </DialogFooter>
+          <button
+            type="button"
+            onClick={dismiss}
+            className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            가이드 없이 바로 시작하기
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );
