@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-25 | session1-cleanup: 인사이트 트렌드 탭 제거 → 경매시세·지원사업 2탭. 경매 품목 북마크(낙관적), 지원사업 카드 클릭 상세 모달·데스크탑 2단 그리드·서버 검색. `ScrapTargetType`=grant만. trend_articles·instagram_* 테이블/타입/액션 제거
+> 최종 업데이트: 2026-06-29 | session2-qa: AI 블로그 초안 편집 서버 영속화 — `updateBlogContent` (`PUT /ai/marketing/contents/{id}`) 신규 서버 액션 추가, `activeId` 추적·저장 중 레이스 가드. 온보딩 SPECIALTIES '꽃상자' 제거. 정책 레이아웃 '홈으로' 버튼 제거. | session1-cleanup: 인사이트 트렌드 탭 제거 → 경매시세·지원사업 2탭. 경매 품목 북마크(낙관적), 지원사업 카드 클릭 상세 모달·데스크탑 2단 그리드·서버 검색. `ScrapTargetType`=grant만. trend_articles·instagram_* 테이블/타입/액션 제거
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -659,6 +659,7 @@ erDiagram
 | `grants.ts` | getGrants, loadMoreGrants (keyword 서버 검색 지원) |
 | `scraps.ts` | toggleScrap, updateScrapMemo, getScrapMap, getGrantScraps, getScrapCounts — `target_type`은 `grant`만 |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, updateComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `PATCH /community/comments/{id}`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
+| `marketing.ts` | generateBlogDraft (`POST /ai/marketing/blog`), getToneProfile/saveToneProfile (`GET/PUT /ai/marketing/tone-profile`), listBlogContents (`GET /ai/marketing/contents`), getBlogContent (`GET /ai/marketing/contents/{id}`), **updateBlogContent** (`PUT /ai/marketing/contents/{id}` — 초안 인라인 편집 결과를 서버에 영속 저장. output만 갱신, 입력 메타·생성시각은 BFF 보존), deleteBlogContent (`DELETE /ai/marketing/contents/{id}`) |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 | `admin-job-runs.ts` | getJobRunSummary (BFF `GET /admin/job-runs/summary` — 작업별 최신 상태 카드), listJobRuns(filters, page) (BFF `GET /admin/job-runs`), triggerJob(jobName) (BFF `POST /admin/job-runs/{jobName}/trigger` — 즉시 실행) |
 
