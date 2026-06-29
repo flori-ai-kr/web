@@ -184,7 +184,7 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
           '**등록**을 누르면 **예약과 매출이 함께 등록**돼요.',
         ],
       },
-      { type: 'shot', src: 'calendar/01-form', alt: '예약 등록 화면', caption: '고객·결제·금액·픽업을 한 화면에서' },
+      { type: 'shot', src: 'calendar/01-form', kind: 'png', alt: '새 예약 등록 화면', caption: '고객·결제·금액·픽업을 한 화면에서' },
       {
         type: 'callout',
         variant: 'note',
@@ -202,7 +202,6 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
         title: '알림을 받으려면',
         text: '먼저 [알림 설정](/admin/guide/notifications)에서 **예약 리마인더**가 켜져 있는지 확인해 주세요. 알림이 꺼져 있으면 리마인더가 오지 않아요.',
       },
-      { type: 'shot', src: 'calendar/02-reminder', alt: '리마인더 설정', caption: '픽업 전 알림 시간 설정' },
 
       {
         type: 'faq',
@@ -212,12 +211,12 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
             a: '아니요. 예약을 등록할 때 매출도 같이 기록되니까 따로 적지 않아도 돼요. 금액·결제방식만 정확히 넣어 주세요.',
           },
           {
-            q: '이미 적은 매출에 픽업 일정을 더할 수 있나요?',
+            q: '이미 추가한 예약 건에 픽업 일정을 더할 수 있나요?',
             a: '네. 그 주문(예약)을 열어 **+ 픽업 추가**로 픽업을 더 넣으면 같은 매출에 연결돼요.',
           },
           {
             q: '알림이 안 와요.',
-            a: '알림 설정에서 예약 리마인더를 켰는지, 그리고 휴대폰·브라우저의 알림 권한이 허용돼 있는지 확인해 주세요. 홈 화면에 앱으로 추가하면 더 안정적으로 받을 수 있어요.',
+            a: '알림 설정에서 예약 리마인더를 켰는지, 그리고 휴대폰·브라우저의 알림 권한이 허용돼 있는지 확인해 주세요. 휴대폰은 flori를 **홈 화면에 앱으로 추가해야** 알림을 받을 수 있어요.',
           },
         ],
       },
