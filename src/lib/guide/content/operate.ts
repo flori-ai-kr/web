@@ -134,6 +134,13 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       },
       { type: 'shot', src: 'expenses/01-form', kind: 'png', alt: '지출 등록 화면', caption: '날짜·물품명·단가·수량·결제방식' },
 
+      { type: 'heading', text: '카테고리 · 결제방식 관리' },
+      {
+        type: 'paragraph',
+        text: '**지출 설정**에서 **카테고리 · 결제방식**을 우리 가게에 맞게 자유롭게 **추가 · 수정 · 삭제**하고, 순서도 바꿀 수 있어요.',
+      },
+      { type: 'shot', src: 'expenses/03-settings', kind: 'png', alt: '지출 설정 화면', caption: '카테고리·결제방식을 직접 관리' },
+
       { type: 'heading', text: '매달 나가는 고정비' },
       {
         type: 'paragraph',
@@ -169,16 +176,6 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       {
         type: 'paragraph',
         text: '필터로 걸러 둔 **그대로** 파일로 내보낼 수 있어요. **우측 하단 + 버튼 → 내보내기**에서 **CSV · Excel · PDF** 중 형식을 고르면 바로 다운로드돼요. 세무 신고나 거래처 제출 자료로 바로 쓰기 좋아요.',
-      },
-
-      {
-        type: 'faq',
-        items: [
-          {
-            q: '고정비를 한동안 멈추고 싶어요.',
-            a: '고정비 카드의 **토글을 꺼서 비활성화**하면 자동 등록이 멈춰요. 다시 지출이 나가는 주기부터 **활성화**하면 그때부터 다시 등록돼요.',
-          },
-        ],
       },
     ],
   },
