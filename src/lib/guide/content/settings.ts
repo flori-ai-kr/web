@@ -101,7 +101,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       {
         type: 'callout',
         variant: 'note',
-        text: '운영 **공지**와 **저장 용량 증설 결과**는 중요한 알림이라 항상 받아요.',
+        text: '운영 **공지**, **문의 답변**, **저장 용량 증설 결과**는 중요한 알림이라 항상 받아요.',
       },
 
       { type: 'heading', text: '휴대폰에서 알림 받기' },

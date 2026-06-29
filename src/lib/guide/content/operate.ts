@@ -375,6 +375,13 @@ export const OPERATE_ARTICLES: GuideArticle[] = [
       },
       { type: 'shot', src: 'gallery/02-tags', kind: 'png', alt: '태그 관리 화면', caption: '태그 추가·수정·삭제' },
 
+      { type: 'heading', text: '저장 용량과 증설 요청' },
+      {
+        type: 'paragraph',
+        text: '사진첩에 저장되는 이미지 용량은 **기본 3GB**예요. **80% 이상** 사용하면 **증설 요청**을 보낼 수 있어요. 요청하면 관리자가 검토해 **승인하거나 거절(사유 포함)**하고, 그 **결과를 푸시 알림**으로 알려드려요.',
+      },
+      { type: 'shot', src: 'gallery/04-storage', kind: 'png', alt: '저장 용량 화면', caption: '사진첩 저장 용량과 증설 요청' },
+
       {
         type: 'faq',
         items: [
