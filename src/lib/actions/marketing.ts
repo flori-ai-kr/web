@@ -7,6 +7,7 @@ import { AppError, ErrorCode, withErrorLogging } from '@/lib/errors';
 import type {
   BlogContentDetail,
   BlogContentsPage,
+  BlogDraft,
   GenerateBlogInput,
   GenerateBlogResponse,
   ToneProfile,
@@ -31,6 +32,33 @@ const toneProfileSchema = z.object({
   samples: z
     .array(z.string().trim().min(1).max(4000, '샘플 글이 너무 깁니다'))
     .max(3, '말투 샘플은 최대 3개까지 등록할 수 있어요'),
+});
+
+// 초안 수정 — api MarketingContentUpdateRequest 상한과 일치(서버에서 재검증). output(draft)만 보낸다.
+const updateContentSchema = z.object({
+  title: z.string().trim().min(1, '제목을 입력해 주세요').max(300, '제목이 너무 깁니다'),
+  sections: z
+    .array(
+      z.object({
+        heading: z.string().trim().min(1, '소제목을 입력해 주세요').max(300, '소제목이 너무 깁니다'),
+        body: z.string().trim().min(1, '본문을 입력해 주세요').max(10000, '본문이 너무 깁니다'),
+      }),
+    )
+    .min(1, '본문 단락을 한 개 이상 입력해 주세요')
+    .max(30, '본문 단락이 너무 많아요'),
+  faq: z
+    .array(
+      z.object({
+        q: z.string().trim().min(1, '질문을 입력해 주세요').max(1000, '질문이 너무 깁니다'),
+        a: z.string().trim().min(1, '답변을 입력해 주세요').max(4000, '답변이 너무 깁니다'),
+      }),
+    )
+    .max(30, 'FAQ는 최대 30개까지 등록할 수 있어요')
+    .default([]),
+  hashtags: z
+    .array(z.string().trim().max(100, '해시태그가 너무 깁니다'))
+    .max(30, '해시태그는 최대 30개까지 등록할 수 있어요')
+    .default([]),
 });
 
 // 게이트웨이 contentId는 영숫자/하이픈 식별자(UUID/숫자 허용). ai.ts의 safeToken과 동일 패턴.
@@ -121,6 +149,32 @@ async function _getBlogContent(id: string): Promise<BlogContentDetail> {
   return apiFetch<BlogContentDetail>(`/ai/marketing/contents/${parsed.data}`);
 }
 export const getBlogContent = withErrorLogging('getBlogContent', _getBlogContent);
+
+/**
+ * PUT /ai/marketing/contents/{id} — 초안 수정 저장. output(제목·단락·FAQ·해시태그)만 갱신하고
+ * 입력 메타(키워드/상황/메모/사진)·생성시각은 서버가 보존한다. 갱신된 상세를 반환한다.
+ */
+async function _updateBlogContent(id: string, input: BlogDraft): Promise<BlogContentDetail> {
+  await requireAuth();
+  const parsedId = contentIdSchema.safeParse(id);
+  if (!parsedId.success) {
+    throw new AppError(ErrorCode.VALIDATION, '잘못된 식별자입니다');
+  }
+  const parsed = updateContentSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new AppError(ErrorCode.VALIDATION, parsed.error.issues[0]?.message ?? '입력이 올바르지 않습니다');
+  }
+  return apiFetch<BlogContentDetail>(`/ai/marketing/contents/${parsedId.data}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      title: parsed.data.title,
+      sections: parsed.data.sections,
+      faq: parsed.data.faq,
+      hashtags: parsed.data.hashtags,
+    }),
+  });
+}
+export const updateBlogContent = withErrorLogging('updateBlogContent', _updateBlogContent);
 
 /** DELETE /ai/marketing/contents/{id} — 초안 소프트삭제. */
 async function _deleteBlogContent(id: string): Promise<void> {

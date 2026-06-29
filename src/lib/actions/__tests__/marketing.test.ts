@@ -11,6 +11,7 @@ import {
   saveToneProfile,
   listBlogContents,
   getBlogContent,
+  updateBlogContent,
   deleteBlogContent,
 } from '../marketing'
 
@@ -141,6 +142,40 @@ describe('getBlogContent', () => {
 
   it('잘못된 식별자는 거부', async () => {
     await expect(getBlogContent('bad id!')).rejects.toThrow()
+    expect(mockApiFetch).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateBlogContent', () => {
+  it('유효 입력은 /ai/marketing/contents/{id}로 PUT (draft 본문 전달)', async () => {
+    mockApiFetch.mockResolvedValue({ id: 'abc_1', draft: sampleDraft })
+    const result = await updateBlogContent('abc_1', sampleDraft)
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/ai/marketing/contents/abc_1',
+      expect.objectContaining({ method: 'PUT' }),
+    )
+    const body = JSON.parse(mockApiFetch.mock.calls[0][1]!.body as string)
+    expect(body).toEqual({
+      title: '제목',
+      sections: [{ heading: '소제목', body: '본문' }],
+      faq: [{ q: '질문', a: '답변' }],
+      hashtags: ['#꽃'],
+    })
+    expect(result.id).toBe('abc_1')
+  })
+
+  it('빈 제목은 거부', async () => {
+    await expect(updateBlogContent('abc_1', { ...sampleDraft, title: '   ' })).rejects.toThrow()
+    expect(mockApiFetch).not.toHaveBeenCalled()
+  })
+
+  it('섹션이 없으면 거부', async () => {
+    await expect(updateBlogContent('abc_1', { ...sampleDraft, sections: [] })).rejects.toThrow()
+    expect(mockApiFetch).not.toHaveBeenCalled()
+  })
+
+  it('잘못된 식별자는 거부', async () => {
+    await expect(updateBlogContent('bad id!', sampleDraft)).rejects.toThrow()
     expect(mockApiFetch).not.toHaveBeenCalled()
   })
 })

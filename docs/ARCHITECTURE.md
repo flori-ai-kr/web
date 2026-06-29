@@ -1,6 +1,6 @@
 # flori - 아키텍처 & 기술 선정 이유
 
-> 최종 업데이트: 2026-06-25 | session1-cleanup: 인사이트 트렌드 탭 제거 → 경매시세·지원사업 2탭. 경매 품목 북마크(낙관적), 지원사업 카드 클릭 상세 모달·데스크탑 2단 그리드·서버 검색. `ScrapTargetType`=grant만. trend_articles·instagram_* 테이블/타입/액션 제거
+> 최종 업데이트: 2026-06-29 | session2-qa: AI 블로그 초안 편집 서버 영속화 — `updateBlogContent` (`PUT /ai/marketing/contents/{id}`) 신규 서버 액션 추가, `activeId` 추적·저장 중 레이스 가드. 온보딩 SPECIALTIES '꽃상자' 제거. 정책 레이아웃 '홈으로' 버튼 제거. | session1-guide: 타입드 블록 기반 가이드 시스템 추가 — `lib/guide/`(types·sections·articles·toc·nav·inline·inline-render·icon-map·content/*), `components/guide/`(guide-block·guide-search·guide-toc·guide-nav·guide-nav-sheet·guide-prev-next), `/admin/guide`(인덱스 전면 재작성: 히어로+클라이언트 검색+섹션 카드)·`/admin/guide/[slug]`(신규 아티클 상세 3단 라우트, 스크롤스파이 TOC). 로그인 페이지 리디자인 + 첫 진입 환영 모달(WelcomeGuideModal) 개편(강제 선택형) | session1-cleanup: 인사이트 트렌드 탭 제거 → 경매시세·지원사업 2탭. 경매 품목 북마크(낙관적), 지원사업 카드 클릭 상세 모달·데스크탑 2단 그리드·서버 검색. `ScrapTargetType`=grant만. trend_articles·instagram_* 테이블/타입/액션 제거
 
 이 문서는 flori의 기술 스택과 아키텍처를 설명한다. 단순히 "무엇을 쓰는가"가 아니라 **"왜 이것을 골랐는가"**에 초점을 맞춘다. 모든 선택에는 꽃집 어드민이라는 도메인 맥락이 반영되어 있다.
 
@@ -611,6 +611,8 @@ erDiagram
 | `/admin/gallery` | 사진첩 | 앨범 표지 카드(표지+장수배지+메모아이콘+캡션) + 기간 헤더(월네비+셀렉터, created_at 기준) + 총계 헤더(N개·M장) + #해시태그(색상 없음, 카드당 최대 3) + 월별 섹션 + ?card= 딥링크 + FAB(카드추가/태그관리) + 고객 딥링크·customer_id 직접 필터 |
 | `/admin/calendar` | 예약 캘린더 | 예약 CRUD + 일정(schedules) + 리마인더 + 매출 자동 생성(id 기반) + 픽업 완료 토글 |
 | `/admin/insights` | 인사이트 | 경매시세·지원사업 2탭 (`?tab=price|grant`). 경매시세: 화훼구분 칩(스크랩/전체/절화/관엽/난)·날짜 네비·품목 검색·드릴다운·품목 북마크. 지원사업: 데스크탑 2단 그리드·카드 클릭 상세 모달·서버 검색. 트렌드·팔로우 탭 제거됨 |
+| `/admin/guide` | 사용 가이드 인덱스 | 히어로 배너 + 섹션별 아티클 카드 그리드. `lib/guide/articles.ts`의 `getSectionsWithArticles()` 기반 정적 렌더 |
+| `/admin/guide/[slug]` | 가이드 아티클 상세 | 3단 레이아웃(좌 nav/중 본문/우 스크롤스파이 TOC) + 이전/다음 아티클. `generateStaticParams`으로 빌드 타임 전체 slug 사전 렌더 |
 | `/admin/community` | 커뮤니티 | 게시판 목록/[id]/write/edit. 대댓글(최대 5뎁스)·좋아요·비밀글/댓글·Tiptap. BFF REST 완전 연동. 진입 시 `ensureCommunityAccess()` — APPROVED 아니면 /verify 리다이렉트(전원 인증, 운영자 예외 없음). 운영자 작성물에 "관리자" 칩 표시 |
 | `/admin/community/verify` | 사업자 인증 | 사업자등록증 업로드 + 심사 상태 표시 (`BusinessVerificationGate`). APPROVED 상태이면 /admin/community로 리다이렉트 |
 | `/admin/settings` | 설정 | 카드사 수수료/입금일 + 푸시 알림 + BottomNav 커스텀 + 푸시 타입별 수신 on/off 토글(PushPreferences) |
@@ -659,6 +661,7 @@ erDiagram
 | `grants.ts` | getGrants, loadMoreGrants (keyword 서버 검색 지원) |
 | `scraps.ts` | toggleScrap, updateScrapMemo, getScrapMap, getGrantScraps, getScrapCounts — `target_type`은 `grant`만 |
 | `community.ts` | getPosts, getPost, createPost, updatePost, deletePost, likePost, getComments, createComment, updateComment, deleteComment, createUploadTargets, **getLatestCommunityPosts** (대시보드용 경량 조회 — 비밀글 제외 최신 N건) — BFF `GET/POST /community/posts`, `GET/PATCH/DELETE /community/posts/{id}`, `POST /community/posts/{id}/like`, `GET/POST /community/posts/{id}/comments`, `PATCH /community/comments/{id}`, `DELETE /community/comments/{id}`, `POST /community/upload-targets` |
+| `marketing.ts` | generateBlogDraft (`POST /ai/marketing/blog`), getToneProfile/saveToneProfile (`GET/PUT /ai/marketing/tone-profile`), listBlogContents (`GET /ai/marketing/contents`), getBlogContent (`GET /ai/marketing/contents/{id}`), **updateBlogContent** (`PUT /ai/marketing/contents/{id}` — 초안 인라인 편집 결과를 서버에 영속 저장. output만 갱신, 입력 메타·생성시각은 BFF 보존), deleteBlogContent (`DELETE /ai/marketing/contents/{id}`) |
 | `business-verification.ts` | getMyBusinessVerification (`GET /verification/business/me`), requestUploadTarget (`POST /verification/business/upload-target`), submitBusinessVerification (`POST /verification/business`), ensureCommunityAccess() (커뮤니티 게이트 — 전원 사업자 인증 필요) — 에러코드 E-VRF-001..004 |
 | `admin-job-runs.ts` | getJobRunSummary (BFF `GET /admin/job-runs/summary` — 작업별 최신 상태 카드), listJobRuns(filters, page) (BFF `GET /admin/job-runs`), triggerJob(jobName) (BFF `POST /admin/job-runs/{jobName}/trigger` — 즉시 실행) |
 

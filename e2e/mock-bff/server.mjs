@@ -161,6 +161,12 @@ const routes = [
     submittedAt: new Date().toISOString(), reviewedAt: new Date().toISOString(),
   })],
 
+  // ── storage 쿼터 (사이드바 StorageUsageWidget이 모든 admin 페이지에서 호출) ──
+  ['GET', /^\/storage\/usage$/, () => ({
+    usedBytes: 0, quotaBytes: 3 * 1024 * 1024 * 1024, percent: 0, status: 'OK',
+  })],
+  ['GET', /^\/storage\/increase-request\/latest$/, () => null], // 대기 중 증설요청 없음
+
   // ── dashboard ──
   ['GET', /^\/dashboard\/today$/, () => {
     const todaySales = db.sales.filter((s) => s.date === todayStr());
