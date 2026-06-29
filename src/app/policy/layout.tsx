@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 
 /**
  * flori admin 정책 문서 전용 레이아웃 (이용약관 · 개인정보 처리방침 · 마케팅 수신 동의).
@@ -13,9 +12,9 @@ import { ArrowLeft } from 'lucide-react'
 export default function PolicyLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-background">
-      {/* 상단 바: 로고 + 홈 복귀 링크 */}
+      {/* 상단 바: 로고 */}
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -44,14 +43,6 @@ export default function PolicyLayout({ children }: { children: ReactNode }) {
             >
               flori<span className="text-brand">.</span>
             </span>
-          </Link>
-
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            <span>홈으로</span>
           </Link>
         </div>
       </header>
