@@ -38,7 +38,8 @@ export function WelcomeGuideModal() {
 
   return (
     // 바깥 클릭·ESC·X로는 닫히지 않게 막고, 아래 두 선택지로만 닫는다.
-    <Dialog open={open}>
+    // open은 완전 제어 상태 — onOpenChange는 Radix 제어 계약을 위한 no-op(닫기는 dismiss로만).
+    <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         showCloseButton={false}
         onPointerDownOutside={(e) => e.preventDefault()}

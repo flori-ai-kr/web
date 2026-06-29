@@ -37,6 +37,7 @@ export function GuideToc({ items }: { items: GuideTocItem[] }) {
     return () => {
       observer.disconnect();
       if (lockTimer.current) clearTimeout(lockTimer.current);
+      lockRef.current = false;
     };
   }, [items]);
 

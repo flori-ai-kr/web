@@ -48,11 +48,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           aria-hidden="true"
         />
       </button>
-      {open && (
-        <p id={panelId} className="pb-4 text-sm text-muted-foreground leading-relaxed">
-          {renderInline(a)}
-        </p>
-      )}
+      <p id={panelId} hidden={!open} className="pb-4 text-sm text-muted-foreground leading-relaxed">
+        {renderInline(a)}
+      </p>
     </div>
   );
 }

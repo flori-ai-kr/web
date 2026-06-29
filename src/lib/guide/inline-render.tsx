@@ -5,7 +5,8 @@ import { parseInline } from './inline';
 const SAFE_PROTOCOLS = ['https:', 'http:', 'mailto:'];
 
 function isSafeHref(href: string): boolean {
-  if (href.startsWith('/')) return true;
+  // 내부 경로만 허용. '//evil.com' 같은 protocol-relative URL은 외부 이동이므로 제외.
+  if (href.startsWith('/') && !href.startsWith('//')) return true;
   try {
     return SAFE_PROTOCOLS.includes(new URL(href).protocol);
   } catch {

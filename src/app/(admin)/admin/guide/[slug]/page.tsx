@@ -36,7 +36,7 @@ export default async function GuideArticlePage({ params }: { params: Promise<{ s
     <div className="flex gap-0 pb-16">
       {/* 좌측 네비 — 데스크탑 전용 */}
       <aside className="hidden lg:block w-56 xl:w-60 shrink-0 pr-6">
-        <div className="sticky top-0 pt-1 max-h-screen overflow-y-auto pb-8">
+        <div className="sticky top-14 pt-1 max-h-[calc(100dvh-3.5rem)] overflow-y-auto pb-8">
           <Link
             href="/admin/guide"
             className="mb-5 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -102,7 +102,7 @@ export default async function GuideArticlePage({ params }: { params: Promise<{ s
       {/* 우측 TOC — 데스크탑 전용 */}
       {toc.length > 0 && (
         <aside className="hidden xl:block w-48 shrink-0 pl-8">
-          <div className="sticky top-0 pt-1">
+          <div className="sticky top-14 pt-1">
             <GuideToc items={toc} />
           </div>
         </aside>
