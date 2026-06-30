@@ -202,8 +202,6 @@ export function LoginForm({ available }: { available: SocialProviders }) {
       <span>무료로 시작</span>
       <span className="size-1 rounded-full bg-border" />
       <span>카드 등록 필요 없어요</span>
-      <span className="size-1 rounded-full bg-border" />
-      <span>30초면 끝</span>
     </div>
   )
 

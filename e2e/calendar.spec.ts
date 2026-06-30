@@ -17,9 +17,12 @@ const dayCell = (day: number, suffix = '', month = MONTH) =>
 
 // seed 날짜는 mock BFF 프로세스 기동 시점 기준이라, 테스트 실행 시점과 자정/월을
 // 넘기면 어긋난다. 날짜를 자체 계산하지 말고 mock에서 실제 예약 날짜를 조회한다.
+// 단, /reservations/upcoming(date>=오늘)이 아니라 전체 목록을 본다 — 월 마지막 날엔
+// seed가 두 예약을 서로 다른 날(lastDay-1·lastDay)로 클램프하면서 confirmed 예약이
+// '어제'(과거)에 놓일 수 있어, upcoming 필터에서 빠지기 때문.
 const MOCK_BFF = process.env.MOCK_BFF_URL ?? 'http://127.0.0.1:18080';
 async function seedReservationDate(title: string): Promise<{ month: number; day: number }> {
-  const res = await fetch(`${MOCK_BFF}/reservations/upcoming`);
+  const res = await fetch(`${MOCK_BFF}/reservations`);
   const list = (await res.json()) as { title: string; date: string }[];
   const found = list.find((r) => r.title === title);
   if (!found) throw new Error(`mock seed에서 예약을 찾지 못함: ${title}`);
