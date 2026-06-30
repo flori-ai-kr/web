@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/api/cookie-names'
-import { rootRedirectTarget } from '@/lib/middleware-routing'
+import { authEntryRedirectTarget } from '@/lib/middleware-routing'
 
 // JWT payload에서 exp를 디코딩 (Edge Runtime 호환 — jsonwebtoken 사용 불가)
 // 주의: 여기서는 서명을 검증하지 않는다(만료 시점 판단용 디코딩일 뿐).
@@ -28,13 +28,14 @@ function isExpiredOrExpiring(token: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 루트 분기: 인증 쿠키 있으면 /admin, 없으면 /login (랜딩은 flori.ai.kr 로 이관)
-  const rootTarget = rootRedirectTarget(pathname, {
+  // 진입 분기: 인증 쿠키 있으면 / · /login → /admin (이미 로그인 상태면 로그인 화면 건너뜀),
+  // 없으면 / → /login (랜딩은 flori.ai.kr 로 이관)
+  const entryTarget = authEntryRedirectTarget(pathname, {
     hasAccess: request.cookies.has(ACCESS_COOKIE),
     hasRefresh: request.cookies.has(REFRESH_COOKIE),
   });
-  if (rootTarget) {
-    return NextResponse.redirect(new URL(rootTarget, request.url));
+  if (entryTarget) {
+    return NextResponse.redirect(new URL(entryTarget, request.url));
   }
 
   // 인증이 필요한 경로만 체크
