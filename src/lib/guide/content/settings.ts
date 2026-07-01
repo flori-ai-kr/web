@@ -118,7 +118,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
     description: '구독 상태·결제 카드를 확인하고 쿠폰·카드 교체·해지를 관리해요.',
     icon: 'credit-card',
     tldr: [
-      '카드 없이 14일 무료체험으로 시작해요',
+      '카드 없이 1달 무료체험으로 시작해요',
       '월간 14,900원 · 연간 154,800원 플랜이 있어요',
       '쿠폰을 등록하면 다음 결제일이 무료 일수만큼 미뤄져요',
     ],
@@ -133,7 +133,7 @@ export const SETTINGS_ARTICLES: GuideArticle[] = [
       { type: 'heading', text: '무료체험' },
       {
         type: 'paragraph',
-        text: '처음에는 **카드 없이 14일 무료체험**으로 시작해요. 체험이 끝나는 날 결제 정보를 등록하면 그대로 이어서 쓸 수 있어요.',
+        text: '처음에는 **카드 없이 1달 무료체험**으로 시작해요. 체험이 끝나는 날 결제 정보를 등록하면 그대로 이어서 쓸 수 있어요.',
       },
 
       { type: 'heading', text: '플랜과 결제' },

@@ -17,7 +17,7 @@ import type { BillingPlan } from '@/types/billing';
 const SETTINGS_PATH = '/admin/settings';
 const ADMIN_PATH = '/admin';
 
-// BFF: POST /billing/trial — 카드 없이 14일 무료체험 시작(구독 TRIALING 생성).
+// BFF: POST /billing/trial — 카드 없이 1달 무료체험 시작(구독 TRIALING 생성).
 // 결제 수단 등록은 체험 종료 시점의 결제벽(SubscriptionGate→BillingCheckout)에서만 받는다.
 async function _startTrial(): Promise<void> {
   await requireAuth();
