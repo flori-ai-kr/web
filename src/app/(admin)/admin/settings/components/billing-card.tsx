@@ -124,7 +124,7 @@ export function BillingCard() {
       });
       // 성공 시 토스 페이지로 리다이렉트되므로 setIsChangingCard(false) 불필요
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '카드 교체 준비 중 오류가 발생했어요.');
+      toast.error(err instanceof Error ? err.message : '결제 카드 준비 중 오류가 발생했어요.');
       setIsChangingCard(false);
     }
   };
@@ -267,9 +267,9 @@ export function BillingCard() {
         {/* 체험중 안내 */}
         {isCardlessTrial ? (
           <p className="mt-2 text-[12.5px] text-muted-foreground break-keep">
-            지금은 결제 정보 없이 무료로 이용 중이에요.{' '}
-            <b className="text-foreground font-medium">{formatDate(subscription.nextBillingAt)}</b>에 체험이 끝나며,
-            계속 이용하려면 그때 결제 정보를 등록하면 돼요.
+            지금은 결제 정보 없이 무료로 이용 중이에요. 카드를 미리 등록해두면{' '}
+            <b className="text-foreground font-medium">{formatDate(subscription.nextBillingAt)}</b>에 체험이 끝날 때
+            끊김 없이 자동으로 이어져요. 남은 체험 기간은 그대로예요.
           </p>
         ) : isTrialing ? (
           <p className="mt-2 text-[12.5px] text-muted-foreground break-keep">
@@ -309,7 +309,20 @@ export function BillingCard() {
           )}
         </div>
 
-        {/* 액션 버튼 (무카드 체험은 관리할 카드/결제가 없어 액션 숨김 — 종료 시 결제 안내로 이어짐) */}
+        {/* 무카드 체험: 카드 미리 등록 (등록해두면 체험 종료 시 자동 결제로 전환, 남은 체험 기간은 유지) */}
+        {isCardlessTrial && (
+          <div className="mt-4">
+            <Button size="sm" onClick={handleChangeCard} disabled={isChangingCard}>
+              {isChangingCard && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              카드 등록
+            </Button>
+            <p className="mt-1.5 text-[11px] text-muted-foreground break-keep">
+              지금 등록해도 체험 종료일까지는 결제되지 않아요.
+            </p>
+          </div>
+        )}
+
+        {/* 액션 버튼 (카드 등록은 무카드 체험 시 위에서 노출, 나머지 관리 액션은 카드/결제가 있을 때) */}
         {!isCardlessTrial && (
         <div className="mt-4 flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">

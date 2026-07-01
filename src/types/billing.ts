@@ -33,7 +33,7 @@ export interface PaymentSummary {
 export interface MeResponse {
   subscription: SubscriptionResponse | null;
   recentPayments: PaymentSummary[];
-  /** 활성 구독이 없고 무카드 14일 무료체험을 시작할 수 있을 때 true (체험 미소진). */
+  /** 활성 구독이 없고 무카드 1달 무료체험을 시작할 수 있을 때 true (체험 미소진). */
   trialEligible: boolean;
 }
 

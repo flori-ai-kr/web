@@ -13,13 +13,13 @@ const TRIAL_PERKS = [
   {emoji: '📒', text: '주문·고객·매출·예약을 한 곳에서 관리'},
   {emoji: '✍️', text: 'AI가 블로그 글·홍보 문구까지 대신 써줘요'},
   {emoji: '🌸', text: '꽃 시세·지원사업 정보로 한발 앞서기'},
-  {emoji: '🎁', text: '14일 내내 모든 기능 그대로, 카드 없이'},
+  {emoji: '🎁', text: '1달 내내 모든 기능 그대로, 카드 없이'},
 ];
 
 /**
  * 무카드 무료체험 진입 게이트(풀스크린, AppLayout 없음).
  * 사업자 인증(APPROVED) 통과 후, 활성 구독이 없고 체험을 시작할 수 있는(trialEligible) 점주가 마주하는 화면.
- * 카드/플랜 UI 없이 원클릭으로 14일 무료체험을 시작한다 → 성공 시 레이아웃이 TRIALING으로 재렌더되어 앱에 진입.
+ * 카드/플랜 UI 없이 원클릭으로 1달 무료체험을 시작한다 → 성공 시 레이아웃이 TRIALING으로 재렌더되어 앱에 진입.
  * 카드 등록·결제는 체험 종료 시점의 결제벽(SubscriptionGate→BillingCheckout)에서만 받는다.
  */
 export function TrialStartGate() {
@@ -30,7 +30,7 @@ export function TrialStartGate() {
     startTransition(async () => {
       try {
         await startTrial();
-        toast.success('14일 무료체험을 시작했어요. 환영해요!');
+        toast.success('1달 무료체험을 시작했어요. 환영해요!');
         router.refresh();
       } catch (err) {
         toast.error(
@@ -52,10 +52,10 @@ export function TrialStartGate() {
             🌷 반가워요, 사장님!
           </span>
           <h3 className="text-[24px] font-bold text-foreground tracking-tight text-center mt-3">
-            14일 무료체험을 시작해요
+            1달 무료체험을 시작해요
           </h3>
           <p className="text-sm text-muted-foreground mt-2 break-keep max-w-sm text-center">
-            카드 없이 지금 바로 시작 — 14일 동안 플로리의 모든 기능을 마음껏 써보세요.
+            카드 없이 지금 바로 시작 — 1달 동안 플로리의 모든 기능을 마음껏 써보세요.
           </p>
 
           <ul className="mt-6 w-full max-w-[440px] space-y-2.5">
@@ -80,10 +80,10 @@ export function TrialStartGate() {
               onClick={handleStart}
             >
               {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              14일 무료로 시작하기
+              1달 무료로 시작하기
             </Button>
             <p className="text-[11px] text-muted-foreground text-center mt-2 break-keep">
-              카드 없이 바로 시작 · 14일 후 결제 안내 · 언제든 해지할 수 있어요
+              카드 없이 바로 시작 · 1달 후 결제 안내 · 언제든 해지할 수 있어요
             </p>
           </div>
         </div>
